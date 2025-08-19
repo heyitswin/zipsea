@@ -2,21 +2,11 @@ services:
   # PostgreSQL Database
   - type: pserv
     name: zipsea-postgres
-    env: docker
+    databaseName: zipsea_db
+    user: zipsea_user
     plan: starter
     region: oregon
-    dockerCommand: postgres:15
-    envVars:
-      - key: POSTGRES_USER
-        value: zipsea_user
-      - key: POSTGRES_DB
-        value: zipsea_db
-      - key: POSTGRES_PASSWORD
-        generateValue: true
-    disk:
-      name: postgres-data
-      mountPath: /var/lib/postgresql/data
-      sizeGB: 10
+    ipAllowList: []  # Allow all IPs initially, restrict later
 
   # Redis Cache
   - type: redis
@@ -24,6 +14,7 @@ services:
     plan: starter
     region: oregon
     maxmemoryPolicy: allkeys-lru
+    ipAllowList: []  # Allow all IPs initially, restrict later
 
   # Backend API - Staging Environment
   - type: web
@@ -44,8 +35,7 @@ services:
       - key: API_VERSION
         value: v1
       - key: DATABASE_URL
-        fromService:
-          type: pserv
+        fromDatabase:
           name: zipsea-postgres
           property: connectionString
       - key: REDIS_URL
@@ -100,8 +90,7 @@ services:
       - key: API_VERSION
         value: v1
       - key: DATABASE_URL
-        fromService:
-          type: pserv
+        fromDatabase:
           name: zipsea-postgres
           property: connectionString
       - key: REDIS_URL
