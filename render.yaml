@@ -1,12 +1,13 @@
-services:
+databases:
   # PostgreSQL Database
-  - type: pserv
-    name: zipsea-postgres
+  - name: zipsea-postgres
     databaseName: zipsea_db
     user: zipsea_user
     plan: starter
     region: oregon
     ipAllowList: []  # Allow all IPs initially, restrict later
+
+services:
 
   # Redis Cache
   - type: redis
