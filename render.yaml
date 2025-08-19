@@ -1,25 +1,41 @@
 databases:
-  # PostgreSQL Database
-  - name: zipsea-postgres
-    databaseName: zipsea_db
-    user: zipsea_user
-    plan: free  # Use 'free' for development, upgrade to 'starter-v2' or 'standard' for production
+  # Staging PostgreSQL Database
+  - name: zipsea-postgres-staging
+    databaseName: zipsea_staging_db
+    user: zipsea_staging_user
+    plan: free
     region: oregon
-    ipAllowList: []  # Allow all IPs initially, restrict later
+    ipAllowList: []
+
+  # Production PostgreSQL Database (create later when ready)
+  # - name: zipsea-postgres-production
+  #   databaseName: zipsea_production_db
+  #   user: zipsea_production_user
+  #   plan: starter
+  #   region: oregon
+  #   ipAllowList: []
 
 services:
 
-  # Redis Cache
+  # Staging Redis Cache
   - type: redis
-    name: zipsea-redis
-    plan: starter
+    name: zipsea-redis-staging
+    plan: free
     region: oregon
     maxmemoryPolicy: allkeys-lru
-    ipAllowList: []  # Allow all IPs initially, restrict later
+    ipAllowList: []
+
+  # Production Redis Cache (create later when ready)
+  # - type: redis
+  #   name: zipsea-redis-production
+  #   plan: starter
+  #   region: oregon
+  #   maxmemoryPolicy: allkeys-lru
+  #   ipAllowList: []
 
   # Backend API - Staging Environment
   - type: web
-    name: zipsea-staging
+    name: zipsea-backend
     env: node
     region: oregon
     plan: starter
@@ -31,21 +47,17 @@ services:
         value: staging
       - key: PORT
         value: 10000
-      - key: API_PREFIX
-        value: /api
-      - key: API_VERSION
-        value: v1
       - key: DATABASE_URL
         fromDatabase:
-          name: zipsea-postgres
+          name: zipsea-postgres-staging
           property: connectionString
       - key: REDIS_URL
         fromService:
           type: redis
-          name: zipsea-redis
+          name: zipsea-redis-staging
           property: connectionString
       - key: CORS_ORIGIN
-        value: https://zipsea-staging-frontend.onrender.com,http://localhost:3000
+        value: http://localhost:3000
       - key: LOG_LEVEL
         value: info
       - key: RATE_LIMIT_WINDOW_MS
@@ -54,113 +66,50 @@ services:
         value: 100
       - key: JWT_SECRET
         generateValue: true
-      - key: CLERK_PUBLISHABLE_KEY
-        sync: false
-      - key: CLERK_SECRET_KEY
-        sync: false
-      - key: SENTRY_DSN
-        sync: false
-      - key: TRAVELTEK_API_URL
-        value: https://api.traveltek.net
-      - key: TRAVELTEK_API_KEY
-        sync: false
-      - key: TRAVELTEK_DEALER_CODE
-        sync: false
       - key: WEBHOOK_SECRET
         generateValue: true
+      # These will be added manually in Render Dashboard
+      # - key: CLERK_PUBLISHABLE_KEY
+      # - key: CLERK_SECRET_KEY
+      # - key: SENTRY_DSN
+      # - key: TRAVELTEK_FTP_HOST
+      # - key: TRAVELTEK_FTP_USER
+      # - key: TRAVELTEK_FTP_PASSWORD
     autoDeploy: true
-    # branch: main  # Uncomment after confirming branch exists
-    # repo: https://github.com/your-username/zipsea.git  # Update with your actual repo URL
 
-  # Backend API - Production Environment
-  - type: web
-    name: zipsea-production
-    env: node
-    region: oregon
-    plan: standard
-    buildCommand: cd backend && npm ci && npm run build
-    startCommand: cd backend && npm start
-    healthCheckPath: /health
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 10000
-      - key: API_PREFIX
-        value: /api
-      - key: API_VERSION
-        value: v1
-      - key: DATABASE_URL
-        fromDatabase:
-          name: zipsea-postgres
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: zipsea-redis
-          property: connectionString
-      - key: CORS_ORIGIN
-        value: https://zipsea.onrender.com
-      - key: LOG_LEVEL
-        value: warn
-      - key: RATE_LIMIT_WINDOW_MS
-        value: 900000
-      - key: RATE_LIMIT_MAX_REQUESTS
-        value: 200
-      - key: JWT_SECRET
-        generateValue: true
-      - key: CLERK_PUBLISHABLE_KEY
-        sync: false
-      - key: CLERK_SECRET_KEY
-        sync: false
-      - key: SENTRY_DSN
-        sync: false
-      - key: TRAVELTEK_API_URL
-        value: https://api.traveltek.net
-      - key: TRAVELTEK_API_KEY
-        sync: false
-      - key: TRAVELTEK_DEALER_CODE
-        sync: false
-      - key: WEBHOOK_SECRET
-        generateValue: true
-    autoDeploy: false
-    # branch: production  # Uncomment after creating production branch
-
-envVarGroups:
-  # Staging Environment Variables
-  - name: zipsea-staging-env
-    envVars:
-      - key: NODE_ENV
-        value: staging
-      - key: LOG_LEVEL
-        value: info
-      - key: RATE_LIMIT_MAX_REQUESTS
-        value: 100
-      - key: CORS_ORIGIN
-        value: https://zipsea-staging-frontend.onrender.com,http://localhost:3000
-  
-  # Production Environment Variables
-  - name: zipsea-production-env
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: LOG_LEVEL
-        value: warn
-      - key: RATE_LIMIT_MAX_REQUESTS
-        value: 200
-      - key: CORS_ORIGIN
-        value: https://zipsea.onrender.com
-
-  # Shared Environment Variables
-  - name: zipsea-shared-env
-    envVars:
-      - key: API_PREFIX
-        value: /api
-      - key: API_VERSION
-        value: v1
-      - key: PORT
-        value: 10000
-      - key: RATE_LIMIT_WINDOW_MS
-        value: 900000
-      - key: TRAVELTEK_API_URL
-        value: https://api.traveltek.net
+  # Production Backend API (create later when ready)
+  # - type: web
+  #   name: zipsea-backend-production
+  #   env: node
+  #   region: oregon
+  #   plan: standard
+  #   buildCommand: cd backend && npm ci && npm run build
+  #   startCommand: cd backend && npm start
+  #   healthCheckPath: /health
+  #   envVars:
+  #     - key: NODE_ENV
+  #       value: production
+  #     - key: PORT
+  #       value: 10000
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: zipsea-postgres-production
+  #         property: connectionString
+  #     - key: REDIS_URL
+  #       fromService:
+  #         type: redis
+  #         name: zipsea-redis-production
+  #         property: connectionString
+  #     - key: CORS_ORIGIN
+  #       value: https://zipsea.com
+  #     - key: LOG_LEVEL
+  #       value: warn
+  #     - key: RATE_LIMIT_WINDOW_MS
+  #       value: 900000
+  #     - key: RATE_LIMIT_MAX_REQUESTS
+  #       value: 200
+  #     - key: JWT_SECRET
+  #       generateValue: true
+  #     - key: WEBHOOK_SECRET
+  #       generateValue: true
+  #   autoDeploy: false

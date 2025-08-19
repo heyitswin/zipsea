@@ -6,7 +6,7 @@ dotenv.config();
 
 // Environment validation schema
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test', 'staging']).default('development'),
+  NODE_ENV: z.enum(['staging', 'production']).default('staging'),
   PORT: z.string().transform(Number).default('3001'),
   
   // Database
@@ -64,10 +64,11 @@ if (!parseResult.success) {
 export const env = parseResult.data;
 
 // Environment helpers
-export const isDevelopment = env.NODE_ENV === 'development';
-export const isProduction = env.NODE_ENV === 'production';
 export const isStaging = env.NODE_ENV === 'staging';
-export const isTest = env.NODE_ENV === 'test';
+export const isProduction = env.NODE_ENV === 'production';
+// Legacy helpers for compatibility
+export const isDevelopment = env.NODE_ENV === 'staging'; // Use staging for dev-like behavior
+export const isTest = false; // No test environment
 
 // Database configuration
 export const dbConfig = {
