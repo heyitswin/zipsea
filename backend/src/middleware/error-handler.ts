@@ -83,7 +83,7 @@ function handleZodError(error: ZodError): ValidationError {
   const errors = error.issues.map(issue => ({
     field: issue.path.join('.'),
     message: issue.message,
-    received: issue.received,
+    received: (issue as any).received || undefined,
   }));
 
   return new ValidationError('Validation failed', errors);
@@ -124,8 +124,8 @@ export const errorHandler = (
   }
   
   // Handle database errors
-  else if (error.name === 'QueryFailedError' || error.code) {
-    appError = handleDatabaseError(error);
+  else if (error.name === 'QueryFailedError' || (error as any).code) {
+    appError = handleDatabaseError(error as any);
   }
   
   // Handle known application errors

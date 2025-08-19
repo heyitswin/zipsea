@@ -353,15 +353,4 @@ export interface ServiceHealth {
   error?: string;
 }
 
-export default {
-  ApiResponse,
-  ApiError,
-  ApiMeta,
-  CruiseSearchResult,
-  CruiseListItem,
-  CruiseDetails,
-  QuoteRequest,
-  UserProfile,
-  SavedSearch,
-  HealthStatus,
-};
+// Remove default export that references types as values

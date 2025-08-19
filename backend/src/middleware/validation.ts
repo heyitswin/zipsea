@@ -39,7 +39,7 @@ export const validate = (schemas: ValidationSchemas) => {
           error.issues.map(issue => ({
             field: issue.path.join('.'),
             message: issue.message,
-            received: issue.received,
+            received: (issue as any).received || undefined,
           }))
         );
         next(validationError);

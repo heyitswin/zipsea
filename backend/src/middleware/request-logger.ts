@@ -8,14 +8,14 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction): 
 
   // Override res.end to log after response
   const originalEnd = res.end;
-  res.end = function (chunk?: any, encoding?: any, cb?: any) {
+  res.end = function (chunk?: any, encoding?: any, cb?: any): any {
     const duration = Date.now() - startTime;
     
     // Log the request
     logRequest(req, res, duration);
     
     // Call original end method
-    originalEnd.call(this, chunk, encoding, cb);
+    return originalEnd.call(this, chunk, encoding, cb);
   };
 
   // Add request ID for tracing

@@ -46,12 +46,11 @@ export async function closeConnection(): Promise<void> {
   }
 }
 
-// Connection error handling
-sql.on('error', (error) => {
-  dbLogger.error('Database connection error', { error });
-});
+// Connection error handling (postgres.js doesn't have .on method)
+// Error handling is done in the connection configuration above
 
 // Export types
 export type Database = typeof db;
 
 export default db;
+export { sql };
