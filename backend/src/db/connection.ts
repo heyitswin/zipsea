@@ -4,28 +4,32 @@ import { env, dbConfig } from '../config/environment';
 import logger, { dbLogger } from '../config/logger';
 import * as schema from './schema';
 
-// Create PostgreSQL connection
-const sql = postgres(env.DATABASE_URL, {
+// Create PostgreSQL connection (only if DATABASE_URL is provided)
+const sql = env.DATABASE_URL ? postgres(env.DATABASE_URL, {
   max: dbConfig.max,
   idle_timeout: dbConfig.idleTimeoutMillis / 1000,
   connect_timeout: dbConfig.connectionTimeoutMillis / 1000,
   ssl: dbConfig.ssl ? { rejectUnauthorized: false } : false,
   onnotice: () => {}, // Suppress notices in production
   debug: env.NODE_ENV === 'development',
-});
+}) : null as any;
 
-// Create Drizzle database instance
-export const db = drizzle(sql, { 
+// Create Drizzle database instance (only if we have a connection)
+export const db = sql ? drizzle(sql, { 
   schema,
   logger: env.NODE_ENV === 'development' ? {
     logQuery: (query, params) => {
       dbLogger.debug('SQL Query', { query, params });
     }
   } : false,
-});
+}) : null as any;
 
 // Test database connection
 export async function testConnection(): Promise<boolean> {
+  if (!sql) {
+    dbLogger.warn('No database URL configured');
+    return false;
+  }
   try {
     await sql`SELECT 1`;
     dbLogger.info('Database connection established successfully');
@@ -38,6 +42,9 @@ export async function testConnection(): Promise<boolean> {
 
 // Graceful shutdown
 export async function closeConnection(): Promise<void> {
+  if (!sql) {
+    return;
+  }
   try {
     await sql.end();
     dbLogger.info('Database connection closed');

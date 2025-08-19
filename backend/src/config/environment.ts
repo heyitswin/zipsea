@@ -6,23 +6,23 @@ dotenv.config();
 
 // Environment validation schema
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.enum(['development', 'production', 'test', 'staging']).default('development'),
   PORT: z.string().transform(Number).default('3001'),
   
   // Database
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: z.string().url().optional(),
   
   // Redis
-  REDIS_URL: z.string().url(),
+  REDIS_URL: z.string().url().optional(),
   
   // Clerk
-  CLERK_SECRET_KEY: z.string().min(1),
+  CLERK_SECRET_KEY: z.string().min(1).optional(),
   CLERK_JWT_KEY: z.string().min(1).optional(),
   
-  // Traveltek
-  TRAVELTEK_FTP_HOST: z.string().min(1),
-  TRAVELTEK_FTP_USER: z.string().min(1),
-  TRAVELTEK_FTP_PASSWORD: z.string().min(1),
+  // Traveltek (optional for initial deployment)
+  TRAVELTEK_FTP_HOST: z.string().min(1).optional(),
+  TRAVELTEK_FTP_USER: z.string().min(1).optional(),
+  TRAVELTEK_FTP_PASSWORD: z.string().min(1).optional(),
   
   // Sentry
   SENTRY_DSN: z.string().url().optional(),
@@ -31,7 +31,7 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().min(1).optional(),
   
   // Security
-  JWT_SECRET: z.string().min(1),
+  JWT_SECRET: z.string().min(1).optional(),
   WEBHOOK_SECRET: z.string().min(1).optional(),
   
   // CORS
@@ -66,20 +66,21 @@ export const env = parseResult.data;
 // Environment helpers
 export const isDevelopment = env.NODE_ENV === 'development';
 export const isProduction = env.NODE_ENV === 'production';
+export const isStaging = env.NODE_ENV === 'staging';
 export const isTest = env.NODE_ENV === 'test';
 
 // Database configuration
 export const dbConfig = {
-  url: env.DATABASE_URL,
-  ssl: isProduction,
-  max: isProduction ? 20 : 5,
+  url: env.DATABASE_URL || '',
+  ssl: isProduction || isStaging,
+  max: isProduction || isStaging ? 20 : 5,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
 };
 
 // Redis configuration
 export const redisConfig = {
-  url: env.REDIS_URL,
+  url: env.REDIS_URL || '',
   retryDelayOnFailover: 100,
   enableReadyCheck: true,
   maxRetriesPerRequest: 3,

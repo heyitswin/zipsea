@@ -7,12 +7,18 @@ class RedisClient {
   private isConnected = false;
 
   constructor() {
-    this.client = createClient({
-      url: env.REDIS_URL,
-      ...redisConfig,
-    }) as RedisClientType;
+    // Only create client if REDIS_URL is configured
+    if (env.REDIS_URL) {
+      this.client = createClient({
+        url: env.REDIS_URL,
+        ...redisConfig,
+      }) as RedisClientType;
 
-    this.setupEventHandlers();
+      this.setupEventHandlers();
+    } else {
+      cacheLogger.warn('Redis URL not configured - cache disabled');
+      this.client = null as any;
+    }
   }
 
   private setupEventHandlers(): void {
@@ -41,6 +47,10 @@ class RedisClient {
   }
 
   async connect(): Promise<void> {
+    if (!this.client) {
+      cacheLogger.warn('Redis client not initialized - skipping connection');
+      return;
+    }
     try {
       await this.client.connect();
       cacheLogger.info('Redis connection established successfully');
@@ -51,6 +61,9 @@ class RedisClient {
   }
 
   async disconnect(): Promise<void> {
+    if (!this.client) {
+      return;
+    }
     try {
       await this.client.quit();
       this.isConnected = false;
@@ -61,10 +74,12 @@ class RedisClient {
   }
 
   async ping(): Promise<string> {
+    if (!this.client) return 'PONG';
     return await this.client.ping();
   }
 
   async get(key: string): Promise<string | null> {
+    if (!this.client) return null;
     try {
       const value = await this.client.get(key);
       logCacheOperation(value ? 'hit' : 'miss', key);
@@ -76,6 +91,7 @@ class RedisClient {
   }
 
   async set(key: string, value: string, ttl?: number): Promise<void> {
+    if (!this.client) return;
     try {
       if (ttl) {
         await this.client.setEx(key, ttl, value);
@@ -89,6 +105,7 @@ class RedisClient {
   }
 
   async del(key: string): Promise<void> {
+    if (!this.client) return;
     try {
       await this.client.del(key);
       logCacheOperation('del', key);
@@ -98,6 +115,7 @@ class RedisClient {
   }
 
   async exists(key: string): Promise<boolean> {
+    if (!this.client) return false;
     try {
       const result = await this.client.exists(key);
       return result === 1;
@@ -108,6 +126,7 @@ class RedisClient {
   }
 
   async keys(pattern: string): Promise<string[]> {
+    if (!this.client) return [];
     try {
       // Use SCAN instead of KEYS for better performance
       const keys: string[] = [];
@@ -130,6 +149,7 @@ class RedisClient {
   }
 
   async ttl(key: string): Promise<number> {
+    if (!this.client) return -1;
     try {
       return await this.client.ttl(key);
     } catch (error) {
@@ -139,6 +159,7 @@ class RedisClient {
   }
 
   async expire(key: string, seconds: number): Promise<void> {
+    if (!this.client) return;
     try {
       await this.client.expire(key, seconds);
     } catch (error) {
@@ -147,6 +168,7 @@ class RedisClient {
   }
 
   async flushAll(): Promise<void> {
+    if (!this.client) return;
     try {
       await this.client.flushAll();
       cacheLogger.info('Redis cache flushed');
@@ -156,6 +178,7 @@ class RedisClient {
   }
 
   async mGet(keys: string[]): Promise<(string | null)[]> {
+    if (!this.client) return keys.map(() => null);
     try {
       return await this.client.mGet(keys);
     } catch (error) {
@@ -165,6 +188,7 @@ class RedisClient {
   }
 
   async mSet(keyValuePairs: Record<string, string>): Promise<void> {
+    if (!this.client) return;
     try {
       await this.client.mSet(keyValuePairs);
     } catch (error) {
@@ -173,6 +197,7 @@ class RedisClient {
   }
 
   async hGet(key: string, field: string): Promise<string | null> {
+    if (!this.client) return null;
     try {
       return await this.client.hGet(key, field);
     } catch (error) {
@@ -182,6 +207,7 @@ class RedisClient {
   }
 
   async hSet(key: string, field: string, value: string): Promise<void> {
+    if (!this.client) return;
     try {
       await this.client.hSet(key, field, value);
     } catch (error) {
@@ -190,6 +216,7 @@ class RedisClient {
   }
 
   async hGetAll(key: string): Promise<Record<string, string>> {
+    if (!this.client) return {};
     try {
       return await this.client.hGetAll(key);
     } catch (error) {
@@ -199,6 +226,7 @@ class RedisClient {
   }
 
   async hDel(key: string, field: string): Promise<void> {
+    if (!this.client) return;
     try {
       await this.client.hDel(key, field);
     } catch (error) {
@@ -207,6 +235,7 @@ class RedisClient {
   }
 
   async sadd(key: string, members: string[]): Promise<void> {
+    if (!this.client) return;
     try {
       await this.client.sAdd(key, members);
     } catch (error) {
@@ -215,6 +244,7 @@ class RedisClient {
   }
 
   async smembers(key: string): Promise<string[]> {
+    if (!this.client) return [];
     try {
       return await this.client.sMembers(key);
     } catch (error) {
@@ -224,6 +254,7 @@ class RedisClient {
   }
 
   async srem(key: string, members: string[]): Promise<void> {
+    if (!this.client) return;
     try {
       await this.client.sRem(key, members);
     } catch (error) {
