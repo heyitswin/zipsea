@@ -31,7 +31,9 @@
     "noImplicitOverride": false,
     "noPropertyAccessFromIndexSignature": false,
     "allowUnusedLabels": true,
-    "allowUnreachableCode": true
+    "allowUnreachableCode": true,
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types"]
   },
   "include": [
     "src/**/*"
