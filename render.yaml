@@ -3,7 +3,7 @@ databases:
   - name: zipsea-postgres
     databaseName: zipsea_db
     user: zipsea_user
-    plan: starter
+    plan: free  # Use 'free' for development, upgrade to 'starter-v2' or 'standard' for production
     region: oregon
     ipAllowList: []  # Allow all IPs initially, restrict later
 
@@ -69,8 +69,8 @@ services:
       - key: WEBHOOK_SECRET
         generateValue: true
     autoDeploy: true
-    branch: main
-    repo: https://github.com/your-username/zipsea.git
+    # branch: main  # Uncomment after confirming branch exists
+    # repo: https://github.com/your-username/zipsea.git  # Update with your actual repo URL
 
   # Backend API - Production Environment
   - type: web
@@ -124,7 +124,7 @@ services:
       - key: WEBHOOK_SECRET
         generateValue: true
     autoDeploy: false
-    branch: production
+    # branch: production  # Uncomment after creating production branch
 
 envVarGroups:
   # Staging Environment Variables
