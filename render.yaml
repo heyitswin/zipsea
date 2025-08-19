@@ -1,0 +1,176 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: zipsea-postgres
+    env: docker
+    plan: starter
+    region: oregon
+    dockerCommand: postgres:15
+    envVars:
+      - key: POSTGRES_USER
+        value: zipsea_user
+      - key: POSTGRES_DB
+        value: zipsea_db
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+    disk:
+      name: postgres-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 10
+
+  # Redis Cache
+  - type: redis
+    name: zipsea-redis
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+
+  # Backend API - Staging Environment
+  - type: web
+    name: zipsea-staging
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: cd backend && npm ci && npm run build
+    startCommand: cd backend && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: staging
+      - key: PORT
+        value: 10000
+      - key: API_PREFIX
+        value: /api
+      - key: API_VERSION
+        value: v1
+      - key: DATABASE_URL
+        fromService:
+          type: pserv
+          name: zipsea-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: zipsea-redis
+          property: connectionString
+      - key: CORS_ORIGIN
+        value: https://zipsea-staging-frontend.onrender.com,http://localhost:3000
+      - key: LOG_LEVEL
+        value: info
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: TRAVELTEK_API_URL
+        value: https://api.traveltek.net
+      - key: TRAVELTEK_API_KEY
+        sync: false
+      - key: TRAVELTEK_DEALER_CODE
+        sync: false
+      - key: WEBHOOK_SECRET
+        generateValue: true
+    autoDeploy: true
+    branch: main
+    repo: https://github.com/your-username/zipsea.git
+
+  # Backend API - Production Environment
+  - type: web
+    name: zipsea-production
+    env: node
+    region: oregon
+    plan: standard
+    buildCommand: cd backend && npm ci && npm run build
+    startCommand: cd backend && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: API_PREFIX
+        value: /api
+      - key: API_VERSION
+        value: v1
+      - key: DATABASE_URL
+        fromService:
+          type: pserv
+          name: zipsea-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: zipsea-redis
+          property: connectionString
+      - key: CORS_ORIGIN
+        value: https://zipsea.onrender.com
+      - key: LOG_LEVEL
+        value: warn
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 200
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: TRAVELTEK_API_URL
+        value: https://api.traveltek.net
+      - key: TRAVELTEK_API_KEY
+        sync: false
+      - key: TRAVELTEK_DEALER_CODE
+        sync: false
+      - key: WEBHOOK_SECRET
+        generateValue: true
+    autoDeploy: false
+    branch: production
+
+envVarGroups:
+  # Staging Environment Variables
+  - name: zipsea-staging-env
+    envVars:
+      - key: NODE_ENV
+        value: staging
+      - key: LOG_LEVEL
+        value: info
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+      - key: CORS_ORIGIN
+        value: https://zipsea-staging-frontend.onrender.com,http://localhost:3000
+  
+  # Production Environment Variables
+  - name: zipsea-production-env
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: warn
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 200
+      - key: CORS_ORIGIN
+        value: https://zipsea.onrender.com
+
+  # Shared Environment Variables
+  - name: zipsea-shared-env
+    envVars:
+      - key: API_PREFIX
+        value: /api
+      - key: API_VERSION
+        value: v1
+      - key: PORT
+        value: 10000
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: TRAVELTEK_API_URL
+        value: https://api.traveltek.net
