@@ -173,9 +173,9 @@ export const validateWebhookSignature = (req: Request, res: Response, next: Next
     const signature = req.headers['x-webhook-signature'] as string;
     const webhookSecret = process.env.WEBHOOK_SECRET;
 
-    // Skip validation in development if no secret is set
+    // Skip validation in staging if no secret is set
     if (!webhookSecret) {
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === 'staging') {
         logger.warn('Webhook secret not configured - skipping signature validation');
         next();
         return;
@@ -189,9 +189,9 @@ export const validateWebhookSignature = (req: Request, res: Response, next: Next
       }
     }
 
-    // Skip validation if no signature provided in development
-    if (!signature && process.env.NODE_ENV === 'development') {
-      logger.warn('No webhook signature provided - skipping validation in development');
+    // Skip validation if no signature provided in staging
+    if (!signature && process.env.NODE_ENV === 'staging') {
+      logger.warn('No webhook signature provided - skipping validation in staging');
       next();
       return;
     }

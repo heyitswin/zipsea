@@ -11,13 +11,13 @@ const sql = env.DATABASE_URL ? postgres(env.DATABASE_URL, {
   connect_timeout: dbConfig.connectionTimeoutMillis / 1000,
   ssl: dbConfig.ssl ? { rejectUnauthorized: false } : false,
   onnotice: () => {}, // Suppress notices in production
-  debug: env.NODE_ENV === 'development',
+  debug: env.NODE_ENV === 'staging',
 }) : null as any;
 
 // Create Drizzle database instance (only if we have a connection)
 export const db = sql ? drizzle(sql, { 
   schema,
-  logger: env.NODE_ENV === 'development' ? {
+  logger: env.NODE_ENV === 'staging' ? {
     logQuery: (query, params) => {
       dbLogger.debug('SQL Query', { query, params });
     }

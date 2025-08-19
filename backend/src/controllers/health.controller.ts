@@ -5,7 +5,7 @@ class HealthController {
     res.json({
       status: 'healthy',
       version: '1.0.0',
-      environment: process.env.NODE_ENV || 'development',
+      environment: process.env.NODE_ENV || 'staging',
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
       services: {
@@ -40,7 +40,7 @@ class HealthController {
     res.json({
       status: 'healthy',
       version: '1.0.0',
-      environment: process.env.NODE_ENV || 'development',
+      environment: process.env.NODE_ENV || 'staging',
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
       services: {
