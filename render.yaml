@@ -39,6 +39,7 @@ services:
     env: node
     region: oregon
     plan: starter
+    branch: main  # Deploy from main branch
     buildCommand: cd backend && npm ci && npm run build
     startCommand: cd backend && npm start
     healthCheckPath: /health
@@ -77,12 +78,13 @@ services:
       # - key: TRAVELTEK_FTP_PASSWORD
     autoDeploy: true
 
-  # Production Backend API (create later when ready)
+  # Production Backend API (uncomment when ready for production)
   # - type: web
   #   name: zipsea-backend-production
   #   env: node
   #   region: oregon
   #   plan: standard
+  #   branch: production  # Deploy from production branch only
   #   buildCommand: cd backend && npm ci && npm run build
   #   startCommand: cd backend && npm start
   #   healthCheckPath: /health
@@ -112,4 +114,4 @@ services:
   #       generateValue: true
   #     - key: WEBHOOK_SECRET
   #       generateValue: true
-  #   autoDeploy: false
+  #   autoDeploy: true  # Auto-deploy when production branch updates

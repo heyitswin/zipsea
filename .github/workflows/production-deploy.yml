@@ -1,0 +1,25 @@
+name: Production Deployment
+
+on:
+  pull_request:
+    branches: [production]
+    types: [closed]
+
+jobs:
+  deploy-notification:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Production Deployment Started
+        run: |
+          echo "🚀 Production deployment triggered!"
+          echo "Branch: production"
+          echo "Commit: ${{ github.sha }}"
+          echo "PR: #${{ github.event.pull_request.number }}"
+          
+      # Add Slack/Discord notification here if needed
+      # - name: Notify Team
+      #   uses: 8398a7/action-slack@v3
+      #   with:
+      #     status: ${{ job.status }}
+      #     text: "Production deployment started from PR #${{ github.event.pull_request.number }}"
