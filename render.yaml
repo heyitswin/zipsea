@@ -35,7 +35,7 @@ services:
 
   # Backend API - Staging Environment
   - type: web
-    name: zipsea-backend
+    name: zipsea-backend-staging
     env: node
     region: oregon
     plan: starter

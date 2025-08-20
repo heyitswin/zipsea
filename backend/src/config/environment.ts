@@ -10,10 +10,10 @@ const envSchema = z.object({
   PORT: z.string().transform(Number).default('3001'),
   
   // Database
-  DATABASE_URL: z.string().url().optional(),
+  DATABASE_URL: z.string().optional().transform(val => val === '' ? undefined : val).pipe(z.string().url().optional()),
   
   // Redis
-  REDIS_URL: z.string().url().optional(),
+  REDIS_URL: z.string().optional().transform(val => val === '' ? undefined : val).pipe(z.string().url().optional()),
   
   // Clerk
   CLERK_SECRET_KEY: z.string().min(1).optional(),

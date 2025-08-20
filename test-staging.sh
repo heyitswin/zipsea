@@ -5,7 +5,7 @@ echo "Testing Zipsea Staging Deployment"
 echo "========================================="
 echo ""
 
-STAGING_URL="https://zipsea-staging.onrender.com"
+STAGING_URL="https://zipsea-backend-staging.onrender.com"
 
 # Test health endpoint
 echo "1. Testing Health Endpoint..."

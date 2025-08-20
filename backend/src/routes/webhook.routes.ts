@@ -14,9 +14,9 @@ const router = Router();
  * - Cancellations
  * 
  * Webhook URLs for Traveltek registration:
- * - Cruiseline Pricing: https://zipsea-staging.onrender.com/api/webhooks/traveltek/cruiseline-pricing-updated
- * - Live Pricing: https://zipsea-staging.onrender.com/api/webhooks/traveltek/cruises-live-pricing-updated
- * - Generic Events: https://zipsea-staging.onrender.com/api/webhooks/traveltek
+ * - Cruiseline Pricing: https://zipsea-backend-staging.onrender.com/api/webhooks/traveltek/cruiseline-pricing-updated
+ * - Live Pricing: https://zipsea-backend-staging.onrender.com/api/webhooks/traveltek/cruises-live-pricing-updated
+ * - Generic Events: https://zipsea-backend-staging.onrender.com/api/webhooks/traveltek
  */
 // Specific Traveltek webhook endpoints as per their documentation
 router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: Response, next: NextFunction) => {
