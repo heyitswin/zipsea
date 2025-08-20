@@ -50,9 +50,11 @@ async function downloadAndExamine() {
             // Basic cruise info
             console.log('1️⃣ BASIC INFO:');
             console.log(`   • Cruise ID: ${json.cruiseid}`);
-            console.log(`   • Name: ${json.cruisename}`);
-            console.log(`   • Sail Date: ${json.saildate}`);
+            console.log(`   • Name: ${json.cruisename || json.name || 'No name field'}`);
+            console.log(`   • Sail Date: ${json.saildate || json.startdate}`);
             console.log(`   • Nights: ${json.nights}`);
+            console.log(`   • Line ID: ${json.lineid}`);
+            console.log(`   • Ship ID: ${json.shipid}`);
             
             // Check pricing structure
             console.log('\n2️⃣ PRICING STRUCTURE:');
@@ -105,9 +107,18 @@ async function downloadAndExamine() {
             // Check port and region data
             console.log('\n4️⃣ PORTS AND REGIONS:');
             console.log(`   • Port IDs: ${json.portids}`);
-            console.log(`   • Ports: ${json.ports ? json.ports.slice(0, 5).join(', ') : 'Not found'}`);
+            console.log(`   • Port IDs type: ${typeof json.portids}`);
+            console.log(`   • Ports field exists: ${json.ports !== undefined}`);
+            console.log(`   • Ports type: ${typeof json.ports}`);
+            if (typeof json.ports === 'string') {
+              console.log(`   • Ports string: ${json.ports}`);
+            } else if (Array.isArray(json.ports)) {
+              console.log(`   • Ports array: ${json.ports.slice(0, 5).join(', ')}`);
+            } else if (json.ports) {
+              console.log(`   • Ports object keys: ${Object.keys(json.ports).slice(0, 5).join(', ')}`);
+            }
             console.log(`   • Region IDs: ${json.regionids}`);
-            console.log(`   • Regions: ${json.regions ? json.regions.join(', ') : 'Not found'}`);
+            console.log(`   • Regions: ${Array.isArray(json.regions) ? json.regions.join(', ') : json.regions}`);
             
             // Check ship content
             console.log('\n5️⃣ SHIP CONTENT:');
