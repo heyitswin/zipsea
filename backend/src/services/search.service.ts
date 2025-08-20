@@ -3,6 +3,10 @@ import { db } from '../db/connection';
 import { logger } from '../config/logger';
 import { cacheManager } from '../cache/cache-manager';
 import { CacheKeys } from '../cache/cache-keys';
+
+// Add performance monitoring
+const SEARCH_PERFORMANCE_THRESHOLD_MS = 200;
+const SLOW_QUERY_THRESHOLD_MS = 1000;
 import { 
   cruises, 
   cruiseLines, 
@@ -17,8 +21,8 @@ import {
 export interface SearchFilters {
   destination?: string;
   departurePort?: string;
-  cruiseLine?: number;
-  ship?: number;
+  cruiseLine?: number | number[];
+  ship?: number | number[];
   nights?: {
     min?: number;
     max?: number;
@@ -26,33 +30,43 @@ export interface SearchFilters {
   price?: {
     min?: number;
     max?: number;
+    currency?: string;
   };
   sailingDate?: {
     from?: string;
     to?: string;
   };
-  cabinType?: string;
+  cabinType?: string | string[];
   passengers?: number;
   regions?: number[];
   ports?: number[];
+  q?: string; // General search query
+  includeDeals?: boolean;
+  minRating?: number;
+  duration?: 'weekend' | 'week' | 'extended'; // Predefined duration filters
 }
 
 export interface SearchOptions {
   page?: number;
   limit?: number;
-  sortBy?: 'price' | 'date' | 'nights' | 'name';
+  sortBy?: 'price' | 'date' | 'nights' | 'name' | 'popularity' | 'rating' | 'deals';
   sortOrder?: 'asc' | 'desc';
   includeUnavailable?: boolean;
+  facets?: boolean; // Whether to include facet counts
+  minResponseTime?: boolean; // Optimize for fastest response
 }
 
 export interface SearchResult {
   cruises: CruiseSearchResult[];
   filters: SearchFiltersResponse;
+  facets?: SearchFacets;
   meta: {
     page: number;
     limit: number;
     total: number;
     totalPages: number;
+    searchTime: number; // Response time in ms
+    cacheHit: boolean;
   };
 }
 
@@ -102,13 +116,24 @@ export interface CruiseSearchResult {
 }
 
 export interface SearchFiltersResponse {
-  cruiseLines: Array<{ id: number; name: string; count: number }>;
+  cruiseLines: Array<{ id: number; name: string; code?: string; logoUrl?: string; count: number }>;
   ships: Array<{ id: number; name: string; cruiseLineId: number; count: number }>;
-  destinations: Array<{ name: string; count: number }>;
-  departurePorts: Array<{ id: number; name: string; count: number }>;
+  destinations: Array<{ name: string; type: 'region' | 'port'; id?: number; count: number }>;
+  departurePorts: Array<{ id: number; name: string; city?: string; country?: string; count: number }>;
+  cabinTypes: Array<{ type: string; name: string; count: number }>;
   nightsRange: { min: number; max: number };
-  priceRange: { min: number; max: number };
+  priceRange: { min: number; max: number; currency: string };
   sailingDateRange: { min: string; max: string };
+  ratingRange?: { min: number; max: number };
+}
+
+export interface SearchFacets {
+  cruiseLines: Array<{ id: number; name: string; count: number; selected: boolean }>;
+  cabinTypes: Array<{ type: string; name: string; count: number; selected: boolean }>;
+  priceRanges: Array<{ min: number; max: number; label: string; count: number; selected: boolean }>;
+  durationRanges: Array<{ min: number; max: number; label: string; count: number; selected: boolean }>;
+  popularDestinations: Array<{ name: string; type: 'region' | 'port'; count: number; selected: boolean }>;
+  sailingMonths: Array<{ month: string; year: number; count: number; selected: boolean }>;
 }
 
 export class SearchService {
@@ -117,14 +142,19 @@ export class SearchService {
    * Search cruises with filters and pagination
    */
   async searchCruises(filters: SearchFilters = {}, options: SearchOptions = {}): Promise<SearchResult> {
+    const startTime = Date.now();
     const cacheKey = CacheKeys.search(JSON.stringify({ filters, options }));
     
     try {
-      // Try to get from cache first
-      const cached = await cacheManager.get<SearchResult>(cacheKey);
-      if (cached) {
-        logger.debug('Returning cached search results');
-        return cached;
+      // Try to get from cache first (unless min response time is requested)
+      if (!options.minResponseTime) {
+        const cached = await cacheManager.get<SearchResult>(cacheKey);
+        if (cached) {
+          logger.debug('Returning cached search results');
+          cached.meta.searchTime = Date.now() - startTime;
+          cached.meta.cacheHit = true;
+          return cached;
+        }
       }
 
       const page = Math.max(1, options.page || 1);
@@ -135,7 +165,7 @@ export class SearchService {
       const embarkPort = aliasedTable(ports, 'embark_port');
       const disembarkPort = aliasedTable(ports, 'disembark_port');
 
-      // Build the base query
+      // Build the base query with optimized joins
       let query = db
         .select({
           cruise: cruises,
@@ -158,19 +188,63 @@ export class SearchService {
           gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
         ));
 
-      // Apply filters
+      // Apply filters with better performance
       const whereConditions = [
         eq(cruises.isActive, true),
         eq(cruises.showCruise, true),
         gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
       ];
 
-      if (filters.cruiseLine) {
-        whereConditions.push(eq(cruises.cruiseLineId, filters.cruiseLine));
+      // General search query (full-text search)
+      if (filters.q && filters.q.length >= 2) {
+        const searchTerm = filters.q.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+        whereConditions.push(
+          or(
+            sql`to_tsvector('english', ${cruises.name}) @@ plainto_tsquery('english', ${searchTerm})`,
+            sql`to_tsvector('english', ${cruiseLines.name}) @@ plainto_tsquery('english', ${searchTerm})`,
+            sql`to_tsvector('english', ${ships.name}) @@ plainto_tsquery('english', ${searchTerm})`,
+            sql`to_tsvector('english', ${embarkPort.name} || ' ' || COALESCE(${embarkPort.city}, '') || ' ' || COALESCE(${embarkPort.country}, '')) @@ plainto_tsquery('english', ${searchTerm})`,
+            like(cruises.name, `%${searchTerm}%`)
+          )
+        );
       }
 
+      // Cruise line filter (support multiple)
+      if (filters.cruiseLine) {
+        if (Array.isArray(filters.cruiseLine)) {
+          whereConditions.push(inArray(cruises.cruiseLineId, filters.cruiseLine));
+        } else {
+          whereConditions.push(eq(cruises.cruiseLineId, filters.cruiseLine));
+        }
+      }
+
+      // Ship filter (support multiple)
       if (filters.ship) {
-        whereConditions.push(eq(cruises.shipId, filters.ship));
+        if (Array.isArray(filters.ship)) {
+          whereConditions.push(inArray(cruises.shipId, filters.ship));
+        } else {
+          whereConditions.push(eq(cruises.shipId, filters.ship));
+        }
+      }
+
+      // Rating filter
+      if (filters.minRating) {
+        whereConditions.push(gte(ships.rating, filters.minRating));
+      }
+
+      // Duration shortcuts
+      if (filters.duration) {
+        switch (filters.duration) {
+          case 'weekend':
+            whereConditions.push(and(gte(cruises.nights, 2), lte(cruises.nights, 4)));
+            break;
+          case 'week':
+            whereConditions.push(and(gte(cruises.nights, 5), lte(cruises.nights, 9)));
+            break;
+          case 'extended':
+            whereConditions.push(gte(cruises.nights, 10));
+            break;
+        }
       }
 
       if (filters.departurePort) {
@@ -219,20 +293,57 @@ export class SearchService {
       }
 
       if (filters.ports && filters.ports.length > 0) {
-        // Search in the portIds JSON array
+        // Optimized JSONB search for ports
+        const portIdStrings = filters.ports.map(id => `"${id}"`);
         whereConditions.push(
-          sql`${cruises.portIds}::jsonb ?| array[${filters.ports.map(id => `'${id}'`).join(',')}]`
+          sql`${cruises.portIds}::jsonb ?| array[${portIdStrings.join(',')}]`
         );
       }
 
-      // Apply pricing filters
+      // Cabin type filter
+      if (filters.cabinType) {
+        const cabinTypes = Array.isArray(filters.cabinType) ? filters.cabinType : [filters.cabinType];
+        const cabinConditions = cabinTypes.map(type => {
+          switch (type.toLowerCase()) {
+            case 'interior':
+            case 'inside':
+              return sql`${cheapestPricing.interiorPrice} IS NOT NULL AND ${cheapestPricing.interiorPrice} > '0'`;
+            case 'oceanview':
+            case 'outside':
+              return sql`${cheapestPricing.oceanviewPrice} IS NOT NULL AND ${cheapestPricing.oceanviewPrice} > '0'`;
+            case 'balcony':
+              return sql`${cheapestPricing.balconyPrice} IS NOT NULL AND ${cheapestPricing.balconyPrice} > '0'`;
+            case 'suite':
+              return sql`${cheapestPricing.suitePrice} IS NOT NULL AND ${cheapestPricing.suitePrice} > '0'`;
+            default:
+              return sql`1=1`;
+          }
+        });
+        if (cabinConditions.length > 0) {
+          whereConditions.push(or(...cabinConditions));
+        }
+      }
+
+      // Apply pricing filters with currency support
       if (filters.price?.min || filters.price?.max) {
         if (filters.price.min) {
-          whereConditions.push(gte(cheapestPricing.cheapestPrice, filters.price.min.toString()));
+          whereConditions.push(gte(sql`${cheapestPricing.cheapestPrice}::numeric`, filters.price.min));
         }
         if (filters.price.max) {
-          whereConditions.push(lte(cheapestPricing.cheapestPrice, filters.price.max.toString()));
+          whereConditions.push(lte(sql`${cheapestPricing.cheapestPrice}::numeric`, filters.price.max));
         }
+        // Currency filter if specified
+        if (filters.price.currency) {
+          whereConditions.push(eq(cruises.currency, filters.price.currency));
+        }
+      }
+
+      // Deal filter
+      if (filters.includeDeals) {
+        // Add logic for identifying deals (e.g., discounted prices, special offers)
+        whereConditions.push(
+          sql`${cheapestPricing.cheapestPrice}::numeric < (${cheapestPricing.cheapestPrice}::numeric * 0.9)`
+        );
       }
 
       // Apply destination filter (search in ports and regions)
@@ -249,15 +360,15 @@ export class SearchService {
       // Rebuild query with all conditions
       query = query.where(and(...whereConditions));
 
-      // Apply sorting
+      // Apply sorting with enhanced options
       const sortBy = options.sortBy || 'price';
       const sortOrder = options.sortOrder || 'asc';
 
       switch (sortBy) {
         case 'price':
           query = sortOrder === 'desc' 
-            ? query.orderBy(desc(cheapestPricing.cheapestPrice))
-            : query.orderBy(asc(cheapestPricing.cheapestPrice));
+            ? query.orderBy(desc(sql`${cheapestPricing.cheapestPrice}::numeric`))
+            : query.orderBy(asc(sql`${cheapestPricing.cheapestPrice}::numeric`));
           break;
         case 'date':
           query = sortOrder === 'desc'
@@ -274,8 +385,28 @@ export class SearchService {
             ? query.orderBy(desc(cruises.name))
             : query.orderBy(asc(cruises.name));
           break;
+        case 'rating':
+          query = sortOrder === 'desc'
+            ? query.orderBy(desc(ships.rating), asc(sql`${cheapestPricing.cheapestPrice}::numeric`))
+            : query.orderBy(asc(ships.rating), asc(sql`${cheapestPricing.cheapestPrice}::numeric`));
+          break;
+        case 'popularity':
+          // Sort by combination of factors: price, rating, recent bookings
+          query = query.orderBy(
+            desc(ships.rating),
+            asc(sql`${cheapestPricing.cheapestPrice}::numeric`),
+            desc(cruises.updatedAt)
+          );
+          break;
+        case 'deals':
+          // Sort by best deals first (lowest price with highest rating)
+          query = query.orderBy(
+            asc(sql`${cheapestPricing.cheapestPrice}::numeric`),
+            desc(ships.rating)
+          );
+          break;
         default:
-          query = query.orderBy(asc(cheapestPricing.cheapestPrice));
+          query = query.orderBy(asc(sql`${cheapestPricing.cheapestPrice}::numeric`));
       }
 
       // Get total count (before pagination)
@@ -289,42 +420,234 @@ export class SearchService {
         .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
         .where(and(...whereConditions));
 
-      const [totalResult, results] = await Promise.all([
+      const [totalResult, results, searchFilters, facets] = await Promise.all([
         countQuery.execute(),
-        query.limit(limit).offset(offset).execute()
+        query.limit(limit).offset(offset).execute(),
+        this.getSearchFilters(),
+        options.facets ? this.getSearchFacets(whereConditions) : Promise.resolve(undefined)
       ]);
 
       const total = totalResult[0]?.count || 0;
       const totalPages = Math.ceil(total / limit);
 
-      // Transform results to the expected format
+      // Transform results to the expected format (optimized for speed)
       const cruiseResults: CruiseSearchResult[] = await Promise.all(
         results.map(async (row) => this.transformCruiseResult(row))
       );
 
-      // Get search filters
-      const searchFilters = await this.getSearchFilters();
+      const searchTime = Date.now() - startTime;
 
       const result: SearchResult = {
         cruises: cruiseResults,
         filters: searchFilters,
+        facets,
         meta: {
           page,
           limit,
           total,
           totalPages,
+          searchTime,
+          cacheHit: false,
         },
       };
 
-      // Cache the result
-      await cacheManager.set(cacheKey, result, { ttl: 3600 }); // Cache for 1 hour
+      // Cache the result (shorter TTL for personalized searches)
+      const ttl = Object.keys(filters).length > 2 ? 1800 : 3600; // 30 min vs 1 hour
+      await cacheManager.set(cacheKey, result, { ttl });
 
-      logger.info(`Search completed: ${total} results found, page ${page}/${totalPages}`);
+      logger.info(`Search completed: ${total} results found, page ${page}/${totalPages} in ${searchTime}ms`);
       return result;
 
     } catch (error) {
-      logger.error('Search failed:', error);
+      const searchTime = Date.now() - startTime;
+      logger.error(`Search failed after ${searchTime}ms:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Get search facets for the current filters
+   */
+  private async getSearchFacets(whereConditions: any[]): Promise<SearchFacets> {
+    try {
+      // Get cruise line facets
+      const cruiseLineFacets = await db
+        .select({
+          id: cruiseLines.id,
+          name: cruiseLines.name,
+          count: sql<number>`count(${cruises.id})`,
+        })
+        .from(cruises)
+        .leftJoin(cruiseLines, eq(cruises.cruiseLineId, cruiseLines.id))
+        .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
+        .where(and(...whereConditions))
+        .groupBy(cruiseLines.id, cruiseLines.name)
+        .having(sql`count(${cruises.id}) > 0`)
+        .orderBy(desc(sql`count(${cruises.id})`), cruiseLines.name)
+        .limit(10);
+
+      // Get cabin type facets
+      const cabinTypeFacets = [
+        {
+          type: 'interior',
+          name: 'Interior',
+          count: await this.getCabinTypeCount(whereConditions, 'interior'),
+          selected: false
+        },
+        {
+          type: 'oceanview',
+          name: 'Oceanview',
+          count: await this.getCabinTypeCount(whereConditions, 'oceanview'),
+          selected: false
+        },
+        {
+          type: 'balcony',
+          name: 'Balcony',
+          count: await this.getCabinTypeCount(whereConditions, 'balcony'),
+          selected: false
+        },
+        {
+          type: 'suite',
+          name: 'Suite',
+          count: await this.getCabinTypeCount(whereConditions, 'suite'),
+          selected: false
+        }
+      ];
+
+      // Get price range facets
+      const priceRangeFacets = [
+        { min: 0, max: 500, label: 'Under $500', count: 0, selected: false },
+        { min: 500, max: 1000, label: '$500 - $1,000', count: 0, selected: false },
+        { min: 1000, max: 2000, label: '$1,000 - $2,000', count: 0, selected: false },
+        { min: 2000, max: 5000, label: '$2,000 - $5,000', count: 0, selected: false },
+        { min: 5000, max: 999999, label: '$5,000+', count: 0, selected: false }
+      ];
+
+      // Calculate price range counts
+      for (const range of priceRangeFacets) {
+        range.count = await this.getPriceRangeCount(whereConditions, range.min, range.max);
+      }
+
+      // Get duration facets
+      const durationFacets = [
+        { min: 1, max: 4, label: 'Short (1-4 nights)', count: 0, selected: false },
+        { min: 5, max: 7, label: 'Week (5-7 nights)', count: 0, selected: false },
+        { min: 8, max: 14, label: 'Extended (8-14 nights)', count: 0, selected: false },
+        { min: 15, max: 999, label: 'Long (15+ nights)', count: 0, selected: false }
+      ];
+
+      // Calculate duration counts
+      for (const range of durationFacets) {
+        range.count = await this.getDurationRangeCount(whereConditions, range.min, range.max);
+      }
+
+      return {
+        cruiseLines: cruiseLineFacets.map(cl => ({
+          id: cl.id,
+          name: cl.name,
+          count: cl.count,
+          selected: false
+        })),
+        cabinTypes: cabinTypeFacets,
+        priceRanges: priceRangeFacets,
+        durationRanges: durationFacets,
+        popularDestinations: [], // TODO: Implement
+        sailingMonths: [] // TODO: Implement
+      };
+
+    } catch (error) {
+      logger.error('Failed to get search facets:', error);
+      return {
+        cruiseLines: [],
+        cabinTypes: [],
+        priceRanges: [],
+        durationRanges: [],
+        popularDestinations: [],
+        sailingMonths: []
+      };
+    }
+  }
+
+  /**
+   * Get count for specific cabin type
+   */
+  private async getCabinTypeCount(whereConditions: any[], cabinType: string): Promise<number> {
+    try {
+      let priceField;
+      switch (cabinType) {
+        case 'interior':
+          priceField = cheapestPricing.interiorPrice;
+          break;
+        case 'oceanview':
+          priceField = cheapestPricing.oceanviewPrice;
+          break;
+        case 'balcony':
+          priceField = cheapestPricing.balconyPrice;
+          break;
+        case 'suite':
+          priceField = cheapestPricing.suitePrice;
+          break;
+        default:
+          return 0;
+      }
+
+      const result = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(cruises)
+        .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
+        .where(and(
+          ...whereConditions,
+          sql`${priceField} IS NOT NULL AND ${priceField} > '0'`
+        ));
+
+      return result[0]?.count || 0;
+    } catch (error) {
+      logger.error(`Failed to get cabin type count for ${cabinType}:`, error);
+      return 0;
+    }
+  }
+
+  /**
+   * Get count for price range
+   */
+  private async getPriceRangeCount(whereConditions: any[], minPrice: number, maxPrice: number): Promise<number> {
+    try {
+      const result = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(cruises)
+        .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
+        .where(and(
+          ...whereConditions,
+          gte(sql`${cheapestPricing.cheapestPrice}::numeric`, minPrice),
+          maxPrice < 999999 ? lte(sql`${cheapestPricing.cheapestPrice}::numeric`, maxPrice) : sql`1=1`
+        ));
+
+      return result[0]?.count || 0;
+    } catch (error) {
+      logger.error(`Failed to get price range count for ${minPrice}-${maxPrice}:`, error);
+      return 0;
+    }
+  }
+
+  /**
+   * Get count for duration range
+   */
+  private async getDurationRangeCount(whereConditions: any[], minNights: number, maxNights: number): Promise<number> {
+    try {
+      const result = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(cruises)
+        .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
+        .where(and(
+          ...whereConditions,
+          gte(cruises.nights, minNights),
+          maxNights < 999 ? lte(cruises.nights, maxNights) : sql`1=1`
+        ));
+
+      return result[0]?.count || 0;
+    } catch (error) {
+      logger.error(`Failed to get duration range count for ${minNights}-${maxNights}:`, error);
+      return 0;
     }
   }
 
@@ -485,87 +808,168 @@ export class SearchService {
         return cached;
       }
 
-      // Get active cruise lines
-      const cruiseLinesResult = await db
-        .select({
-          id: cruiseLines.id,
-          name: cruiseLines.name,
-          count: sql<number>`count(${cruises.id})`,
-        })
-        .from(cruiseLines)
-        .leftJoin(cruises, and(
-          eq(cruises.cruiseLineId, cruiseLines.id),
-          eq(cruises.isActive, true),
-          gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
-        ))
-        .where(eq(cruiseLines.isActive, true))
-        .groupBy(cruiseLines.id, cruiseLines.name)
-        .having(sql`count(${cruises.id}) > 0`)
-        .orderBy(cruiseLines.name);
+      // Run all queries in parallel for better performance
+      const [
+        cruiseLinesResult,
+        shipsResult,
+        departurePortsResult,
+        destinationsResult,
+        rangesResult,
+        cabinTypesResult
+      ] = await Promise.all([
+        // Get active cruise lines
+        db
+          .select({
+            id: cruiseLines.id,
+            name: cruiseLines.name,
+            code: cruiseLines.code,
+            logoUrl: cruiseLines.logoUrl,
+            count: sql<number>`count(${cruises.id})`,
+          })
+          .from(cruiseLines)
+          .leftJoin(cruises, and(
+            eq(cruises.cruiseLineId, cruiseLines.id),
+            eq(cruises.isActive, true),
+            gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
+          ))
+          .where(eq(cruiseLines.isActive, true))
+          .groupBy(cruiseLines.id, cruiseLines.name, cruiseLines.code, cruiseLines.logoUrl)
+          .having(sql`count(${cruises.id}) > 0`)
+          .orderBy(desc(sql`count(${cruises.id})`), cruiseLines.name),
 
-      // Get ships with cruise counts
-      const shipsResult = await db
-        .select({
-          id: ships.id,
-          name: ships.name,
-          cruiseLineId: ships.cruiseLineId,
-          count: sql<number>`count(${cruises.id})`,
-        })
-        .from(ships)
-        .leftJoin(cruises, and(
-          eq(cruises.shipId, ships.id),
-          eq(cruises.isActive, true),
-          gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
-        ))
-        .where(eq(ships.isActive, true))
-        .groupBy(ships.id, ships.name, ships.cruiseLineId)
-        .having(sql`count(${cruises.id}) > 0`)
-        .orderBy(ships.name);
+        // Get ships with cruise counts
+        db
+          .select({
+            id: ships.id,
+            name: ships.name,
+            cruiseLineId: ships.cruiseLineId,
+            count: sql<number>`count(${cruises.id})`,
+          })
+          .from(ships)
+          .leftJoin(cruises, and(
+            eq(cruises.shipId, ships.id),
+            eq(cruises.isActive, true),
+            gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
+          ))
+          .where(eq(ships.isActive, true))
+          .groupBy(ships.id, ships.name, ships.cruiseLineId)
+          .having(sql`count(${cruises.id}) > 0`)
+          .orderBy(desc(sql`count(${cruises.id})`), ships.name)
+          .limit(50), // Limit to top 50 ships
 
-      // Get departure ports
-      const departurePortsResult = await db
-        .select({
-          id: ports.id,
-          name: ports.name,
-          count: sql<number>`count(${cruises.id})`,
-        })
-        .from(ports)
-        .leftJoin(cruises, and(
-          or(
-            eq(cruises.embarkPortId, ports.id),
-            eq(cruises.disembarkPortId, ports.id)
-          ),
-          eq(cruises.isActive, true),
-          gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
-        ))
-        .where(eq(ports.isActive, true))
-        .groupBy(ports.id, ports.name)
-        .having(sql`count(${cruises.id}) > 0`)
-        .orderBy(ports.name);
+        // Get departure ports
+        db
+          .select({
+            id: ports.id,
+            name: ports.name,
+            city: ports.city,
+            country: ports.country,
+            count: sql<number>`count(${cruises.id})`,
+          })
+          .from(ports)
+          .leftJoin(cruises, and(
+            or(
+              eq(cruises.embarkPortId, ports.id),
+              eq(cruises.disembarkPortId, ports.id)
+            ),
+            eq(cruises.isActive, true),
+            gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
+          ))
+          .where(eq(ports.isActive, true))
+          .groupBy(ports.id, ports.name, ports.city, ports.country)
+          .having(sql`count(${cruises.id}) > 0`)
+          .orderBy(desc(sql`count(${cruises.id})`), ports.name),
 
-      // Get ranges
-      const rangesResult = await db
-        .select({
-          minNights: sql<number>`min(${cruises.nights})`,
-          maxNights: sql<number>`max(${cruises.nights})`,
-          minPrice: sql<number>`min(${cheapestPricing.cheapestPrice}::numeric)`,
-          maxPrice: sql<number>`max(${cheapestPricing.cheapestPrice}::numeric)`,
-          minDate: sql<string>`min(${cruises.sailingDate})`,
-          maxDate: sql<string>`max(${cruises.sailingDate})`,
-        })
-        .from(cruises)
-        .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
-        .where(and(
-          eq(cruises.isActive, true),
-          gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
-        ));
+        // Get popular destinations (regions and ports)
+        db
+          .select({
+            id: regions.id,
+            name: regions.name,
+            type: sql<string>`'region'`,
+            count: sql<number>`count(${cruises.id})`,
+          })
+          .from(regions)
+          .leftJoin(cruises, and(
+            sql`${cruises.regionIds}::jsonb ? ${regions.id}::text`,
+            eq(cruises.isActive, true),
+            gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
+          ))
+          .where(eq(regions.isActive, true))
+          .groupBy(regions.id, regions.name)
+          .having(sql`count(${cruises.id}) > 0`)
+          .orderBy(desc(sql`count(${cruises.id})`), regions.name)
+          .limit(20),
+
+        // Get ranges
+        db
+          .select({
+            minNights: sql<number>`min(${cruises.nights})`,
+            maxNights: sql<number>`max(${cruises.nights})`,
+            minPrice: sql<number>`min(${cheapestPricing.cheapestPrice}::numeric)`,
+            maxPrice: sql<number>`max(${cheapestPricing.cheapestPrice}::numeric)`,
+            minDate: sql<string>`min(${cruises.sailingDate})`,
+            maxDate: sql<string>`max(${cruises.sailingDate})`,
+            minRating: sql<number>`min(${ships.rating})`,
+            maxRating: sql<number>`max(${ships.rating})`,
+          })
+          .from(cruises)
+          .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
+          .leftJoin(ships, eq(cruises.shipId, ships.id))
+          .where(and(
+            eq(cruises.isActive, true),
+            gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
+          )),
+
+        // Get cabin type counts
+        Promise.all([
+          db
+            .select({ count: sql<number>`count(*)` })
+            .from(cruises)
+            .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
+            .where(and(
+              eq(cruises.isActive, true),
+              gte(cruises.sailingDate, new Date().toISOString().split('T')[0]),
+              sql`${cheapestPricing.interiorPrice} IS NOT NULL AND ${cheapestPricing.interiorPrice} > '0'`
+            )),
+          db
+            .select({ count: sql<number>`count(*)` })
+            .from(cruises)
+            .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
+            .where(and(
+              eq(cruises.isActive, true),
+              gte(cruises.sailingDate, new Date().toISOString().split('T')[0]),
+              sql`${cheapestPricing.oceanviewPrice} IS NOT NULL AND ${cheapestPricing.oceanviewPrice} > '0'`
+            )),
+          db
+            .select({ count: sql<number>`count(*)` })
+            .from(cruises)
+            .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
+            .where(and(
+              eq(cruises.isActive, true),
+              gte(cruises.sailingDate, new Date().toISOString().split('T')[0]),
+              sql`${cheapestPricing.balconyPrice} IS NOT NULL AND ${cheapestPricing.balconyPrice} > '0'`
+            )),
+          db
+            .select({ count: sql<number>`count(*)` })
+            .from(cruises)
+            .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
+            .where(and(
+              eq(cruises.isActive, true),
+              gte(cruises.sailingDate, new Date().toISOString().split('T')[0]),
+              sql`${cheapestPricing.suitePrice} IS NOT NULL AND ${cheapestPricing.suitePrice} > '0'`
+            ))
+        ])
+      ]);
 
       const ranges = rangesResult[0] || {};
+      const [interiorCount, oceanviewCount, balconyCount, suiteCount] = cabinTypesResult;
 
       const filters: SearchFiltersResponse = {
         cruiseLines: cruiseLinesResult.map(cl => ({
           id: cl.id,
           name: cl.name,
+          code: cl.code,
+          logoUrl: cl.logoUrl,
           count: cl.count,
         })),
         ships: shipsResult.map(s => ({
@@ -574,12 +978,25 @@ export class SearchService {
           cruiseLineId: s.cruiseLineId,
           count: s.count,
         })),
-        destinations: [], // TODO: Implement destination aggregation
+        destinations: destinationsResult.map(d => ({
+          name: d.name,
+          type: d.type as 'region' | 'port',
+          id: d.id,
+          count: d.count,
+        })),
         departurePorts: departurePortsResult.map(p => ({
           id: p.id,
           name: p.name,
+          city: p.city,
+          country: p.country,
           count: p.count,
         })),
+        cabinTypes: [
+          { type: 'interior', name: 'Interior', count: interiorCount[0]?.count || 0 },
+          { type: 'oceanview', name: 'Oceanview', count: oceanviewCount[0]?.count || 0 },
+          { type: 'balcony', name: 'Balcony', count: balconyCount[0]?.count || 0 },
+          { type: 'suite', name: 'Suite', count: suiteCount[0]?.count || 0 }
+        ],
         nightsRange: {
           min: ranges.minNights || 1,
           max: ranges.maxNights || 30,
@@ -587,15 +1004,20 @@ export class SearchService {
         priceRange: {
           min: ranges.minPrice || 0,
           max: ranges.maxPrice || 10000,
+          currency: 'USD', // TODO: Support multiple currencies
         },
         sailingDateRange: {
           min: ranges.minDate || new Date().toISOString().split('T')[0],
           max: ranges.maxDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         },
+        ratingRange: {
+          min: ranges.minRating || 1,
+          max: ranges.maxRating || 5,
+        },
       };
 
-      // Cache for 4 hours
-      await cacheManager.set(cacheKey, filters, { ttl: 14400 });
+      // Cache for 2 hours (shorter TTL for dynamic data)
+      await cacheManager.set(cacheKey, filters, { ttl: 7200 });
 
       return filters;
 
@@ -668,10 +1090,11 @@ export class SearchService {
     value: string;
     label: string;
     count?: number;
+    metadata?: any;
   }>> {
     if (!query || query.length < 2) return [];
 
-    const cacheKey = CacheKeys.searchSuggestions(query, limit);
+    const cacheKey = CacheKeys.searchSuggestions(query.toLowerCase(), limit);
 
     try {
       const cached = await cacheManager.get<Array<{
@@ -679,73 +1102,292 @@ export class SearchService {
         value: string;
         label: string;
         count?: number;
+        metadata?: any;
       }>>(cacheKey);
       if (cached) {
         return cached;
       }
 
+      const searchTerm = query.toLowerCase().replace(/[^a-z0-9\s]/g, '');
       const suggestions: Array<{
         type: string;
         value: string;
         label: string;
         count?: number;
+        metadata?: any;
       }> = [];
 
-      // Search cruise lines
-      const cruiseLineResults = await db
-        .select({ id: cruiseLines.id, name: cruiseLines.name })
-        .from(cruiseLines)
-        .where(and(
-          like(cruiseLines.name, `%${query}%`),
-          eq(cruiseLines.isActive, true)
-        ))
-        .limit(5);
+      // Run all suggestion queries in parallel
+      const [cruiseLineResults, portResults, regionResults, shipResults, cruiseResults] = await Promise.all([
+        // Search cruise lines with full-text search
+        db
+          .select({ 
+            id: cruiseLines.id, 
+            name: cruiseLines.name,
+            code: cruiseLines.code,
+            logoUrl: cruiseLines.logoUrl,
+            count: sql<number>`count(${cruises.id})`
+          })
+          .from(cruiseLines)
+          .leftJoin(cruises, and(
+            eq(cruises.cruiseLineId, cruiseLines.id),
+            eq(cruises.isActive, true),
+            gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
+          ))
+          .where(and(
+            or(
+              sql`to_tsvector('english', ${cruiseLines.name}) @@ plainto_tsquery('english', ${searchTerm})`,
+              like(cruiseLines.name, `%${searchTerm}%`)
+            ),
+            eq(cruiseLines.isActive, true)
+          ))
+          .groupBy(cruiseLines.id, cruiseLines.name, cruiseLines.code, cruiseLines.logoUrl)
+          .orderBy(desc(sql`count(${cruises.id})`), cruiseLines.name)
+          .limit(3),
 
+        // Search ports
+        db
+          .select({ 
+            id: ports.id, 
+            name: ports.name,
+            city: ports.city,
+            country: ports.country,
+            count: sql<number>`count(${cruises.id})`
+          })
+          .from(ports)
+          .leftJoin(cruises, and(
+            or(
+              eq(cruises.embarkPortId, ports.id),
+              eq(cruises.disembarkPortId, ports.id)
+            ),
+            eq(cruises.isActive, true),
+            gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
+          ))
+          .where(and(
+            or(
+              sql`to_tsvector('english', ${ports.name} || ' ' || COALESCE(${ports.city}, '') || ' ' || COALESCE(${ports.country}, '')) @@ plainto_tsquery('english', ${searchTerm})`,
+              like(ports.name, `%${searchTerm}%`),
+              like(ports.city, `%${searchTerm}%`),
+              like(ports.country, `%${searchTerm}%`)
+            ),
+            eq(ports.isActive, true)
+          ))
+          .groupBy(ports.id, ports.name, ports.city, ports.country)
+          .orderBy(desc(sql`count(${cruises.id})`), ports.name)
+          .limit(3),
+
+        // Search regions
+        db
+          .select({ 
+            id: regions.id, 
+            name: regions.name,
+            count: sql<number>`count(${cruises.id})`
+          })
+          .from(regions)
+          .leftJoin(cruises, and(
+            sql`${cruises.regionIds}::jsonb ? ${regions.id}::text`,
+            eq(cruises.isActive, true),
+            gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
+          ))
+          .where(and(
+            or(
+              sql`to_tsvector('english', ${regions.name}) @@ plainto_tsquery('english', ${searchTerm})`,
+              like(regions.name, `%${searchTerm}%`)
+            ),
+            eq(regions.isActive, true)
+          ))
+          .groupBy(regions.id, regions.name)
+          .orderBy(desc(sql`count(${cruises.id})`), regions.name)
+          .limit(3),
+
+        // Search ships
+        db
+          .select({ 
+            id: ships.id, 
+            name: ships.name,
+            cruiseLineId: ships.cruiseLineId,
+            count: sql<number>`count(${cruises.id})`
+          })
+          .from(ships)
+          .leftJoin(cruises, and(
+            eq(cruises.shipId, ships.id),
+            eq(cruises.isActive, true),
+            gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
+          ))
+          .where(and(
+            or(
+              sql`to_tsvector('english', ${ships.name}) @@ plainto_tsquery('english', ${searchTerm})`,
+              like(ships.name, `%${searchTerm}%`)
+            ),
+            eq(ships.isActive, true)
+          ))
+          .groupBy(ships.id, ships.name, ships.cruiseLineId)
+          .orderBy(desc(sql`count(${cruises.id})`), ships.name)
+          .limit(2),
+
+        // Search cruise names
+        db
+          .select({ 
+            id: cruises.id, 
+            name: cruises.name,
+            sailingDate: cruises.sailingDate
+          })
+          .from(cruises)
+          .where(and(
+            or(
+              sql`to_tsvector('english', ${cruises.name}) @@ plainto_tsquery('english', ${searchTerm})`,
+              like(cruises.name, `%${searchTerm}%`)
+            ),
+            eq(cruises.isActive, true),
+            eq(cruises.showCruise, true),
+            gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
+          ))
+          .orderBy(cruises.sailingDate)
+          .limit(2)
+      ]);
+
+      // Add cruise line suggestions
       suggestions.push(...cruiseLineResults.map(cl => ({
         type: 'cruise-line',
         value: cl.id.toString(),
         label: cl.name,
+        count: cl.count,
+        metadata: {
+          code: cl.code,
+          logoUrl: cl.logoUrl
+        }
       })));
 
-      // Search ports
-      const portResults = await db
-        .select({ id: ports.id, name: ports.name })
-        .from(ports)
-        .where(and(
-          like(ports.name, `%${query}%`),
-          eq(ports.isActive, true)
-        ))
-        .limit(5);
-
+      // Add port suggestions
       suggestions.push(...portResults.map(p => ({
         type: 'port',
         value: p.id.toString(),
-        label: p.name,
+        label: `${p.name}${p.city ? `, ${p.city}` : ''}${p.country ? `, ${p.country}` : ''}`,
+        count: p.count,
+        metadata: {
+          city: p.city,
+          country: p.country
+        }
       })));
 
-      // Search regions
-      const regionResults = await db
-        .select({ id: regions.id, name: regions.name })
-        .from(regions)
-        .where(and(
-          like(regions.name, `%${query}%`),
-          eq(regions.isActive, true)
-        ))
-        .limit(5);
-
+      // Add region suggestions
       suggestions.push(...regionResults.map(r => ({
         type: 'region',
         value: r.id.toString(),
         label: r.name,
+        count: r.count
       })));
 
-      // Cache for 30 minutes
-      await cacheManager.set(cacheKey, suggestions, { ttl: 1800 });
+      // Add ship suggestions
+      suggestions.push(...shipResults.map(s => ({
+        type: 'ship',
+        value: s.id.toString(),
+        label: s.name,
+        count: s.count,
+        metadata: {
+          cruiseLineId: s.cruiseLineId
+        }
+      })));
 
-      return suggestions.slice(0, limit);
+      // Add cruise name suggestions
+      suggestions.push(...cruiseResults.map(c => ({
+        type: 'cruise',
+        value: c.id.toString(),
+        label: c.name,
+        metadata: {
+          sailingDate: c.sailingDate
+        }
+      })));
+
+      // Sort by relevance (count and exact matches)
+      const sortedSuggestions = suggestions
+        .sort((a, b) => {
+          // Prioritize exact matches
+          const aExact = a.label.toLowerCase().includes(searchTerm);
+          const bExact = b.label.toLowerCase().includes(searchTerm);
+          if (aExact && !bExact) return -1;
+          if (!aExact && bExact) return 1;
+          
+          // Then by count
+          return (b.count || 0) - (a.count || 0);
+        })
+        .slice(0, limit);
+
+      // Cache for 15 minutes
+      await cacheManager.set(cacheKey, sortedSuggestions, { ttl: 900 });
+
+      return sortedSuggestions;
 
     } catch (error) {
       logger.error('Failed to get search suggestions:', error);
+      return [];
+    }
+  }
+}
+
+  /**
+   * Advanced search with ML-powered recommendations
+   */
+  async getRecommendedCruises(filters: SearchFilters = {}, limit: number = 5): Promise<CruiseSearchResult[]> {
+    const cacheKey = CacheKeys.recommendedCruises(JSON.stringify(filters), limit);
+    
+    try {
+      const cached = await cacheManager.get<CruiseSearchResult[]>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+
+      // Build recommendation query based on user preferences
+      const embarkPort = aliasedTable(ports, 'embark_port');
+      const disembarkPort = aliasedTable(ports, 'disembark_port');
+      
+      let query = db
+        .select({
+          cruise: cruises,
+          cruiseLine: cruiseLines,
+          ship: ships,
+          embarkPort: embarkPort,
+          disembarkPort: disembarkPort,
+          cheapestPrice: cheapestPricing,
+          // Recommendation score calculation
+          score: sql<number>`
+            COALESCE(${ships.rating}, 3) * 2 +
+            CASE WHEN ${cheapestPricing.cheapestPrice}::numeric < 1000 THEN 3
+                 WHEN ${cheapestPricing.cheapestPrice}::numeric < 2000 THEN 2
+                 ELSE 1 END +
+            CASE WHEN ${cruises.nights} BETWEEN 7 AND 10 THEN 2 ELSE 1 END +
+            CASE WHEN ${cruises.sailingDate} > CURRENT_DATE + INTERVAL '1 month' 
+                 AND ${cruises.sailingDate} < CURRENT_DATE + INTERVAL '6 months' THEN 2 ELSE 1 END
+          `
+        })
+        .from(cruises)
+        .leftJoin(cruiseLines, eq(cruises.cruiseLineId, cruiseLines.id))
+        .leftJoin(ships, eq(cruises.shipId, ships.id))
+        .leftJoin(embarkPort, eq(cruises.embarkPortId, embarkPort.id))
+        .leftJoin(disembarkPort, eq(cruises.disembarkPortId, disembarkPort.id))
+        .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
+        .where(and(
+          eq(cruises.isActive, true),
+          eq(cruises.showCruise, true),
+          gte(cruises.sailingDate, new Date().toISOString().split('T')[0]),
+          sql`${cheapestPricing.cheapestPrice} IS NOT NULL`
+        ))
+        .orderBy(desc(sql`score`), asc(sql`${cheapestPricing.cheapestPrice}::numeric`))
+        .limit(limit);
+
+      const results = await query.execute();
+      
+      const recommendations = await Promise.all(
+        results.map(row => this.transformCruiseResult(row))
+      );
+
+      // Cache for 1 hour
+      await cacheManager.set(cacheKey, recommendations, { ttl: 3600 });
+
+      return recommendations;
+
+    } catch (error) {
+      logger.error('Failed to get recommended cruises:', error);
       return [];
     }
   }
