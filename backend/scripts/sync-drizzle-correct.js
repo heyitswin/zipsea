@@ -29,7 +29,7 @@ const dbSql = postgres(process.env.DATABASE_URL, {
 const db = drizzle(dbSql, { schema });
 
 console.log('✅ Database connection created');
-console.log('📦 Available tables:', Object.keys(schema).filter(k => schema[k]?._.name).map(k => `${k}:${schema[k]._.name}`));
+console.log('📦 Schema imported:', Object.keys(schema).length, 'exports');
 
 const ftpConfig = {
   host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
