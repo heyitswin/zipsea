@@ -17,9 +17,9 @@ const {
   regions,
   cheapestPricing,
   priceHistory,
-  itineraryItems,
-  cabinDefinitions,
-  detailedPricing
+  itineraries,
+  cabinCategories,
+  pricing
 } = require('../dist/db/schema');
 const { eq } = require('drizzle-orm');
 
@@ -376,22 +376,24 @@ async function processItinerary(cruiseId, itinerary) {
   
   try {
     // Delete existing itinerary
-    await db.delete(itineraryItems)
-      .where(eq(itineraryItems.cruiseId, cruiseId));
+    await db.delete(itineraries)
+      .where(eq(itineraries.cruiseId, cruiseId));
     
     // Insert new items
     for (let i = 0; i < itinerary.length; i++) {
       const day = itinerary[i];
       if (!day) continue;
       
-      await db.insert(itineraryItems).values({
+      await db.insert(itineraries).values({
         cruiseId: cruiseId,
         dayNumber: i + 1,
         portId: toIntegerOrNull(day.portid),
         arrivalTime: day.arrivaltime || null,
         departureTime: day.departuretime || null,
-        description: day.description || day.portname || null,
-        isSeaDay: day.portid === 0 || day.portname === 'At Sea'
+        portName: day.portname || null,
+        date: null, // Calculate if needed
+        isSeaDay: day.portid === 0 || day.portname === 'At Sea',
+        description: day.description || null
       });
     }
     stats.itineraries++;
@@ -401,7 +403,7 @@ async function processItinerary(cruiseId, itinerary) {
 }
 
 /**
- * Process cabin definitions
+ * Process cabin categories
  */
 async function processCabins(shipId, cabins) {
   if (!cabins || typeof cabins !== 'object') return;
@@ -413,17 +415,19 @@ async function processCabins(shipId, cabins) {
     if (!cabin || typeof cabin !== 'object') continue;
     
     try {
-      await db.insert(cabinDefinitions).values({
+      await db.insert(cabinCategories).values({
         shipId: shipIdNum,
-        cabinCode: cabinCode,
-        cabinType: cabin.type || cabin.category || 'Standard',
+        code: cabinCode,
+        category: cabin.category || cabin.type || 'INTERIOR',
+        name: cabin.name || cabinCode,
         description: cabin.description || null,
         maxOccupancy: toIntegerOrNull(cabin.maxoccupancy || cabin.capacity),
-        deckNumber: toIntegerOrNull(cabin.deck),
+        deck: cabin.deck || null,
         amenities: cabin.amenities || [],
-        sizeSqft: toIntegerOrNull(cabin.size),
-        hasBalcony: cabin.balcony === true || cabin.hasBalcony === true,
-        hasWindow: cabin.window === true || cabin.hasWindow === true
+        sqFt: toIntegerOrNull(cabin.size),
+        balcony: cabin.balcony === true || cabin.hasBalcony === true,
+        window: cabin.window === true || cabin.hasWindow === true,
+        isActive: true
       }).onConflictDoNothing();
       stats.cabins++;
     } catch (error) {
@@ -440,31 +444,53 @@ async function processDetailedPricing(cruiseId, prices) {
   
   try {
     // Delete existing pricing
-    await db.delete(detailedPricing)
-      .where(eq(detailedPricing.cruiseId, cruiseId));
+    await db.delete(pricing)
+      .where(eq(pricing.cruiseId, cruiseId));
     
     // Process each rate code
     for (const [rateCode, rateData] of Object.entries(prices)) {
       if (!rateData || typeof rateData !== 'object') continue;
       
-      // Process each cabin category
-      for (const [cabinCode, priceData] of Object.entries(rateData)) {
-        if (!priceData || typeof priceData !== 'object') continue;
+      // Process each cabin code
+      for (const [cabinCode, cabinData] of Object.entries(rateData)) {
+        if (!cabinData || typeof cabinData !== 'object') continue;
         
-        const price = toDecimalOrNull(priceData.price || priceData.total);
-        if (price === null) continue;
-        
-        await db.insert(detailedPricing).values({
-          cruiseId: cruiseId,
-          rateCode: rateCode,
-          cabinCode: cabinCode,
-          price: price,
-          currency: priceData.currency || 'USD',
-          occupancy: toIntegerOrNull(priceData.occupancy) || 2,
-          includesTaxes: priceData.includesTaxes === true,
-          includesPortCharges: priceData.includesPortCharges === true,
-          bookingClass: priceData.bookingClass || null
-        });
+        // Process each occupancy
+        for (const [occupancyCode, priceData] of Object.entries(cabinData)) {
+          if (!priceData || typeof priceData !== 'object') continue;
+          
+          const basePrice = toDecimalOrNull(priceData.price || priceData.total);
+          if (basePrice === null) continue;
+          
+          await db.insert(pricing).values({
+            cruiseId: cruiseId,
+            rateCode: rateCode,
+            cabinCode: cabinCode,
+            occupancyCode: occupancyCode,
+            cabinType: priceData.cabintype || null,
+            basePrice: basePrice,
+            adultPrice: toDecimalOrNull(priceData.adultprice),
+            childPrice: toDecimalOrNull(priceData.childprice),
+            infantPrice: toDecimalOrNull(priceData.infantprice),
+            singlePrice: toDecimalOrNull(priceData.singleprice),
+            thirdAdultPrice: toDecimalOrNull(priceData.thirdadultprice),
+            fourthAdultPrice: toDecimalOrNull(priceData.fourthadultprice),
+            taxes: toDecimalOrNull(priceData.taxes),
+            ncf: toDecimalOrNull(priceData.ncf),
+            gratuity: toDecimalOrNull(priceData.gratuity),
+            fuel: toDecimalOrNull(priceData.fuel),
+            nonComm: toDecimalOrNull(priceData.noncomm),
+            portCharges: toDecimalOrNull(priceData.portcharges),
+            governmentFees: toDecimalOrNull(priceData.governmentfees),
+            totalPrice: toDecimalOrNull(priceData.total || priceData.price),
+            commission: toDecimalOrNull(priceData.commission),
+            isAvailable: priceData.available !== false,
+            inventory: toIntegerOrNull(priceData.inventory),
+            waitlist: priceData.waitlist === true,
+            currency: priceData.currency || 'USD',
+            pricingType: 'STATIC'
+          });
+        }
       }
     }
     
