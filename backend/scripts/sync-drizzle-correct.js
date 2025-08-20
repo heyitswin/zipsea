@@ -87,6 +87,7 @@ function parseArrayField(value) {
   if (!value) return [];
   if (Array.isArray(value)) return value.map(v => toIntegerOrNull(v)).filter(v => v !== null);
   if (typeof value === 'string') {
+    // Handle comma-separated strings (the actual format from Traveltek)
     return value.split(',').map(v => toIntegerOrNull(v.trim())).filter(v => v !== null);
   }
   return [];
@@ -175,20 +176,37 @@ async function processDependencies(data) {
     isActive: true
   };
   
-  // Add ship content if available
+  // Add ship content if available (using actual field names from analysis)
   if (data.shipcontent) {
     const content = data.shipcontent;
+    // shipclass is always null in samples
     if (content.shipclass) shipData.shipClass = content.shipclass;
     if (content.tonnage) shipData.tonnage = toIntegerOrNull(content.tonnage);
     if (content.totalcabins) shipData.totalCabins = toIntegerOrNull(content.totalcabins);
-    if (content.limitof) shipData.capacity = toIntegerOrNull(content.limitof);
-    if (content.startrating) shipData.rating = toIntegerOrNull(content.startrating);
+    if (content.occupancy) shipData.capacity = toIntegerOrNull(content.occupancy); // occupancy not limitof
+    if (content.starrating) shipData.rating = toIntegerOrNull(content.starrating); // starrating not startrating
     if (content.shortdescription) shipData.description = content.shortdescription;
-    if (content.highlights) shipData.highlights = content.highlights;
+    if (content.highlights) shipData.highlights = content.highlights; // Always null in samples
     if (content.defaultshipimage) shipData.defaultImageUrl = content.defaultshipimage;
     if (content.defaultshipimage2k) shipData.defaultImageUrlHd = content.defaultshipimage2k;
-    if (content.shipimages && Array.isArray(content.shipimages)) shipData.images = content.shipimages;
+    // shipimages is an object, not array
+    if (content.shipimages) {
+      if (Array.isArray(content.shipimages)) {
+        shipData.images = content.shipimages;
+      } else if (typeof content.shipimages === 'object') {
+        // Convert object to array of image URLs
+        shipData.images = Object.values(content.shipimages);
+      }
+    }
     if (content.additsoaly) shipData.additionalInfo = content.additsoaly;
+    // Add missing fields
+    if (content.totalcrew) shipData.decks = toIntegerOrNull(content.totalcrew); // Store crew count in decks field for now
+    if (content.launched) {
+      const year = content.launched.split('-')[0];
+      if (year && year !== '0000') {
+        shipData.launchedYear = toIntegerOrNull(year);
+      }
+    }
   }
   
   // Clean ship data before insert/update
@@ -218,20 +236,23 @@ async function processDependencies(data) {
       set: shipUpdateData
     });
   
-  // Process ports - handle different data formats
+  // Process ports - data.ports is an object keyed by port ID
   const portMapping = {};
-  if (data.ports) {
-    if (Array.isArray(data.ports)) {
-      // If ports is an array, map it to port IDs
-      const portIds = parseArrayField(data.portids);
-      for (let i = 0; i < portIds.length && i < data.ports.length; i++) {
-        portMapping[portIds[i]] = data.ports[i];
+  if (data.ports && typeof data.ports === 'object') {
+    // Ports is an object where keys are port IDs
+    for (const [portId, portData] of Object.entries(data.ports)) {
+      const pid = toIntegerOrNull(portId);
+      if (pid) {
+        // If portData is an object with name, use it; otherwise use as string
+        if (typeof portData === 'object' && portData.name) {
+          portMapping[pid] = portData.name;
+        } else if (typeof portData === 'string') {
+          portMapping[pid] = portData;
+        } else {
+          portMapping[pid] = `Port ${pid}`;
+        }
       }
-    } else if (typeof data.ports === 'object') {
-      // If ports is an object, it might be keyed by port ID
-      Object.assign(portMapping, data.ports);
     }
-    // If ports is a string, we can't map it
   }
   
   const allPortIds = new Set([
@@ -261,16 +282,20 @@ async function processDependencies(data) {
       });
   }
   
-  // Process regions - handle different data formats
+  // Process regions - data.regions is an object keyed by region ID
   const regionMapping = {};
-  if (data.regions) {
-    if (Array.isArray(data.regions)) {
-      const regionIds = parseArrayField(data.regionids);
-      for (let i = 0; i < regionIds.length && i < data.regions.length; i++) {
-        regionMapping[regionIds[i]] = data.regions[i];
+  if (data.regions && typeof data.regions === 'object') {
+    for (const [regionId, regionData] of Object.entries(data.regions)) {
+      const rid = toIntegerOrNull(regionId);
+      if (rid) {
+        if (typeof regionData === 'object' && regionData.name) {
+          regionMapping[rid] = regionData.name;
+        } else if (typeof regionData === 'string') {
+          regionMapping[rid] = regionData;
+        } else {
+          regionMapping[rid] = `Region ${rid}`;
+        }
       }
-    } else if (typeof data.regions === 'object') {
-      Object.assign(regionMapping, data.regions);
     }
   }
   
@@ -367,26 +392,27 @@ async function processCruiseData(data, filePath) {
     codeToCruiseId: data.codetocruiseid || String(cruiseId),
     cruiseLineId: toIntegerOrNull(data.lineid) || 1,
     shipId: toIntegerOrNull(data.shipid) || 1,
-    name: data.cruisename || data.name || data.itineraryname || `Cruise ${cruiseId}`, // Note: cruisename field often doesn't exist
+    name: data.name || data.cruisename || data.itineraryname || `Cruise ${cruiseId}`, // Use 'name' field (verified to exist)
+    voyageCode: data.voyagecode || null, // Important identifier
     sailingDate: sailDate,
     returnDate: returnDate,
     nights: nights,
     embarkPortId: toIntegerOrNull(data.startportid),
     disembarkPortId: toIntegerOrNull(data.endportid),
-    regionIds: parseArrayField(data.regionids),
-    portIds: parseArrayField(data.portids),
-    showCruise: data.showCruise === 'Y',
+    regionIds: parseArrayField(data.regionids), // Comma-separated string like "12,3"
+    portIds: parseArrayField(data.portids), // Comma-separated string like "378,383,2864"
+    showCruise: data.showcruise === 'Y', // Fixed field name
     isActive: true,
     traveltekFilePath: filePath,
     marketId: toIntegerOrNull(data.marketid),
-    ownerId: toIntegerOrNull(data.ownerid),
+    ownerId: data.ownerid === 'system' ? null : toIntegerOrNull(data.ownerid), // Convert 'system' to null
     // Additional fields from schema
     sailNights: toIntegerOrNull(data.sailnights),
     seaDays: toIntegerOrNull(data.seadays),
     noFly: data.nofly === 'Y' || data.noFly === true,
     departUk: data.departuk === 'Y' || data.departUk === true,
-    flyCruiseInfo: data.flycruiseinfo || null,
-    lineContent: data.linecontent || null,
+    flyCruiseInfo: data.flycruiseinfo ? JSON.stringify(data.flycruiseinfo) : null,
+    lineContent: data.linecontent ? data.linecontent.description : null,
     currency: data.currency || 'USD'
   };
   
@@ -501,7 +527,7 @@ async function processItinerary(cruiseId, itinerary, sailDate) {
  * Process pricing
  */
 async function processDetailedPricing(cruiseId, prices) {
-  if (!prices || typeof prices !== 'object') {
+  if (!prices || typeof prices !== 'object' || Object.keys(prices).length === 0) {
     console.log(`   ℹ️  No pricing data available for cruise ${cruiseId}`);
     return;
   }
@@ -642,6 +668,13 @@ async function processCompleteCruise(client, filePath) {
     if (!cruiseId) {
       console.log(`   ⚠️  Invalid cruise ID in ${filePath}`);
       return;
+    }
+    
+    // Data validation
+    const nights = toIntegerOrNull(data.nights);
+    if (nights > 100) {
+      console.log(`   ⚠️  Unusual duration: ${nights} nights (${data.name || 'unnamed'})`);
+      // This could be a world cruise or grand voyage
     }
     
     // Check if exists

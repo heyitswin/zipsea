@@ -235,7 +235,13 @@ async function analyzeAllStructures() {
         console.log(`\n   File: ${filePath}`);
         console.log(`   Days: ${data.itineraryDays}`);
         console.log(`   Port IDs: ${data.portIds}`);
-        console.log(`   Ports: ${data.ports ? data.ports.slice(0, 5).join(', ') : 'null'}`);
+        if (typeof data.ports === 'object' && !Array.isArray(data.ports)) {
+          console.log(`   Ports: [object with ${Object.keys(data.ports).length} keys]`);
+        } else if (Array.isArray(data.ports)) {
+          console.log(`   Ports: ${data.ports.slice(0, 5).join(', ')}`);
+        } else {
+          console.log(`   Ports: ${data.ports}`);
+        }
       }
       
       // 5. Important fields we might be missing
