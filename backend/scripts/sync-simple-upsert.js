@@ -553,23 +553,32 @@ async function processCompleteCruise(client, filePath) {
       if (shipId && data.shipcontent) {
         const content = data.shipcontent;
         
-        // Update ship with detailed content using existing columns
-        await db.execute(sql`
-          UPDATE ships 
-          SET ship_class = COALESCE(${content.shipclass}, ship_class),
-              tonnage = COALESCE(${toIntegerOrNull(content.tonnage)}, tonnage),
-              total_cabins = COALESCE(${toIntegerOrNull(content.totalcabins)}, total_cabins),
-              capacity = COALESCE(${toIntegerOrNull(content.limitof)}, capacity),
-              rating = COALESCE(${toIntegerOrNull(content.startrating)}, rating),
-              description = COALESCE(${content.shortdescription}, description),
-              highlights = COALESCE(${content.highlights}, highlights),
-              default_image_url = COALESCE(${content.defaultshipimage}, default_image_url),
-              default_image_url_hd = COALESCE(${content.defaultshipimage2k}, default_image_url_hd),
-              images = COALESCE(${JSON.stringify(content.shipimages || [])}, images),
-              additional_info = COALESCE(${content.additsoaly}, additional_info),
-              updated_at = NOW()
-          WHERE id = ${shipId}
-        `);
+        // Build update data object
+        const updateData = {};
+        if (content.shipclass) updateData.ship_class = content.shipclass;
+        if (content.tonnage) updateData.tonnage = toIntegerOrNull(content.tonnage);
+        if (content.totalcabins) updateData.total_cabins = toIntegerOrNull(content.totalcabins);
+        if (content.limitof) updateData.capacity = toIntegerOrNull(content.limitof);
+        if (content.startrating) updateData.rating = toIntegerOrNull(content.startrating);
+        if (content.shortdescription) updateData.description = content.shortdescription;
+        if (content.highlights) updateData.highlights = content.highlights;
+        if (content.defaultshipimage) updateData.default_image_url = content.defaultshipimage;
+        if (content.defaultshipimage2k) updateData.default_image_url_hd = content.defaultshipimage2k;
+        if (content.shipimages) updateData.images = JSON.stringify(content.shipimages);
+        if (content.additsoaly) updateData.additional_info = content.additsoaly;
+        
+        // Only update if we have data
+        if (Object.keys(updateData).length > 0) {
+          const setClause = Object.entries(updateData)
+            .map(([key, value]) => sql`${sql.identifier(key)} = ${value}`)
+            .reduce((a, b, idx) => idx === 0 ? a : sql`${a}, ${b}`);
+          
+          await db.execute(sql`
+            UPDATE ships 
+            SET ${setClause}, updated_at = NOW()
+            WHERE id = ${shipId}
+          `);
+        }
       }
     }
     
