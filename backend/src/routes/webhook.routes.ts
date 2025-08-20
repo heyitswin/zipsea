@@ -1,6 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import logger from '../config/logger';
-import { validateWebhookSignature } from '../middleware/validation';
 import { webhookService } from '../services/webhook.service';
 
 const router = Router();
@@ -85,24 +84,41 @@ router.post('/traveltek/cruises-live-pricing-updated', async (req: Request, res:
 });
 
 // Generic Traveltek webhook endpoint (keep for other events)
-router.post('/traveltek', validateWebhookSignature, async (req: Request, res: Response, next: NextFunction) => {
+// Note: Traveltek doesn't send signatures, so no validation needed
+router.post('/traveltek', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { body, headers } = req;
-    const webhookEvent = body.event_type || body.type;
-    const payload = body.data || body;
-
+    const webhookEvent = body.event || body.event_type || body.type;
+    
     logger.info('Traveltek webhook received', {
       event: webhookEvent,
       headers: {
         'user-agent': headers['user-agent'],
         'content-type': headers['content-type'],
-        'x-webhook-signature': headers['x-webhook-signature'] ? 'present' : 'missing',
       },
-      payloadSize: JSON.stringify(payload).length,
+      payload: body,
     });
 
-    // Process different webhook event types using webhook service
-    await webhookService.processWebhookEvent(webhookEvent, payload);
+    // Route to appropriate handler based on event type
+    if (webhookEvent === 'cruiseline_pricing_updated') {
+      await webhookService.processCruiselinePricingUpdate({
+        eventType: webhookEvent,
+        lineId: body.lineid || body.lineId || body.line_id,
+        priceData: body.priceData || body.price_data,
+        timestamp: body.timestamp,
+      });
+    } else if (webhookEvent === 'cruises_live_pricing_updated') {
+      await webhookService.processLivePricingUpdate({
+        eventType: webhookEvent,
+        cruiseId: body.cruiseId || body.cruise_id,
+        cruiseIds: body.cruiseIds || body.cruise_ids || body.paths,
+        priceData: body.priceData || body.price_data,
+        timestamp: body.timestamp,
+      });
+    } else {
+      // Process other webhook types
+      await webhookService.processWebhookEvent(webhookEvent, body);
+    }
 
     // Respond with 200 OK to acknowledge receipt
     res.status(200).json({
