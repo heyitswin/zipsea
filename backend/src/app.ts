@@ -8,6 +8,8 @@ import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import routes from './routes';
 import logger from './config/logger';
 import { cronService } from './services/cron.service';
+import { redisInitService } from './cache/redis-init.service';
+import { cacheWarmingService } from './cache/cache-warming.service';
 
 // Create Express application
 const app = express();
@@ -35,35 +37,64 @@ app.use('/', routes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Initialize scheduled jobs
-let cronInitialized = false;
-const initializeCronJobs = async () => {
-  if (!cronInitialized) {
+// Initialize services
+let servicesInitialized = false;
+const initializeServices = async () => {
+  if (!servicesInitialized) {
     try {
+      // Initialize Redis first
+      logger.info('Initializing Redis connection...');
+      await redisInitService.initialize();
+      
+      // Start cache warming service
+      logger.info('Initializing cache warming...');
+      cacheWarmingService.scheduleWarming();
+      
+      // Warm cache with initial data (async - don't block startup)
+      setTimeout(async () => {
+        try {
+          logger.info('Starting initial cache warming...');
+          await cacheWarmingService.warmPopularData();
+        } catch (error) {
+          logger.error('Initial cache warming failed:', error);
+        }
+      }, 30000); // Wait 30 seconds after startup
+      
+      // Then initialize cron jobs
+      logger.info('Initializing cron jobs...');
       await cronService.init();
-      cronInitialized = true;
+      
+      servicesInitialized = true;
+      logger.info('All services initialized successfully');
     } catch (error) {
-      logger.error('Failed to initialize cron jobs:', error);
+      logger.error('Failed to initialize services:', error);
+      // Don't exit - some services may still work without Redis
     }
   }
 };
 
-// Initialize cron jobs after a short delay to ensure database connections are ready
-setTimeout(initializeCronJobs, 5000);
+// Initialize services after a short delay to ensure database connections are ready
+setTimeout(initializeServices, 5000);
 
 // Graceful shutdown handling
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
-  if (cronInitialized) {
-    await cronService.shutdown();
+  if (servicesInitialized) {
+    await Promise.allSettled([
+      cronService.shutdown(),
+      redisInitService.shutdown(),
+    ]);
   }
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
-  if (cronInitialized) {
-    await cronService.shutdown();
+  if (servicesInitialized) {
+    await Promise.allSettled([
+      cronService.shutdown(),
+      redisInitService.shutdown(),
+    ]);
   }
   process.exit(0);
 });

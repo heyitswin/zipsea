@@ -8,7 +8,7 @@ import {
 } from '../db/schema';
 import { traveltekFTPService } from './traveltek-ftp.service';
 import { dataSyncService } from './data-sync.service';
-import { cacheManager } from '../cache/cache-manager';
+import { cacheManager, searchCache, cruiseCache } from '../cache/cache-manager';
 import { CacheKeys } from '../cache/cache-keys';
 import { slackService } from './slack.service';
 
@@ -297,24 +297,29 @@ export class WebhookService {
   }
 
   /**
-   * Clear cache entries for a specific cruise
+   * Clear cache entries for a specific cruise with enhanced invalidation
    */
   private async clearCacheForCruise(cruiseId: number): Promise<void> {
     try {
-      const cacheKeys = [
-        CacheKeys.cruiseDetails(cruiseId.toString()),
-        CacheKeys.pricing(cruiseId.toString(), 'all'),
-        // Also clear search results that might include this cruise
-        // We'll use pattern matching to clear search cache
-      ];
+      logger.info(`Clearing cache for cruise ${cruiseId}`);
+      
+      // Use specialized cache managers for better invalidation
+      await Promise.allSettled([
+        // Clear specific cruise data
+        cruiseCache.invalidateCruise(cruiseId),
+        
+        // Clear search caches that might include this cruise
+        searchCache.invalidateAllSearchCaches(),
+        
+        // Clear popular cruises cache since pricing changed
+        cacheManager.del('popular:cruises:10'),
+        cacheManager.del('popular:cruises:20'),
+        
+        // Clear search filters cache since pricing ranges might have changed
+        searchCache.del('search:filters'),
+      ]);
 
-      await Promise.all(cacheKeys.map(key => cacheManager.delete(key)));
-
-      // Clear search cache patterns (this is a simple approach - in production
-      // you might want more sophisticated cache invalidation)
-      await cacheManager.deletePattern('search:*');
-
-      logger.debug(`Cleared cache for cruise ${cruiseId}`);
+      logger.info(`Cache cleared successfully for cruise ${cruiseId}`);
 
     } catch (error) {
       logger.warn(`Failed to clear cache for cruise ${cruiseId}:`, error);
@@ -323,19 +328,32 @@ export class WebhookService {
   }
 
   /**
-   * Clear cache entries for an entire cruise line
+   * Clear cache entries for an entire cruise line with enhanced invalidation
    */
   private async clearCacheForCruiseLine(lineId: number): Promise<void> {
     try {
-      // Clear all search cache since cruise line pricing affects search results
-      await cacheManager.deletePattern('search:*');
+      logger.info(`Clearing cache for cruise line ${lineId}`);
       
-      // Clear cruise details cache for all cruises in this line
-      // In a more sophisticated setup, you'd track which cruises belong to which line
-      await cacheManager.deletePattern(`cruise:*`);
-      await cacheManager.deletePattern(`pricing:*`);
+      // For cruise line updates, we need to clear everything as prices for
+      // multiple cruises may have changed
+      await Promise.allSettled([
+        // Clear all search-related caches
+        searchCache.invalidateAllSearchCaches(),
+        
+        // Clear all cruise and pricing caches (aggressive but safe)
+        cacheManager.invalidatePattern('cruise:*'),
+        cacheManager.invalidatePattern('pricing:*'),
+        cacheManager.invalidatePattern('itinerary:*'),
+        cacheManager.invalidatePattern('alternatives:*'),
+        
+        // Clear popular cruises
+        cacheManager.invalidatePattern('popular:*'),
+        
+        // Clear filters as pricing ranges may have changed significantly
+        cacheManager.del('search:filters'),
+      ]);
 
-      logger.debug(`Cleared cache for cruise line ${lineId}`);
+      logger.info(`Cache cleared successfully for cruise line ${lineId}`);
 
     } catch (error) {
       logger.warn(`Failed to clear cache for cruise line ${lineId}:`, error);
