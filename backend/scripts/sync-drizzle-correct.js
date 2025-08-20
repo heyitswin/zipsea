@@ -180,25 +180,29 @@ async function processDependencies(data) {
     if (content.additsoaly) shipData.additionalInfo = content.additsoaly;
   }
   
+  const updateData = {
+    name: shipData.name,
+    updatedAt: new Date()
+  };
+  
+  // Only include fields that have values to avoid undefined issues
+  if (shipData.shipClass) updateData.shipClass = shipData.shipClass;
+  if (shipData.tonnage) updateData.tonnage = shipData.tonnage;
+  if (shipData.totalCabins) updateData.totalCabins = shipData.totalCabins;
+  if (shipData.capacity) updateData.capacity = shipData.capacity;
+  if (shipData.rating) updateData.rating = shipData.rating;
+  if (shipData.description) updateData.description = shipData.description;
+  if (shipData.highlights) updateData.highlights = shipData.highlights;
+  if (shipData.defaultImageUrl) updateData.defaultImageUrl = shipData.defaultImageUrl;
+  if (shipData.defaultImageUrlHd) updateData.defaultImageUrlHd = shipData.defaultImageUrlHd;
+  if (shipData.images) updateData.images = shipData.images;
+  if (shipData.additionalInfo) updateData.additionalInfo = shipData.additionalInfo;
+  
   await db.insert(schema.ships)
     .values(shipData)
     .onConflictDoUpdate({
       target: schema.ships.id,
-      set: {
-        name: shipData.name,
-        shipClass: shipData.shipClass || undefined,
-        tonnage: shipData.tonnage || undefined,
-        totalCabins: shipData.totalCabins || undefined,
-        capacity: shipData.capacity || undefined,
-        rating: shipData.rating || undefined,
-        description: shipData.description || undefined,
-        highlights: shipData.highlights || undefined,
-        defaultImageUrl: shipData.defaultImageUrl || undefined,
-        defaultImageUrlHd: shipData.defaultImageUrlHd || undefined,
-        images: shipData.images || undefined,
-        additionalInfo: shipData.additionalInfo || undefined,
-        updatedAt: new Date()
-      }
+      set: updateData
     });
   
   // Process ports
@@ -310,7 +314,6 @@ async function processCruiseData(data, filePath) {
     cruiseLineId: toIntegerOrNull(data.lineid) || 1,
     shipId: toIntegerOrNull(data.shipid) || 1,
     name: data.cruisename || data.name || `Cruise ${cruiseId}`,
-    description: data.cruisedescription || data.description || null,
     sailingDate: sailDate,
     returnDate: returnDate,
     nights: nights,
@@ -320,36 +323,51 @@ async function processCruiseData(data, filePath) {
     portIds: parseArrayField(data.portids),
     showCruise: data.showCruise === 'Y',
     isActive: true,
-    traveltekCruiseId: cruiseId,
     traveltekFilePath: filePath,
     marketId: toIntegerOrNull(data.marketid),
     ownerId: toIntegerOrNull(data.ownerid),
-    cruiseDetails: {
-      ports: data.ports || [],
-      regions: data.regions || [],
-      alternativeDates: data.alternativeDates || [],
-      meta: data.meta || {}
-    }
+    // Additional fields from schema
+    sailNights: toIntegerOrNull(data.sailnights),
+    seaDays: toIntegerOrNull(data.seadays),
+    noFly: data.nofly === 'Y' || data.noFly === true,
+    departUk: data.departuk === 'Y' || data.departUk === true,
+    flyCruiseInfo: data.flycruiseinfo || null,
+    lineContent: data.linecontent || null,
+    currency: data.currency || 'USD'
   };
+  
+  const cruiseUpdateData = {
+    name: cruiseData.name,
+    codeToCruiseId: cruiseData.codeToCruiseId,
+    nights: cruiseData.nights,
+    showCruise: cruiseData.showCruise,
+    isActive: cruiseData.isActive,
+    noFly: cruiseData.noFly,
+    departUk: cruiseData.departUk,
+    currency: cruiseData.currency,
+    traveltekFilePath: cruiseData.traveltekFilePath,
+    updatedAt: new Date()
+  };
+  
+  // Only include fields that have values
+  if (cruiseData.sailingDate) cruiseUpdateData.sailingDate = cruiseData.sailingDate;
+  if (cruiseData.returnDate) cruiseUpdateData.returnDate = cruiseData.returnDate;
+  if (cruiseData.sailNights) cruiseUpdateData.sailNights = cruiseData.sailNights;
+  if (cruiseData.seaDays) cruiseUpdateData.seaDays = cruiseData.seaDays;
+  if (cruiseData.embarkPortId) cruiseUpdateData.embarkPortId = cruiseData.embarkPortId;
+  if (cruiseData.disembarkPortId) cruiseUpdateData.disembarkPortId = cruiseData.disembarkPortId;
+  if (cruiseData.regionIds && cruiseData.regionIds.length > 0) cruiseUpdateData.regionIds = cruiseData.regionIds;
+  if (cruiseData.portIds && cruiseData.portIds.length > 0) cruiseUpdateData.portIds = cruiseData.portIds;
+  if (cruiseData.flyCruiseInfo) cruiseUpdateData.flyCruiseInfo = cruiseData.flyCruiseInfo;
+  if (cruiseData.lineContent) cruiseUpdateData.lineContent = cruiseData.lineContent;
+  if (cruiseData.marketId) cruiseUpdateData.marketId = cruiseData.marketId;
+  if (cruiseData.ownerId) cruiseUpdateData.ownerId = cruiseData.ownerId;
   
   const result = await db.insert(schema.cruises)
     .values(cruiseData)
     .onConflictDoUpdate({
       target: schema.cruises.id,
-      set: {
-        name: cruiseData.name,
-        description: cruiseData.description,
-        sailingDate: cruiseData.sailingDate,
-        returnDate: cruiseData.returnDate,
-        nights: cruiseData.nights,
-        embarkPortId: cruiseData.embarkPortId,
-        disembarkPortId: cruiseData.disembarkPortId,
-        regionIds: cruiseData.regionIds,
-        portIds: cruiseData.portIds,
-        showCruise: cruiseData.showCruise,
-        cruiseDetails: cruiseData.cruiseDetails,
-        updatedAt: new Date()
-      }
+      set: cruiseUpdateData
     })
     .returning({ id: schema.cruises.id });
   
