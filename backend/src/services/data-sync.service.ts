@@ -162,13 +162,12 @@ export class DataSyncService {
         tonnage: shipContent.tonnage || null,
         totalCabins: shipContent.totalcabins || null,
         shipClass: shipContent.shipclass || null,
-        starRating: shipContent.startrating || null,
-        passengerCapacity: shipContent.limitof || null,
-        shortDescription: shipContent.shortdescription || '',
+        capacity: shipContent.limitof || null,
+        description: shipContent.shortdescription || '',
         highlights: shipContent.highlights || '',
         defaultImageUrl: shipContent.defaultshipimage || null,
-        defaultImage2kUrl: shipContent.defaultshipimage2k || null,
-        shipImages: JSON.stringify(shipContent.shipimages || []),
+        defaultImageUrlHd: shipContent.defaultshipimage2k || null,
+        images: JSON.stringify(shipContent.shipimages || []),
         isActive: true,
       };
 
@@ -239,7 +238,7 @@ export class DataSyncService {
     if (!data.cabins) return;
 
     const cabinCodes = Object.keys(data.cabins);
-    const existingCabins = await tx.select().from(cabinCategories).where(inArray(cabinCategories.code, cabinCodes));
+    const existingCabins = await tx.select().from(cabinCategories).where(inArray(cabinCategories.cabinCode, cabinCodes));
     const existingCabinCodes = existingCabins.map(c => c.code);
     const missingCabinCodes = cabinCodes.filter(code => !existingCabinCodes.includes(code));
 
@@ -247,21 +246,20 @@ export class DataSyncService {
       const cabinData = data.cabins[cabinCode];
 
       const newCabinCategory: NewCabinCategory = {
-        id: cabinData.id || undefined,
         shipId: data.shipid,
         name: cabinData.name || cabinCode,
-        code: cabinCode,
-        code2: cabinData.cabincode2 || null,
-        type: cabinData.codtype || this.inferCabinType(cabinCode),
-        type2: cabinData.codtype2 || null,
+        cabinCode: cabinCode,
+        cabinCodeAlt: cabinData.cabincode2 || null,
+        category: cabinData.codtype || this.inferCabinType(cabinCode),
+        categoryAlt: cabinData.codtype2 || null,
         description: cabinData.description || '',
         colorCode: cabinData.colourcode || null,
-        colorCode2: cabinData.colourcode2 || null,
+        colorCodeAlt: cabinData.colourcode2 || null,
         imageUrl: cabinData.imageurl || null,
-        image2kUrl: cabinData.imageurl2k || null,
+        imageUrlHd: cabinData.imageurl2k || null,
         isDefault: cabinData.isdefault || false,
-        validFrom: cabinData.validfrom ? new Date(cabinData.validfrom) : null,
-        validTo: cabinData.validto ? new Date(cabinData.validto) : null,
+        validFrom: cabinData.validfrom ? new Date(cabinData.validfrom).toISOString().split('T')[0] : null,
+        validTo: cabinData.validto ? new Date(cabinData.validto).toISOString().split('T')[0] : null,
         isActive: true,
       };
 
@@ -344,13 +342,13 @@ export class DataSyncService {
     for (const dayData of data.itinerary) {
       const itineraryRecord: NewItinerary = {
         cruiseId: data.cruiseid,
-        day: dayData.day || 1,
+        dayNumber: dayData.day || 1,
         date: dayData.date || null,
         portName: dayData.port || 'At Sea',
         arrivalTime: dayData.arrive || null,
         departureTime: dayData.depart || null,
         description: dayData.description || '',
-        isSeaDay: dayData.port === 'At Sea' || !dayData.port,
+        status: dayData.port === 'At Sea' || !dayData.port ? 'at_sea' : 'port',
       };
 
       await tx.insert(itineraries).values(itineraryRecord);

@@ -118,6 +118,16 @@ export class CacheManager {
     }
   }
 
+  // Delete a single key (alias for del)
+  async delete(key: string, options: CacheOptions = {}): Promise<void> {
+    return this.del(key, options);
+  }
+
+  // Delete keys matching a pattern
+  async deletePattern(pattern: string, options: CacheOptions = {}): Promise<void> {
+    return this.invalidatePattern(pattern, options);
+  }
+
   // Invalidate cache pattern with batch processing
   async invalidatePattern(pattern: string, options: CacheOptions = {}): Promise<void> {
     try {

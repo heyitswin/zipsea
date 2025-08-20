@@ -1,4 +1,4 @@
-import { Client } from 'ftp';
+import Client = require('ftp');
 import { promisify } from 'util';
 import { Readable } from 'stream';
 import { logger } from '../config/logger';

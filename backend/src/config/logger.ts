@@ -134,4 +134,5 @@ if (!existsSync('logs')) {
   mkdirSync('logs', { recursive: true });
 }
 
+export { logger };
 export default logger;

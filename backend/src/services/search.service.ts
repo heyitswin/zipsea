@@ -1,4 +1,4 @@
-import { eq, and, or, gte, lte, like, inArray, sql, desc, asc } from 'drizzle-orm';
+import { eq, and, or, gte, lte, like, inArray, sql, desc, asc, aliasedTable } from 'drizzle-orm';
 import { db } from '../db/connection';
 import { logger } from '../config/logger';
 import { cacheManager } from '../cache/cache-manager';
@@ -131,27 +131,25 @@ export class SearchService {
       const limit = Math.min(100, Math.max(1, options.limit || 20));
       const offset = (page - 1) * limit;
 
+      // Create aliases for ports
+      const embarkPort = aliasedTable(ports, 'embark_port');
+      const disembarkPort = aliasedTable(ports, 'disembark_port');
+
       // Build the base query
       let query = db
         .select({
           cruise: cruises,
           cruiseLine: cruiseLines,
           ship: ships,
-          embarkPort: {
-            id: sql<number>`embark_port.id`,
-            name: sql<string>`embark_port.name`,
-          },
-          disembarkPort: {
-            id: sql<number>`disembark_port.id`,
-            name: sql<string>`disembark_port.name`,
-          },
+          embarkPort: embarkPort,
+          disembarkPort: disembarkPort,
           cheapestPrice: cheapestPricing,
         })
         .from(cruises)
         .leftJoin(cruiseLines, eq(cruises.cruiseLineId, cruiseLines.id))
         .leftJoin(ships, eq(cruises.shipId, ships.id))
-        .leftJoin(ports.as('embark_port'), eq(cruises.embarkPortId, sql`embark_port.id`))
-        .leftJoin(ports.as('disembark_port'), eq(cruises.disembarkPortId, sql`disembark_port.id`))
+        .leftJoin(embarkPort, eq(cruises.embarkPortId, embarkPort.id))
+        .leftJoin(disembarkPort, eq(cruises.disembarkPortId, disembarkPort.id))
         .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
         .where(and(
           eq(cruises.isActive, true),
@@ -181,8 +179,8 @@ export class SearchService {
           // Search by port name
           whereConditions.push(
             or(
-              like(sql`embark_port.name`, `%${filters.departurePort}%`),
-              like(sql`disembark_port.name`, `%${filters.departurePort}%`)
+              like(embarkPort.name, `%${filters.departurePort}%`),
+              like(disembarkPort.name, `%${filters.departurePort}%`)
             )
           );
         } else {
@@ -286,8 +284,8 @@ export class SearchService {
         .from(cruises)
         .leftJoin(cruiseLines, eq(cruises.cruiseLineId, cruiseLines.id))
         .leftJoin(ships, eq(cruises.shipId, ships.id))
-        .leftJoin(ports.as('embark_port'), eq(cruises.embarkPortId, sql`embark_port.id`))
-        .leftJoin(ports.as('disembark_port'), eq(cruises.disembarkPortId, sql`disembark_port.id`))
+        .leftJoin(embarkPort, eq(cruises.embarkPortId, embarkPort.id))
+        .leftJoin(disembarkPort, eq(cruises.disembarkPortId, disembarkPort.id))
         .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
         .where(and(...whereConditions));
 
@@ -319,7 +317,7 @@ export class SearchService {
       };
 
       // Cache the result
-      await cacheManager.set(cacheKey, result, 3600); // Cache for 1 hour
+      await cacheManager.set(cacheKey, result, { ttl: 3600 }); // Cache for 1 hour
 
       logger.info(`Search completed: ${total} results found, page ${page}/${totalPages}`);
       return result;
@@ -557,7 +555,7 @@ export class SearchService {
       };
 
       // Cache for 4 hours
-      await cacheManager.set(cacheKey, filters, 14400);
+      await cacheManager.set(cacheKey, filters, { ttl: 14400 });
 
       return filters;
 
@@ -579,27 +577,25 @@ export class SearchService {
         return cached;
       }
 
+      // Create aliases for ports
+      const embarkPort = aliasedTable(ports, 'embark_port');
+      const disembarkPort = aliasedTable(ports, 'disembark_port');
+
       // Get popular cruises (for now, just get cheapest with good ratings)
       const results = await db
         .select({
           cruise: cruises,
           cruiseLine: cruiseLines,
           ship: ships,
-          embarkPort: {
-            id: sql<number>`embark_port.id`,
-            name: sql<string>`embark_port.name`,
-          },
-          disembarkPort: {
-            id: sql<number>`disembark_port.id`,
-            name: sql<string>`disembark_port.name`,
-          },
+          embarkPort: embarkPort,
+          disembarkPort: disembarkPort,
           cheapestPrice: cheapestPricing,
         })
         .from(cruises)
         .leftJoin(cruiseLines, eq(cruises.cruiseLineId, cruiseLines.id))
         .leftJoin(ships, eq(cruises.shipId, ships.id))
-        .leftJoin(ports.as('embark_port'), eq(cruises.embarkPortId, sql`embark_port.id`))
-        .leftJoin(ports.as('disembark_port'), eq(cruises.disembarkPortId, sql`disembark_port.id`))
+        .leftJoin(embarkPort, eq(cruises.embarkPortId, embarkPort.id))
+        .leftJoin(disembarkPort, eq(cruises.disembarkPortId, disembarkPort.id))
         .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
         .where(and(
           eq(cruises.isActive, true),
@@ -614,7 +610,7 @@ export class SearchService {
       );
 
       // Cache for 2 hours
-      await cacheManager.set(cacheKey, popularCruises, 7200);
+      await cacheManager.set(cacheKey, popularCruises, { ttl: 7200 });
 
       return popularCruises;
 
@@ -704,7 +700,7 @@ export class SearchService {
       })));
 
       // Cache for 30 minutes
-      await cacheManager.set(cacheKey, suggestions, 1800);
+      await cacheManager.set(cacheKey, suggestions, { ttl: 1800 });
 
       return suggestions.slice(0, limit);
 

@@ -1,4 +1,4 @@
-import { eq, and, inArray, desc, asc } from 'drizzle-orm';
+import { eq, and, inArray, desc, asc, aliasedTable } from 'drizzle-orm';
 import { db } from '../db/connection';
 import { logger } from '../config/logger';
 import { cacheManager } from '../cache/cache-manager';
@@ -234,6 +234,9 @@ export class CruiseService {
         return cached;
       }
 
+      // Create alias for disembark port
+      const disembarkPort = aliasedTable(ports, 'disembark_port');
+
       // Get main cruise data
       const cruiseResult = await db
         .select({
@@ -241,13 +244,13 @@ export class CruiseService {
           cruiseLine: cruiseLines,
           ship: ships,
           embarkPort: ports,
-          disembarkPort: ports,
+          disembarkPort: disembarkPort,
         })
         .from(cruises)
         .leftJoin(cruiseLines, eq(cruises.cruiseLineId, cruiseLines.id))
         .leftJoin(ships, eq(cruises.shipId, ships.id))
         .leftJoin(ports, eq(cruises.embarkPortId, ports.id))
-        .leftJoin(ports.as('disembark_port'), eq(cruises.disembarkPortId, ports.id))
+        .leftJoin(disembarkPort, eq(cruises.disembarkPortId, disembarkPort.id))
         .where(eq(cruises.id, cruiseId))
         .limit(1);
 
@@ -260,7 +263,7 @@ export class CruiseService {
       const cruiseLine = cruiseResult[0].cruiseLine;
       const ship = cruiseResult[0].ship;
       const embarkPort = cruiseResult[0].embarkPort;
-      const disembarkPort = cruiseResult[0].disembarkPort;
+      const disembarkPortData = cruiseResult[0].disembarkPort;
 
       // Get additional data in parallel
       const [
@@ -292,7 +295,7 @@ export class CruiseService {
         sailingDate: cruise.sailingDate,
         returnDate: cruise.returnDate,
         embarkPort: embarkPort ? this.transformPortInfo(embarkPort) : undefined,
-        disembarkPort: disembarkPort ? this.transformPortInfo(disembarkPort) : undefined,
+        disembarkPort: disembarkPortData ? this.transformPortInfo(disembarkPortData) : undefined,
         cruiseLine: this.transformCruiseLineInfo(cruiseLine),
         ship: this.transformShipInfo(ship),
         regions: regionsData,
@@ -308,7 +311,7 @@ export class CruiseService {
       };
 
       // Cache for 6 hours
-      await cacheManager.set(cacheKey, cruiseDetails, 21600);
+      await cacheManager.set(cacheKey, cruiseDetails, { ttl: 21600 });
 
       logger.info(`Retrieved cruise details for ${cruiseId}`);
       return cruiseDetails;
@@ -396,7 +399,7 @@ export class CruiseService {
       };
 
       // Cache for 15 minutes
-      await cacheManager.set(cacheKey, result, 900);
+      await cacheManager.set(cacheKey, result, { ttl: 900 });
 
       return result;
 

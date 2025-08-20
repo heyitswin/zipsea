@@ -213,7 +213,7 @@ export class CronService {
   getJobStatus(): Record<string, boolean> {
     const status: Record<string, boolean> = {};
     for (const [name, job] of this.jobs) {
-      status[name] = job.running;
+      status[name] = true; // Job exists in the registry
     }
     return status;
   }
