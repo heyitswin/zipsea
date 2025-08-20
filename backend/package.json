@@ -16,6 +16,7 @@
     "format": "prettier --write src/**/*.{ts,tsx,json}",
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "ts-node src/db/migrate.ts",
+    "db:migrate:prod": "node scripts/run-migration.js",
     "db:push": "drizzle-kit push:pg",
     "db:studio": "drizzle-kit studio",
     "db:drop": "drizzle-kit drop",
