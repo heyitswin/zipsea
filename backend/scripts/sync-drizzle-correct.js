@@ -218,13 +218,20 @@ async function processDependencies(data) {
       set: shipUpdateData
     });
   
-  // Process ports
+  // Process ports - handle different data formats
   const portMapping = {};
-  if (data.ports && Array.isArray(data.ports)) {
-    const portIds = parseArrayField(data.portids);
-    for (let i = 0; i < portIds.length && i < data.ports.length; i++) {
-      portMapping[portIds[i]] = data.ports[i];
+  if (data.ports) {
+    if (Array.isArray(data.ports)) {
+      // If ports is an array, map it to port IDs
+      const portIds = parseArrayField(data.portids);
+      for (let i = 0; i < portIds.length && i < data.ports.length; i++) {
+        portMapping[portIds[i]] = data.ports[i];
+      }
+    } else if (typeof data.ports === 'object') {
+      // If ports is an object, it might be keyed by port ID
+      Object.assign(portMapping, data.ports);
     }
+    // If ports is a string, we can't map it
   }
   
   const allPortIds = new Set([
@@ -254,12 +261,16 @@ async function processDependencies(data) {
       });
   }
   
-  // Process regions
+  // Process regions - handle different data formats
   const regionMapping = {};
-  if (data.regions && Array.isArray(data.regions)) {
-    const regionIds = parseArrayField(data.regionids);
-    for (let i = 0; i < regionIds.length && i < data.regions.length; i++) {
-      regionMapping[regionIds[i]] = data.regions[i];
+  if (data.regions) {
+    if (Array.isArray(data.regions)) {
+      const regionIds = parseArrayField(data.regionids);
+      for (let i = 0; i < regionIds.length && i < data.regions.length; i++) {
+        regionMapping[regionIds[i]] = data.regions[i];
+      }
+    } else if (typeof data.regions === 'object') {
+      Object.assign(regionMapping, data.regions);
     }
   }
   
@@ -356,7 +367,7 @@ async function processCruiseData(data, filePath) {
     codeToCruiseId: data.codetocruiseid || String(cruiseId),
     cruiseLineId: toIntegerOrNull(data.lineid) || 1,
     shipId: toIntegerOrNull(data.shipid) || 1,
-    name: data.cruisename || data.name || `Cruise ${cruiseId}`,
+    name: data.cruisename || data.name || data.itineraryname || `Cruise ${cruiseId}`, // Note: cruisename field often doesn't exist
     sailingDate: sailDate,
     returnDate: returnDate,
     nights: nights,
@@ -462,17 +473,20 @@ async function processItinerary(cruiseId, itinerary, sailDate) {
           .onConflictDoNothing();
       }
       
+      // Use the actual port name from itinerary day object
+      const portName = day.name || day.itineraryname || day.portname || 'At Sea';
+      
       await db.insert(schema.itineraries).values({
         cruiseId: cruiseId,
         dayNumber: i + 1,
         date: dayDateStr,
-        portName: day.portname || day.port || 'At Sea',
+        portName: portName, // Use the name field from the day object!
         portId: (portId === 0 || !portId) ? null : portId,
-        arrivalTime: day.arrivaltime || day.arrive || null,
-        departureTime: day.departuretime || day.depart || null,
+        arrivalTime: day.arrivetime || day.arrivaltime || null, // Note: field is 'arrivetime' not 'arrivaltime'
+        departureTime: day.departtime || day.departuretime || null, // Note: field is 'departtime'
         status: i === 0 ? 'embark' : (i === itinerary.length - 1 ? 'disembark' : 'port'),
         overnight: false,
-        description: day.description || null,
+        description: day.description || day.itinerarydescription || null,
         activities: [],
         shoreExcursions: []
       });
@@ -487,7 +501,10 @@ async function processItinerary(cruiseId, itinerary, sailDate) {
  * Process pricing
  */
 async function processDetailedPricing(cruiseId, prices) {
-  if (!prices || typeof prices !== 'object') return;
+  if (!prices || typeof prices !== 'object') {
+    console.log(`   ℹ️  No pricing data available for cruise ${cruiseId}`);
+    return;
+  }
   
   try {
     // Delete existing pricing
