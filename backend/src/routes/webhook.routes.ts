@@ -86,9 +86,16 @@ router.post('/traveltek', validateWebhookSignature, async (req: Request, res: Re
 
     // Process different webhook event types
     switch (webhookEvent) {
+      case 'cruiseline_pricing_updated':
       case 'price_update':
-        logger.info('Processing price update webhook', { cruiseId: payload.cruise_id });
-        // TODO: Implement price update processing
+        logger.info('Processing cruiseline pricing update webhook', { payload });
+        // TODO: Implement price update processing for entire cruise lines
+        break;
+
+      case 'cruises_live_pricing_updated':
+      case 'live_pricing_updated':
+        logger.info('Processing live pricing update webhook', { payload });
+        // TODO: Implement real-time pricing updates for specific cruises
         break;
 
       case 'availability_change':
