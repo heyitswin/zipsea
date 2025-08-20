@@ -550,24 +550,29 @@ async function processDetailedPricing(cruiseId, prices) {
     for (const [rateCode, rateData] of Object.entries(prices)) {
       if (!rateData || typeof rateData !== 'object') continue;
       
-      // cabinId is like "IB_101" or "OV_201" - cabin type + occupancy combined
+      // cabinId appears to be numeric IDs like "43568" based on actual data
       for (const [cabinId, priceData] of Object.entries(rateData)) {
         if (!priceData || typeof priceData !== 'object') continue;
         
-        // Parse cabinId to extract cabin code and occupancy
-        // Format is typically "CABIN_OCCUPANCY" like "IB_101" or just "IB101"
-        let cabinCode, occupancyCode;
-        if (cabinId.includes('_')) {
-          [cabinCode, occupancyCode] = cabinId.split('_');
-        } else {
-          // Try to split by finding where letters end and numbers begin
-          const match = cabinId.match(/^([A-Z]+)(\d+)$/);
-          if (match) {
-            cabinCode = match[1];
-            occupancyCode = match[2];
+        // Extract cabin type from priceData.cabintype if available
+        // Otherwise use the cabinId as the cabin code
+        let cabinCode = priceData.cabintype || cabinId;
+        let occupancyCode = '101'; // Default occupancy
+        
+        // If cabintype contains info like "Interior" or "IB", extract cabin category
+        if (priceData.cabintype) {
+          const upperType = priceData.cabintype.toUpperCase();
+          if (upperType.includes('INTERIOR') || upperType.includes('INSIDE')) {
+            cabinCode = 'INT';
+          } else if (upperType.includes('OCEAN') || upperType.includes('OUTSIDE')) {
+            cabinCode = 'OV';
+          } else if (upperType.includes('BALCONY')) {
+            cabinCode = 'BAL';
+          } else if (upperType.includes('SUITE')) {
+            cabinCode = 'STE';
           } else {
-            cabinCode = cabinId;
-            occupancyCode = '101'; // Default occupancy
+            // Use first few chars of cabintype or the ID
+            cabinCode = priceData.cabintype.substring(0, 10);
           }
         }
         
@@ -688,18 +693,22 @@ async function processCachedPricing(cruiseId, cachedPrices) {
       for (const [cabinId, priceData] of Object.entries(rateData)) {
         if (!priceData || typeof priceData !== 'object') continue;
         
-        // Parse cabinId
-        let cabinCode, occupancyCode;
-        if (cabinId.includes('_')) {
-          [cabinCode, occupancyCode] = cabinId.split('_');
-        } else {
-          const match = cabinId.match(/^([A-Z]+)(\d+)$/);
-          if (match) {
-            cabinCode = match[1];
-            occupancyCode = match[2];
+        // Parse cabinId - appears to be numeric in cached prices too
+        let cabinCode = priceData.cabintype || cabinId;
+        let occupancyCode = '101'; // Default occupancy
+        
+        if (priceData.cabintype) {
+          const upperType = priceData.cabintype.toUpperCase();
+          if (upperType.includes('INTERIOR') || upperType.includes('INSIDE')) {
+            cabinCode = 'INT';
+          } else if (upperType.includes('OCEAN') || upperType.includes('OUTSIDE')) {
+            cabinCode = 'OV';
+          } else if (upperType.includes('BALCONY')) {
+            cabinCode = 'BAL';
+          } else if (upperType.includes('SUITE')) {
+            cabinCode = 'STE';
           } else {
-            cabinCode = cabinId;
-            occupancyCode = '101';
+            cabinCode = priceData.cabintype.substring(0, 10);
           }
         }
         
