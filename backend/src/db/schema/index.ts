@@ -8,5 +8,6 @@ export * from './cruises';
 export * from './itineraries';
 export * from './cabin-categories';
 export * from './pricing';
+export * from './price-history';
 export * from './quote-requests';
 export * from './saved-searches';

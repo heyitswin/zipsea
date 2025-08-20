@@ -3,6 +3,7 @@ import { logger } from '../config/logger';
 import { env } from '../config/environment';
 import { dataSyncService } from './data-sync.service';
 import { traveltekFTPService } from './traveltek-ftp.service';
+import { priceHistoryService } from './price-history.service';
 
 export class CronService {
   private jobs: Map<string, cron.ScheduledTask> = new Map();
@@ -19,6 +20,7 @@ export class CronService {
         this.setupDataSyncJobs();
         this.setupHealthCheckJobs();
         this.setupMaintenanceJobs();
+        this.setupPriceHistoryJobs();
         
         logger.info('✅ All scheduled jobs initialized');
       } else {
@@ -179,6 +181,100 @@ export class CronService {
     logger.info('📅 Maintenance jobs scheduled:');
     logger.info('  - Cache cleanup: 4:00 AM UTC daily');
     logger.info('  - Log cleanup: 5:00 AM UTC Mondays');
+  }
+
+  /**
+   * Setup price history jobs
+   */
+  private setupPriceHistoryJobs(): void {
+    // Price history cleanup daily at 6 AM UTC
+    const priceHistoryCleanupJob = cron.schedule('0 6 * * *', async () => {
+      try {
+        logger.info('🧹 Starting price history cleanup...');
+        const deletedCount = await priceHistoryService.cleanupOldHistory(90); // 90 days retention
+        logger.info(`✅ Price history cleanup completed - deleted ${deletedCount} records`);
+      } catch (error) {
+        logger.error('❌ Price history cleanup failed:', error);
+      }
+    }, {
+      scheduled: false,
+      timezone: 'UTC'
+    });
+
+    // Generate trend analysis for active cruises every 6 hours
+    const trendAnalysisJob = cron.schedule('0 */6 * * *', async () => {
+      try {
+        logger.info('📊 Starting automated trend analysis...');
+        await this.generateTrendAnalysisForActiveCruises();
+        logger.info('✅ Automated trend analysis completed');
+      } catch (error) {
+        logger.error('❌ Automated trend analysis failed:', error);
+      }
+    }, {
+      scheduled: false,
+      timezone: 'UTC'
+    });
+
+    this.jobs.set('price-history-cleanup', priceHistoryCleanupJob);
+    this.jobs.set('trend-analysis', trendAnalysisJob);
+
+    priceHistoryCleanupJob.start();
+    trendAnalysisJob.start();
+
+    logger.info('📅 Price history jobs scheduled:');
+    logger.info('  - Price history cleanup: 6:00 AM UTC daily');
+    logger.info('  - Trend analysis: Every 6 hours');
+  }
+
+  /**
+   * Generate trend analysis for active cruises
+   */
+  private async generateTrendAnalysisForActiveCruises(): Promise<void> {
+    try {
+      // This would typically query for cruises that are sailing within the next year
+      // and have recent price changes. For now, we'll implement a basic version.
+      
+      // Get list of cruises with recent price changes (last 7 days)
+      const recentChanges = await priceHistoryService.getHistoricalPrices({
+        startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+        changeType: 'update',
+        limit: 100
+      });
+
+      // Group by cruise ID
+      const cruiseIds = [...new Set(recentChanges.map(change => change.cruiseId))];
+      
+      logger.info(`Generating trend analysis for ${cruiseIds.length} cruises with recent changes`);
+
+      for (const cruiseId of cruiseIds.slice(0, 10)) { // Limit to 10 cruises per run
+        try {
+          // Get unique cabin/rate combinations for this cruise
+          const cruiseChanges = recentChanges.filter(change => change.cruiseId === cruiseId);
+          const combinations = [...new Set(cruiseChanges.map(c => `${c.cabinCode}-${c.rateCode}`))];
+
+          for (const combination of combinations.slice(0, 5)) { // Limit to 5 combinations per cruise
+            const [cabinCode, rateCode] = combination.split('-');
+            
+            const analysis = await priceHistoryService.generateTrendAnalysis(
+              cruiseId,
+              cabinCode,
+              rateCode,
+              'daily',
+              30 // 30 days
+            );
+
+            if (analysis) {
+              await priceHistoryService.storePriceTrends(analysis);
+            }
+          }
+        } catch (error) {
+          logger.error(`Failed to generate trend analysis for cruise ${cruiseId}:`, error);
+        }
+      }
+    } catch (error) {
+      logger.error('Failed to generate trend analysis for active cruises:', error);
+      throw error;
+    }
   }
 
   /**

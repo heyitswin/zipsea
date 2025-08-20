@@ -6,6 +6,7 @@ import searchRoutes from './search.routes';
 import cruiseRoutes from './cruise.routes';
 import quoteRoutes from './quote.routes';
 import adminRoutes from './admin.routes';
+import priceHistoryRoutes from './price-history.routes';
 
 const router = Router();
 
@@ -29,6 +30,7 @@ apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/search', searchRoutes);
 apiRouter.use('/cruises', cruiseRoutes);
 apiRouter.use('/quotes', quoteRoutes);
+apiRouter.use('/price-history', priceHistoryRoutes);
 
 // Additional API routes will be added here as we implement them
 // apiRouter.use('/auth', authRoutes);
@@ -49,6 +51,7 @@ apiRouter.get('/', (req, res) => {
       search: `${apiConfig.prefix}/${apiConfig.version}/search`,
       cruises: `${apiConfig.prefix}/${apiConfig.version}/cruises`,
       quotes: `${apiConfig.prefix}/${apiConfig.version}/quotes`,
+      priceHistory: `${apiConfig.prefix}/${apiConfig.version}/price-history`,
     },
     features: {
       search: {
@@ -73,6 +76,14 @@ apiRouter.get('/', (req, res) => {
         update: 'PUT /quotes/:id - Update quote (auth required)',
         cancel: 'DELETE /quotes/:id - Cancel quote (auth required)',
         summary: 'GET /quotes/summary - Quote summary (auth required)',
+      },
+      priceHistory: {
+        list: 'GET /price-history - Historical price data with filtering',
+        trends: 'GET /price-history/trends/:cruiseId/:cabinCode/:rateCode - Price trend analysis',
+        summary: 'GET /price-history/summary/:cruiseId - Price trend summary',
+        changes: 'GET /price-history/changes/:cruiseId - Price changes over time',
+        volatility: 'GET /price-history/volatility/:cruiseId - Price volatility metrics',
+        cleanup: 'DELETE /price-history/cleanup - Cleanup old history data (admin)',
       },
     },
   });

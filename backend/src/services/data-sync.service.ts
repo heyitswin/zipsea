@@ -2,6 +2,7 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { db } from '../db/connection';
 import { logger } from '../config/logger';
 import { traveltekFTPService, CruiseDataFile } from './traveltek-ftp.service';
+import { priceHistoryService } from './price-history.service';
 import { 
   cruises, 
   alternativeSailings,
@@ -111,11 +112,20 @@ export class DataSyncService {
         // 8. Sync alternative sailings
         await this.syncAlternativeSailings(tx, data);
 
-        // 9. Sync pricing data
+        // 9. Capture price snapshot before updating pricing
+        const batchId = await priceHistoryService.captureSnapshot(
+          data.cruiseid, 
+          'ftp_sync_update'
+        );
+
+        // 10. Sync pricing data
         await this.syncPricing(tx, data);
 
-        // 10. Sync cheapest pricing (denormalized for fast queries)
+        // 11. Sync cheapest pricing (denormalized for fast queries)
         await this.syncCheapestPricing(tx, data);
+
+        // 12. Calculate price changes for this update
+        await priceHistoryService.calculatePriceChanges(batchId);
       });
 
       logger.info(`Successfully synced cruise ${data.cruiseid} from ${file.filePath}`);
