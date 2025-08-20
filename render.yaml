@@ -28,7 +28,7 @@ services:
   # Production Redis Cache
   - type: redis
     name: zipsea-redis-production
-    plan: free
+    plan: starter
     region: oregon
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []
