@@ -40,8 +40,8 @@ services:
     region: oregon
     plan: starter
     branch: main  # Deploy from main branch
-    buildCommand: cd backend && npm ci && npm run build
-    startCommand: cd backend && node dist/index.js
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/index.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
@@ -85,8 +85,8 @@ services:
     region: oregon
     plan: standard
     branch: production  # Deploy from production branch only
-    buildCommand: cd backend && npm ci && npm run build
-    startCommand: cd backend && node dist/index.js
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/index.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
