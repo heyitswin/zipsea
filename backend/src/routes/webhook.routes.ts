@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import logger from '../config/logger';
 import { validateWebhookSignature } from '../middleware/validation';
+import { webhookService } from '../services/webhook.service';
 
 const router = Router();
 
@@ -22,23 +23,30 @@ const router = Router();
 router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: Response, next: NextFunction) => {
   try {
     logger.info('Cruiseline pricing updated webhook received', {
-      body: req.body,
-      headers: req.headers,
+      bodySize: JSON.stringify(req.body).length,
+      lineId: req.body.lineId || req.body.line_id,
     });
 
-    // TODO: Process cruiseline pricing update
-    // This will handle price changes across entire cruise lines
+    // Process cruiseline pricing update using webhook service
+    await webhookService.processCruiselinePricingUpdate({
+      eventType: 'cruiseline_pricing_updated',
+      lineId: req.body.lineId || req.body.line_id,
+      priceData: req.body.priceData || req.body.price_data,
+      timestamp: req.body.timestamp,
+    });
 
     res.status(200).json({
       success: true,
-      message: 'Cruiseline pricing update received',
+      message: 'Cruiseline pricing update processed successfully',
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     logger.error('Error processing cruiseline pricing webhook', { error });
+    // Always return 200 to prevent webhook retries
     res.status(200).json({
       success: false,
       message: 'Webhook received but processing failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
@@ -46,23 +54,32 @@ router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: R
 router.post('/traveltek/cruises-live-pricing-updated', async (req: Request, res: Response, next: NextFunction) => {
   try {
     logger.info('Cruises live pricing updated webhook received', {
-      body: req.body,
-      headers: req.headers,
+      bodySize: JSON.stringify(req.body).length,
+      cruiseId: req.body.cruiseId || req.body.cruise_id,
+      cruiseIds: req.body.cruiseIds || req.body.cruise_ids,
     });
 
-    // TODO: Process live pricing update for specific cruises
-    // This will handle real-time price changes
+    // Process live pricing update using webhook service
+    await webhookService.processLivePricingUpdate({
+      eventType: 'cruises_live_pricing_updated',
+      cruiseId: req.body.cruiseId || req.body.cruise_id,
+      cruiseIds: req.body.cruiseIds || req.body.cruise_ids,
+      priceData: req.body.priceData || req.body.price_data,
+      timestamp: req.body.timestamp,
+    });
 
     res.status(200).json({
       success: true,
-      message: 'Live pricing update received',
+      message: 'Live pricing update processed successfully',
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
     logger.error('Error processing live pricing webhook', { error });
+    // Always return 200 to prevent webhook retries
     res.status(200).json({
       success: false,
       message: 'Webhook received but processing failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
@@ -84,39 +101,8 @@ router.post('/traveltek', validateWebhookSignature, async (req: Request, res: Re
       payloadSize: JSON.stringify(payload).length,
     });
 
-    // Process different webhook event types
-    switch (webhookEvent) {
-      case 'cruiseline_pricing_updated':
-      case 'price_update':
-        logger.info('Processing cruiseline pricing update webhook', { payload });
-        // TODO: Implement price update processing for entire cruise lines
-        break;
-
-      case 'cruises_live_pricing_updated':
-      case 'live_pricing_updated':
-        logger.info('Processing live pricing update webhook', { payload });
-        // TODO: Implement real-time pricing updates for specific cruises
-        break;
-
-      case 'availability_change':
-        logger.info('Processing availability change webhook', { cruiseId: payload.cruise_id });
-        // TODO: Implement availability change processing
-        break;
-
-      case 'booking_confirmation':
-        logger.info('Processing booking confirmation webhook', { bookingId: payload.booking_id });
-        // TODO: Implement booking confirmation processing
-        break;
-
-      case 'booking_cancellation':
-        logger.info('Processing booking cancellation webhook', { bookingId: payload.booking_id });
-        // TODO: Implement booking cancellation processing
-        break;
-
-      default:
-        logger.warn('Unknown webhook event type received', { event: webhookEvent });
-        break;
-    }
+    // Process different webhook event types using webhook service
+    await webhookService.processWebhookEvent(webhookEvent, payload);
 
     // Respond with 200 OK to acknowledge receipt
     res.status(200).json({

@@ -7,6 +7,7 @@ import { requestLogger } from './middleware/request-logger';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import routes from './routes';
 import logger from './config/logger';
+import { cronService } from './services/cron.service';
 
 // Create Express application
 const app = express();
@@ -34,14 +35,36 @@ app.use('/', routes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
+// Initialize scheduled jobs
+let cronInitialized = false;
+const initializeCronJobs = async () => {
+  if (!cronInitialized) {
+    try {
+      await cronService.init();
+      cronInitialized = true;
+    } catch (error) {
+      logger.error('Failed to initialize cron jobs:', error);
+    }
+  }
+};
+
+// Initialize cron jobs after a short delay to ensure database connections are ready
+setTimeout(initializeCronJobs, 5000);
+
 // Graceful shutdown handling
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  if (cronInitialized) {
+    await cronService.shutdown();
+  }
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
+  if (cronInitialized) {
+    await cronService.shutdown();
+  }
   process.exit(0);
 });
 

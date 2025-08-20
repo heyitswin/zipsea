@@ -5,6 +5,7 @@ import webhookRoutes from './webhook.routes';
 import searchRoutes from './search.routes';
 import cruiseRoutes from './cruise.routes';
 import quoteRoutes from './quote.routes';
+import adminRoutes from './admin.routes';
 
 const router = Router();
 
@@ -20,6 +21,9 @@ router.use(`${apiConfig.prefix}/${apiConfig.version}`, apiRouter);
 
 // Webhook routes (outside API versioning)
 apiRouter.use('/webhooks', webhookRoutes);
+
+// Admin routes (for debugging and management)
+apiRouter.use('/admin', adminRoutes);
 
 // Core API routes
 apiRouter.use('/search', searchRoutes);
@@ -41,6 +45,7 @@ apiRouter.get('/', (req, res) => {
       health: '/health',
       api: `${apiConfig.prefix}/${apiConfig.version}`,
       webhooks: `${apiConfig.prefix}/webhooks`,
+      admin: `${apiConfig.prefix}/${apiConfig.version}/admin`,
       search: `${apiConfig.prefix}/${apiConfig.version}/search`,
       cruises: `${apiConfig.prefix}/${apiConfig.version}/cruises`,
       quotes: `${apiConfig.prefix}/${apiConfig.version}/quotes`,

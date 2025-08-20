@@ -23,6 +23,16 @@ export const CACHE_KEYS = {
 };
 
 export const CacheKeys = {
+  // Search-related cache keys
+  search: (params: string) => `search:${Buffer.from(params).toString('base64').slice(0, 32)}`,
+  searchFilters: () => 'search:filters',
+  searchSuggestions: (query: string, limit: number) => `search:suggestions:${query}:${limit}`,
+  popularCruises: (limit: number) => `search:popular:${limit}`,
+  
+  // Cruise-related cache keys
+  cruiseDetails: (cruiseId: string) => `cruise:${cruiseId}:details`,
+  pricing: (cruiseId: string, cabinType: string) => `cruise:${cruiseId}:pricing:${cabinType}`,
+
   // Cruise search patterns
   SEARCH: {
     CRUISE: (params: string) => `search:cruise:${params}`,
