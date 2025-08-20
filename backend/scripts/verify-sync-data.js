@@ -101,8 +101,9 @@ async function verifyData() {
     
     // 5. Check ship details
     console.log('\n5️⃣ SHIP DETAILS:');
+    let ship = [];
     if (cruise.length > 0) {
-      const ship = await db.select().from(schema.ships).where(eq(schema.ships.id, cruise[0].shipId)).limit(1);
+      ship = await db.select().from(schema.ships).where(eq(schema.ships.id, cruise[0].shipId)).limit(1);
       if (ship.length > 0) {
         const s = ship[0];
         console.log(`   ✅ Ship: ${s.name}`);
