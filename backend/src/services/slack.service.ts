@@ -165,7 +165,7 @@ export class SlackService {
       cruiseDetailsList.push(details);
     }
 
-    const blocks = [
+    const blocks: any = [
       {
         type: "header",
         text: {
@@ -280,7 +280,7 @@ export class SlackService {
   }): Promise<void> {
     if (!this.enabled) return;
 
-    const blocks = [
+    const blocks: any = [
       {
         type: "header",
         text: {

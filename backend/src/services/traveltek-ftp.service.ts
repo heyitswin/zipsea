@@ -59,7 +59,7 @@ export class TraveltekFTPService {
         resolve();
       });
 
-      this.client.on('error', (err) => {
+      this.client.on('error', (err: any) => {
         this.isConnected = false;
         logger.error('FTP connection error:', {
           message: err.message,
