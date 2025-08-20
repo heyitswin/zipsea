@@ -13,10 +13,61 @@ const router = Router();
  * - Booking confirmations
  * - Cancellations
  * 
- * Webhook URL for registration:
- * - Staging: https://zipsea-staging.onrender.com/api/webhooks/traveltek
- * - Production: https://zipsea.onrender.com/api/webhooks/traveltek
+ * Webhook URLs for Traveltek registration:
+ * - Cruiseline Pricing: https://zipsea-staging.onrender.com/api/webhooks/traveltek/cruiseline-pricing-updated
+ * - Live Pricing: https://zipsea-staging.onrender.com/api/webhooks/traveltek/cruises-live-pricing-updated
+ * - Generic Events: https://zipsea-staging.onrender.com/api/webhooks/traveltek
  */
+// Specific Traveltek webhook endpoints as per their documentation
+router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    logger.info('Cruiseline pricing updated webhook received', {
+      body: req.body,
+      headers: req.headers,
+    });
+
+    // TODO: Process cruiseline pricing update
+    // This will handle price changes across entire cruise lines
+
+    res.status(200).json({
+      success: true,
+      message: 'Cruiseline pricing update received',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error processing cruiseline pricing webhook', { error });
+    res.status(200).json({
+      success: false,
+      message: 'Webhook received but processing failed',
+    });
+  }
+});
+
+router.post('/traveltek/cruises-live-pricing-updated', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    logger.info('Cruises live pricing updated webhook received', {
+      body: req.body,
+      headers: req.headers,
+    });
+
+    // TODO: Process live pricing update for specific cruises
+    // This will handle real-time price changes
+
+    res.status(200).json({
+      success: true,
+      message: 'Live pricing update received',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error processing live pricing webhook', { error });
+    res.status(200).json({
+      success: false,
+      message: 'Webhook received but processing failed',
+    });
+  }
+});
+
+// Generic Traveltek webhook endpoint (keep for other events)
 router.post('/traveltek', validateWebhookSignature, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { body, headers } = req;
