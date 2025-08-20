@@ -550,10 +550,23 @@ async function processCompleteCruise(client, filePath) {
     // Process ship content if available
     if (data.shipcontent) {
       const shipId = toIntegerOrNull(data.shipid);
-      if (shipId) {
+      if (shipId && data.shipcontent) {
+        const content = data.shipcontent;
+        
+        // Update ship with detailed content using existing columns
         await db.execute(sql`
           UPDATE ships 
-          SET ship_content = ${JSON.stringify(data.shipcontent)},
+          SET ship_class = COALESCE(${content.shipclass}, ship_class),
+              tonnage = COALESCE(${toIntegerOrNull(content.tonnage)}, tonnage),
+              total_cabins = COALESCE(${toIntegerOrNull(content.totalcabins)}, total_cabins),
+              capacity = COALESCE(${toIntegerOrNull(content.limitof)}, capacity),
+              rating = COALESCE(${toIntegerOrNull(content.startrating)}, rating),
+              description = COALESCE(${content.shortdescription}, description),
+              highlights = COALESCE(${content.highlights}, highlights),
+              default_image_url = COALESCE(${content.defaultshipimage}, default_image_url),
+              default_image_url_hd = COALESCE(${content.defaultshipimage2k}, default_image_url_hd),
+              images = COALESCE(${JSON.stringify(content.shipimages || [])}, images),
+              additional_info = COALESCE(${content.additsoaly}, additional_info),
               updated_at = NOW()
           WHERE id = ${shipId}
         `);
