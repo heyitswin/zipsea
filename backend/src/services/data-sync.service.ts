@@ -437,7 +437,6 @@ export class DataSyncService {
             fuel: priceData.fuel?.toString() || null,
             nonComm: priceData.noncomm?.toString() || null,
             isAvailable: true,
-            priceType: 'static',
             currency: 'USD',
           };
 
@@ -480,8 +479,6 @@ export class DataSyncService {
             fuel: priceData.fuel?.toString() || null,
             nonComm: priceData.noncomm?.toString() || null,
             isAvailable: true,
-            priceType: 'live',
-            priceTimestamp: priceData.timestamp ? new Date(priceData.timestamp) : new Date(),
             currency: 'USD',
           };
 

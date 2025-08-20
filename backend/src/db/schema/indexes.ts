@@ -99,15 +99,13 @@ export const pricingCruiseCabinIndex = index('pricing_cruise_cabin_idx').on(
   pricing.cruiseId, 
   pricing.cabinCode
 );
-export const pricingRateTypeIndex = index('pricing_rate_type_idx').on(
-  pricing.rateCode, 
-  pricing.priceType
+export const pricingRateCodeIndex = index('pricing_rate_code_idx').on(
+  pricing.rateCode
 );
 export const pricingAvailableIndex = index('pricing_available_idx').on(pricing.isAvailable);
 export const pricingBasePriceIndex = index('pricing_base_price_idx').on(pricing.basePrice);
-export const pricingCruiseTypeAvailableIndex = index('pricing_cruise_type_available_idx').on(
+export const pricingCruiseAvailableIndex = index('pricing_cruise_available_idx').on(
   pricing.cruiseId, 
-  pricing.priceType, 
   pricing.isAvailable
 );
 
@@ -247,10 +245,10 @@ export default {
   // Pricing indexes
   pricingCruiseIndex,
   pricingCruiseCabinIndex,
-  pricingRateTypeIndex,
+  pricingRateCodeIndex,
   pricingAvailableIndex,
   pricingBasePriceIndex,
-  pricingCruiseTypeAvailableIndex,
+  pricingCruiseAvailableIndex,
   
   // Cheapest pricing indexes
   cheapestPricingCruiseIndex,

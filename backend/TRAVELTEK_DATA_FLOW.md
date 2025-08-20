@@ -10,7 +10,7 @@
    - System fetches ALL cruises for that line
    - Updates each cruise's pricing from FTP
 
-2. **`cruises_live_pricing_updated`** - Specific cruises updated
+2. **`cruises_pricing_updated`** - Specific cruises updated
    - Payload includes `paths` array (e.g., `["2025/05/7/231/8734921.json"]`)
    - System fetches ONLY those specific files
    - Updates only affected cruises
@@ -22,7 +22,7 @@
 2. For each cruise, fetch its file from FTP
 3. Update pricing in database
 
-// When cruises_live_pricing_updated webhook arrives:
+// When cruises_pricing_updated webhook arrives:
 1. Parse the paths array
 2. Fetch only those specific files
 3. Update only those cruises
@@ -107,7 +107,7 @@ CREATE INDEX idx_price_history_cruise_date
    ↓
 2. IDENTIFY AFFECTED CRUISES
    - cruiseline_pricing_updated → All cruises in line
-   - cruises_live_pricing_updated → Specific file paths
+   - cruises_pricing_updated → Specific file paths
    ↓
 3. SELECTIVE FTP FETCH
    - Only download affected files

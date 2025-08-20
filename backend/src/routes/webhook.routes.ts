@@ -15,7 +15,7 @@ const router = Router();
  * 
  * Webhook URLs for Traveltek registration:
  * - Cruiseline Pricing: https://zipsea-backend-staging.onrender.com/api/webhooks/traveltek/cruiseline-pricing-updated
- * - Live Pricing: https://zipsea-backend-staging.onrender.com/api/webhooks/traveltek/cruises-live-pricing-updated
+ * - Cruise Pricing: https://zipsea-backend-staging.onrender.com/api/webhooks/traveltek/cruises-pricing-updated
  * - Generic Events: https://zipsea-backend-staging.onrender.com/api/webhooks/traveltek
  */
 // Specific Traveltek webhook endpoints as per their documentation
@@ -50,17 +50,17 @@ router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: R
   }
 });
 
-router.post('/traveltek/cruises-live-pricing-updated', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/traveltek/cruises-pricing-updated', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    logger.info('Cruises live pricing updated webhook received', {
+    logger.info('Cruises pricing updated webhook received', {
       bodySize: JSON.stringify(req.body).length,
       cruiseId: req.body.cruiseId || req.body.cruise_id,
       cruiseIds: req.body.cruiseIds || req.body.cruise_ids,
     });
 
-    // Process live pricing update using webhook service
-    await webhookService.processLivePricingUpdate({
-      eventType: 'cruises_live_pricing_updated',
+    // Process pricing update using webhook service
+    await webhookService.processCruisePricingUpdate({
+      eventType: 'cruises_pricing_updated',
       cruiseId: req.body.cruiseId || req.body.cruise_id,
       cruiseIds: req.body.cruiseIds || req.body.cruise_ids,
       priceData: req.body.priceData || req.body.price_data,
@@ -69,11 +69,11 @@ router.post('/traveltek/cruises-live-pricing-updated', async (req: Request, res:
 
     res.status(200).json({
       success: true,
-      message: 'Live pricing update processed successfully',
+      message: 'Cruise pricing update processed successfully',
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    logger.error('Error processing live pricing webhook', { error });
+    logger.error('Error processing cruise pricing webhook', { error });
     // Always return 200 to prevent webhook retries
     res.status(200).json({
       success: false,
@@ -107,8 +107,8 @@ router.post('/traveltek', async (req: Request, res: Response, next: NextFunction
         priceData: body.priceData || body.price_data,
         timestamp: body.timestamp,
       });
-    } else if (webhookEvent === 'cruises_live_pricing_updated') {
-      await webhookService.processLivePricingUpdate({
+    } else if (webhookEvent === 'cruises_pricing_updated') {
+      await webhookService.processCruisePricingUpdate({
         eventType: webhookEvent,
         cruiseId: body.cruiseId || body.cruise_id,
         cruiseIds: body.cruiseIds || body.cruise_ids || body.paths,

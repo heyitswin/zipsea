@@ -1,7 +1,7 @@
 import { pgTable, uuid, integer, varchar, decimal, timestamp, boolean } from 'drizzle-orm/pg-core';
 import { cruises } from './cruises';
 
-// Main pricing table for all pricing data (static and live)
+// Main pricing table for static pricing data from FTP
 export const pricing = pgTable('pricing', {
   id: uuid('id').primaryKey().defaultRandom(),
   cruiseId: integer('cruise_id').references(() => cruises.id).notNull(),
@@ -21,16 +21,14 @@ export const pricing = pgTable('pricing', {
   gratuity: decimal('gratuity', { precision: 10, scale: 2 }), // prices.{}.{}.{}.gratuity
   fuel: decimal('fuel', { precision: 10, scale: 2 }), // prices.{}.{}.{}.fuel
   nonComm: decimal('non_comm', { precision: 10, scale: 2 }), // prices.{}.{}.{}.noncomm
-  portCharges: decimal('port_charges', { precision: 10, scale: 2 }), // For live pricing
-  governmentFees: decimal('government_fees', { precision: 10, scale: 2 }), // For live pricing
+  portCharges: decimal('port_charges', { precision: 10, scale: 2 }),
+  governmentFees: decimal('government_fees', { precision: 10, scale: 2 }),
   totalPrice: decimal('total_price', { precision: 10, scale: 2 }), // Calculated total
   commission: decimal('commission', { precision: 10, scale: 2 }), // For agent pricing
   isAvailable: boolean('is_available').default(true),
   inventory: integer('inventory'), // Available inventory
   waitlist: boolean('waitlist').default(false),
   guarantee: boolean('guarantee').default(false),
-  priceType: varchar('price_type', { length: 10 }).default('static'), // 'static' or 'live'
-  priceTimestamp: timestamp('price_timestamp'), // For live pricing cache
   currency: varchar('currency', { length: 3 }).default('USD'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

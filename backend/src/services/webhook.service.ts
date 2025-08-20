@@ -106,12 +106,12 @@ export class WebhookService {
   }
 
   /**
-   * Process live pricing updated webhook
+   * Process specific cruise pricing updated webhook
    * Updates pricing for specific cruises
    */
-  async processLivePricingUpdate(data: WebhookPricingData): Promise<void> {
+  async processCruisePricingUpdate(data: WebhookPricingData): Promise<void> {
     try {
-      logger.info('Processing live pricing update', { 
+      logger.info('Processing cruise pricing update', { 
         cruiseId: data.cruiseId, 
         cruiseIds: data.cruiseIds?.length, 
         eventType: data.eventType 
@@ -120,7 +120,7 @@ export class WebhookService {
       const cruiseIds = data.cruiseId ? [data.cruiseId] : (data.cruiseIds || []);
 
       if (cruiseIds.length === 0) {
-        throw new Error('Cruise ID(s) required for live pricing updates');
+        throw new Error('Cruise ID(s) required for pricing updates');
       }
 
       // Process each cruise
@@ -153,17 +153,17 @@ export class WebhookService {
           successful++;
         } catch (error) {
           failed++;
-          logger.error(`Failed to update live pricing for cruise ${cruiseId}:`, error);
+          logger.error(`Failed to update pricing for cruise ${cruiseId}:`, error);
         }
       }
 
-      logger.info(`Live pricing update completed: ${successful} successful, ${failed} failed`);
+      logger.info(`Cruise pricing update completed: ${successful} successful, ${failed} failed`);
       
       // Send Slack notification
-      await slackService.notifyLivePricingUpdate(data, { successful, failed });
+      await slackService.notifyCruisePricingUpdate(data, { successful, failed });
 
     } catch (error) {
-      logger.error('Failed to process live pricing update:', error);
+      logger.error('Failed to process cruise pricing update:', error);
       throw error;
     }
   }
@@ -351,7 +351,7 @@ export class WebhookService {
       case 'cruiseline_pricing_updated':
         return data.lineId && typeof data.lineId === 'number';
         
-      case 'cruises_live_pricing_updated':
+      case 'cruises_pricing_updated':
         return (data.cruiseId && typeof data.cruiseId === 'number') || 
                (data.cruiseIds && Array.isArray(data.cruiseIds));
                
@@ -389,9 +389,9 @@ export class WebhookService {
           });
           break;
 
-        case 'cruises_live_pricing_updated':
-        case 'live_pricing_updated':
-          await this.processLivePricingUpdate({
+        case 'cruises_pricing_updated':
+        case 'pricing_updated':
+          await this.processCruisePricingUpdate({
             eventType,
             cruiseId: payload.cruiseId || payload.cruise_id,
             cruiseIds: payload.cruiseIds || payload.cruise_ids,

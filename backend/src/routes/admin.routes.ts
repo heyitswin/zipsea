@@ -263,7 +263,7 @@ router.post('/slack/test-webhook', async (req: Request, res: Response) => {
       timestamp: new Date().toISOString(),
     };
     
-    await slackService.notifyLivePricingUpdate(testData, { 
+    await slackService.notifyCruisePricingUpdate(testData, { 
       successful: 2, 
       failed: 0 
     });

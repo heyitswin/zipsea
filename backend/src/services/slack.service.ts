@@ -150,9 +150,9 @@ export class SlackService {
   }
 
   /**
-   * Send notification for live pricing updates
+   * Send notification for cruise pricing updates
    */
-  async notifyLivePricingUpdate(data: SlackWebhookData, results: { successful: number; failed: number }): Promise<void> {
+  async notifyCruisePricingUpdate(data: SlackWebhookData, results: { successful: number; failed: number }): Promise<void> {
     if (!this.enabled) return;
 
     const cruiseIds = data.cruiseId ? [data.cruiseId] : (data.cruiseIds || []);
@@ -170,7 +170,7 @@ export class SlackService {
         type: "header",
         text: {
           type: "plain_text",
-          text: "💰 Live Pricing Update",
+          text: "💰 Cruise Pricing Update",
           emoji: true
         }
       },

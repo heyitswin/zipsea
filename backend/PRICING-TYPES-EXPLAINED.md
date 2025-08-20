@@ -1,8 +1,8 @@
-# Traveltek Pricing Types Explained
+# Traveltek Pricing Structure
 
-## Static Pricing vs Live Pricing
+## Static Pricing Only
 
-### 1. **Static Pricing** (`data.prices`)
+### **Static Pricing** (`data.prices`)
 - **What it is**: Pre-negotiated, contracted rates stored in Traveltek's system
 - **Update frequency**: Updated periodically via FTP files (daily/weekly)
 - **Source field**: `data.prices` in JSON files
@@ -13,22 +13,14 @@
   - Stored for longer periods
   - Good for displaying general pricing
 
-### 2. **Live Pricing** (`data.cachedprices`)
-- **What it is**: Real-time pricing from cruise lines' inventory systems
-- **Update frequency**: Updated in real-time or near real-time
-- **Source field**: `data.cachedprices` in JSON files
-- **Characteristics**:
-  - Current availability-based pricing
-  - Reflects actual inventory levels
-  - Dynamic pricing based on demand
-  - More accurate for booking
-  - May differ from static pricing
+### Note on Live Pricing
+We do not have access to live pricing. The `cachedprices` field in FTP files is empty for our account. True live pricing would require direct API credentials with each cruise line, which we don't have.
 
-### 3. **Combined Cheapest** (`data.cheapest.combined`)
-- **What it is**: Traveltek's aggregation of the best available price from ALL sources
+### 2. **Combined Cheapest** (`data.cheapest.combined`)
+- **What it is**: Traveltek's aggregation of the best available static prices
 - **Source field**: `data.cheapest.combined`
 - **Characteristics**:
-  - Best price across static, live, and cached sources
+  - Best price from static pricing
   - Includes source indicator (e.g., `insidepricecode`)
   - Most reliable for showing "starting from" prices
 
@@ -62,13 +54,13 @@ Based on our webhook routes, we receive two main types:
 3. Updates both static and cached pricing
 4. Clears cache for affected cruises
 
-### 2. **Cruises Live Pricing Updated**
-**Endpoint**: `/api/webhooks/traveltek/cruises-live-pricing-updated`
+### 2. **Cruises Pricing Updated**
+**Endpoint**: `/api/webhooks/traveltek/cruises-pricing-updated`
 
 **When triggered**:
-- Real-time inventory changes
-- Availability updates
-- Last-minute pricing changes
+- Pricing updates for specific cruises
+- Contract rate changes
+- Promotional pricing updates
 - Specific cruise price changes
 
 **Expected payload structure**:
@@ -101,42 +93,40 @@ Based on our webhook routes, we receive two main types:
 ```
 1. FTP Files (Complete Data)
    ├── Static Pricing (data.prices)
-   ├── Cached/Live Pricing (data.cachedprices)
    └── Combined Cheapest (data.cheapest.combined)
         ↓
 2. Sync Script Processes
    ├── processDetailedPricing() → static prices
-   ├── processCachedPricing() → live prices
    └── processCombinedCheapest() → best prices
         ↓
 3. Database Storage
-   ├── pricing table (all detailed prices)
+   ├── pricing table (static prices only)
    └── cheapestPricing table (aggregated best prices)
         ↓
 4. Webhooks Trigger Updates
    ├── cruiseline_pricing_updated → bulk refresh
-   └── cruises_live_pricing_updated → specific updates
+   └── cruises_pricing_updated → specific updates
 ```
 
-## Key Differences Summary
+## Pricing Summary
 
-| Aspect | Static Pricing | Live Pricing |
-|--------|---------------|--------------|
-| **Source** | `data.prices` | `data.cachedprices` |
-| **Update Method** | FTP sync, webhooks | Real-time webhooks |
-| **Frequency** | Daily/Weekly | Real-time |
-| **Accuracy** | Good for display | Best for booking |
-| **Availability** | Always present* | When inventory connected |
-| **Use Case** | Browse/Search | Book/Purchase |
+| Aspect | Static Pricing |
+|--------|---------------|
+| **Source** | `data.prices` |
+| **Update Method** | FTP sync, webhooks |
+| **Frequency** | Daily/Weekly |
+| **Accuracy** | Good for display and booking |
+| **Availability** | When configured* |
+| **Use Case** | Browse/Search/Book |
 
 *Note: We've seen many cruises with empty `prices` objects, suggesting not all cruises have static pricing configured.
 
 ## Implementation in Our System
 
-1. **Sync Script** (`sync-drizzle-correct.js`):
-   - Processes all three pricing types
-   - Marks with `priceType`: 'static' or 'live'
-   - Stores in same `pricing` table
+1. **Sync Script** (`sync-static-only.js`):
+   - Processes static pricing only
+   - Stores in `pricing` table
+   - No distinction between pricing types
 
 2. **Webhooks** (`webhook.service.ts`):
    - Handles both bulk and specific updates
@@ -145,5 +135,5 @@ Based on our webhook routes, we receive two main types:
 
 3. **Display Logic**:
    - Use `cheapestPricing` for search results
-   - Show `priceType` to indicate pricing freshness
-   - Prefer live pricing when available for accuracy
+   - All pricing is static from FTP files
+   - Suitable for both display and booking
