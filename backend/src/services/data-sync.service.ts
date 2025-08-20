@@ -398,50 +398,67 @@ export class DataSyncService {
     // Delete existing pricing for this cruise
     await tx.delete(pricing).where(eq(pricing.cruiseId, data.cruiseid));
 
-    // Sync static pricing
+    // Sync static pricing only (we don't have live pricing)
     if (data.prices) {
       await this.syncStaticPricing(tx, data.cruiseid, data.prices);
-    }
-
-    // Sync live/cached pricing
-    if (data.cachedprices) {
-      await this.syncLivePricing(tx, data.cruiseid, data.cachedprices);
     }
   }
 
   /**
-   * Sync static pricing data
+   * Sync static pricing data - Fixed for 2-level structure
    */
-  private async syncStaticPricing(tx: any, cruiseId: number, prices: Record<string, Record<string, Record<string, any>>>): Promise<void> {
+  private async syncStaticPricing(tx: any, cruiseId: number, prices: Record<string, Record<string, any>>): Promise<void> {
     const pricingRecords: NewPricing[] = [];
 
-    for (const [rateCode, cabinCodes] of Object.entries(prices)) {
-      for (const [cabinCode, occupancies] of Object.entries(cabinCodes)) {
-        for (const [occupancyCode, priceData] of Object.entries(occupancies)) {
-          const pricingRecord: NewPricing = {
-            cruiseId,
-            rateCode,
-            cabinCode,
-            occupancyCode,
-            cabinType: priceData.cabintype || null,
-            basePrice: priceData.price?.toString() || null,
-            adultPrice: priceData.adultprice?.toString() || null,
-            childPrice: priceData.childprice?.toString() || null,
-            infantPrice: priceData.infantprice?.toString() || null,
-            singlePrice: priceData.singleprice?.toString() || null,
-            thirdAdultPrice: priceData.thirdadultprice?.toString() || null,
-            fourthAdultPrice: priceData.fourthadultprice?.toString() || null,
-            taxes: priceData.taxes?.toString() || null,
-            ncf: priceData.ncf?.toString() || null,
-            gratuity: priceData.gratuity?.toString() || null,
-            fuel: priceData.fuel?.toString() || null,
-            nonComm: priceData.noncomm?.toString() || null,
-            isAvailable: true,
-            currency: 'USD',
-          };
-
-          pricingRecords.push(pricingRecord);
+    // Fixed: Traveltek uses 2-level structure (rateCode -> cabinId -> priceData)
+    for (const [rateCode, rateData] of Object.entries(prices)) {
+      if (!rateData || typeof rateData !== 'object') continue;
+      
+      for (const [cabinId, priceData] of Object.entries(rateData)) {
+        if (!priceData || typeof priceData !== 'object') continue;
+        
+        // Extract cabin type and determine cabin code
+        let cabinCode = cabinId;
+        const occupancyCode = '101'; // Default occupancy
+        
+        if (priceData.cabintype) {
+          const upperType = priceData.cabintype.toUpperCase();
+          if (upperType.includes('INTERIOR') || upperType.includes('INSIDE')) {
+            cabinCode = 'INT';
+          } else if (upperType.includes('OCEAN') || upperType.includes('OUTSIDE')) {
+            cabinCode = 'OV';
+          } else if (upperType.includes('BALCONY')) {
+            cabinCode = 'BAL';
+          } else if (upperType.includes('SUITE')) {
+            cabinCode = 'STE';
+          } else {
+            cabinCode = priceData.cabintype.substring(0, 10);
+          }
         }
+        
+        const pricingRecord: NewPricing = {
+          cruiseId,
+          rateCode,
+          cabinCode,
+          occupancyCode,
+          cabinType: priceData.cabintype || null,
+          basePrice: priceData.price?.toString() || null,
+          adultPrice: priceData.adultprice?.toString() || null,
+          childPrice: priceData.childprice?.toString() || null,
+          infantPrice: priceData.infantprice?.toString() || null,
+          singlePrice: priceData.singleprice?.toString() || null,
+          thirdAdultPrice: priceData.thirdadultprice?.toString() || null,
+          fourthAdultPrice: priceData.fourthadultprice?.toString() || null,
+          taxes: priceData.taxes?.toString() || null,
+          ncf: priceData.ncf?.toString() || null,
+          gratuity: priceData.gratuity?.toString() || null,
+          fuel: priceData.fuel?.toString() || null,
+          nonComm: priceData.noncomm?.toString() || null,
+          isAvailable: true,
+          currency: 'USD',
+        };
+
+        pricingRecords.push(pricingRecord);
       }
     }
 
@@ -452,9 +469,9 @@ export class DataSyncService {
   }
 
   /**
-   * Sync live/cached pricing data
+   * Removed syncLivePricing - we only have static pricing
    */
-  private async syncLivePricing(tx: any, cruiseId: number, cachedPrices: Record<string, Record<string, Record<string, any>>>): Promise<void> {
+  private async syncLivePricingRemoved(tx: any, cruiseId: number, cachedPrices: Record<string, Record<string, Record<string, any>>>): Promise<void> {
     const pricingRecords: NewPricing[] = [];
 
     for (const [rateCode, cabinCodes] of Object.entries(cachedPrices)) {

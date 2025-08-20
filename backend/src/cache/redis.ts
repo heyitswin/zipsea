@@ -33,7 +33,6 @@ class RedisClient {
       url: env.REDIS_URL,
       socket: {
         connectTimeout: 5000,
-        lazyConnect: true,
         reconnectStrategy: (retries) => {
           if (retries >= this.maxReconnectAttempts) {
             cacheLogger.error(`Redis reconnection failed after ${retries} attempts`);
@@ -161,10 +160,10 @@ class RedisClient {
       
       if (value) {
         this.metrics.hits++;
-        logCacheOperation('hit', key, undefined, opTime);
+        logCacheOperation('hit', key);
       } else {
         this.metrics.misses++;
-        logCacheOperation('miss', key, undefined, opTime);
+        logCacheOperation('miss', key);
       }
       
       return value;
@@ -194,7 +193,7 @@ class RedisClient {
       }
       
       const opTime = Date.now() - startTime;
-      logCacheOperation('set', key, ttl, opTime);
+      logCacheOperation('set', key, ttl);
     } catch (error) {
       this.metrics.errors++;
       cacheLogger.error('Redis SET error', { 
@@ -216,7 +215,7 @@ class RedisClient {
     try {
       await this.client.del(key);
       const opTime = Date.now() - startTime;
-      logCacheOperation('del', key, undefined, opTime);
+      logCacheOperation('del', key);
     } catch (error) {
       this.metrics.errors++;
       cacheLogger.error('Redis DEL error', { 
