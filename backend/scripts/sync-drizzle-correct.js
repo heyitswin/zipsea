@@ -524,16 +524,16 @@ async function processItinerary(cruiseId, itinerary, sailDate) {
 }
 
 /**
- * Process pricing
+ * Process pricing - Fixed to handle correct 2-level structure
  */
 async function processDetailedPricing(cruiseId, prices) {
   if (!prices || typeof prices !== 'object' || Object.keys(prices).length === 0) {
-    console.log(`   ℹ️  No pricing data available for cruise ${cruiseId}`);
+    console.log(`   ℹ️  No static pricing data available for cruise ${cruiseId}`);
     return;
   }
   
   try {
-    // Delete existing pricing
+    // Delete existing static pricing
     await db.delete(schema.pricing)
       .where(eq(schema.pricing.cruiseId, cruiseId));
     
@@ -544,71 +544,93 @@ async function processDetailedPricing(cruiseId, prices) {
       suitePrice: null
     };
     
-    // Process each rate code
+    let pricingCount = 0;
+    
+    // Process each rate code - FIXED: 2-level structure, not 3-level!
     for (const [rateCode, rateData] of Object.entries(prices)) {
       if (!rateData || typeof rateData !== 'object') continue;
       
-      for (const [cabinCode, cabinData] of Object.entries(rateData)) {
-        if (!cabinData || typeof cabinData !== 'object') continue;
+      // cabinId is like "IB_101" or "OV_201" - cabin type + occupancy combined
+      for (const [cabinId, priceData] of Object.entries(rateData)) {
+        if (!priceData || typeof priceData !== 'object') continue;
         
-        for (const [occupancyCode, priceData] of Object.entries(cabinData)) {
-          if (!priceData || typeof priceData !== 'object') continue;
+        // Parse cabinId to extract cabin code and occupancy
+        // Format is typically "CABIN_OCCUPANCY" like "IB_101" or just "IB101"
+        let cabinCode, occupancyCode;
+        if (cabinId.includes('_')) {
+          [cabinCode, occupancyCode] = cabinId.split('_');
+        } else {
+          // Try to split by finding where letters end and numbers begin
+          const match = cabinId.match(/^([A-Z]+)(\d+)$/);
+          if (match) {
+            cabinCode = match[1];
+            occupancyCode = match[2];
+          } else {
+            cabinCode = cabinId;
+            occupancyCode = '101'; // Default occupancy
+          }
+        }
+        
+        const basePrice = toDecimalOrNull(priceData.price || priceData.total);
+        if (basePrice === null) continue;
           
-          const basePrice = toDecimalOrNull(priceData.price || priceData.total);
-          if (basePrice === null) continue;
+        // Clean pricing data to avoid undefined values
+        const pricingValues = {
+          cruiseId: cruiseId,
+          rateCode: rateCode,
+          cabinCode: cabinCode,
+          occupancyCode: occupancyCode,
+          basePrice: basePrice,
+          currency: priceData.currency || 'USD',
+          priceType: 'static', // Static pricing from prices field
+          isAvailable: true
+        };
           
-          // Clean pricing data to avoid undefined values
-          const pricingValues = {
-            cruiseId: cruiseId,
-            rateCode: rateCode,
-            cabinCode: cabinCode,
-            occupancyCode: occupancyCode,
-            basePrice: basePrice,
-            currency: priceData.currency || 'USD',
-            priceType: 'static', // Correct field name from schema
-            isAvailable: true
-          };
+        // Add optional fields only if they have values
+        if (priceData.cabintype) pricingValues.cabinType = priceData.cabintype;
+        if (priceData.adultprice) pricingValues.adultPrice = toDecimalOrNull(priceData.adultprice);
+        if (priceData.childprice) pricingValues.childPrice = toDecimalOrNull(priceData.childprice);
+        if (priceData.infantprice) pricingValues.infantPrice = toDecimalOrNull(priceData.infantprice);
+        if (priceData.singleprice) pricingValues.singlePrice = toDecimalOrNull(priceData.singleprice);
+        if (priceData.thirdadultprice) pricingValues.thirdAdultPrice = toDecimalOrNull(priceData.thirdadultprice);
+        if (priceData.fourthadultprice) pricingValues.fourthAdultPrice = toDecimalOrNull(priceData.fourthadultprice);
+        if (priceData.taxes) pricingValues.taxes = toDecimalOrNull(priceData.taxes);
+        if (priceData.ncf) pricingValues.ncf = toDecimalOrNull(priceData.ncf);
+        if (priceData.gratuity) pricingValues.gratuity = toDecimalOrNull(priceData.gratuity);
+        if (priceData.fuel) pricingValues.fuel = toDecimalOrNull(priceData.fuel);
+        if (priceData.noncomm) pricingValues.nonComm = toDecimalOrNull(priceData.noncomm);
+        if (priceData.fees) pricingValues.governmentFees = toDecimalOrNull(priceData.fees); // Map fees field
+        if (priceData.total) pricingValues.totalPrice = toDecimalOrNull(priceData.total);
+        
+        await db.insert(schema.pricing).values(pricingValues);
+        pricingCount++;
           
-          // Add optional fields only if they have values
-          if (priceData.cabintype) pricingValues.cabinType = priceData.cabintype;
-          if (priceData.adultprice) pricingValues.adultPrice = toDecimalOrNull(priceData.adultprice);
-          if (priceData.childprice) pricingValues.childPrice = toDecimalOrNull(priceData.childprice);
-          if (priceData.infantprice) pricingValues.infantPrice = toDecimalOrNull(priceData.infantprice);
-          if (priceData.singleprice) pricingValues.singlePrice = toDecimalOrNull(priceData.singleprice);
-          if (priceData.thirdadultprice) pricingValues.thirdAdultPrice = toDecimalOrNull(priceData.thirdadultprice);
-          if (priceData.fourthadultprice) pricingValues.fourthAdultPrice = toDecimalOrNull(priceData.fourthadultprice);
-          if (priceData.taxes) pricingValues.taxes = toDecimalOrNull(priceData.taxes);
-          if (priceData.ncf) pricingValues.ncf = toDecimalOrNull(priceData.ncf);
-          if (priceData.gratuity) pricingValues.gratuity = toDecimalOrNull(priceData.gratuity);
-          if (priceData.fuel) pricingValues.fuel = toDecimalOrNull(priceData.fuel);
-          if (priceData.noncomm) pricingValues.nonComm = toDecimalOrNull(priceData.noncomm);
-          if (priceData.total) pricingValues.totalPrice = toDecimalOrNull(priceData.total);
-          
-          await db.insert(schema.pricing).values(pricingValues);
-          
-          // Track cheapest prices by cabin type
-          const upperCode = cabinCode.toUpperCase();
-          const price = parseFloat(basePrice);
-          
-          if (['I', 'INT', 'INTERIOR', 'IN'].some(c => upperCode.includes(c))) {
-            if (!cheapestPrices.interiorPrice || price < parseFloat(cheapestPrices.interiorPrice)) {
-              cheapestPrices.interiorPrice = basePrice;
-            }
-          } else if (['O', 'OV', 'OCEANVIEW', 'OCEAN'].some(c => upperCode.includes(c))) {
-            if (!cheapestPrices.oceanviewPrice || price < parseFloat(cheapestPrices.oceanviewPrice)) {
-              cheapestPrices.oceanviewPrice = basePrice;
-            }
-          } else if (['B', 'BA', 'BALCONY', 'BAL'].some(c => upperCode.includes(c))) {
-            if (!cheapestPrices.balconyPrice || price < parseFloat(cheapestPrices.balconyPrice)) {
-              cheapestPrices.balconyPrice = basePrice;
-            }
-          } else if (['S', 'SU', 'SUITE', 'ST'].some(c => upperCode.includes(c))) {
-            if (!cheapestPrices.suitePrice || price < parseFloat(cheapestPrices.suitePrice)) {
-              cheapestPrices.suitePrice = basePrice;
-            }
+        // Track cheapest prices by cabin type
+        const upperCode = cabinCode.toUpperCase();
+        const price = parseFloat(basePrice);
+        
+        if (['I', 'INT', 'INTERIOR', 'IN'].some(c => upperCode.includes(c))) {
+          if (!cheapestPrices.interiorPrice || price < parseFloat(cheapestPrices.interiorPrice)) {
+            cheapestPrices.interiorPrice = basePrice;
+          }
+        } else if (['O', 'OV', 'OCEANVIEW', 'OCEAN'].some(c => upperCode.includes(c))) {
+          if (!cheapestPrices.oceanviewPrice || price < parseFloat(cheapestPrices.oceanviewPrice)) {
+            cheapestPrices.oceanviewPrice = basePrice;
+          }
+        } else if (['B', 'BA', 'BALCONY', 'BAL'].some(c => upperCode.includes(c))) {
+          if (!cheapestPrices.balconyPrice || price < parseFloat(cheapestPrices.balconyPrice)) {
+            cheapestPrices.balconyPrice = basePrice;
+          }
+        } else if (['S', 'SU', 'SUITE', 'ST'].some(c => upperCode.includes(c))) {
+          if (!cheapestPrices.suitePrice || price < parseFloat(cheapestPrices.suitePrice)) {
+            cheapestPrices.suitePrice = basePrice;
           }
         }
       }
+    }
+    
+    if (pricingCount > 0) {
+      console.log(`   ✅ Processed ${pricingCount} static pricing records`);
     }
     
     // Clean cheapest pricing data and only include defined values
@@ -644,7 +666,126 @@ async function processDetailedPricing(cruiseId, prices) {
     
     stats.pricing++;
   } catch (error) {
-    console.log(`   ⚠️  Pricing failed: ${error.message}`);
+    console.log(`   ⚠️  Static pricing failed: ${error.message}`);
+  }
+}
+
+/**
+ * Process cached pricing (live pricing data)
+ */
+async function processCachedPricing(cruiseId, cachedPrices) {
+  if (!cachedPrices || typeof cachedPrices !== 'object' || Object.keys(cachedPrices).length === 0) {
+    return; // No cached pricing available
+  }
+  
+  try {
+    let cachedCount = 0;
+    
+    // Process cached pricing with same 2-level structure
+    for (const [rateCode, rateData] of Object.entries(cachedPrices)) {
+      if (!rateData || typeof rateData !== 'object') continue;
+      
+      for (const [cabinId, priceData] of Object.entries(rateData)) {
+        if (!priceData || typeof priceData !== 'object') continue;
+        
+        // Parse cabinId
+        let cabinCode, occupancyCode;
+        if (cabinId.includes('_')) {
+          [cabinCode, occupancyCode] = cabinId.split('_');
+        } else {
+          const match = cabinId.match(/^([A-Z]+)(\d+)$/);
+          if (match) {
+            cabinCode = match[1];
+            occupancyCode = match[2];
+          } else {
+            cabinCode = cabinId;
+            occupancyCode = '101';
+          }
+        }
+        
+        const basePrice = toDecimalOrNull(priceData.price || priceData.total);
+        if (basePrice === null) continue;
+        
+        const pricingValues = {
+          cruiseId: cruiseId,
+          rateCode: rateCode,
+          cabinCode: cabinCode,
+          occupancyCode: occupancyCode,
+          basePrice: basePrice,
+          currency: priceData.currency || 'USD',
+          priceType: 'live', // Live pricing from cachedprices
+          isAvailable: priceData.available !== false,
+          priceTimestamp: new Date()
+        };
+        
+        // Add optional fields
+        if (priceData.taxes) pricingValues.taxes = toDecimalOrNull(priceData.taxes);
+        if (priceData.ncf) pricingValues.ncf = toDecimalOrNull(priceData.ncf);
+        if (priceData.gratuity) pricingValues.gratuity = toDecimalOrNull(priceData.gratuity);
+        if (priceData.fuel) pricingValues.fuel = toDecimalOrNull(priceData.fuel);
+        if (priceData.fees) pricingValues.governmentFees = toDecimalOrNull(priceData.fees);
+        if (priceData.total) pricingValues.totalPrice = toDecimalOrNull(priceData.total);
+        
+        await db.insert(schema.pricing).values(pricingValues);
+        cachedCount++;
+      }
+    }
+    
+    if (cachedCount > 0) {
+      console.log(`   ✅ Processed ${cachedCount} cached/live pricing records`);
+      stats.pricing++;
+    }
+  } catch (error) {
+    console.log(`   ⚠️  Cached pricing failed: ${error.message}`);
+  }
+}
+
+/**
+ * Process combined cheapest pricing
+ */
+async function processCombinedCheapest(cruiseId, data) {
+  try {
+    // Check for combined cheapest pricing
+    const combined = data.cheapest?.combined;
+    if (!combined) return;
+    
+    const cheapestData = removeUndefinedValues({
+      cruiseId: cruiseId,
+      currency: 'USD',
+      lastUpdated: new Date(),
+      // Combined prices from multiple sources
+      interiorPrice: toDecimalOrNull(combined.inside),
+      oceanviewPrice: toDecimalOrNull(combined.outside),
+      balconyPrice: toDecimalOrNull(combined.balcony),
+      suitePrice: toDecimalOrNull(combined.suite),
+      // Price codes indicate source
+      interiorPriceCode: combined.insidepricecode,
+      oceanviewPriceCode: combined.outsidepricecode,
+      balconyPriceCode: combined.balconypricecode,
+      suitePriceCode: combined.suitepricecode
+    });
+    
+    // Only update if we have at least one price
+    if (cheapestData.interiorPrice || cheapestData.oceanviewPrice || 
+        cheapestData.balconyPrice || cheapestData.suitePrice) {
+      
+      await db.insert(schema.cheapestPricing)
+        .values(cheapestData)
+        .onConflictDoUpdate({
+          target: schema.cheapestPricing.cruiseId,
+          set: removeUndefinedValues({
+            interiorPrice: cheapestData.interiorPrice,
+            oceanviewPrice: cheapestData.oceanviewPrice,
+            balconyPrice: cheapestData.balconyPrice,
+            suitePrice: cheapestData.suitePrice,
+            lastUpdated: new Date()
+          })
+        });
+      
+      console.log(`   ✅ Updated combined cheapest pricing`);
+    }
+  } catch (error) {
+    console.log(`   ⚠️  Combined cheapest pricing failed: ${error.message}`);
   }
 }
 
@@ -709,9 +850,17 @@ async function processCompleteCruise(client, filePath) {
       await processItinerary(cruiseId, data.itinerary, data.saildate || data.startdate);
     }
     
+    // Process all pricing sources
     if (data.prices) {
       await processDetailedPricing(cruiseId, data.prices);
     }
+    
+    if (data.cachedprices) {
+      await processCachedPricing(cruiseId, data.cachedprices);
+    }
+    
+    // Process combined cheapest pricing (aggregated from all sources)
+    await processCombinedCheapest(cruiseId, data);
     
     // Mark as processed
     progress[filePath] = {
