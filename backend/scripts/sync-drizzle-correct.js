@@ -59,6 +59,13 @@ let stats = {
   snapshots: 0
 };
 
+// Utility to remove undefined values from objects (Drizzle best practice)
+function removeUndefinedValues(obj) {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, value]) => value !== undefined)
+  );
+}
+
 // Data converters
 function toIntegerOrNull(value) {
   if (value === null || value === undefined || value === '' || value === 'system') {
@@ -137,22 +144,26 @@ async function processDependencies(data) {
   const lineId = toIntegerOrNull(data.lineid) || 1;
   const shipId = toIntegerOrNull(data.shipid) || 1;
   
-  // Upsert cruise line using Drizzle's onConflictDoUpdate
+  // Upsert cruise line using clean data
+  const lineData = removeUndefinedValues({
+    id: lineId,
+    name: data.linename || data.linecontent || `Line ${lineId}`,
+    code: 'L' + lineId,
+    description: data.linecontent || null,
+    isActive: true
+  });
+  
+  const lineUpdateData = removeUndefinedValues({
+    name: data.linename || data.linecontent || `Line ${lineId}`,
+    description: data.linecontent || null,
+    updatedAt: new Date()
+  });
+  
   await db.insert(schema.cruiseLines)
-    .values({
-      id: lineId,
-      name: data.linename || data.linecontent || `Line ${lineId}`,
-      code: 'L' + lineId,
-      description: data.linecontent || null,
-      isActive: true
-    })
+    .values(lineData)
     .onConflictDoUpdate({
       target: schema.cruiseLines.id,
-      set: {
-        name: data.linename || data.linecontent || `Line ${lineId}`,
-        description: data.linecontent || null,
-        updatedAt: new Date()
-      }
+      set: lineUpdateData
     });
   
   // Upsert ship with content
@@ -180,29 +191,31 @@ async function processDependencies(data) {
     if (content.additsoaly) shipData.additionalInfo = content.additsoaly;
   }
   
-  const updateData = {
-    name: shipData.name,
-    updatedAt: new Date()
-  };
+  // Clean ship data before insert/update
+  const cleanedShipData = removeUndefinedValues(shipData);
   
-  // Only include fields that have values to avoid undefined issues
-  if (shipData.shipClass) updateData.shipClass = shipData.shipClass;
-  if (shipData.tonnage) updateData.tonnage = shipData.tonnage;
-  if (shipData.totalCabins) updateData.totalCabins = shipData.totalCabins;
-  if (shipData.capacity) updateData.capacity = shipData.capacity;
-  if (shipData.rating) updateData.rating = shipData.rating;
-  if (shipData.description) updateData.description = shipData.description;
-  if (shipData.highlights) updateData.highlights = shipData.highlights;
-  if (shipData.defaultImageUrl) updateData.defaultImageUrl = shipData.defaultImageUrl;
-  if (shipData.defaultImageUrlHd) updateData.defaultImageUrlHd = shipData.defaultImageUrlHd;
-  if (shipData.images) updateData.images = shipData.images;
-  if (shipData.additionalInfo) updateData.additionalInfo = shipData.additionalInfo;
+  // Build update data excluding undefined values
+  const shipUpdateData = removeUndefinedValues({
+    name: shipData.name,
+    shipClass: shipData.shipClass,
+    tonnage: shipData.tonnage,
+    totalCabins: shipData.totalCabins,
+    capacity: shipData.capacity,
+    rating: shipData.rating,
+    description: shipData.description,
+    highlights: shipData.highlights,
+    defaultImageUrl: shipData.defaultImageUrl,
+    defaultImageUrlHd: shipData.defaultImageUrlHd,
+    images: shipData.images,
+    additionalInfo: shipData.additionalInfo,
+    updatedAt: new Date()
+  });
   
   await db.insert(schema.ships)
-    .values(shipData)
+    .values(cleanedShipData)
     .onConflictDoUpdate({
       target: schema.ships.id,
-      set: updateData
+      set: shipUpdateData
     });
   
   // Process ports
@@ -221,19 +234,23 @@ async function processDependencies(data) {
   ].filter(id => id !== null));
   
   for (const portId of allPortIds) {
+    const portData = removeUndefinedValues({
+      id: portId,
+      name: portMapping[portId] || `Port ${portId}`,
+      code: 'P' + portId,
+      isActive: true
+    });
+    
+    const portUpdateData = removeUndefinedValues({
+      name: portMapping[portId] || `Port ${portId}`,
+      updatedAt: new Date()
+    });
+    
     await db.insert(schema.ports)
-      .values({
-        id: portId,
-        name: portMapping[portId] || `Port ${portId}`,
-        code: 'P' + portId,
-        isActive: true
-      })
+      .values(portData)
       .onConflictDoUpdate({
         target: schema.ports.id,
-        set: {
-          name: portMapping[portId] || `Port ${portId}`,
-          updatedAt: new Date()
-        }
+        set: portUpdateData
       });
   }
   
@@ -248,19 +265,23 @@ async function processDependencies(data) {
   
   const regionIds = parseArrayField(data.regionids);
   for (const regionId of regionIds) {
+    const regionData = removeUndefinedValues({
+      id: regionId,
+      name: regionMapping[regionId] || `Region ${regionId}`,
+      code: 'R' + regionId,
+      isActive: true
+    });
+    
+    const regionUpdateData = removeUndefinedValues({
+      name: regionMapping[regionId] || `Region ${regionId}`,
+      updatedAt: new Date()
+    });
+    
     await db.insert(schema.regions)
-      .values({
-        id: regionId,
-        name: regionMapping[regionId] || `Region ${regionId}`,
-        code: 'R' + regionId,
-        isActive: true
-      })
+      .values(regionData)
       .onConflictDoUpdate({
         target: schema.regions.id,
-        set: {
-          name: regionMapping[regionId] || `Region ${regionId}`,
-          updatedAt: new Date()
-        }
+        set: regionUpdateData
       });
   }
 }
@@ -336,35 +357,36 @@ async function processCruiseData(data, filePath) {
     currency: data.currency || 'USD'
   };
   
-  const cruiseUpdateData = {
+  // Clean cruise data before insert/update
+  const cleanedCruiseData = removeUndefinedValues(cruiseData);
+  
+  // Build update data excluding undefined values
+  const cruiseUpdateData = removeUndefinedValues({
     name: cruiseData.name,
     codeToCruiseId: cruiseData.codeToCruiseId,
+    sailingDate: cruiseData.sailingDate,
+    returnDate: cruiseData.returnDate,
     nights: cruiseData.nights,
+    sailNights: cruiseData.sailNights,
+    seaDays: cruiseData.seaDays,
+    embarkPortId: cruiseData.embarkPortId,
+    disembarkPortId: cruiseData.disembarkPortId,
+    regionIds: cruiseData.regionIds,
+    portIds: cruiseData.portIds,
     showCruise: cruiseData.showCruise,
-    isActive: cruiseData.isActive,
     noFly: cruiseData.noFly,
     departUk: cruiseData.departUk,
+    flyCruiseInfo: cruiseData.flyCruiseInfo,
+    lineContent: cruiseData.lineContent,
     currency: cruiseData.currency,
+    marketId: cruiseData.marketId,
+    ownerId: cruiseData.ownerId,
     traveltekFilePath: cruiseData.traveltekFilePath,
     updatedAt: new Date()
-  };
-  
-  // Only include fields that have values
-  if (cruiseData.sailingDate) cruiseUpdateData.sailingDate = cruiseData.sailingDate;
-  if (cruiseData.returnDate) cruiseUpdateData.returnDate = cruiseData.returnDate;
-  if (cruiseData.sailNights) cruiseUpdateData.sailNights = cruiseData.sailNights;
-  if (cruiseData.seaDays) cruiseUpdateData.seaDays = cruiseData.seaDays;
-  if (cruiseData.embarkPortId) cruiseUpdateData.embarkPortId = cruiseData.embarkPortId;
-  if (cruiseData.disembarkPortId) cruiseUpdateData.disembarkPortId = cruiseData.disembarkPortId;
-  if (cruiseData.regionIds && cruiseData.regionIds.length > 0) cruiseUpdateData.regionIds = cruiseData.regionIds;
-  if (cruiseData.portIds && cruiseData.portIds.length > 0) cruiseUpdateData.portIds = cruiseData.portIds;
-  if (cruiseData.flyCruiseInfo) cruiseUpdateData.flyCruiseInfo = cruiseData.flyCruiseInfo;
-  if (cruiseData.lineContent) cruiseUpdateData.lineContent = cruiseData.lineContent;
-  if (cruiseData.marketId) cruiseUpdateData.marketId = cruiseData.marketId;
-  if (cruiseData.ownerId) cruiseUpdateData.ownerId = cruiseData.ownerId;
+  });
   
   const result = await db.insert(schema.cruises)
-    .values(cruiseData)
+    .values(cleanedCruiseData)
     .onConflictDoUpdate({
       target: schema.cruises.id,
       set: cruiseUpdateData
@@ -406,13 +428,15 @@ async function processItinerary(cruiseId, itinerary, sailDate) {
       const portId = toIntegerOrNull(day.portid);
       if (portId && portId !== 0) {
         // Ensure port exists
+        const dayPortData = removeUndefinedValues({
+          id: portId,
+          name: day.portname || day.port || `Port ${portId}`,
+          code: 'P' + portId,
+          isActive: true
+        });
+        
         await db.insert(schema.ports)
-          .values({
-            id: portId,
-            name: day.portname || day.port || `Port ${portId}`,
-            code: 'P' + portId,
-            isActive: true
-          })
+          .values(dayPortData)
           .onConflictDoNothing();
       }
       
@@ -468,16 +492,34 @@ async function processDetailedPricing(cruiseId, prices) {
           const basePrice = toDecimalOrNull(priceData.price || priceData.total);
           if (basePrice === null) continue;
           
-          await db.insert(schema.pricing).values({
+          // Clean pricing data to avoid undefined values
+          const pricingValues = {
             cruiseId: cruiseId,
             rateCode: rateCode,
             cabinCode: cabinCode,
             occupancyCode: occupancyCode,
             basePrice: basePrice,
             currency: priceData.currency || 'USD',
-            pricingType: 'STATIC',
+            priceType: 'static', // Correct field name from schema
             isAvailable: true
-          });
+          };
+          
+          // Add optional fields only if they have values
+          if (priceData.cabintype) pricingValues.cabinType = priceData.cabintype;
+          if (priceData.adultprice) pricingValues.adultPrice = toDecimalOrNull(priceData.adultprice);
+          if (priceData.childprice) pricingValues.childPrice = toDecimalOrNull(priceData.childprice);
+          if (priceData.infantprice) pricingValues.infantPrice = toDecimalOrNull(priceData.infantprice);
+          if (priceData.singleprice) pricingValues.singlePrice = toDecimalOrNull(priceData.singleprice);
+          if (priceData.thirdadultprice) pricingValues.thirdAdultPrice = toDecimalOrNull(priceData.thirdadultprice);
+          if (priceData.fourthadultprice) pricingValues.fourthAdultPrice = toDecimalOrNull(priceData.fourthadultprice);
+          if (priceData.taxes) pricingValues.taxes = toDecimalOrNull(priceData.taxes);
+          if (priceData.ncf) pricingValues.ncf = toDecimalOrNull(priceData.ncf);
+          if (priceData.gratuity) pricingValues.gratuity = toDecimalOrNull(priceData.gratuity);
+          if (priceData.fuel) pricingValues.fuel = toDecimalOrNull(priceData.fuel);
+          if (priceData.noncomm) pricingValues.nonComm = toDecimalOrNull(priceData.noncomm);
+          if (priceData.total) pricingValues.totalPrice = toDecimalOrNull(priceData.total);
+          
+          await db.insert(schema.pricing).values(pricingValues);
           
           // Track cheapest prices by cabin type
           const upperCode = cabinCode.toUpperCase();
@@ -504,25 +546,35 @@ async function processDetailedPricing(cruiseId, prices) {
       }
     }
     
+    // Clean cheapest pricing data and only include defined values
+    const cheapestPricingData = {
+      cruiseId: cruiseId,
+      currency: 'USD',
+      lastUpdated: new Date()
+    };
+    
+    // Only include prices that have values
+    if (cheapestPrices.interiorPrice) cheapestPricingData.interiorPrice = cheapestPrices.interiorPrice;
+    if (cheapestPrices.oceanviewPrice) cheapestPricingData.oceanviewPrice = cheapestPrices.oceanviewPrice;
+    if (cheapestPrices.balconyPrice) cheapestPricingData.balconyPrice = cheapestPrices.balconyPrice;
+    if (cheapestPrices.suitePrice) cheapestPricingData.suitePrice = cheapestPrices.suitePrice;
+    
+    // Build update data without undefined values
+    const updateData = {
+      currency: 'USD',
+      lastUpdated: new Date()
+    };
+    if (cheapestPrices.interiorPrice) updateData.interiorPrice = cheapestPrices.interiorPrice;
+    if (cheapestPrices.oceanviewPrice) updateData.oceanviewPrice = cheapestPrices.oceanviewPrice;
+    if (cheapestPrices.balconyPrice) updateData.balconyPrice = cheapestPrices.balconyPrice;
+    if (cheapestPrices.suitePrice) updateData.suitePrice = cheapestPrices.suitePrice;
+    
     // Upsert cheapest pricing
     await db.insert(schema.cheapestPricing)
-      .values({
-        cruiseId: cruiseId,
-        interiorPrice: cheapestPrices.interiorPrice,
-        oceanviewPrice: cheapestPrices.oceanviewPrice,
-        balconyPrice: cheapestPrices.balconyPrice,
-        suitePrice: cheapestPrices.suitePrice,
-        currency: 'USD'
-      })
+      .values(cheapestPricingData)
       .onConflictDoUpdate({
         target: schema.cheapestPricing.cruiseId,
-        set: {
-          interiorPrice: cheapestPrices.interiorPrice,
-          oceanviewPrice: cheapestPrices.oceanviewPrice,
-          balconyPrice: cheapestPrices.balconyPrice,
-          suitePrice: cheapestPrices.suitePrice,
-          updatedAt: new Date()
-        }
+        set: updateData
       });
     
     stats.pricing++;
