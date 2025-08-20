@@ -7,13 +7,13 @@ databases:
     region: oregon
     ipAllowList: []
 
-  # Production PostgreSQL Database (create later when ready)
-  # - name: zipsea-postgres-production
-  #   databaseName: zipsea_production_db
-  #   user: zipsea_production_user
-  #   plan: starter
-  #   region: oregon
-  #   ipAllowList: []
+  # Production PostgreSQL Database
+  - name: zipsea-postgres-production
+    databaseName: zipsea_production_db
+    user: zipsea_production_user
+    plan: starter
+    region: oregon
+    ipAllowList: []
 
 services:
 
@@ -25,13 +25,13 @@ services:
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []
 
-  # Production Redis Cache (create later when ready)
-  # - type: redis
-  #   name: zipsea-redis-production
-  #   plan: starter
-  #   region: oregon
-  #   maxmemoryPolicy: allkeys-lru
-  #   ipAllowList: []
+  # Production Redis Cache
+  - type: redis
+    name: zipsea-redis-production
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
 
   # Backend API - Staging Environment
   - type: web
@@ -78,40 +78,47 @@ services:
       # - key: TRAVELTEK_FTP_PASSWORD
     autoDeploy: true
 
-  # Production Backend API (uncomment when ready for production)
-  # - type: web
-  #   name: zipsea-backend-production
-  #   env: node
-  #   region: oregon
-  #   plan: standard
-  #   branch: production  # Deploy from production branch only
-  #   buildCommand: cd backend && npm ci && npm run build
-  #   startCommand: cd backend && npm start
-  #   healthCheckPath: /health
-  #   envVars:
-  #     - key: NODE_ENV
-  #       value: production
-  #     - key: PORT
-  #       value: 10000
-  #     - key: DATABASE_URL
-  #       fromDatabase:
-  #         name: zipsea-postgres-production
-  #         property: connectionString
-  #     - key: REDIS_URL
-  #       fromService:
-  #         type: redis
-  #         name: zipsea-redis-production
-  #         property: connectionString
-  #     - key: CORS_ORIGIN
-  #       value: https://zipsea.com
-  #     - key: LOG_LEVEL
-  #       value: warn
-  #     - key: RATE_LIMIT_WINDOW_MS
-  #       value: 900000
-  #     - key: RATE_LIMIT_MAX_REQUESTS
-  #       value: 200
-  #     - key: JWT_SECRET
-  #       generateValue: true
-  #     - key: WEBHOOK_SECRET
-  #       generateValue: true
-  #   autoDeploy: true  # Auto-deploy when production branch updates
+  # Production Backend API
+  - type: web
+    name: zipsea-backend-production
+    env: node
+    region: oregon
+    plan: standard
+    branch: production  # Deploy from production branch only
+    buildCommand: cd backend && npm ci && npm run build
+    startCommand: cd backend && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: zipsea-postgres-production
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: zipsea-redis-production
+          property: connectionString
+      - key: CORS_ORIGIN
+        value: https://zipsea.com
+      - key: LOG_LEVEL
+        value: warn
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 200
+      - key: JWT_SECRET
+        generateValue: true
+      - key: WEBHOOK_SECRET
+        generateValue: true
+      # These will be added manually in Render Dashboard
+      # - key: CLERK_PUBLISHABLE_KEY
+      # - key: CLERK_SECRET_KEY
+      # - key: SENTRY_DSN
+      # - key: TRAVELTEK_FTP_HOST
+      # - key: TRAVELTEK_FTP_USER
+      # - key: TRAVELTEK_FTP_PASSWORD
+    autoDeploy: true  # Auto-deploy when production branch updates

@@ -25,7 +25,7 @@ const envSchema = z.object({
   TRAVELTEK_FTP_PASSWORD: z.string().min(1).optional(),
   
   // Sentry
-  SENTRY_DSN: z.string().url().optional(),
+  SENTRY_DSN: z.string().optional().transform(val => val === '' ? undefined : val).pipe(z.string().url().optional()),
   
   // Email
   RESEND_API_KEY: z.string().min(1).optional(),
