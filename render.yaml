@@ -40,9 +40,8 @@ services:
     region: oregon
     plan: starter
     branch: main  # Deploy from main branch
-    rootDir: backend
-    buildCommand: npm ci && npm run build
-    startCommand: npm start
+    buildCommand: npm run build:backend
+    startCommand: npm run start:backend
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
@@ -86,9 +85,8 @@ services:
     region: oregon
     plan: standard
     branch: production  # Deploy from production branch only
-    rootDir: backend
-    buildCommand: npm ci && npm run build
-    startCommand: npm start
+    buildCommand: npm run build:backend
+    startCommand: npm run start:backend
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
