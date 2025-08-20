@@ -13,18 +13,45 @@ async function runMigrations() {
   console.log('🔄 Running database migrations...\n');
   
   try {
-    // First, generate any pending migrations
-    console.log('📝 Generating migrations if needed...');
+    // Check if we're in the right directory
+    const { stdout: pwdOutput } = await execAsync('pwd');
+    console.log('Current directory:', pwdOutput.trim());
+    
+    // Install drizzle-orm if needed (it's a dependency but might not be available in build)
+    console.log('📦 Ensuring drizzle-orm is available...');
     try {
-      const { stdout: genOutput } = await execAsync('npx drizzle-kit generate');
-      console.log(genOutput);
-    } catch (genError) {
-      console.log('No new migrations to generate or already generated');
+      await execAsync('npm list drizzle-orm');
+    } catch {
+      console.log('Installing drizzle-orm for migrations...');
+      await execAsync('npm install drizzle-orm');
     }
     
-    // Then push schema changes to database
-    console.log('\n🚀 Applying migrations to database...');
-    const { stdout, stderr } = await execAsync('npx drizzle-kit push');
+    // Use the compiled JavaScript migration approach instead of drizzle-kit push
+    // This is more reliable in production environments
+    console.log('\n🚀 Running migrations using migrate function...');
+    
+    const migrationScript = `
+      const { drizzle } = require('drizzle-orm/postgres-js');
+      const { migrate } = require('drizzle-orm/postgres-js/migrator');
+      const postgres = require('postgres');
+      const path = require('path');
+      
+      const sql = postgres(process.env.DATABASE_URL, { max: 1 });
+      const db = drizzle(sql);
+      
+      migrate(db, { migrationsFolder: path.join(__dirname, '../src/db/migrations') })
+        .then(() => {
+          console.log('Migrations completed');
+          sql.end();
+        })
+        .catch(err => {
+          console.error('Migration error:', err);
+          sql.end();
+          process.exit(1);
+        });
+    `;
+    
+    const { stdout, stderr } = await execAsync(`node -e "${migrationScript}"`);
     
     if (stdout) console.log(stdout);
     if (stderr && !stderr.includes('Warning')) console.error(stderr);
@@ -33,15 +60,11 @@ async function runMigrations() {
     process.exit(0);
   } catch (error) {
     console.error('❌ Migration failed:', error.message);
-    console.error('\nFull error:', error);
     
-    // Don't fail the build if migrations fail (optional)
-    // Remove the line below if you want to fail the build on migration errors
+    // Don't fail the build if migrations fail
     console.log('\n⚠️  Continuing despite migration error (database may need manual update)');
+    console.log('You can run migrations manually with: npx drizzle-kit push');
     process.exit(0);
-    
-    // Uncomment this to fail the build on migration errors:
-    // process.exit(1);
   }
 }
 
