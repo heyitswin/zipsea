@@ -604,7 +604,7 @@ export class CruiseService {
     try {
       const regionIds = Array.isArray(cruise.regionIds) ? 
         cruise.regionIds : 
-        JSON.parse(cruise.regionIds || '[]');
+        Array.isArray(cruise.regionIds) ? cruise.regionIds : (cruise.regionIds ? JSON.parse(cruise.regionIds) : []);
 
       if (regionIds.length === 0) return [];
 
@@ -633,7 +633,7 @@ export class CruiseService {
     try {
       const portIds = Array.isArray(cruise.portIds) ? 
         cruise.portIds : 
-        JSON.parse(cruise.portIds || '[]');
+        Array.isArray(cruise.portIds) ? cruise.portIds : (cruise.portIds ? JSON.parse(cruise.portIds) : []);
 
       if (portIds.length === 0) return [];
 

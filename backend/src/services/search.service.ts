@@ -428,10 +428,17 @@ export class SearchService {
     if (!portIds || portIds.length === 0) return [];
 
     try {
+      // Ensure all IDs are numbers
+      const numericIds = portIds
+        .map(id => typeof id === 'number' ? id : parseInt(String(id), 10))
+        .filter(id => !isNaN(id) && id > 0);
+      
+      if (numericIds.length === 0) return [];
+
       const portsResult = await db
         .select({ name: ports.name })
         .from(ports)
-        .where(inArray(ports.id, portIds));
+        .where(inArray(ports.id, numericIds));
 
       return portsResult.map(p => p.name);
     } catch (error) {
@@ -447,10 +454,17 @@ export class SearchService {
     if (!regionIds || regionIds.length === 0) return [];
 
     try {
+      // Ensure all IDs are numbers
+      const numericIds = regionIds
+        .map(id => typeof id === 'number' ? id : parseInt(String(id), 10))
+        .filter(id => !isNaN(id) && id > 0);
+      
+      if (numericIds.length === 0) return [];
+
       const regionsResult = await db
         .select({ name: regions.name })
         .from(regions)
-        .where(inArray(regions.id, regionIds));
+        .where(inArray(regions.id, numericIds));
 
       return regionsResult.map(r => r.name);
     } catch (error) {
