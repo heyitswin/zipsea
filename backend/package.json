@@ -17,6 +17,7 @@
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "ts-node src/db/migrate.ts",
     "db:migrate:prod": "node scripts/run-migration.js",
+    "db:migrate:complete": "node scripts/complete-migration.js",
     "db:push": "drizzle-kit push:pg",
     "db:studio": "drizzle-kit studio",
     "db:drop": "drizzle-kit drop",
