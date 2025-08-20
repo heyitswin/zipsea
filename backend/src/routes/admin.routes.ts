@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { cronService } from '../services/cron.service';
 import { logger } from '../config/logger';
+import { slackService } from '../services/slack.service';
 
 const router = Router();
 
@@ -215,6 +216,73 @@ router.get('/health', (req: Request, res: Response) => {
       timestamp: new Date().toISOString(),
     },
   });
+});
+
+/**
+ * Test Slack integration
+ */
+router.post('/slack/test', async (req: Request, res: Response) => {
+  try {
+    const success = await slackService.testConnection();
+    
+    if (success) {
+      res.json({
+        success: true,
+        message: 'Slack test notification sent successfully',
+      });
+    } else {
+      res.status(503).json({
+        success: false,
+        error: {
+          message: 'Slack notifications not configured',
+          details: 'SLACK_WEBHOOK_URL environment variable not set',
+        },
+      });
+    }
+  } catch (error) {
+    logger.error('Failed to test Slack integration:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to send Slack test notification',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+    });
+  }
+});
+
+/**
+ * Send test webhook notification to Slack
+ */
+router.post('/slack/test-webhook', async (req: Request, res: Response) => {
+  try {
+    // Simulate a webhook event
+    const testData = {
+      eventType: 'test_pricing_update',
+      cruiseIds: [344359, 344361],
+      timestamp: new Date().toISOString(),
+    };
+    
+    await slackService.notifyLivePricingUpdate(testData, { 
+      successful: 2, 
+      failed: 0 
+    });
+    
+    res.json({
+      success: true,
+      message: 'Test webhook notification sent to Slack',
+      data: testData,
+    });
+  } catch (error) {
+    logger.error('Failed to send test webhook notification:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to send test webhook notification',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+    });
+  }
 });
 
 export default router;

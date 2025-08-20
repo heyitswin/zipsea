@@ -10,6 +10,7 @@ import { traveltekFTPService } from './traveltek-ftp.service';
 import { dataSyncService } from './data-sync.service';
 import { cacheManager } from '../cache/cache-manager';
 import { CacheKeys } from '../cache/cache-keys';
+import { slackService } from './slack.service';
 
 export interface WebhookPricingData {
   cruiseId?: number;
@@ -94,6 +95,9 @@ export class WebhookService {
       await this.clearCacheForCruiseLine(data.lineId);
 
       logger.info(`Cruiseline pricing update completed: ${successful} successful, ${failed} failed`);
+      
+      // Send Slack notification
+      await slackService.notifyCruiseLinePricingUpdate(data, { successful, failed });
 
     } catch (error) {
       logger.error('Failed to process cruiseline pricing update:', error);
@@ -154,6 +158,9 @@ export class WebhookService {
       }
 
       logger.info(`Live pricing update completed: ${successful} successful, ${failed} failed`);
+      
+      // Send Slack notification
+      await slackService.notifyLivePricingUpdate(data, { successful, failed });
 
     } catch (error) {
       logger.error('Failed to process live pricing update:', error);
@@ -197,6 +204,9 @@ export class WebhookService {
       await this.clearCacheForCruise(data.cruiseId);
 
       logger.info(`Availability updated for cruise ${data.cruiseId}`);
+      
+      // Send Slack notification
+      await slackService.notifyAvailabilityChange(data);
 
     } catch (error) {
       logger.error('Failed to process availability change:', error);
