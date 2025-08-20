@@ -1323,13 +1323,12 @@ export class SearchService {
       return [];
     }
   }
-}
 
   /**
    * Advanced search with ML-powered recommendations
    */
   async getRecommendedCruises(filters: SearchFilters = {}, limit: number = 5): Promise<CruiseSearchResult[]> {
-    const cacheKey = CacheKeys.recommendedCruises(JSON.stringify(filters), limit);
+    const cacheKey = `recommendations:${JSON.stringify(filters)}:${limit}`;
     
     try {
       const cached = await cacheManager.get<CruiseSearchResult[]>(cacheKey);
