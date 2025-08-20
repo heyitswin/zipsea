@@ -7,6 +7,7 @@
     "dev": "nodemon",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
+    "start:prod": "cd backend && node dist/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
