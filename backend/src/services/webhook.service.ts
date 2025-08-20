@@ -206,7 +206,10 @@ export class WebhookService {
       logger.info(`Availability updated for cruise ${data.cruiseId}`);
       
       // Send Slack notification
-      await slackService.notifyAvailabilityChange(data);
+      await slackService.notifyAvailabilityChange({
+        ...data,
+        eventType: 'availability_change'
+      });
 
     } catch (error) {
       logger.error('Failed to process availability change:', error);

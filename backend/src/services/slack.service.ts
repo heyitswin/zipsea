@@ -32,7 +32,7 @@ export class SlackService {
   /**
    * Send a formatted message to Slack
    */
-  private async sendToSlack(blocks: any[]): Promise<void> {
+  private async sendToSlack(blocks: any): Promise<void> {
     if (!this.enabled || !this.webhookUrl) {
       return;
     }
