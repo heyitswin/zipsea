@@ -287,26 +287,48 @@ async function processDependencies(data) {
 }
 
 /**
- * Take price snapshot
+ * Take price snapshot - captures current pricing for history tracking
  */
 async function takePriceSnapshot(cruiseId) {
   try {
-    const existing = await db.select()
-      .from(schema.cheapestPricing)
-      .where(eq(schema.cheapestPricing.cruiseId, cruiseId))
-      .limit(1);
+    // Get existing pricing records to create snapshots
+    const existingPricing = await db.select()
+      .from(schema.pricing)
+      .where(eq(schema.pricing.cruiseId, cruiseId))
+      .limit(10); // Sample a few pricing records for snapshot
     
-    if (existing.length > 0) {
-      const current = existing[0];
-      await db.insert(schema.priceHistory).values({
-        cruiseId: cruiseId,
-        interiorPrice: current.interiorPrice,
-        oceanviewPrice: current.oceanviewPrice,
-        balconyPrice: current.balconyPrice,
-        suitePrice: current.suitePrice,
-        currency: current.currency || 'USD',
-        snapshotDate: new Date()
-      });
+    if (existingPricing.length > 0) {
+      // Create snapshots for sample pricing records
+      for (const price of existingPricing.slice(0, 3)) { // Just snapshot first 3 for performance
+        const snapshotData = removeUndefinedValues({
+          cruiseId: cruiseId,
+          rateCode: price.rateCode,
+          cabinCode: price.cabinCode,
+          occupancyCode: price.occupancyCode,
+          cabinType: price.cabinType,
+          basePrice: price.basePrice,
+          adultPrice: price.adultPrice,
+          childPrice: price.childPrice,
+          infantPrice: price.infantPrice,
+          singlePrice: price.singlePrice,
+          thirdAdultPrice: price.thirdAdultPrice,
+          fourthAdultPrice: price.fourthAdultPrice,
+          taxes: price.taxes,
+          ncf: price.ncf,
+          gratuity: price.gratuity,
+          fuel: price.fuel,
+          nonComm: price.nonComm,
+          totalPrice: price.totalPrice,
+          currency: price.currency || 'USD',
+          isAvailable: price.isAvailable,
+          priceType: price.priceType || 'static',
+          changeType: 'update', // Required field
+          changeReason: 'ftp_sync',
+          snapshotDate: new Date()
+        });
+        
+        await db.insert(schema.priceHistory).values(snapshotData);
+      }
       stats.snapshots++;
     }
   } catch (error) {
