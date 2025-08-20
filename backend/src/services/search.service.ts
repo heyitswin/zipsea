@@ -340,8 +340,34 @@ export class SearchService {
     const pricing = row.cheapestPrice;
 
     // Get ports and regions from JSON arrays
-    const portIds = Array.isArray(cruise.portIds) ? cruise.portIds : JSON.parse(cruise.portIds || '[]');
-    const regionIds = Array.isArray(cruise.regionIds) ? cruise.regionIds : JSON.parse(cruise.regionIds || '[]');
+    let portIds = [];
+    let regionIds = [];
+    
+    try {
+      if (cruise.portIds) {
+        if (Array.isArray(cruise.portIds)) {
+          portIds = cruise.portIds;
+        } else if (typeof cruise.portIds === 'string') {
+          portIds = JSON.parse(cruise.portIds);
+        }
+      }
+    } catch (e) {
+      logger.warn(`Failed to parse portIds for cruise ${cruise.id}:`, e);
+      portIds = [];
+    }
+    
+    try {
+      if (cruise.regionIds) {
+        if (Array.isArray(cruise.regionIds)) {
+          regionIds = cruise.regionIds;
+        } else if (typeof cruise.regionIds === 'string') {
+          regionIds = JSON.parse(cruise.regionIds);
+        }
+      }
+    } catch (e) {
+      logger.warn(`Failed to parse regionIds for cruise ${cruise.id}:`, e);
+      regionIds = [];
+    }
 
     // Fetch port and region names
     const [portNames, regionNames] = await Promise.all([
