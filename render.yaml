@@ -3,7 +3,7 @@ databases:
   - name: zipsea-postgres-staging
     databaseName: zipsea_staging_db
     user: zipsea_staging_user
-    plan: free
+    plan: basic-256mb
     region: oregon
     ipAllowList: []
 
@@ -11,7 +11,7 @@ databases:
   - name: zipsea-postgres-production
     databaseName: zipsea_production_db
     user: zipsea_production_user
-    plan: starter
+    plan: basic-256mb
     region: oregon
     ipAllowList: []
 
@@ -28,7 +28,7 @@ services:
   # Production Redis Cache
   - type: redis
     name: zipsea-redis-production
-    plan: starter
+    plan: free
     region: oregon
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []
