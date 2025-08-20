@@ -38,13 +38,20 @@ export class TraveltekFTPService {
   async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       const config: FTPConfig = {
-        host: 'ftpeu1prod.traveltek.net',
+        host: env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
         user: env.TRAVELTEK_FTP_USER,
         password: env.TRAVELTEK_FTP_PASSWORD,
         secure: false,
         connTimeout: 60000,
         pasvTimeout: 60000,
       };
+      
+      // Log connection attempt (without password)
+      logger.info('Attempting FTP connection', {
+        host: config.host,
+        user: config.user ? config.user.substring(0, 3) + '***' : 'NOT SET',
+        hasPassword: !!config.password
+      });
 
       this.client.on('ready', () => {
         this.isConnected = true;
@@ -54,7 +61,12 @@ export class TraveltekFTPService {
 
       this.client.on('error', (err) => {
         this.isConnected = false;
-        logger.error('FTP connection error:', err);
+        logger.error('FTP connection error:', {
+          message: err.message,
+          code: err.code,
+          host: config.host,
+          user: config.user ? config.user.substring(0, 3) + '***' : 'NOT SET'
+        });
         reject(err);
       });
 
