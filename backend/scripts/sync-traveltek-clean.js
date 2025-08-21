@@ -379,6 +379,40 @@ class DatabaseClient {
         const sailingDate = parseDate(startdate || saildate);
         const startDateParsed = parseDate(startdate);
         
+        // Auto-create reference data if missing
+        // This ensures foreign key constraints are satisfied
+        if (lineid) {
+          await sql`
+            INSERT INTO cruise_lines (id, name, code, is_active)
+            VALUES (${parseInt(lineid)}, ${'Cruise Line ' + lineid}, ${'L' + lineid}, true)
+            ON CONFLICT (id) DO NOTHING
+          `;
+        }
+        
+        if (shipid) {
+          await sql`
+            INSERT INTO ships (id, name, cruise_line_id, is_active)
+            VALUES (${parseInt(shipid)}, ${'Ship ' + shipid}, ${parseInt(lineid) || 1}, true)
+            ON CONFLICT (id) DO NOTHING
+          `;
+        }
+        
+        if (startportid) {
+          await sql`
+            INSERT INTO ports (id, name, code, country, is_active)
+            VALUES (${parseInt(startportid)}, ${'Port ' + startportid}, ${'P' + startportid}, 'Unknown', true)
+            ON CONFLICT (id) DO NOTHING
+          `;
+        }
+        
+        if (endportid) {
+          await sql`
+            INSERT INTO ports (id, name, code, country, is_active)
+            VALUES (${parseInt(endportid)}, ${'Port ' + endportid}, ${'P' + endportid}, 'Unknown', true)
+            ON CONFLICT (id) DO NOTHING
+          `;
+        }
+        
         // UPSERT cruise using the correct schema mapping:
         // - id = codetocruiseid (primary key)
         // - cruise_id = cruiseid (original cruise ID that can duplicate)
