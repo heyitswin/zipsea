@@ -265,13 +265,16 @@ async function processPorts(client, data) {
   if (!data.ports || typeof data.ports !== 'object') return;
   
   for (const [portId, portName] of Object.entries(data.ports)) {
+    const id = parseInteger(portId);
+    if (!id) continue;
+    
     await client.query(`
       INSERT INTO ports (id, name)
       VALUES ($1, $2)
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         updated_at = CURRENT_TIMESTAMP
-    `, [parseInteger(portId), portName]);
+    `, [id, portName || `Port ${id}`]);
   }
 }
 
@@ -424,6 +427,18 @@ async function processItinerary(client, cruiseId, data) {
   await client.query('DELETE FROM itineraries WHERE cruise_id = $1', [cruiseId]);
   
   for (const day of data.itinerary) {
+    // First ensure the port exists if we have a port ID
+    const portId = parseInteger(day.portid);
+    if (portId && day.name) {
+      await client.query(`
+        INSERT INTO ports (id, name)
+        VALUES ($1, $2)
+        ON CONFLICT (id) DO UPDATE SET
+          name = EXCLUDED.name,
+          updated_at = CURRENT_TIMESTAMP
+      `, [portId, day.name]);
+    }
+    
     await client.query(`
       INSERT INTO itineraries (
         cruise_id, day_number, order_id, port_id, port_name, itinerary_name,
@@ -435,7 +450,7 @@ async function processItinerary(client, cruiseId, data) {
       cruiseId,
       parseInteger(day.day),
       parseInteger(day.orderid),
-      parseInteger(day.portid),
+      portId,  // May be null if port doesn't exist
       day.name || null,
       day.itineraryname || null,
       parseDate(day.arrivedate),
