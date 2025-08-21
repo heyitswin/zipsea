@@ -75,16 +75,16 @@ if cruises:
 }
 
 # Test 1: Basic search for Caribbean cruises
-test_endpoint "/api/v1/cruises/search?q=Caribbean&limit=5" "Search for 'Caribbean'"
+test_endpoint "/api/v1/search?q=Caribbean&limit=5" "Search for 'Caribbean'"
 
 # Test 2: Search with date filter for September 2025
-test_endpoint "/api/v1/cruises/search?startDate=2025-09-01&endDate=2025-09-30&limit=5" "September 2025 cruises"
+test_endpoint "/api/v1/search?sailingDateFrom=2025-09-01&sailingDateTo=2025-09-30&limit=5" "September 2025 cruises"
 
 # Test 3: Search by cruise line (if we know one exists)
-test_endpoint "/api/v1/cruises/search?q=Royal&limit=5" "Search for 'Royal' (cruise line)"
+test_endpoint "/api/v1/search?q=Royal&limit=5" "Search for 'Royal' (cruise line)"
 
 # Test 4: Search with multiple filters
-test_endpoint "/api/v1/cruises/search?startDate=2025-09-01&endDate=2025-09-30&minNights=5&maxNights=10&limit=5" "Sept 2025, 5-10 nights"
+test_endpoint "/api/v1/search?sailingDateFrom=2025-09-01&sailingDateTo=2025-09-30&minNights=5&maxNights=10&limit=5" "Sept 2025, 5-10 nights"
 
 # Test 5: General cruise listing (no search)
 test_endpoint "/api/v1/cruises?sailing_date_min=2025-09-01&sailing_date_max=2025-09-30&limit=5" "List Sept 2025 cruises"
