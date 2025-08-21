@@ -1,10 +1,11 @@
 import { pgTable, uuid, integer, varchar, decimal, timestamp, boolean } from 'drizzle-orm/pg-core';
-import { cruises } from './cruises';
+import { cruises, cruiseSailings } from './cruises';
 
 // Main pricing table for static pricing data from FTP
 export const pricing = pgTable('pricing', {
   id: uuid('id').primaryKey().defaultRandom(),
-  cruiseId: integer('cruise_id').references(() => cruises.id).notNull(),
+  cruiseId: integer('cruise_id').references(() => cruises.id).notNull(), // Legacy reference
+  cruiseSailingId: uuid('cruise_sailing_id').references(() => cruiseSailings.id), // New reference to specific sailing
   rateCode: varchar('rate_code', { length: 50 }).notNull(), // RATECODE1, BESTFARE, BROCHURE, etc
   cabinCode: varchar('cabin_code', { length: 10 }).notNull(), // IB, OV, BA, S1, etc
   occupancyCode: varchar('occupancy_code', { length: 10 }).notNull(), // 101, 102, 201, etc
@@ -37,7 +38,8 @@ export const pricing = pgTable('pricing', {
 // Denormalized cheapest pricing table for fast search
 export const cheapestPricing = pgTable('cheapest_pricing', {
   id: uuid('id').primaryKey().defaultRandom(),
-  cruiseId: integer('cruise_id').references(() => cruises.id).unique().notNull(),
+  cruiseId: integer('cruise_id').references(() => cruises.id).unique().notNull(), // Legacy reference
+  cruiseSailingId: uuid('cruise_sailing_id').references(() => cruiseSailings.id).unique(), // New reference to specific sailing
   
   // Overall cheapest pricing
   cheapestPrice: decimal('cheapest_price', { precision: 10, scale: 2 }), // cheapest.price

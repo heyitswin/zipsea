@@ -1,10 +1,12 @@
 import { pgTable, uuid, integer, varchar, text, timestamp, date, time, boolean, jsonb } from 'drizzle-orm/pg-core';
-import { cruises } from './cruises';
+import { cruises, cruiseDefinitions, cruiseSailings } from './cruises';
 import { ports } from './ports';
 
 export const itineraries = pgTable('itineraries', {
   id: uuid('id').primaryKey().defaultRandom(),
-  cruiseId: integer('cruise_id').references(() => cruises.id).notNull(),
+  cruiseId: integer('cruise_id').references(() => cruises.id).notNull(), // Legacy reference
+  cruiseDefinitionId: uuid('cruise_definition_id').references(() => cruiseDefinitions.id), // New reference to cruise definition
+  cruiseSailingId: uuid('cruise_sailing_id').references(() => cruiseSailings.id), // New reference to specific sailing
   dayNumber: integer('day_number').notNull(), // itinerary[].day
   date: date('date').notNull(), // itinerary[].date
   portName: varchar('port_name', { length: 255 }).notNull(), // itinerary[].port

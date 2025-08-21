@@ -389,7 +389,10 @@ async function processCruise(client, data, filePath) {
       owner_id, no_fly, depart_uk, show_cruise, fly_cruise_info,
       last_cached, cached_date, traveltek_file_path
     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
-    ON CONFLICT (code_to_cruise_id) DO UPDATE SET
+    ON CONFLICT (id) DO UPDATE SET
+      code_to_cruise_id = EXCLUDED.code_to_cruise_id,
+      cruise_line_id = EXCLUDED.cruise_line_id,
+      ship_id = EXCLUDED.ship_id,
       name = EXCLUDED.name,
       voyage_code = EXCLUDED.voyage_code,
       itinerary_code = EXCLUDED.itinerary_code,
