@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { searchOptimizedService } from '../services/search-optimized.service';
+import { searchOptimizedSimpleService } from '../services/search-optimized-simple.service';
 import { searchHotfixService } from '../services/search-hotfix.service';
 import logger from '../config/logger';
 
@@ -85,7 +85,7 @@ class SearchOptimizedController {
       });
       
       // Use optimized service
-      const result = await searchOptimizedService.searchCruises(filters, options);
+      const result = await searchOptimizedSimpleService.searchCruises(filters, options);
       
       // Log performance
       const totalTime = Date.now() - startTime;
@@ -136,7 +136,7 @@ class SearchOptimizedController {
     try {
       const limit = req.query.limit ? Math.min(Number(req.query.limit), 50) : 10;
       
-      const cruises = await searchOptimizedService.getPopularCruises(limit);
+      const cruises = await searchOptimizedSimpleService.getPopularCruises(limit);
       
       res.json({
         cruises,
@@ -159,7 +159,19 @@ class SearchOptimizedController {
    */
   async getSearchFilters(req: Request, res: Response): Promise<void> {
     try {
-      const filters = await searchOptimizedService.getSearchFilters();
+      // For now, return basic filter structure
+      // TODO: Implement dynamic filter generation
+      const filters = {
+        cruiseLines: [],
+        ships: [],
+        ports: [],
+        priceRange: { min: 0, max: 10000 },
+        nightsRange: { min: 1, max: 30 },
+        dateRange: {
+          min: new Date().toISOString().split('T')[0],
+          max: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        }
+      };
       
       res.json(filters);
       
@@ -186,7 +198,7 @@ class SearchOptimizedController {
       
       const limit = req.query.limit ? Math.min(Number(req.query.limit), 20) : 10;
       
-      const suggestions = await searchOptimizedService.getSuggestions(query, limit);
+      const suggestions = await searchOptimizedSimpleService.getSuggestions(query, limit);
       
       res.json(suggestions);
       

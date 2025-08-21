@@ -24,13 +24,13 @@ export class SearchOptimizedService {
       const sortOrder = options.sortOrder || 'asc';
       
       // Try cache first
-      const cacheKey = CacheKeys.searchResults(JSON.stringify({ filters, options }));
-      const cached = await cacheManager.get(cacheKey);
+      const cacheKey = CacheKeys.search(JSON.stringify({ filters, options }));
+      const cached = await cacheManager.get<any>(cacheKey);
       if (cached) {
         return {
           ...cached,
           meta: {
-            ...cached.meta,
+            ...(cached.meta || {}),
             searchTime: Date.now() - startTime,
             cacheHit: true
           }
@@ -197,10 +197,15 @@ export class SearchOptimizedService {
         ${whereClause}
       `;
       
-      // Execute queries
+      // Execute queries with parameters
+      // We need to use sql`` template literal with embedded values
+      // For now, use a safe parameterized query builder
+      const queryWithParams = sql.raw(query, params);
+      const countQueryWithParams = sql.raw(countQuery, params.slice(0, -2)); // Remove limit/offset params
+      
       const [results, countResult] = await Promise.all([
-        db.execute(sql.raw(query, params)),
-        db.execute(sql.raw(countQuery, params.slice(0, -2))) // Remove limit/offset params
+        db.execute(queryWithParams),
+        db.execute(countQueryWithParams)
       ]);
       
       // Format results
@@ -259,7 +264,7 @@ export class SearchOptimizedService {
       };
       
       // Cache the result
-      await cacheManager.set(cacheKey, result, 300); // 5 minute cache
+      await cacheManager.set(cacheKey, result, { ttl: 300 }); // 5 minute cache
       
       // Log slow queries
       if (result.meta.searchTime > 1000) {
@@ -286,13 +291,13 @@ export class SearchOptimizedService {
     
     try {
       // Try cache first
-      const cacheKey = CacheKeys.popularCruises();
-      const cached = await cacheManager.get(cacheKey);
+      const cacheKey = CacheKeys.popularCruises(limit);
+      const cached = await cacheManager.get<any>(cacheKey);
       if (cached) {
         return cached;
       }
       
-      const query = `
+      const query = sql`
         SELECT 
           c.id,
           c.name,
@@ -310,10 +315,10 @@ export class SearchOptimizedService {
           AND c.sailing_date >= CURRENT_DATE
           AND c.popularity_score IS NOT NULL
         ORDER BY c.popularity_score DESC
-        LIMIT $1
+        LIMIT ${limit}
       `;
       
-      const results = await db.execute(sql.raw(query, [limit]));
+      const results = await db.execute(query);
       
       const cruises = (results as any).rows.map((row: any) => ({
         id: row.id,
@@ -327,7 +332,7 @@ export class SearchOptimizedService {
       }));
       
       // Cache for 1 hour
-      await cacheManager.set(cacheKey, cruises, 3600);
+      await cacheManager.set(cacheKey, cruises, { ttl: 3600 });
       
       logger.info(`Popular cruises query took ${Date.now() - startTime}ms`);
       
@@ -348,7 +353,7 @@ export class SearchOptimizedService {
     try {
       // Try cache first
       const cacheKey = 'search:filters';
-      const cached = await cacheManager.get(cacheKey);
+      const cached = await cacheManager.get<any>(cacheKey);
       if (cached) {
         return cached;
       }
@@ -451,7 +456,7 @@ export class SearchOptimizedService {
       };
       
       // Cache for 30 minutes
-      await cacheManager.set(cacheKey, filters, 1800);
+      await cacheManager.set(cacheKey, filters, { ttl: 1800 });
       
       logger.info(`Search filters query took ${Date.now() - startTime}ms`);
       
@@ -476,7 +481,7 @@ export class SearchOptimizedService {
     try {
       // Try cache first
       const cacheKey = `search:suggestions:${query.toLowerCase()}`;
-      const cached = await cacheManager.get(cacheKey);
+      const cached = await cacheManager.get<any>(cacheKey);
       if (cached) {
         return cached;
       }
@@ -484,49 +489,50 @@ export class SearchOptimizedService {
       const searchTerm = `%${query}%`;
       
       // Get suggestions from multiple sources
+      const suggestionLimit = Math.ceil(limit / 4);
       const [cruiseResults, lineResults, shipResults, portResults] = await Promise.all([
         // Cruise names
-        db.execute(sql.raw(`
+        db.execute(sql`
           SELECT DISTINCT name, 'cruise' as type
           FROM cruises
           WHERE is_active = true 
             AND sailing_date >= CURRENT_DATE
-            AND name ILIKE $1
-          LIMIT $2
-        `, [searchTerm, Math.ceil(limit / 4)])),
+            AND name ILIKE ${searchTerm}
+          LIMIT ${suggestionLimit}
+        `),
         
         // Cruise line names
-        db.execute(sql.raw(`
+        db.execute(sql`
           SELECT DISTINCT cl.name, 'cruise_line' as type
           FROM cruise_lines cl
           JOIN cruises c ON c.cruise_line_id = cl.id
           WHERE c.is_active = true 
             AND c.sailing_date >= CURRENT_DATE
-            AND cl.name ILIKE $1
-          LIMIT $2
-        `, [searchTerm, Math.ceil(limit / 4)])),
+            AND cl.name ILIKE ${searchTerm}
+          LIMIT ${suggestionLimit}
+        `),
         
         // Ship names
-        db.execute(sql.raw(`
+        db.execute(sql`
           SELECT DISTINCT s.name, 'ship' as type
           FROM ships s
           JOIN cruises c ON c.ship_id = s.id
           WHERE c.is_active = true 
             AND c.sailing_date >= CURRENT_DATE
-            AND s.name ILIKE $1
-          LIMIT $2
-        `, [searchTerm, Math.ceil(limit / 4)])),
+            AND s.name ILIKE ${searchTerm}
+          LIMIT ${suggestionLimit}
+        `),
         
         // Port names
-        db.execute(sql.raw(`
+        db.execute(sql`
           SELECT DISTINCT p.name || ', ' || p.country as name, 'port' as type
           FROM ports p
           JOIN cruises c ON (c.embark_port_id = p.id OR c.disembark_port_id = p.id)
           WHERE c.is_active = true 
             AND c.sailing_date >= CURRENT_DATE
-            AND (p.name ILIKE $1 OR p.city ILIKE $1 OR p.country ILIKE $1)
-          LIMIT $2
-        `, [searchTerm, Math.ceil(limit / 4)]))
+            AND (p.name ILIKE ${searchTerm} OR p.city ILIKE ${searchTerm} OR p.country ILIKE ${searchTerm})
+          LIMIT ${suggestionLimit}
+        `)
       ]);
       
       // Combine and format results
@@ -538,7 +544,7 @@ export class SearchOptimizedService {
       ].slice(0, limit);
       
       // Cache for 10 minutes
-      await cacheManager.set(cacheKey, suggestions, 600);
+      await cacheManager.set(cacheKey, suggestions, { ttl: 600 });
       
       logger.info(`Suggestions query for "${query}" took ${Date.now() - startTime}ms`);
       

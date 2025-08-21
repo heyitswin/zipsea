@@ -1,0 +1,279 @@
+import { db } from '../db/connection';
+import { sql } from 'drizzle-orm';
+import logger from '../config/logger';
+import { cacheManager } from '../cache/cache-manager';
+import { CacheKeys } from '../cache/cache-keys';
+
+/**
+ * Simplified optimized search service
+ * Uses Drizzle's sql template literal for safe parameterization
+ */
+export class SearchOptimizedSimpleService {
+  
+  /**
+   * Main search endpoint - simplified and safe
+   */
+  async searchCruises(filters: any = {}, options: any = {}) {
+    const startTime = Date.now();
+    
+    try {
+      // Set defaults
+      const limit = Math.min(options.limit || 20, 100);
+      const offset = ((options.page || 1) - 1) * limit;
+      
+      // Try cache first
+      const cacheKey = CacheKeys.search(JSON.stringify({ filters, options }));
+      const cached = await cacheManager.get<any>(cacheKey);
+      if (cached) {
+        return {
+          ...cached,
+          meta: {
+            ...(cached.meta || {}),
+            searchTime: Date.now() - startTime,
+            cacheHit: true
+          }
+        };
+      }
+      
+      // Build a simple but effective query
+      let query = sql`
+        SELECT 
+          c.id,
+          c.name,
+          c.sailing_date,
+          c.return_date,
+          c.nights,
+          cl.name as cruise_line_name,
+          s.name as ship_name,
+          p1.name as embark_port_name,
+          p2.name as disembark_port_name,
+          cp.cheapest_price
+        FROM cruises c
+        LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
+        LEFT JOIN ships s ON c.ship_id = s.id
+        LEFT JOIN ports p1 ON c.embark_port_id = p1.id
+        LEFT JOIN ports p2 ON c.disembark_port_id = p2.id
+        LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
+        WHERE c.is_active = true
+          AND c.sailing_date >= CURRENT_DATE`;
+      
+      // Add filter conditions
+      if (filters.cruiseLine) {
+        const lineIds = Array.isArray(filters.cruiseLine) ? filters.cruiseLine : [filters.cruiseLine];
+        query = sql`${query} AND c.cruise_line_id = ANY(${lineIds}::int[])`;
+      }
+      
+      if (filters.nights?.min) {
+        query = sql`${query} AND c.nights >= ${filters.nights.min}`;
+      }
+      
+      if (filters.nights?.max) {
+        query = sql`${query} AND c.nights <= ${filters.nights.max}`;
+      }
+      
+      if (filters.price?.min) {
+        query = sql`${query} AND cp.cheapest_price >= ${filters.price.min}`;
+      }
+      
+      if (filters.price?.max) {
+        query = sql`${query} AND cp.cheapest_price <= ${filters.price.max}`;
+      }
+      
+      if (filters.q) {
+        const searchTerm = `%${filters.q}%`;
+        query = sql`${query} AND (c.name ILIKE ${searchTerm} OR cl.name ILIKE ${searchTerm} OR s.name ILIKE ${searchTerm})`;
+      }
+      
+      // Add ordering
+      const sortBy = options.sortBy || 'date';
+      if (sortBy === 'price') {
+        query = sql`${query} ORDER BY cp.cheapest_price ASC NULLS LAST`;
+      } else if (sortBy === 'nights') {
+        query = sql`${query} ORDER BY c.nights ASC`;
+      } else {
+        query = sql`${query} ORDER BY c.sailing_date ASC`;
+      }
+      
+      // Add limit and offset
+      query = sql`${query} LIMIT ${limit} OFFSET ${offset}`;
+      
+      // Execute main query
+      const results = await db.execute(query);
+      
+      // Get total count
+      let countQuery = sql`
+        SELECT COUNT(*) as total
+        FROM cruises c
+        LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
+        WHERE c.is_active = true
+          AND c.sailing_date >= CURRENT_DATE`;
+      
+      if (filters.cruiseLine) {
+        const lineIds = Array.isArray(filters.cruiseLine) ? filters.cruiseLine : [filters.cruiseLine];
+        countQuery = sql`${countQuery} AND c.cruise_line_id = ANY(${lineIds}::int[])`;
+      }
+      
+      if (filters.nights?.min) {
+        countQuery = sql`${countQuery} AND c.nights >= ${filters.nights.min}`;
+      }
+      
+      if (filters.nights?.max) {
+        countQuery = sql`${countQuery} AND c.nights <= ${filters.nights.max}`;
+      }
+      
+      if (filters.price?.min) {
+        countQuery = sql`${countQuery} AND cp.cheapest_price >= ${filters.price.min}`;
+      }
+      
+      if (filters.price?.max) {
+        countQuery = sql`${countQuery} AND cp.cheapest_price <= ${filters.price.max}`;
+      }
+      
+      const countResult = await db.execute(countQuery);
+      
+      // Format results
+      const cruises = (results as any).rows.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        sailingDate: row.sailing_date,
+        returnDate: row.return_date,
+        nights: row.nights,
+        cruiseLine: {
+          name: row.cruise_line_name || 'Unknown'
+        },
+        ship: {
+          name: row.ship_name || 'Unknown'
+        },
+        embarkPort: {
+          name: row.embark_port_name || 'Unknown'
+        },
+        disembarkPort: {
+          name: row.disembark_port_name || 'Unknown'
+        },
+        price: row.cheapest_price ? {
+          amount: Number(row.cheapest_price),
+          currency: 'USD'
+        } : null
+      }));
+      
+      const total = Number((countResult as any).rows[0].total);
+      
+      const result = {
+        cruises,
+        meta: {
+          page: options.page || 1,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          searchTime: Date.now() - startTime,
+          cacheHit: false
+        }
+      };
+      
+      // Cache the result
+      await cacheManager.set(cacheKey, result, { ttl: 300 }); // 5 minute cache
+      
+      return result;
+      
+    } catch (error) {
+      logger.error('Search query failed:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get popular cruises
+   */
+  async getPopularCruises(limit: number = 10) {
+    const startTime = Date.now();
+    
+    try {
+      const cacheKey = CacheKeys.popularCruises(limit);
+      const cached = await cacheManager.get<any>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+      
+      const query = sql`
+        SELECT 
+          c.id,
+          c.name,
+          c.sailing_date,
+          c.nights,
+          cl.name as cruise_line_name,
+          s.name as ship_name,
+          cp.cheapest_price
+        FROM cruises c
+        LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
+        LEFT JOIN ships s ON c.ship_id = s.id
+        LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
+        WHERE c.is_active = true
+          AND c.sailing_date >= CURRENT_DATE
+        ORDER BY c.popularity_score DESC NULLS LAST
+        LIMIT ${limit}
+      `;
+      
+      const results = await db.execute(query);
+      
+      const cruises = (results as any).rows.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        sailingDate: row.sailing_date,
+        nights: row.nights,
+        cruiseLine: row.cruise_line_name,
+        ship: row.ship_name,
+        price: row.cheapest_price ? Number(row.cheapest_price) : null
+      }));
+      
+      await cacheManager.set(cacheKey, cruises, { ttl: 3600 });
+      
+      logger.info(`Popular cruises query took ${Date.now() - startTime}ms`);
+      
+      return cruises;
+      
+    } catch (error) {
+      logger.error('Failed to get popular cruises:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get search suggestions
+   */
+  async getSuggestions(query: string, limit: number = 10) {
+    if (!query || query.length < 2) {
+      return [];
+    }
+    
+    try {
+      const cacheKey = `search:suggestions:${query.toLowerCase()}`;
+      const cached = await cacheManager.get<any>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+      
+      const searchTerm = `%${query}%`;
+      
+      const results = await db.execute(sql`
+        SELECT DISTINCT name, 'cruise' as type
+        FROM cruises
+        WHERE is_active = true 
+          AND sailing_date >= CURRENT_DATE
+          AND name ILIKE ${searchTerm}
+        LIMIT ${limit}
+      `);
+      
+      const suggestions = (results as any).rows;
+      
+      await cacheManager.set(cacheKey, suggestions, { ttl: 600 });
+      
+      return suggestions;
+      
+    } catch (error) {
+      logger.error('Failed to get suggestions:', error);
+      return [];
+    }
+  }
+}
+
+export const searchOptimizedSimpleService = new SearchOptimizedSimpleService();
