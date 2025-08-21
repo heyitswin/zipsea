@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon",
-    "build": "tsc -p tsconfig.build.json && node scripts/simple-migrate.js",
+    "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
     "start:prod": "cd backend && node dist/index.js",
     "test": "jest",
