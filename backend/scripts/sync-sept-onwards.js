@@ -146,17 +146,37 @@ async function processDependencies(data) {
   const shipId = toIntegerOrNull(data.shipid) || 1;
   
   // Upsert cruise line using clean data
+  // Fix: Extract name properly if it's an object
+  let lineName = `Line ${lineId}`;
+  if (data.linename) {
+    if (typeof data.linename === 'object') {
+      lineName = data.linename.name || data.linename.title || 
+                 Object.values(data.linename).find(v => typeof v === 'string') ||
+                 `Line ${lineId}`;
+    } else {
+      lineName = String(data.linename);
+    }
+  } else if (data.linecontent) {
+    if (typeof data.linecontent === 'object') {
+      lineName = data.linecontent.name || data.linecontent.title ||
+                 Object.values(data.linecontent).find(v => typeof v === 'string') ||
+                 `Line ${lineId}`;
+    } else {
+      lineName = String(data.linecontent);
+    }
+  }
+  
   const lineData = removeUndefinedValues({
     id: lineId,
-    name: data.linename || data.linecontent || `Line ${lineId}`,
+    name: lineName,
     code: 'L' + lineId,
-    description: data.linecontent || null,
+    description: typeof data.linecontent === 'string' ? data.linecontent : null,
     isActive: true
   });
   
   const lineUpdateData = removeUndefinedValues({
-    name: data.linename || data.linecontent || `Line ${lineId}`,
-    description: data.linecontent || null,
+    name: lineName,
+    description: typeof data.linecontent === 'string' ? data.linecontent : null,
     updatedAt: new Date()
   });
   
@@ -168,10 +188,22 @@ async function processDependencies(data) {
     });
   
   // Upsert ship with content
+  // Fix: Extract ship name properly if it's an object
+  let shipName = `Ship ${shipId}`;
+  if (data.shipname) {
+    if (typeof data.shipname === 'object') {
+      shipName = data.shipname.name || data.shipname.title ||
+                 Object.values(data.shipname).find(v => typeof v === 'string') ||
+                 `Ship ${shipId}`;
+    } else {
+      shipName = String(data.shipname);
+    }
+  }
+  
   const shipData = {
     id: shipId,
     cruiseLineId: lineId,
-    name: data.shipname || `Ship ${shipId}`,
+    name: shipName,
     code: 'S' + shipId,
     isActive: true
   };
