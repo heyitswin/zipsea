@@ -64,7 +64,7 @@ export class TraveltekWebhookService {
           const filePath = `${year}/${month}/${payload.lineid}/${cruise.ship_id}/${cruise.code_to_cruise_id}.json`;
           
           // Download and process the updated file
-          const cruiseData = await traveltekFTPService.downloadFile(filePath);
+          const cruiseData = await traveltekFTPService.getCruiseDataFile(filePath);
           
           if (cruiseData) {
             // Process the updated pricing data
@@ -156,7 +156,7 @@ export class TraveltekWebhookService {
             await this.createPriceSnapshot(cruiseId, webhookEventId, 'before_update');
             
             // Download and process the updated file
-            const cruiseData = await traveltekFTPService.downloadFile(filePath);
+            const cruiseData = await traveltekFTPService.getCruiseDataFile(filePath);
             
             if (cruiseData) {
               // Process the updated cached pricing
