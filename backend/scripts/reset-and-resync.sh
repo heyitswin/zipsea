@@ -61,7 +61,7 @@ echo "🔨 Step 2: Running migrations..."
 echo "================================"
 
 # Run migrations to recreate schema
-npm run migrate
+npm run db:migrate:prod || npm run db:migrate:complete || node scripts/simple-migrate.js
 
 echo ""
 echo "✅ Schema recreated"
