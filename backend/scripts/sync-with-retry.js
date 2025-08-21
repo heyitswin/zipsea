@@ -12,7 +12,7 @@ const path = require('path');
 require('dotenv').config();
 
 // Import schema
-const schema = require('../src/db/schema');
+const schema = require('../dist/db/schema');
 
 // Configuration
 const DATABASE_URL = process.env.DATABASE_URL;
