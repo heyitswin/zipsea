@@ -7,7 +7,7 @@ We only use the **static pricing webhook** (`cruiseline_pricing_updated`) from T
 
 Configure your webhook URL in the iSell platform:
 ```
-https://zipsea-backend.onrender.com/api/webhook/traveltek
+https://zipsea-production.onrender.com/api/webhooks/traveltek
 ```
 
 ## Static Pricing Webhook
@@ -63,19 +63,19 @@ Stores price history:
 
 ### Receive Webhook
 ```
-POST /api/webhook/traveltek
+POST /api/webhooks/traveltek
 ```
 Returns immediately with HTTP 200 to prevent timeouts.
 
 ### Check Status
 ```
-GET /api/webhook/traveltek/status
+GET /api/webhooks/traveltek/status
 ```
 Returns webhook processing statistics and recent events.
 
 ### Test Webhook
 ```
-POST /api/webhook/traveltek/test
+POST /api/webhooks/traveltek/test
 ```
 Sends a test webhook for debugging.
 
@@ -91,7 +91,7 @@ Sends a test webhook for debugging.
 
 Test the webhook locally:
 ```bash
-curl -X POST http://localhost:3000/api/webhook/traveltek \
+curl -X POST http://localhost:3000/api/webhooks/traveltek \
   -H "Content-Type: application/json" \
   -d '{
     "event": "cruiseline_pricing_updated",
@@ -106,7 +106,7 @@ curl -X POST http://localhost:3000/api/webhook/traveltek \
 
 Check webhook status:
 ```bash
-curl http://localhost:3000/api/webhook/traveltek/status
+curl http://localhost:3000/api/webhooks/traveltek/status
 ```
 
 ## Monitoring
