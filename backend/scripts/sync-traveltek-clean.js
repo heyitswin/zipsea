@@ -355,27 +355,29 @@ class DatabaseClient {
           }
         };
         
-        const parseTimestamp = (timestampStr) => {
-          if (!timestampStr) return null;
+        const parseTimestamp = (dateStr) => {
+          if (!dateStr) return null;
           try {
-            return new Date(timestampStr);
+            // Convert date string to timestamp for cached_date
+            const date = new Date(dateStr);
+            return isNaN(date.getTime()) ? null : date;
           } catch {
             return null;
           }
         };
         
         // Parse port and region IDs (they come as comma-separated strings)
+        // Database expects VARCHAR(500), not JSON
         const parseIdList = (idStr) => {
-          if (!idStr) return '[]';
-          const ids = idStr.toString().split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
-          return JSON.stringify(ids);
+          if (!idStr) return null;
+          // Keep as comma-separated string, just clean it up
+          const ids = idStr.toString().split(',').map(id => id.trim()).filter(id => id);
+          return ids.join(',');
         };
         
-        // Calculate return date
+        // Parse sailing date
         const sailingDate = parseDate(startdate || saildate);
-        const returnDate = sailingDate && nights ? 
-          new Date(new Date(sailingDate).getTime() + (parseInt(nights) * 24 * 60 * 60 * 1000)).toISOString().split('T')[0] : 
-          null;
+        const startDateParsed = parseDate(startdate);
         
         // UPSERT cruise using the correct schema mapping:
         // - id = codetocruiseid (primary key)
@@ -390,7 +392,7 @@ class DatabaseClient {
             voyage_code,
             itinerary_code,
             sailing_date,
-            return_date,
+            start_date,
             nights,
             sail_nights,
             sea_days,
@@ -404,11 +406,9 @@ class DatabaseClient {
             depart_uk,
             show_cruise,
             fly_cruise_info,
-            line_content,
             traveltek_file_path,
             last_cached,
             cached_date,
-            currency,
             is_active,
             created_at,
             updated_at
@@ -421,7 +421,7 @@ class DatabaseClient {
             ${voyagecode || null},
             ${itinerarycode || null},
             ${sailingDate},
-            ${returnDate},
+            ${startDateParsed},
             ${parseInt(nights) || 0},
             ${parseInt(sailnights) || null},
             ${parseInt(seadays) || null},
@@ -430,16 +430,14 @@ class DatabaseClient {
             ${parseIdList(portids)},
             ${parseIdList(regionids)},
             ${parseInt(marketid) || null},
-            ${parseInt(ownerid) || null},
+            ${'system'},                      -- owner_id is VARCHAR with default 'system'
             ${Boolean(nofly)},
             ${Boolean(departuk)},
             ${Boolean(showcruise)},
             ${flycruiseinfo || null},
-            ${linecontent || null},
             ${filePath},
-            ${parseTimestamp(lastcached)},
-            ${parseDate(cacheddate)},
-            ${currency || 'USD'},
+            ${parseInt(lastcached) || null},      -- last_cached is INTEGER (Unix timestamp)
+            ${parseTimestamp(cacheddate)},        -- cached_date is TIMESTAMP
             true,
             NOW(),
             NOW()
@@ -452,7 +450,7 @@ class DatabaseClient {
             voyage_code = EXCLUDED.voyage_code,
             itinerary_code = EXCLUDED.itinerary_code,
             sailing_date = EXCLUDED.sailing_date,
-            return_date = EXCLUDED.return_date,
+            start_date = EXCLUDED.start_date,
             nights = EXCLUDED.nights,
             sail_nights = EXCLUDED.sail_nights,
             sea_days = EXCLUDED.sea_days,
@@ -466,11 +464,9 @@ class DatabaseClient {
             depart_uk = EXCLUDED.depart_uk,
             show_cruise = EXCLUDED.show_cruise,
             fly_cruise_info = EXCLUDED.fly_cruise_info,
-            line_content = EXCLUDED.line_content,
             traveltek_file_path = EXCLUDED.traveltek_file_path,
             last_cached = EXCLUDED.last_cached,
             cached_date = EXCLUDED.cached_date,
-            currency = EXCLUDED.currency,
             updated_at = NOW()
         `;
       });
