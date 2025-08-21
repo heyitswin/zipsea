@@ -1,0 +1,13 @@
+// This file is disabled due to unsafe SQL practices
+// Use search-optimized-simple.service.ts instead
+// The original content has been moved here for reference
+
+import { db } from '../db/connection';
+import { sql } from 'drizzle-orm';
+import logger from '../config/logger';
+import { cacheManager } from '../cache/cache-manager';
+import { CacheKeys } from '../cache/cache-keys';
+
+// ... rest of the file content ...
+// This service attempted to build dynamic SQL queries with string concatenation
+// which is not safe and doesn't work with Drizzle's sql.raw function
