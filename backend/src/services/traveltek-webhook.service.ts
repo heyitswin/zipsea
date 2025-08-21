@@ -5,8 +5,9 @@ import { traveltekFtpService } from './traveltek-ftp.service';
 
 /**
  * Traveltek Webhook Service
- * Handles webhook notifications for pricing updates
+ * Handles static pricing webhook notifications (cruiseline_pricing_updated)
  * Creates price snapshots before updating data
+ * Note: We only use static pricing webhooks, not live pricing webhooks
  */
 export class TraveltekWebhookService {
   
@@ -96,6 +97,8 @@ export class TraveltekWebhookService {
   /**
    * Handle live pricing update webhook
    * Event type: cruises_live_pricing_updated
+   * NOTE: This is not currently used - we only process static pricing webhooks
+   * Kept for future reference if needed
    */
   async handleLivePricingUpdate(payload: any): Promise<void> {
     const startTime = Date.now();
