@@ -339,6 +339,8 @@ class DatabaseClient {
           showcruise = true,
           flycruiseinfo,
           linecontent,
+          shipcontent,
+          itinerary,
           currency = 'USD',
           lastcached,
           cacheddate,
@@ -379,37 +381,103 @@ class DatabaseClient {
         const sailingDate = parseDate(startdate || saildate);
         const startDateParsed = parseDate(startdate);
         
-        // Auto-create reference data if missing
-        // This ensures foreign key constraints are satisfied
+        // Extract real names from Traveltek data structure (based on TRAVELTEK-DATA-STRUCTURE.md)
+        // Auto-create reference data with actual names where available
+        
+        // Extract cruise line name from linecontent object
         if (lineid) {
+          const lineName = linecontent?.name || linecontent?.enginename || linecontent?.shortname || `Cruise Line ${lineid}`;
+          const lineCode = linecontent?.code || `L${lineid}`;
+          
           await sql`
             INSERT INTO cruise_lines (id, name, code, is_active)
-            VALUES (${parseInt(lineid)}, ${'Cruise Line ' + lineid}, ${'L' + lineid}, true)
-            ON CONFLICT (id) DO NOTHING
+            VALUES (${parseInt(lineid)}, ${lineName}, ${lineCode}, true)
+            ON CONFLICT (id) DO UPDATE SET
+              name = CASE 
+                WHEN cruise_lines.name LIKE 'Cruise Line %' THEN EXCLUDED.name
+                ELSE cruise_lines.name
+              END,
+              code = CASE
+                WHEN cruise_lines.code LIKE 'L%' AND EXCLUDED.code NOT LIKE 'L%' THEN EXCLUDED.code
+                ELSE cruise_lines.code
+              END,
+              updated_at = NOW()
           `;
         }
         
+        // Extract ship name from shipcontent object
         if (shipid) {
+          const shipName = shipcontent?.name || `Ship ${shipid}`;
+          const shipCode = shipcontent?.code || `S${shipid}`;
+          
           await sql`
-            INSERT INTO ships (id, name, cruise_line_id, is_active)
-            VALUES (${parseInt(shipid)}, ${'Ship ' + shipid}, ${parseInt(lineid) || 1}, true)
-            ON CONFLICT (id) DO NOTHING
+            INSERT INTO ships (id, name, cruise_line_id, code, is_active)
+            VALUES (${parseInt(shipid)}, ${shipName}, ${parseInt(lineid) || 1}, ${shipCode}, true)
+            ON CONFLICT (id) DO UPDATE SET
+              name = CASE
+                WHEN ships.name LIKE 'Ship %' THEN EXCLUDED.name
+                ELSE ships.name
+              END,
+              code = CASE
+                WHEN ships.code LIKE 'S%' AND EXCLUDED.code NOT LIKE 'S%' THEN EXCLUDED.code
+                ELSE ships.code
+              END,
+              cruise_line_id = EXCLUDED.cruise_line_id,
+              updated_at = NOW()
           `;
         }
         
+        // Extract port names from itinerary array
+        // The itinerary contains the actual port names in the 'name' field
+        if (itinerary && Array.isArray(itinerary)) {
+          for (const day of itinerary) {
+            if (day.portid && day.name) {
+              await sql`
+                INSERT INTO ports (id, name, code, country, is_active)
+                VALUES (${parseInt(day.portid)}, ${day.name}, ${`P${day.portid}`}, 'Unknown', true)
+                ON CONFLICT (id) DO UPDATE SET
+                  name = CASE
+                    WHEN ports.name LIKE 'Port %' THEN EXCLUDED.name
+                    ELSE ports.name
+                  END,
+                  updated_at = NOW()
+              `;
+            }
+          }
+        }
+        
+        // Also handle start/end ports if they're not in the itinerary
         if (startportid) {
+          // Try to find the port name from the itinerary
+          const startPortDay = itinerary?.find(day => day.portid == startportid);
+          const startPortName = startPortDay?.name || `Port ${startportid}`;
+          
           await sql`
             INSERT INTO ports (id, name, code, country, is_active)
-            VALUES (${parseInt(startportid)}, ${'Port ' + startportid}, ${'P' + startportid}, 'Unknown', true)
-            ON CONFLICT (id) DO NOTHING
+            VALUES (${parseInt(startportid)}, ${startPortName}, ${`P${startportid}`}, 'Unknown', true)
+            ON CONFLICT (id) DO UPDATE SET
+              name = CASE
+                WHEN ports.name LIKE 'Port %' AND EXCLUDED.name NOT LIKE 'Port %' THEN EXCLUDED.name
+                ELSE ports.name
+              END,
+              updated_at = NOW()
           `;
         }
         
         if (endportid) {
+          // Try to find the port name from the itinerary
+          const endPortDay = itinerary?.find(day => day.portid == endportid);
+          const endPortName = endPortDay?.name || `Port ${endportid}`;
+          
           await sql`
             INSERT INTO ports (id, name, code, country, is_active)
-            VALUES (${parseInt(endportid)}, ${'Port ' + endportid}, ${'P' + endportid}, 'Unknown', true)
-            ON CONFLICT (id) DO NOTHING
+            VALUES (${parseInt(endportid)}, ${endPortName}, ${`P${endportid}`}, 'Unknown', true)
+            ON CONFLICT (id) DO UPDATE SET
+              name = CASE
+                WHEN ports.name LIKE 'Port %' AND EXCLUDED.name NOT LIKE 'Port %' THEN EXCLUDED.name
+                ELSE ports.name
+              END,
+              updated_at = NOW()
           `;
         }
         
