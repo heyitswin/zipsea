@@ -62,8 +62,8 @@ async function checkProductionData() {
         COUNT(*) as total_cruises,
         COUNT(CASE WHEN is_active = true THEN 1 END) as active_cruises,
         COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_cruises,
-        MIN(sail_date) as earliest_departure,
-        MAX(sail_date) as latest_departure,
+        MIN(sailing_date) as earliest_departure,
+        MAX(sailing_date) as latest_departure,
         COUNT(DISTINCT cruise_line_id) as unique_lines,
         COUNT(DISTINCT ship_id) as unique_ships
       FROM cruises
@@ -86,7 +86,7 @@ async function checkProductionData() {
         SELECT 
           c.id,
           c.name,
-          c.sail_date,
+          c.sailing_date,
           cl.name as cruise_line,
           s.name as ship,
           c.is_active,
@@ -103,7 +103,7 @@ async function checkProductionData() {
         console.log(`  ID: ${cruise.id}`);
         console.log(`  Name: ${cruise.name}`);
         console.log(`  Line/Ship: ${cruise.cruise_line} / ${cruise.ship}`);
-        console.log(`  Departure: ${cruise.sail_date}`);
+        console.log(`  Departure: ${cruise.sailing_date}`);
         console.log(`  Active: ${cruise.is_active}`);
         console.log(`  Created: ${cruise.created_at}`);
         console.log(`  ---`);
