@@ -142,16 +142,31 @@ export class DataSyncService {
     const existing = await tx.select().from(cruiseLines).where(eq(cruiseLines.id, lineId)).limit(1);
     
     if (existing.length === 0) {
+      // Extract cruise line name according to Traveltek documentation
+      // Priority order: linecontent.enginename > linecontent.name > linecontent.shortname > linename
+      let lineName = `Cruise Line ${lineId}`;
+      
+      if (data.linecontent && typeof data.linecontent === 'object') {
+        const lineContent = data.linecontent as any;
+        lineName = lineContent.enginename || 
+                   lineContent.name || 
+                   lineContent.shortname ||
+                   lineContent.title ||
+                   `Cruise Line ${lineId}`;
+      } else if (typeof data.linecontent === 'string') {
+        lineName = data.linecontent;
+      }
+
       const newCruiseLine: NewCruiseLine = {
         id: lineId,
-        name: `Cruise Line ${lineId}`, // Default name, can be updated manually
+        name: lineName,
         code: `CL${lineId}`,
-        description: data.linecontent || '',
+        description: typeof data.linecontent === 'string' ? data.linecontent : '',
         isActive: true,
       };
 
       await tx.insert(cruiseLines).values(newCruiseLine);
-      logger.info(`Created new cruise line: ${lineId}`);
+      logger.info(`Created new cruise line: ${lineId} - ${lineName}`);
     }
   }
 
@@ -164,10 +179,21 @@ export class DataSyncService {
     if (existing.length === 0) {
       const shipContent = data.shipcontent || {};
       
+      // Extract ship name according to Traveltek documentation
+      // Priority order: shipcontent.name > shipcontent.nicename > shipcontent.shortname > shipname
+      let shipName = `Ship ${shipId}`;
+      
+      if (data.shipcontent && typeof data.shipcontent === 'object') {
+        shipName = shipContent.name || 
+                   shipContent.nicename ||
+                   shipContent.shortname ||
+                   `Ship ${shipId}`;
+      }
+      
       const newShip: NewShip = {
         id: shipId,
         cruiseLineId: data.lineid,
-        name: shipContent.name || `Ship ${shipId}`,
+        name: shipName,
         code: shipContent.code || `SH${shipId}`,
         tonnage: shipContent.tonnage || null,
         totalCabins: shipContent.totalcabins || null,
@@ -182,7 +208,7 @@ export class DataSyncService {
       };
 
       await tx.insert(ships).values(newShip);
-      logger.info(`Created new ship: ${shipId}`);
+      logger.info(`Created new ship: ${shipId} - ${shipName}`);
     }
   }
 

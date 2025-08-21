@@ -150,7 +150,7 @@ export class SearchOptimizedSimpleService {
       
       // Format results - handle both possible response formats from drizzle
       const resultsArray = (results as any)?.rows || (results as any) || [];
-      const cruises = resultsArray.map((row: any) => ({
+      const cruises = (resultsArray || []).map((row: any) => ({
         id: row.id,
         name: row.name,
         sailingDate: row.sailing_date,
@@ -240,7 +240,7 @@ export class SearchOptimizedSimpleService {
       const results = await db.execute(query);
       
       const resultsArray = (results as any)?.rows || (results as any) || [];
-      const cruises = resultsArray.map((row: any) => ({
+      const cruises = (resultsArray || []).map((row: any) => ({
         id: row.id,
         name: row.name,
         sailingDate: row.sailing_date,

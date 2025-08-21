@@ -276,22 +276,69 @@ export class WebhookService {
     }
 
     try {
-      // Download latest data from FTP
-      const cruiseData = await traveltekFTPService.getCruiseDataFile(filePath);
+      logger.info(`Attempting to update pricing for cruise ${cruiseId} from ${filePath}`);
       
-      // Parse file path info
-      const fileInfo = traveltekFTPService.parseCruiseFilePath(filePath);
-      if (!fileInfo) {
-        throw new Error(`Invalid file path format: ${filePath}`);
+      // Add timeout and retry logic for FTP operations
+      const maxRetries = 3;
+      let attempt = 0;
+      let lastError: Error | null = null;
+
+      while (attempt < maxRetries) {
+        try {
+          attempt++;
+          logger.info(`FTP download attempt ${attempt}/${maxRetries} for cruise ${cruiseId}`);
+          
+          // Download latest data from FTP with timeout
+          const cruiseData = await Promise.race([
+            traveltekFTPService.getCruiseDataFile(filePath),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('FTP download timeout')), 30000)
+            )
+          ]) as any;
+          
+          // Parse file path info
+          const fileInfo = traveltekFTPService.parseCruiseFilePath(filePath);
+          if (!fileInfo) {
+            throw new Error(`Invalid file path format: ${filePath}`);
+          }
+
+          // Sync the updated data with error handling
+          await dataSyncService.syncCruiseDataFile(fileInfo, cruiseData);
+
+          logger.info(`Successfully updated pricing for cruise ${cruiseId} from ${filePath} (attempt ${attempt})`);
+          return; // Success, exit retry loop
+
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error('Unknown error');
+          logger.warn(`FTP attempt ${attempt} failed for cruise ${cruiseId}: ${lastError.message}`);
+          
+          // Don't retry on certain errors
+          if (lastError.message.includes('Invalid file path') || 
+              lastError.message.includes('not found') ||
+              lastError.message.includes('403') ||
+              lastError.message.includes('401')) {
+            logger.error(`Non-retryable error for cruise ${cruiseId}: ${lastError.message}`);
+            throw lastError;
+          }
+          
+          // Wait before retry (exponential backoff)
+          if (attempt < maxRetries) {
+            const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+            logger.info(`Waiting ${delay}ms before retry for cruise ${cruiseId}`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
       }
 
-      // Sync the updated data
-      await dataSyncService.syncCruiseDataFile(fileInfo, cruiseData);
-
-      logger.info(`Updated pricing for cruise ${cruiseId} from ${filePath}`);
+      // All retries failed
+      throw new Error(`Failed to update pricing for cruise ${cruiseId} after ${maxRetries} attempts. Last error: ${lastError?.message}`);
 
     } catch (error) {
-      logger.error(`Failed to update pricing for cruise ${cruiseId}:`, error);
+      logger.error(`Failed to update pricing for cruise ${cruiseId}:`, {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        filePath,
+        cruiseId
+      });
       throw error;
     }
   }

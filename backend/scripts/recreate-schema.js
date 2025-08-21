@@ -113,7 +113,8 @@ async function recreateSchema() {
         voyage_code VARCHAR(50),
         sailing_date DATE NOT NULL,
         return_date DATE,
-        duration_nights INTEGER NOT NULL,
+        nights INTEGER,
+        duration_nights INTEGER,
         duration_days INTEGER,
         sail_nights INTEGER,
         sea_days INTEGER,
@@ -121,15 +122,20 @@ async function recreateSchema() {
         disembark_port_id INTEGER REFERENCES ports(id),
         region VARCHAR(255),
         sub_region VARCHAR(255),
-        region_ids INTEGER[],
+        region_ids JSONB DEFAULT '[]'::jsonb,
+        port_ids JSONB DEFAULT '[]'::jsonb,
         market_id INTEGER,
         owner_id INTEGER,
         no_fly BOOLEAN DEFAULT false,
         depart_uk BOOLEAN DEFAULT false,
-        is_active BOOLEAN DEFAULT true,
+        show_cruise BOOLEAN DEFAULT true,
         fly_cruise_info TEXT,
+        line_content TEXT,
         traveltek_file_path VARCHAR(500),
-        last_synced TIMESTAMP,
+        last_cached TIMESTAMP,
+        cached_date DATE,
+        currency VARCHAR(3) DEFAULT 'USD',
+        is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -251,9 +257,58 @@ async function recreateSchema() {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         base_cruise_id INTEGER NOT NULL REFERENCES cruises(id) ON DELETE CASCADE,
         alternative_cruise_id INTEGER NOT NULL REFERENCES cruises(id) ON DELETE CASCADE,
-        similarity_score DECIMAL(3,2),
+        sailing_date DATE NOT NULL,
+        price DECIMAL(10,2),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(base_cruise_id, alternative_cruise_id)
+      )
+    `);
+    
+    // Create users table
+    console.log('Creating users table...');
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        first_name VARCHAR(100),
+        last_name VARCHAR(100),
+        phone VARCHAR(20),
+        preferences JSONB DEFAULT '{}'::jsonb,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Create saved_searches table
+    console.log('Creating saved_searches table...');
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS saved_searches (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        search_params JSONB NOT NULL,
+        name VARCHAR(255),
+        alert_enabled BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Create quote_requests table
+    console.log('Creating quote_requests table...');
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS quote_requests (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        cruise_id INTEGER NOT NULL REFERENCES cruises(id),
+        user_email VARCHAR(255) NOT NULL,
+        user_name VARCHAR(255),
+        user_phone VARCHAR(20),
+        cabin_preference VARCHAR(50),
+        passengers INTEGER DEFAULT 2,
+        special_requirements TEXT,
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     
@@ -265,6 +320,8 @@ async function recreateSchema() {
       CREATE INDEX IF NOT EXISTS idx_cruises_ship_id ON cruises(ship_id);
       CREATE INDEX IF NOT EXISTS idx_cruises_region ON cruises(region);
       CREATE INDEX IF NOT EXISTS idx_cruises_duration_nights ON cruises(duration_nights);
+      CREATE INDEX IF NOT EXISTS idx_cruises_region_ids ON cruises USING GIN(region_ids);
+      CREATE INDEX IF NOT EXISTS idx_cruises_port_ids ON cruises USING GIN(port_ids);
       CREATE INDEX IF NOT EXISTS idx_ships_cruise_line_id ON ships(cruise_line_id);
       CREATE INDEX IF NOT EXISTS idx_pricing_cruise_id ON pricing(cruise_id);
       CREATE INDEX IF NOT EXISTS idx_cheapest_pricing_cruise_id ON cheapest_pricing(cruise_id);
