@@ -477,7 +477,7 @@ class DatabaseClient {
       
       return true;
     } catch (error) {
-      Logger.error(`Failed to upsert cruise ${codetocruiseid}:`, error);
+      Logger.error(`Failed to upsert cruise ${data.codetocruiseid}:`, error);
       return false;
     }
   }
