@@ -17,6 +17,23 @@ export class SearchOptimizedSimpleService {
     const startTime = Date.now();
     
     try {
+      // Check if database is available
+      if (!db) {
+        logger.warn('Database not configured - returning mock data');
+        return {
+          cruises: [],
+          meta: {
+            page: options.page || 1,
+            limit: Math.min(options.limit || 20, 100),
+            total: 0,
+            totalPages: 0,
+            searchTime: Date.now() - startTime,
+            cacheHit: false,
+            mockData: true
+          }
+        };
+      }
+      
       // Set defaults
       const limit = Math.min(options.limit || 20, 100);
       const offset = ((options.page || 1) - 1) * limit;
@@ -131,8 +148,9 @@ export class SearchOptimizedSimpleService {
       
       const countResult = await db.execute(countQuery);
       
-      // Format results
-      const cruises = (results as any).rows.map((row: any) => ({
+      // Format results - handle both possible response formats from drizzle
+      const resultsArray = (results as any)?.rows || (results as any) || [];
+      const cruises = resultsArray.map((row: any) => ({
         id: row.id,
         name: row.name,
         sailingDate: row.sailing_date,
@@ -156,7 +174,8 @@ export class SearchOptimizedSimpleService {
         } : null
       }));
       
-      const total = Number((countResult as any).rows[0].total);
+      const countData = (countResult as any)?.rows?.[0] || (countResult as any)?.[0] || {};
+      const total = Number(countData.total || 0);
       
       const result = {
         cruises,
@@ -188,6 +207,11 @@ export class SearchOptimizedSimpleService {
     const startTime = Date.now();
     
     try {
+      // Check if database is available
+      if (!db) {
+        logger.warn('Database not configured - returning empty popular cruises');
+        return [];
+      }
       const cacheKey = CacheKeys.popularCruises(limit);
       const cached = await cacheManager.get<any>(cacheKey);
       if (cached) {
@@ -215,7 +239,8 @@ export class SearchOptimizedSimpleService {
       
       const results = await db.execute(query);
       
-      const cruises = (results as any).rows.map((row: any) => ({
+      const resultsArray = (results as any)?.rows || (results as any) || [];
+      const cruises = resultsArray.map((row: any) => ({
         id: row.id,
         name: row.name,
         sailingDate: row.sailing_date,
@@ -246,6 +271,11 @@ export class SearchOptimizedSimpleService {
     }
     
     try {
+      // Check if database is available
+      if (!db) {
+        logger.warn('Database not configured - returning empty suggestions');
+        return [];
+      }
       const cacheKey = `search:suggestions:${query.toLowerCase()}`;
       const cached = await cacheManager.get<any>(cacheKey);
       if (cached) {
@@ -263,7 +293,7 @@ export class SearchOptimizedSimpleService {
         LIMIT ${limit}
       `);
       
-      const suggestions = (results as any).rows;
+      const suggestions = (results as any)?.rows || (results as any) || [];
       
       await cacheManager.set(cacheKey, suggestions, { ttl: 600 });
       

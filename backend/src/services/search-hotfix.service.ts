@@ -9,6 +9,20 @@ import logger from '../config/logger';
 export class SearchHotfixService {
   async getSimpleCruiseList(limit: number = 20, offset: number = 0) {
     try {
+      // Check if database is available
+      if (!db) {
+        logger.warn('Database not configured - returning empty cruise list');
+        return {
+          cruises: [],
+          meta: {
+            total: 0,
+            limit,
+            offset,
+            page: Math.floor(offset / limit) + 1,
+            totalPages: 0
+          }
+        };
+      }
       // Much simpler query without complex joins
       const results = await db.execute(sql`
         SELECT 
