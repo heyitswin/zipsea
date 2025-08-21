@@ -146,24 +146,30 @@ async function processDependencies(data) {
   const shipId = toIntegerOrNull(data.shipid) || 1;
   
   // Upsert cruise line using clean data
-  // Fix: Extract name properly if it's an object
+  // Extract cruise line name according to Traveltek documentation
   let lineName = `Line ${lineId}`;
-  if (data.linename) {
+  
+  // Priority order according to documentation:
+  // 1. linecontent.enginename (preferred - actual cruise line name)
+  // 2. linecontent.name
+  // 3. linecontent.shortname
+  // 4. linename (if string)
+  if (data.linecontent && typeof data.linecontent === 'object') {
+    lineName = data.linecontent.enginename || 
+               data.linecontent.name || 
+               data.linecontent.shortname ||
+               data.linecontent.title ||
+               `Line ${lineId}`;
+  } else if (data.linename) {
     if (typeof data.linename === 'object') {
       lineName = data.linename.name || data.linename.title || 
                  Object.values(data.linename).find(v => typeof v === 'string') ||
                  `Line ${lineId}`;
-    } else {
-      lineName = String(data.linename);
+    } else if (typeof data.linename === 'string') {
+      lineName = data.linename;
     }
-  } else if (data.linecontent) {
-    if (typeof data.linecontent === 'object') {
-      lineName = data.linecontent.name || data.linecontent.title ||
-                 Object.values(data.linecontent).find(v => typeof v === 'string') ||
-                 `Line ${lineId}`;
-    } else {
-      lineName = String(data.linecontent);
-    }
+  } else if (typeof data.linecontent === 'string') {
+    lineName = data.linecontent;
   }
   
   const lineData = removeUndefinedValues({
@@ -188,15 +194,26 @@ async function processDependencies(data) {
     });
   
   // Upsert ship with content
-  // Fix: Extract ship name properly if it's an object
+  // Extract ship name according to Traveltek documentation
   let shipName = `Ship ${shipId}`;
-  if (data.shipname) {
+  
+  // Priority order according to documentation:
+  // 1. shipcontent.name (preferred)
+  // 2. shipcontent.nicename
+  // 3. shipcontent.shortname
+  // 4. shipname (if string)
+  if (data.shipcontent && typeof data.shipcontent === 'object') {
+    shipName = data.shipcontent.name || 
+               data.shipcontent.nicename ||
+               data.shipcontent.shortname ||
+               `Ship ${shipId}`;
+  } else if (data.shipname) {
     if (typeof data.shipname === 'object') {
       shipName = data.shipname.name || data.shipname.title ||
                  Object.values(data.shipname).find(v => typeof v === 'string') ||
                  `Ship ${shipId}`;
-    } else {
-      shipName = String(data.shipname);
+    } else if (typeof data.shipname === 'string') {
+      shipName = data.shipname;
     }
   }
   
