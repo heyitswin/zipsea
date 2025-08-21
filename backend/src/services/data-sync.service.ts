@@ -148,8 +148,8 @@ export class DataSyncService {
       
       if (data.linecontent && typeof data.linecontent === 'object') {
         const lineContent = data.linecontent as any;
-        lineName = lineContent.enginename || 
-                   lineContent.name || 
+        // Per Traveltek API docs: use name field, not enginename (which is for internal use)
+        lineName = lineContent.name || 
                    lineContent.shortname ||
                    lineContent.title ||
                    `Cruise Line ${lineId}`;
@@ -198,7 +198,7 @@ export class DataSyncService {
         tonnage: shipContent.tonnage || null,
         totalCabins: shipContent.totalcabins || null,
         shipClass: shipContent.shipclass || null,
-        capacity: shipContent.limitof || null,
+        capacity: shipContent.occupancy || null,  // Per API docs: occupancy field, not limitof
         description: shipContent.shortdescription || '',
         highlights: shipContent.highlights || '',
         defaultImageUrl: shipContent.defaultshipimage || null,

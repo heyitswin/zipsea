@@ -149,14 +149,13 @@ async function processDependencies(data) {
   // Extract cruise line name according to Traveltek documentation
   let lineName = `Line ${lineId}`;
   
-  // Priority order according to documentation:
-  // 1. linecontent.enginename (preferred - actual cruise line name)
-  // 2. linecontent.name
-  // 3. linecontent.shortname
-  // 4. linename (if string)
+  // Priority order according to Traveltek API documentation:
+  // 1. linecontent.name (the cruise line name)
+  // 2. linecontent.shortname (short version)
+  // 3. linename (fallback if string)
+  // Note: enginename is for internal Traveltek engine use only
   if (data.linecontent && typeof data.linecontent === 'object') {
-    lineName = data.linecontent.enginename || 
-               data.linecontent.name || 
+    lineName = data.linecontent.name || 
                data.linecontent.shortname ||
                data.linecontent.title ||
                `Line ${lineId}`;
@@ -232,10 +231,10 @@ async function processDependencies(data) {
     if (content.shipclass) shipData.shipClass = content.shipclass;
     if (content.tonnage) shipData.tonnage = toIntegerOrNull(content.tonnage);
     if (content.totalcabins) shipData.totalCabins = toIntegerOrNull(content.totalcabins);
-    if (content.occupancy) shipData.capacity = toIntegerOrNull(content.occupancy); // occupancy not limitof
-    if (content.starrating) shipData.rating = toIntegerOrNull(content.starrating); // starrating not startrating
+    if (content.occupancy) shipData.capacity = toIntegerOrNull(content.occupancy); // occupancy is the correct field per API docs
+    if (content.starrating) shipData.rating = toIntegerOrNull(content.starrating);
     if (content.shortdescription) shipData.description = content.shortdescription;
-    if (content.highlights) shipData.highlights = content.highlights; // Always null in samples
+    if (content.highlights) shipData.highlights = content.highlights; // Typically null per API docs
     if (content.defaultshipimage) shipData.defaultImageUrl = content.defaultshipimage;
     if (content.defaultshipimage2k) shipData.defaultImageUrlHd = content.defaultshipimage2k;
     // shipimages is an object, not array
