@@ -183,26 +183,59 @@ async function processDependencies(data) {
   const shipId = toIntegerOrNull(data.shipid) || 1;
   
   // Upsert cruise line
+  // Fix: Extract name properly if it's an object
+  let lineName = `Line ${lineId}`;
+  if (data.linename) {
+    if (typeof data.linename === 'object') {
+      // If it's an object, try to extract a name field or use the first string value
+      lineName = data.linename.name || data.linename.title || 
+                 Object.values(data.linename).find(v => typeof v === 'string') ||
+                 `Line ${lineId}`;
+    } else {
+      lineName = String(data.linename);
+    }
+  } else if (data.linecontent) {
+    if (typeof data.linecontent === 'object') {
+      lineName = data.linecontent.name || data.linecontent.title ||
+                 Object.values(data.linecontent).find(v => typeof v === 'string') ||
+                 `Line ${lineId}`;
+    } else {
+      lineName = String(data.linecontent);
+    }
+  }
+  
   await simpleUpsert('cruise_lines', lineId, {
     id: lineId,
-    name: data.linename || data.linecontent || `Line ${lineId}`,
+    name: lineName,
     code: 'L' + lineId,
-    description: data.linecontent || null,
+    description: typeof data.linecontent === 'string' ? data.linecontent : null,
     is_active: true
   }, {
-    name: data.linename || data.linecontent || `Line ${lineId}`,
-    description: data.linecontent || null
+    name: lineName,
+    description: typeof data.linecontent === 'string' ? data.linecontent : null
   });
   
   // Upsert ship
+  // Fix: Extract ship name properly if it's an object
+  let shipName = `Ship ${shipId}`;
+  if (data.shipname) {
+    if (typeof data.shipname === 'object') {
+      shipName = data.shipname.name || data.shipname.title ||
+                 Object.values(data.shipname).find(v => typeof v === 'string') ||
+                 `Ship ${shipId}`;
+    } else {
+      shipName = String(data.shipname);
+    }
+  }
+  
   await simpleUpsert('ships', shipId, {
     id: shipId,
     cruise_line_id: lineId,
-    name: data.shipname || `Ship ${shipId}`,
+    name: shipName,
     code: 'S' + shipId,
     is_active: true
   }, {
-    name: data.shipname || `Ship ${shipId}`
+    name: shipName
   });
   
   // Process ports
