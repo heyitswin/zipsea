@@ -1,7 +1,7 @@
 import { db } from '../db/connection';
 import { sql } from 'drizzle-orm';
 import logger from '../config/logger';
-import { traveltekFtpService } from './traveltek-ftp.service';
+import { traveltekFTPService } from './traveltek-ftp.service';
 
 /**
  * Traveltek Webhook Service
@@ -64,7 +64,7 @@ export class TraveltekWebhookService {
           const filePath = `${year}/${month}/${payload.lineid}/${cruise.ship_id}/${cruise.code_to_cruise_id}.json`;
           
           // Download and process the updated file
-          const cruiseData = await traveltekFtpService.downloadFile(filePath);
+          const cruiseData = await traveltekFTPService.downloadFile(filePath);
           
           if (cruiseData) {
             // Process the updated pricing data
@@ -156,7 +156,7 @@ export class TraveltekWebhookService {
             await this.createPriceSnapshot(cruiseId, webhookEventId, 'before_update');
             
             // Download and process the updated file
-            const cruiseData = await traveltekFtpService.downloadFile(filePath);
+            const cruiseData = await traveltekFTPService.downloadFile(filePath);
             
             if (cruiseData) {
               // Process the updated cached pricing
@@ -293,6 +293,8 @@ export class TraveltekWebhookService {
         for (const [cabinId, pricing] of Object.entries(cabins as any)) {
           if (typeof pricing !== 'object') continue;
           
+          const pricingData = pricing as any;
+          
           await db.execute(sql`
             INSERT INTO static_prices (
               cruise_id, rate_code, cabin_id, cabin_type,
@@ -303,20 +305,20 @@ export class TraveltekWebhookService {
               ${cruiseId},
               ${rateCode},
               ${cabinId},
-              ${pricing.cabintype || null},
-              ${this.parseDecimal(pricing.price)},
-              ${this.parseDecimal(pricing.adultprice)},
-              ${this.parseDecimal(pricing.childprice)},
-              ${this.parseDecimal(pricing.infantprice)},
-              ${this.parseDecimal(pricing.thirdadultprice)},
-              ${this.parseDecimal(pricing.fourthadultprice)},
-              ${this.parseDecimal(pricing.fifthadultprice)},
-              ${this.parseDecimal(pricing.singleprice)},
-              ${this.parseDecimal(pricing.taxes)},
-              ${this.parseDecimal(pricing.ncf)},
-              ${this.parseDecimal(pricing.gratuity)},
-              ${this.parseDecimal(pricing.fuel)},
-              ${this.parseDecimal(pricing.noncomm)}
+              ${pricingData.cabintype || null},
+              ${this.parseDecimal(pricingData.price)},
+              ${this.parseDecimal(pricingData.adultprice)},
+              ${this.parseDecimal(pricingData.childprice)},
+              ${this.parseDecimal(pricingData.infantprice)},
+              ${this.parseDecimal(pricingData.thirdadultprice)},
+              ${this.parseDecimal(pricingData.fourthadultprice)},
+              ${this.parseDecimal(pricingData.fifthadultprice)},
+              ${this.parseDecimal(pricingData.singleprice)},
+              ${this.parseDecimal(pricingData.taxes)},
+              ${this.parseDecimal(pricingData.ncf)},
+              ${this.parseDecimal(pricingData.gratuity)},
+              ${this.parseDecimal(pricingData.fuel)},
+              ${this.parseDecimal(pricingData.noncomm)}
             )
           `);
         }
@@ -365,7 +367,7 @@ export class TraveltekWebhookService {
               ${cabin.faretype || null},
               ${this.parseDecimal(cabin.onboardcredit)},
               ${cabin.obccurrency || null},
-              ${cabin.cachedat ? new Date(cabin.cachedat) : null}
+              ${cabin.cachedat || null}
             )
           `);
         }
