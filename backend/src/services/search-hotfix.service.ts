@@ -10,7 +10,7 @@ export class SearchHotfixService {
   async getSimpleCruiseList(limit: number = 20, offset: number = 0) {
     try {
       // Much simpler query without complex joins
-      const results = await db.execute(sql`
+      const results = await db.execute<any>(sql`
         SELECT 
           c.id,
           c.name,
@@ -37,17 +37,20 @@ export class SearchHotfixService {
       `);
 
       // Get total count separately
-      const countResult = await db.execute(sql`
+      const countResult = await db.execute<any>(sql`
         SELECT COUNT(*) as count
         FROM cruises
         WHERE is_active = true
         AND sailing_date >= CURRENT_DATE
       `);
 
-      const total = Number(countResult.rows[0]?.count || 0);
+      // Handle both possible response formats from drizzle
+      const resultsArray = results?.rows || results || [];
+      const countData = countResult?.rows?.[0] || countResult?.[0] || {};
+      const total = Number(countData.count || 0);
 
       return {
-        cruises: results.rows.map(row => ({
+        cruises: resultsArray.map((row: any) => ({
           id: row.id,
           name: row.name,
           sailingDate: row.sailing_date,
