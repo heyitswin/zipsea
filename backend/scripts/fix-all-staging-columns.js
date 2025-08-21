@@ -37,7 +37,8 @@ async function fixMissingColumns() {
       `ALTER TABLE ships ADD COLUMN IF NOT EXISTS amenities TEXT[]`,
       `ALTER TABLE ships ADD COLUMN IF NOT EXISTS deck_plans TEXT`,
       `ALTER TABLE ships ADD COLUMN IF NOT EXISTS videos TEXT[]`,
-      `ALTER TABLE ships ADD COLUMN IF NOT EXISTS virtual_tours TEXT[]`
+      `ALTER TABLE ships ADD COLUMN IF NOT EXISTS virtual_tours TEXT[]`,
+      `ALTER TABLE ships ADD COLUMN IF NOT EXISTS refurbished_year INTEGER`
     ];
     
     for (const query of shipsQueries) {
@@ -108,7 +109,8 @@ async function fixMissingColumns() {
     const result = await client.query(verifyQuery);
     
     result.rows.forEach(row => {
-      console.log(`${row.table_name}: ${row.columns.join(', ')}`);
+      const columns = Array.isArray(row.columns) ? row.columns : [row.columns];
+      console.log(`${row.table_name}: ${columns.join(', ')}`);
     });
     
     // Test a simple query
