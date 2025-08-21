@@ -3,6 +3,7 @@ import { apiConfig } from '../config/environment';
 import healthRoutes from './health.routes';
 import webhookRoutes from './webhook.routes';
 import searchRoutes from './search.routes';
+import searchOptimizedRoutes from './search-optimized.routes';
 import cruiseRoutes from './cruise.routes';
 import quoteRoutes from './quote.routes';
 import adminRoutes from './admin.routes';
@@ -27,7 +28,10 @@ apiRouter.use('/webhooks', webhookRoutes);
 apiRouter.use('/admin', adminRoutes);
 
 // Core API routes
-apiRouter.use('/search', searchRoutes);
+// Use optimized search routes for better performance
+apiRouter.use('/search', searchOptimizedRoutes);
+// Keep old search routes as fallback at different path if needed
+// apiRouter.use('/search-old', searchRoutes);
 apiRouter.use('/cruises', cruiseRoutes);
 apiRouter.use('/quotes', quoteRoutes);
 apiRouter.use('/price-history', priceHistoryRoutes);
