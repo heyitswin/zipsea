@@ -6,6 +6,7 @@
  */
 
 const { drizzle } = require('drizzle-orm/postgres-js');
+const { sql: sqlTemplate } = require('drizzle-orm');
 const postgres = require('postgres');
 const FtpClient = require('ftp');
 const fs = require('fs');
@@ -170,7 +171,7 @@ async function processFile(ftpClient, filePath) {
       });
     
     // Insert/update cruise
-    const cruiseName = data.name || data.cruisename || `Cruise ${cruiseId}`;
+    const cruiseName = data?.name || data?.cruisename || `Cruise ${cruiseId}`;
     
     await db.insert(cruises)
       .values({
@@ -179,9 +180,9 @@ async function processFile(ftpClient, filePath) {
         ship_id: shipId,  // From path
         name: cruiseName,
         traveltek_file_path: filePath,
-        sailing_date: data.startdate ? new Date(data.startdate) : new Date(),
-        duration_nights: data.nights || 7,
-        code_to_cruise_id: data.codetocruiseid || `${cruiseId}`,
+        sailing_date: data?.startdate ? new Date(data.startdate) : data?.saildate ? new Date(data.saildate) : new Date(),
+        duration_nights: data?.nights || data?.duration || 7,
+        code_to_cruise_id: data?.codetocruiseid || `${cruiseId}`,
         is_active: true
       })
       .onConflictDoUpdate({
