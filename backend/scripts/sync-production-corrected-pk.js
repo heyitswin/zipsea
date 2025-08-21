@@ -170,7 +170,7 @@ async function processCruiseFile(client, filePath, data) {
     try {
         // Check for existing sailings with same cruise_id (different sailings)
         const existingSailings = await client.query(
-            'SELECT id, sailing_date, code_to_cruise_id FROM cruises WHERE cruise_id = $1 AND id != $2',
+            'SELECT id, sailing_date FROM cruises WHERE cruise_id = $1 AND id != $2',
             [cruiseId, codeToCruiseId]
         );
         
@@ -437,7 +437,7 @@ async function sync() {
             SELECT column_name, data_type, is_nullable
             FROM information_schema.columns 
             WHERE table_name = 'cruises' 
-            AND column_name IN ('id', 'cruise_id', 'code_to_cruise_id')
+            AND column_name IN ('id', 'cruise_id')
             ORDER BY ordinal_position
         `);
         

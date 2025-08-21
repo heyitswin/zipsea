@@ -42,7 +42,7 @@ export class TraveltekWebhookService {
       
       // Get all cruises for this line that need updating
       const cruises = await db.execute(sql`
-        SELECT id, code_to_cruise_id, ship_id
+        SELECT id, ship_id
         FROM cruises
         WHERE cruise_line_id = ${payload.lineid}
           AND sailing_date >= CURRENT_DATE
@@ -61,7 +61,7 @@ export class TraveltekWebhookService {
           const currentDate = new Date();
           const year = currentDate.getFullYear();
           const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-          const filePath = `${year}/${month}/${payload.lineid}/${cruise.ship_id}/${cruise.code_to_cruise_id}.json`;
+          const filePath = `${year}/${month}/${payload.lineid}/${cruise.ship_id}/${cruise.id}.json`;
           
           // Download and process the updated file
           const cruiseData = await traveltekFTPService.getCruiseDataFile(filePath);
@@ -138,15 +138,15 @@ export class TraveltekWebhookService {
               continue;
             }
             
-            // Find cruise by code_to_cruise_id
+            // Find cruise by id (which now stores the code_to_cruise_id value)
             const cruiseResult = await db.execute(sql`
               SELECT id FROM cruises
-              WHERE code_to_cruise_id = ${codeToId}
+              WHERE id = ${codeToId}
               LIMIT 1
             `);
             
             if (cruiseResult.rows.length === 0) {
-              logger.warn(`Cruise not found for code_to_cruise_id: ${codeToId}`);
+              logger.warn(`Cruise not found for id: ${codeToId}`);
               continue;
             }
             
