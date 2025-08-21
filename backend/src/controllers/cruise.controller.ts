@@ -1,18 +1,18 @@
 import { Request, Response } from 'express';
 import { cruiseService } from '../services/cruise.service';
 import { searchService } from '../services/search.service';
+import { searchHotfixService } from '../services/search-hotfix.service';
 import { logger } from '../config/logger';
 
 class CruiseController {
   async listCruises(req: Request, res: Response): Promise<void> {
     try {
-      // Use search service for listing cruises with basic filters
-      const results = await searchService.searchCruises({}, {
-        page: req.query.page ? Number(req.query.page) : 1,
-        limit: req.query.limit ? Number(req.query.limit) : 20,
-        sortBy: req.query.sortBy as any,
-        sortOrder: req.query.sortOrder as any,
-      });
+      // HOTFIX: Use simpler query until search service is optimized
+      const page = req.query.page ? Number(req.query.page) : 1;
+      const limit = req.query.limit ? Number(req.query.limit) : 20;
+      const offset = (page - 1) * limit;
+      
+      const results = await searchHotfixService.getSimpleCruiseList(limit, offset);
 
       res.json({
         success: true,
