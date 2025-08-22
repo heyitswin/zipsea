@@ -67,12 +67,18 @@ export class SearchSimpleController {
           p1.name as embark_port_name,
           p2.name as disembark_port_name,
           c.port_ids,
-          c.region_ids
+          c.region_ids,
+          cp.cheapest_price,
+          cp.interior_price,
+          cp.oceanview_price,
+          cp.balcony_price,
+          cp.suite_price
         FROM cruises c
         LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
         LEFT JOIN ships s ON c.ship_id = s.id
-        LEFT JOIN ports p1 ON c.embark_port_id = p1.id
-        LEFT JOIN ports p2 ON c.disembark_port_id = p2.id
+        LEFT JOIN ports p1 ON c.embarkation_port_id = p1.id
+        LEFT JOIN ports p2 ON c.disembarkation_port_id = p2.id
+        LEFT JOIN cheapest_pricing cp ON cp.cruise_id = c.id
         WHERE ${whereClause}
         ORDER BY c.sailing_date ASC
         LIMIT 100
@@ -148,8 +154,8 @@ export class SearchSimpleController {
           p1.name as embark_port,
           p2.name as disembark_port
         FROM cruises c
-        LEFT JOIN ports p1 ON c.embark_port_id = p1.id
-        LEFT JOIN ports p2 ON c.disembark_port_id = p2.id
+        LEFT JOIN ports p1 ON c.embarkation_port_id = p1.id
+        LEFT JOIN ports p2 ON c.disembarkation_port_id = p2.id
         WHERE c.ship_id = ${shipId}
         AND c.sailing_date >= CURRENT_DATE
         ORDER BY c.sailing_date ASC
