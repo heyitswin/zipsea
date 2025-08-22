@@ -68,7 +68,7 @@ export const cruiseLineShipDateIndex = index('cruises_line_ship_date_idx').on(
 
 // Traveltek file path for sync operations
 export const cruiseFilePathIndex = index('cruises_file_path_idx').on(cruises.traveltekFilePath);
-export const cruiseCodeToCruiseIdIndex = uniqueIndex('cruises_code_to_cruise_id_idx').on(cruises.codeToCruiseId);
+export const cruiseCruiseIdIndex = index('cruises_cruise_id_idx').on(cruises.cruiseId);
 
 // Alternative sailings indexes
 export const altSailingsBaseCruiseIndex = index('alt_sailings_base_cruise_idx').on(alternativeSailings.baseCruiseId);

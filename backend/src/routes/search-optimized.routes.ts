@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { searchOptimizedController } from '../controllers/search-optimized.controller';
+import { searchSimpleController } from '../controllers/search-simple.controller';
 
 const router = Router();
 
@@ -42,5 +43,23 @@ router.get('/popular', searchOptimizedController.getPopularCruises.bind(searchOp
  * Get search suggestions/autocomplete
  */
 router.get('/suggestions', searchOptimizedController.getSuggestions.bind(searchOptimizedController));
+
+/**
+ * GET /api/v1/search/by-ship
+ * Find cruises by ship name and date - PRIMARY USE CASE
+ */
+router.get('/by-ship', searchSimpleController.findByShipAndDate.bind(searchSimpleController));
+
+/**
+ * GET /api/v1/search/ships
+ * Get all ships with cruise counts
+ */
+router.get('/ships', searchSimpleController.getShipsWithCruises.bind(searchSimpleController));
+
+/**
+ * GET /api/v1/search/ships/:shipId/sailings
+ * Get all sailings for a specific ship
+ */
+router.get('/ships/:shipId/sailings', searchSimpleController.getShipSailings.bind(searchSimpleController));
 
 export default router;
