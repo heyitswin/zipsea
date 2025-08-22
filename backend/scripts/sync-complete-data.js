@@ -284,20 +284,14 @@ async function syncCabinCategories(cruiseData, shipId) {
       name: cabinData.name || `Cabin ${cabinCode}`,
       description: cabinData.description || null,
       category: mapCabinCategory(cabinData.codtype || cabinData.type),
-      category_alt: cabinData.codtype2 || null,
       color_code: cabinData.colourcode || null,
-      color_code_alt: cabinData.colourcode2 || null,
       image_url: cabinData.imageurl || null,
-      image_url_hd: cabinData.imageurl2k || null,
-      is_default: cabinData.isdefault === true || cabinData.isdefault === '1',
+      image_url_hd: cabinData.imageurlhd || null,
+      image_url_2k: cabinData.imageurl2k || null,
+      is_default: cabinData.isdefault === true || cabinData.isdefault === 'Y',
       valid_from: cabinData.validfrom || null,
       valid_to: cabinData.validto || null,
-      max_occupancy: parseInt(cabinData.maxoccupancy) || 2,
-      min_occupancy: parseInt(cabinData.minoccupancy) || 1,
-      size: cabinData.size || null,
-      bed_configuration: cabinData.bedconfig || null,
-      amenities: JSON.stringify(cabinData.amenities || []),
-      deck_locations: JSON.stringify(cabinData.decks || []),
+      cabin_id: cabinData.id || null,
       is_active: true,
     });
   }
@@ -311,20 +305,15 @@ async function syncCabinCategories(cruiseData, shipId) {
         name = EXCLUDED.name,
         description = EXCLUDED.description,
         category = EXCLUDED.category,
-        category_alt = EXCLUDED.category_alt,
         color_code = EXCLUDED.color_code,
-        color_code_alt = EXCLUDED.color_code_alt,
         image_url = EXCLUDED.image_url,
         image_url_hd = EXCLUDED.image_url_hd,
+        image_url_2k = EXCLUDED.image_url_2k,
         is_default = EXCLUDED.is_default,
         valid_from = EXCLUDED.valid_from,
         valid_to = EXCLUDED.valid_to,
-        max_occupancy = EXCLUDED.max_occupancy,
-        min_occupancy = EXCLUDED.min_occupancy,
-        size = EXCLUDED.size,
-        bed_configuration = EXCLUDED.bed_configuration,
-        amenities = EXCLUDED.amenities,
-        deck_locations = EXCLUDED.deck_locations,
+        cabin_id = EXCLUDED.cabin_id,
+        is_active = EXCLUDED.is_active,
         updated_at = CURRENT_TIMESTAMP
     `;
   }
@@ -382,10 +371,11 @@ async function syncShipDetails(cruiseData) {
   if (shipContent.shipimages && Array.isArray(shipContent.shipimages)) {
     const imageRecords = shipContent.shipimages.map(img => ({
       ship_id: shipId,
-      url: img.url || img.imageurl,
+      image_url: img.imageurl || img.url,
+      image_url_hd: img.imageurlhd || null,
+      image_url_2k: img.imageurl2k || null,
       caption: img.caption || img.title,
-      category: img.category || 'general',
-      is_default: img.isdefault === true,
+      is_default: img.isdefault === true || img.default === 'Y',
       display_order: img.order || 0,
     }));
     
@@ -400,29 +390,25 @@ async function syncShipDetails(cruiseData) {
       `;
       
       if (tableExists[0].exists) {
-        await sql`
-          INSERT INTO ship_images ${sql(imageRecords)}
-          ON CONFLICT (ship_id, url) 
-          DO UPDATE SET
-            caption = EXCLUDED.caption,
-            category = EXCLUDED.category,
-            is_default = EXCLUDED.is_default,
-            display_order = EXCLUDED.display_order,
-            updated_at = CURRENT_TIMESTAMP
-        `;
+        // Delete existing image records for this ship, then insert new ones
+        await sql`DELETE FROM ship_images WHERE ship_id = ${shipId}`;
+        await sql`INSERT INTO ship_images ${sql(imageRecords)}`;
       }
     }
   }
   
   // Sync ship decks if table exists
   if (shipContent.shipdecks && typeof shipContent.shipdecks === 'object') {
-    const deckRecords = Object.entries(shipContent.shipdecks).map(([deckName, deckData]) => ({
+    const deckRecords = Object.entries(shipContent.shipdecks).map(([deckId, deckData]) => ({
       ship_id: shipId,
-      name: deckName,
+      deck_id: parseInt(deckId) || null,
+      deck_name: deckData.deckname || deckData.name || `Deck ${deckId}`,
       description: deckData.description || null,
-      deck_number: deckData.number || null,
-      facilities: JSON.stringify(deckData.facilities || []),
-      image_url: deckData.imageurl || null,
+      plan_image: deckData.planimage || deckData.imageurl || null,
+      live_name: deckData.livename || null,
+      deck_plan_id: deckData.deckplanid || null,
+      valid_from: deckData.validfrom || null,
+      valid_to: deckData.validto || null,
     }));
     
     if (deckRecords.length > 0) {
@@ -436,16 +422,9 @@ async function syncShipDetails(cruiseData) {
       `;
       
       if (tableExists[0].exists) {
-        await sql`
-          INSERT INTO ship_decks ${sql(deckRecords)}
-          ON CONFLICT (ship_id, name) 
-          DO UPDATE SET
-            description = EXCLUDED.description,
-            deck_number = EXCLUDED.deck_number,
-            facilities = EXCLUDED.facilities,
-            image_url = EXCLUDED.image_url,
-            updated_at = CURRENT_TIMESTAMP
-        `;
+        // Delete existing deck records for this ship, then insert new ones
+        await sql`DELETE FROM ship_decks WHERE ship_id = ${shipId}`;
+        await sql`INSERT INTO ship_decks ${sql(deckRecords)}`;
       }
     }
   }
