@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 
 /**
- * COMPLETE SCHEMA RECREATION
- * This script drops everything and recreates the ENTIRE schema from scratch
- * matching the current Drizzle schema definitions
+ * NUCLEAR SCHEMA RECREATION - TRAVELTEK EXACT MATCH
+ * 
+ * This script drops EVERYTHING and recreates the schema to EXACTLY match
+ * what Traveltek provides in their JSON files. No assumptions, no extras.
+ * 
+ * Based on actual Traveltek JSON structure analysis from sample data.
  * 
  * WARNING: This will DELETE ALL DATA!
  */
@@ -26,9 +29,10 @@ async function recreateSchema() {
   });
 
   try {
-    console.log('🚨 COMPLETE SCHEMA RECREATION');
-    console.log('==============================');
-    console.log('⚠️  WARNING: This will DELETE ALL DATA!\n');
+    console.log('☢️  NUCLEAR SCHEMA RECREATION - TRAVELTEK EXACT MATCH');
+    console.log('=====================================================');
+    console.log('⚠️  WARNING: This will DELETE ALL DATA!');
+    console.log('📄 Based on actual Traveltek JSON structure\n');
     
     // Add a 5 second delay to allow cancellation
     console.log('Starting in 5 seconds... Press Ctrl+C to cancel');
@@ -66,44 +70,47 @@ async function recreateSchema() {
     // Create tables in correct order
     console.log('📝 Creating schema...\n');
 
-    // 1. Cruise Lines
+    // 1. Cruise Lines (EXACTLY from linecontent object)
     console.log('Creating cruise_lines...');
     await client.query(`
       CREATE TABLE cruise_lines (
-        id INTEGER PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        logo VARCHAR(500),
-        website VARCHAR(500),
-        description TEXT,
+        id INTEGER PRIMARY KEY,                    -- linecontent.id
+        name VARCHAR(255) NOT NULL,                -- linecontent.name
+        logo VARCHAR(500),                         -- linecontent.logo
+        engine_name VARCHAR(100),                  -- linecontent.enginename
+        nice_url VARCHAR(255),                     -- linecontent.niceurl
+        short_name VARCHAR(50),                    -- linecontent.shortname
+        description TEXT,                          -- linecontent.description
+        code VARCHAR(10),                          -- linecontent.code
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT NOW() NOT NULL,
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
     `);
 
-    // 2. Ships
+    // 2. Ships (EXACTLY from shipcontent object)
     console.log('Creating ships...');
     await client.query(`
       CREATE TABLE ships (
-        id INTEGER PRIMARY KEY,
-        cruise_line_id INTEGER REFERENCES cruise_lines(id) NOT NULL,
-        name VARCHAR(255) NOT NULL,
-        code VARCHAR(50),
-        tonnage INTEGER,
-        total_cabins INTEGER,
-        occupancy INTEGER,
-        total_crew INTEGER,
-        length INTEGER,
-        launched DATE,
-        star_rating INTEGER,
-        adults_only BOOLEAN DEFAULT false,
-        short_description TEXT,
-        highlights TEXT,
-        ship_class VARCHAR(100),
-        default_ship_image VARCHAR(500),
-        default_ship_image_hd VARCHAR(500),
-        default_ship_image_2k VARCHAR(500),
-        nice_url VARCHAR(255),
+        id INTEGER PRIMARY KEY,                     -- shipcontent.id
+        cruise_line_id INTEGER REFERENCES cruise_lines(id) NOT NULL,  -- shipcontent.lineid
+        name VARCHAR(255) NOT NULL,                 -- shipcontent.name
+        code VARCHAR(50),                           -- shipcontent.code
+        tonnage INTEGER,                            -- shipcontent.tonnage
+        total_cabins INTEGER,                       -- shipcontent.totalcabins
+        occupancy INTEGER,                          -- shipcontent.occupancy (NOT capacity!)
+        total_crew INTEGER,                         -- shipcontent.totalcrew
+        length INTEGER,                             -- shipcontent.length
+        launched DATE,                              -- shipcontent.launched
+        star_rating INTEGER,                        -- shipcontent.starrating
+        adults_only BOOLEAN DEFAULT false,          -- shipcontent.adultsonly = "Y"
+        short_description TEXT,                     -- shipcontent.shortdescription
+        highlights TEXT,                            -- shipcontent.highlights
+        ship_class VARCHAR(100),                    -- shipcontent.shipclass
+        default_ship_image VARCHAR(500),            -- shipcontent.defaultshipimage
+        default_ship_image_hd VARCHAR(500),         -- shipcontent.defaultshipimagehd
+        default_ship_image_2k VARCHAR(500),         -- shipcontent.defaultshipimage2k
+        nice_url VARCHAR(255),                      -- shipcontent.niceurl
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT NOW() NOT NULL,
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
@@ -142,26 +149,32 @@ async function recreateSchema() {
       )
     `);
 
-    // 5. Cruises (with varchar ID for codetocruiseid)
+    // 5. Cruises (EXACTLY from root level fields)
     console.log('Creating cruises...');
     await client.query(`
       CREATE TABLE cruises (
-        id VARCHAR PRIMARY KEY,  -- This is codetocruiseid
-        cruise_id VARCHAR,        -- This is the original cruiseid
-        cruise_line_id INTEGER REFERENCES cruise_lines(id) NOT NULL,
-        ship_id INTEGER REFERENCES ships(id) NOT NULL,
-        name VARCHAR(500) NOT NULL,
-        nights INTEGER NOT NULL,
-        embarkation_port_id INTEGER REFERENCES ports(id),
-        disembarkation_port_id INTEGER REFERENCES ports(id),
-        sailing_date DATE NOT NULL,
-        return_date DATE,
-        voyage_code VARCHAR(50),
-        itinerary_code VARCHAR(50),
-        is_active BOOLEAN DEFAULT true,
-        show_cruise BOOLEAN DEFAULT true,
-        traveltek_file_path VARCHAR(500),
-        last_synced_at TIMESTAMP,
+        id VARCHAR PRIMARY KEY,                     -- codetocruiseid (UNIQUE per sailing)
+        cruise_id VARCHAR,                          -- cruiseid (NOT unique)
+        cruise_line_id INTEGER REFERENCES cruise_lines(id) NOT NULL,  -- lineid
+        ship_id INTEGER REFERENCES ships(id) NOT NULL,               -- shipid
+        name VARCHAR(500) NOT NULL,                 -- name
+        nights INTEGER NOT NULL,                    -- nights (or sailnights)
+        embarkation_port_id INTEGER REFERENCES ports(id),            -- startportid
+        disembarkation_port_id INTEGER REFERENCES ports(id),         -- endportid
+        sailing_date DATE NOT NULL,                 -- saildate (or startdate)
+        return_date DATE,                           -- calculated or from data
+        voyage_code VARCHAR(50),                    -- voyagecode
+        itinerary_code VARCHAR(50),                 -- itinerarycode
+        port_ids VARCHAR(500),                      -- portids (comma-separated)
+        region_ids VARCHAR(200),                    -- regionids (comma-separated)
+        sea_days INTEGER,                           -- seadays
+        depart_uk BOOLEAN DEFAULT false,            -- departuk = "Y"
+        no_fly BOOLEAN DEFAULT false,               -- nofly = "Y"
+        show_cruise BOOLEAN DEFAULT true,           -- showcruise
+        owner_id VARCHAR(50),                       -- ownerid
+        market_id VARCHAR(50),                      -- marketid
+        last_cached INTEGER,                        -- lastcached (unix timestamp)
+        cached_date VARCHAR(100),                   -- cacheddate (string)
         created_at TIMESTAMP DEFAULT NOW() NOT NULL,
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )
@@ -187,30 +200,24 @@ async function recreateSchema() {
       )
     `);
 
-    // 7. Cabin Categories
+    // 7. Cabin Categories (EXACTLY from cabins object)
     console.log('Creating cabin_categories...');
     await client.query(`
       CREATE TABLE cabin_categories (
         ship_id INTEGER REFERENCES ships(id) NOT NULL,
-        cabin_code VARCHAR(10) NOT NULL,
-        cabin_code_alt VARCHAR(10),
-        name VARCHAR(255) NOT NULL,
-        description TEXT,
-        category VARCHAR(50) NOT NULL,
-        category_alt VARCHAR(50),
-        color_code VARCHAR(7),
-        color_code_alt VARCHAR(7),
-        image_url VARCHAR(500),
-        image_url_hd VARCHAR(500),
-        is_default BOOLEAN DEFAULT false,
-        valid_from DATE,
-        valid_to DATE,
-        max_occupancy INTEGER DEFAULT 2,
-        min_occupancy INTEGER DEFAULT 1,
-        size VARCHAR(50),
-        bed_configuration VARCHAR(100),
-        amenities JSONB DEFAULT '[]',
-        deck_locations JSONB DEFAULT '[]',
+        cabin_code VARCHAR(10) NOT NULL,            -- cabins.{}.cabincode
+        cabin_code_alt VARCHAR(10),                 -- cabins.{}.cabincode2
+        name VARCHAR(255) NOT NULL,                 -- cabins.{}.name
+        description TEXT,                           -- cabins.{}.description
+        category VARCHAR(50) NOT NULL,              -- cabins.{}.codtype (interior/oceanview/balcony/suite)
+        color_code VARCHAR(7),                      -- cabins.{}.colourcode
+        image_url VARCHAR(500),                     -- cabins.{}.imageurl
+        image_url_hd VARCHAR(500),                  -- cabins.{}.imageurlhd
+        image_url_2k VARCHAR(500),                  -- cabins.{}.imageurl2k
+        is_default BOOLEAN DEFAULT false,           -- cabins.{}.isdefault = "Y"
+        valid_from DATE,                            -- cabins.{}.validfrom
+        valid_to DATE,                              -- cabins.{}.validto
+        cabin_id VARCHAR(20),                       -- cabins.{}.id
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT NOW() NOT NULL,
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL,
@@ -218,37 +225,36 @@ async function recreateSchema() {
       )
     `);
 
-    // 8. Pricing
+    // 8. Pricing (EXACTLY from prices.{rateCode}.{cabinCode}.{occupancyCode})
     console.log('Creating pricing...');
     await client.query(`
       CREATE TABLE pricing (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        cruise_id VARCHAR REFERENCES cruises(id) NOT NULL,
-        cruise_sailing_id UUID,
-        rate_code VARCHAR(50) NOT NULL,
-        cabin_code VARCHAR(10) NOT NULL,
-        occupancy_code VARCHAR(10) NOT NULL,
-        cabin_type VARCHAR(50),
-        base_price NUMERIC(10, 2),
-        adult_price NUMERIC(10, 2),
-        child_price NUMERIC(10, 2),
-        infant_price NUMERIC(10, 2),
-        single_price NUMERIC(10, 2),
-        third_adult_price NUMERIC(10, 2),
-        fourth_adult_price NUMERIC(10, 2),
-        taxes NUMERIC(10, 2),
-        ncf NUMERIC(10, 2),
-        gratuity NUMERIC(10, 2),
-        fuel NUMERIC(10, 2),
-        non_comm NUMERIC(10, 2),
-        port_charges NUMERIC(10, 2),
-        government_fees NUMERIC(10, 2),
-        total_price NUMERIC(10, 2),
-        commission NUMERIC(10, 2),
-        is_available BOOLEAN DEFAULT true,
-        inventory INTEGER,
-        waitlist BOOLEAN DEFAULT false,
-        guarantee BOOLEAN DEFAULT false,
+        cruise_id VARCHAR REFERENCES cruises(id) NOT NULL,  -- Reference to cruises.id (codetocruiseid)
+        rate_code VARCHAR(50) NOT NULL,             -- Top level key in prices object
+        cabin_code VARCHAR(10) NOT NULL,            -- Second level key
+        occupancy_code VARCHAR(10) NOT NULL,        -- Third level key
+        cabin_type VARCHAR(50),                     -- prices.{}.{}.{}.cabintype
+        base_price NUMERIC(10, 2),                  -- prices.{}.{}.{}.price
+        adult_price NUMERIC(10, 2),                 -- prices.{}.{}.{}.adultprice
+        child_price NUMERIC(10, 2),                 -- prices.{}.{}.{}.childprice
+        infant_price NUMERIC(10, 2),                -- prices.{}.{}.{}.infantprice
+        single_price NUMERIC(10, 2),                -- prices.{}.{}.{}.singleprice
+        third_adult_price NUMERIC(10, 2),           -- prices.{}.{}.{}.thirdadultprice
+        fourth_adult_price NUMERIC(10, 2),          -- prices.{}.{}.{}.fourthadultprice
+        taxes NUMERIC(10, 2),                       -- prices.{}.{}.{}.taxes
+        ncf NUMERIC(10, 2),                          -- prices.{}.{}.{}.ncf
+        gratuity NUMERIC(10, 2),                    -- prices.{}.{}.{}.gratuity
+        fuel NUMERIC(10, 2),                        -- prices.{}.{}.{}.fuel
+        non_comm NUMERIC(10, 2),                    -- prices.{}.{}.{}.noncomm
+        port_charges NUMERIC(10, 2),                -- prices.{}.{}.{}.portcharges
+        government_fees NUMERIC(10, 2),             -- prices.{}.{}.{}.governmentfees
+        total_price NUMERIC(10, 2),                 -- Calculated
+        commission NUMERIC(10, 2),                  -- For agent pricing
+        is_available BOOLEAN DEFAULT true,          -- prices.{}.{}.{}.available
+        inventory INTEGER,                          -- prices.{}.{}.{}.inventory
+        waitlist BOOLEAN DEFAULT false,             -- prices.{}.{}.{}.waitlist
+        guarantee BOOLEAN DEFAULT false,            -- prices.{}.{}.{}.guarantee
         currency VARCHAR(3) DEFAULT 'USD',
         created_at TIMESTAMP DEFAULT NOW() NOT NULL,
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
@@ -302,7 +308,68 @@ async function recreateSchema() {
       )
     `);
 
-    // 10. Price History
+    // ========================================================================
+    // ADDITIONAL TABLES FOR TRAVELTEK DATA
+    // ========================================================================
+
+    // 10. Ship Images (from shipcontent.shipimages[])
+    console.log('Creating ship_images...');
+    await client.query(`
+      CREATE TABLE ship_images (
+        id SERIAL PRIMARY KEY,
+        ship_id INTEGER REFERENCES ships(id) NOT NULL,
+        image_url VARCHAR(500),                     -- shipimages[].imageurl
+        image_url_hd VARCHAR(500),                  -- shipimages[].imageurlhd
+        image_url_2k VARCHAR(500),                  -- shipimages[].imageurl2k
+        caption VARCHAR(500),                       -- shipimages[].caption
+        is_default BOOLEAN DEFAULT false,           -- shipimages[].default = "Y"
+        display_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+
+    // 11. Ship Decks (from shipcontent.shipdecks)
+    console.log('Creating ship_decks...');
+    await client.query(`
+      CREATE TABLE ship_decks (
+        id SERIAL PRIMARY KEY,
+        ship_id INTEGER REFERENCES ships(id) NOT NULL,
+        deck_id INTEGER,                            -- shipdecks.{id}
+        deck_name VARCHAR(255),                     -- shipdecks.{}.deckname
+        description TEXT,                            -- shipdecks.{}.description
+        plan_image VARCHAR(500),                    -- shipdecks.{}.planimage
+        live_name VARCHAR(50),                      -- shipdecks.{}.livename
+        deck_plan_id INTEGER,                       -- shipdecks.{}.deckplanid
+        valid_from DATE,                            -- shipdecks.{}.validfrom
+        valid_to DATE,                              -- shipdecks.{}.validto
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+
+    // 12. Alternative Sailings (from altsailings object)
+    console.log('Creating alternative_sailings...');
+    await client.query(`
+      CREATE TABLE alternative_sailings (
+        id SERIAL PRIMARY KEY,
+        cruise_id VARCHAR REFERENCES cruises(id) NOT NULL,
+        alternative_cruise_id VARCHAR,              -- altsailings.{}.id
+        sail_date DATE,                             -- altsailings.{}.saildate
+        start_date DATE,                            -- altsailings.{}.startdate
+        lead_price NUMERIC(10, 2),                  -- altsailings.{}.leadprice
+        voyage_code VARCHAR(50),                    -- altsailings.{}.voyagecode
+        ship_id INTEGER,                            -- altsailings.{}.shipid
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      )
+    `);
+
+    // ========================================================================
+    // OUR APPLICATION TABLES (NOT FROM TRAVELTEK)
+    // ========================================================================
+
+    // 13. Price History (Our tracking)
     console.log('Creating price_history...');
     await client.query(`
       CREATE TABLE price_history (
@@ -324,7 +391,7 @@ async function recreateSchema() {
       )
     `);
 
-    // 11. Quote Requests
+    // 14. Quote Requests (Our application)
     console.log('Creating quote_requests...');
     await client.query(`
       CREATE TABLE quote_requests (
@@ -352,7 +419,7 @@ async function recreateSchema() {
       )
     `);
 
-    // 12. Saved Searches
+    // 15. Saved Searches (Our application)
     console.log('Creating saved_searches...');
     await client.query(`
       CREATE TABLE saved_searches (
@@ -368,7 +435,7 @@ async function recreateSchema() {
       )
     `);
 
-    // 13. Users
+    // 16. Users (Our application - Clerk integration)
     console.log('Creating users...');
     await client.query(`
       CREATE TABLE users (
@@ -438,14 +505,66 @@ async function recreateSchema() {
       ORDER BY table_name
     `);
 
-    console.log('\n📊 Created tables:');
-    tableCheck.rows.forEach(row => {
-      console.log(`   ✅ ${row.table_name}`);
+    const createdTables = tableCheck.rows.map(r => r.table_name);
+    
+    // Expected tables
+    const expectedTables = [
+      // Traveltek data tables
+      'cruise_lines',
+      'ships',
+      'ports', 
+      'regions',
+      'cruises',
+      'itineraries',
+      'cabin_categories',
+      'pricing',
+      'cheapest_pricing',
+      'ship_images',
+      'ship_decks',
+      'alternative_sailings',
+      // Our application tables
+      'price_history',
+      'quote_requests',
+      'saved_searches',
+      'users'
+    ];
+
+    console.log('\n📊 Table Creation Status:');
+    console.log('─'.repeat(40));
+    
+    console.log('\n🚢 Traveltek Data Tables:');
+    const traveltekTables = expectedTables.slice(0, 12);
+    traveltekTables.forEach(table => {
+      if (createdTables.includes(table)) {
+        console.log(`   ✅ ${table}`);
+      } else {
+        console.log(`   ❌ ${table} - MISSING!`);
+      }
+    });
+    
+    console.log('\n💼 Application Tables:');
+    const appTables = expectedTables.slice(12);
+    appTables.forEach(table => {
+      if (createdTables.includes(table)) {
+        console.log(`   ✅ ${table}`);
+      } else {
+        console.log(`   ❌ ${table} - MISSING!`);
+      }
     });
 
-    console.log('\n✨ Complete schema recreation successful!');
-    console.log('   All tables created with correct structure');
-    console.log('   Ready for data sync');
+    // Check for unexpected tables
+    const unexpectedTables = createdTables.filter(t => !expectedTables.includes(t));
+    if (unexpectedTables.length > 0) {
+      console.log('\n⚠️  Unexpected tables found:');
+      unexpectedTables.forEach(table => {
+        console.log(`   ? ${table}`);
+      });
+    }
+
+    console.log('\n✨ NUCLEAR SCHEMA RECREATION COMPLETE!');
+    console.log('   All tables created to EXACTLY match Traveltek structure');
+    console.log('   Application tables preserved for business logic');
+    console.log('   Ready for complete data sync');
 
   } catch (error) {
     console.error('\n❌ Error:', error);
