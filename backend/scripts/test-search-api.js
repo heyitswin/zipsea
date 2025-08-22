@@ -53,11 +53,11 @@ async function testSearchAPI() {
   
   // Test 1: Basic search for September 2025
   console.log('🧪 Test 1: Basic search for September 2025');
-  console.log('   Endpoint: GET /api/cruises/search');
+  console.log('   Endpoint: GET /api/v1/search');
   console.log('   Params: startDate=2025-09-01, endDate=2025-09-30');
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/cruises/search?startDate=2025-09-01&endDate=2025-09-30`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/search?startDate=2025-09-01&endDate=2025-09-30`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -95,7 +95,7 @@ async function testSearchAPI() {
   console.log('   Params: startDate=2025-09-01, endDate=2025-09-30, nights=7');
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/cruises/search?startDate=2025-09-01&endDate=2025-09-30&nights=7`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/search?startDate=2025-09-01&endDate=2025-09-30&nights=7`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -127,10 +127,10 @@ async function testSearchAPI() {
   
   if (sampleCruise.length > 0) {
     const cruiseId = sampleCruise[0].id;
-    console.log(`   Endpoint: GET /api/cruises/${cruiseId}`);
+    console.log(`   Endpoint: GET /api/v1/cruises/${cruiseId}`);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/cruises/${cruiseId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/cruises/${cruiseId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
