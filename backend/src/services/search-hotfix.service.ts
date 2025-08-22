@@ -1,5 +1,5 @@
 import { db } from '../db/connection';
-import { cruises, cruiseLines, ships, ports, cheapestPricing } from '../db/schema';
+import { cruises, cruiseLines, ships, ports } from '../db/schema';
 import { eq, and, gte, sql } from 'drizzle-orm';
 import logger from '../config/logger';
 
@@ -36,13 +36,12 @@ export class SearchHotfixService {
           s.name as ship_name,
           p1.name as embark_port,
           p2.name as disembark_port,
-          cp.cheapest_price
+          NULL as cheapest_price
         FROM cruises c
         LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
         LEFT JOIN ships s ON c.ship_id = s.id
         LEFT JOIN ports p1 ON c.embark_port_id = p1.id
         LEFT JOIN ports p2 ON c.disembark_port_id = p2.id
-        LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
         WHERE c.is_active = true
         AND c.sailing_date >= CURRENT_DATE
         ORDER BY c.sailing_date ASC
