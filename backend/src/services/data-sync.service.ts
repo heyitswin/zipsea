@@ -198,12 +198,12 @@ export class DataSyncService {
         tonnage: shipContent.tonnage || null,
         totalCabins: shipContent.totalcabins || null,
         shipClass: shipContent.shipclass || null,
-        capacity: shipContent.occupancy || null,  // Per API docs: occupancy field, not limitof
-        description: shipContent.shortdescription || '',
+        occupancy: shipContent.occupancy || null,  // Per API docs: occupancy field, not limitof
+        shortDescription: shipContent.shortdescription || '',
         highlights: shipContent.highlights || '',
-        defaultImageUrl: shipContent.defaultshipimage || null,
-        defaultImageUrlHd: shipContent.defaultshipimage2k || null,
-        images: JSON.stringify(shipContent.shipimages || []),
+        defaultShipImage: shipContent.defaultshipimage || null,
+        defaultShipImage2k: shipContent.defaultshipimage2k || null,
+        starRating: shipContent.starrating || null,
         isActive: true,
       };
 

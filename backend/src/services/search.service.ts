@@ -229,7 +229,7 @@ export class SearchService {
 
       // Rating filter
       if (filters.minRating) {
-        whereConditions.push(gte(ships.rating, filters.minRating));
+        whereConditions.push(gte(ships.starRating, filters.minRating));
       }
 
       // Duration shortcuts
@@ -385,13 +385,13 @@ export class SearchService {
           break;
         case 'rating':
           query = sortOrder === 'desc'
-            ? query.orderBy(desc(ships.rating), asc(sql`${cheapestPricing.cheapestPrice}::numeric`))
-            : query.orderBy(asc(ships.rating), asc(sql`${cheapestPricing.cheapestPrice}::numeric`));
+            ? query.orderBy(desc(ships.starRating), asc(sql`${cheapestPricing.cheapestPrice}::numeric`))
+            : query.orderBy(asc(ships.starRating), asc(sql`${cheapestPricing.cheapestPrice}::numeric`));
           break;
         case 'popularity':
           // Sort by combination of factors: price, rating, recent bookings
           query = query.orderBy(
-            desc(ships.rating),
+            desc(ships.starRating),
             asc(sql`${cheapestPricing.cheapestPrice}::numeric`),
             desc(cruises.updatedAt)
           );
@@ -400,7 +400,7 @@ export class SearchService {
           // Sort by best deals first (lowest price with highest rating)
           query = query.orderBy(
             asc(sql`${cheapestPricing.cheapestPrice}::numeric`),
-            desc(ships.rating)
+            desc(ships.starRating)
           );
           break;
         default:
@@ -907,8 +907,8 @@ export class SearchService {
             maxPrice: sql<number>`max(${cheapestPricing.cheapestPrice}::numeric)`,
             minDate: sql<string>`min(${cruises.sailingDate})`,
             maxDate: sql<string>`max(${cruises.sailingDate})`,
-            minRating: sql<number>`min(${ships.rating})`,
-            maxRating: sql<number>`max(${ships.rating})`,
+            minRating: sql<number>`min(${ships.starRating})`,
+            maxRating: sql<number>`max(${ships.starRating})`,
           })
           .from(cruises)
           .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
@@ -1062,7 +1062,7 @@ export class SearchService {
           eq(cruises.showCruise, true),
           gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
         ))
-        .orderBy(asc(cheapestPricing.cheapestPrice), desc(ships.rating))
+        .orderBy(asc(cheapestPricing.cheapestPrice), desc(ships.starRating))
         .limit(limit);
 
       const popularCruises = await Promise.all(
@@ -1348,7 +1348,7 @@ export class SearchService {
           cheapestPrice: cheapestPricing,
           // Recommendation score calculation
           score: sql<number>`
-            COALESCE(${ships.rating}, 3) * 2 +
+            COALESCE(${ships.starRating}, 3) * 2 +
             CASE WHEN ${cheapestPricing.cheapestPrice}::numeric < 1000 THEN 3
                  WHEN ${cheapestPricing.cheapestPrice}::numeric < 2000 THEN 2
                  ELSE 1 END +
