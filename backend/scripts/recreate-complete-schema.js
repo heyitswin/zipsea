@@ -177,6 +177,7 @@ async function recreateSchema() {
         market_id VARCHAR(50),                      -- marketid
         last_cached INTEGER,                        -- lastcached (unix timestamp)
         cached_date VARCHAR(100),                   -- cacheddate (string)
+        is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMP DEFAULT NOW() NOT NULL,
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       )

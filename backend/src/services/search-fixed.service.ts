@@ -121,7 +121,6 @@ class SearchFixedService {
           c.itinerary_code,
           c.sailing_date,
           c.nights,
-          c.sail_nights,
           c.sea_days,
           c.cruise_line_id,
           cl.name as cruise_line_name,

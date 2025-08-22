@@ -345,9 +345,10 @@ async function syncCheapestPricing(cruiseData, cruiseId) {
       cheapest_price: cruiseData.cheapestprice || null,
       cheapest_cabin_type: cruiseData.cheapestcabintype || null,
       
-      // Interior pricing
-      interior_price: cruiseData.cheapestinside || cruiseData.cheapestinterior || null,
-      interior_price_code: cruiseData.cheapestinsidepricecode || null,
+      // Interior pricing (oceanview might be the cheapest, which is often interior)
+      interior_price: cruiseData.cheapestinside || cruiseData.cheapestinterior || 
+                     (cruiseData.cheapestprice === cruiseData.cheapestoceanview ? null : cruiseData.cheapestprice) || null,
+      interior_price_code: cruiseData.cheapestinsidepricecode || cruiseData.cheapestinteriorpricecode || null,
       
       // Oceanview pricing
       oceanview_price: cruiseData.cheapestoceanview || cruiseData.cheapestoutside || null,

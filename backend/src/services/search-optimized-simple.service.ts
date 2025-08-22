@@ -58,7 +58,6 @@ export class SearchOptimizedSimpleService {
           c.id,
           c.name,
           c.sailing_date,
-          c.return_date,
           c.nights,
           cl.name as cruise_line_name,
           s.name as ship_name,
@@ -154,7 +153,7 @@ export class SearchOptimizedSimpleService {
         id: row.id,
         name: row.name,
         sailingDate: row.sailing_date,
-        returnDate: row.return_date,
+        returnDate: row.sailing_date ? new Date(new Date(row.sailing_date).getTime() + row.nights * 24 * 60 * 60 * 1000) : null,
         nights: row.nights,
         cruiseLine: {
           name: row.cruise_line_name || 'Unknown'
