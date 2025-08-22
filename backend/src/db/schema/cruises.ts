@@ -47,35 +47,33 @@ export const cruiseSailings = pgTable('cruise_sailings', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Legacy table maintained for backward compatibility (renamed from original)
+// Main cruises table - matches the actual database schema from recreate-database-correct-schema.js
 export const cruises = pgTable('cruises', {
-  id: integer('id').primaryKey(), // Traveltek cruiseid
-  codeToCruiseId: varchar('code_to_cruise_id', { length: 50 }).notNull(), // codetocruiseid for file naming
+  id: integer('id').primaryKey(), // This stores code_to_cruise_id value (unique per sailing)
+  cruiseId: integer('cruise_id').notNull(), // Original cruiseid from Traveltek (can duplicate)
   cruiseLineId: integer('cruise_line_id').references(() => cruiseLines.id).notNull(),
   shipId: integer('ship_id').references(() => ships.id).notNull(),
-  name: varchar('name', { length: 255 }).notNull(),
-  itineraryCode: varchar('itinerary_code', { length: 50 }),
+  name: varchar('name', { length: 255 }),
   voyageCode: varchar('voyage_code', { length: 50 }),
-  sailingDate: date('sailing_date').notNull(), // startdate/saildate
-  returnDate: date('return_date'), // Calculated from sailing_date + nights
-  nights: integer('nights').notNull(),
-  sailNights: integer('sail_nights'), // sailnights
-  seaDays: integer('sea_days'), // seadays
+  itineraryCode: varchar('itinerary_code', { length: 50 }),
+  sailingDate: date('sailing_date').notNull(),
+  startDate: date('start_date'),
+  nights: integer('nights'),
+  sailNights: integer('sail_nights'),
+  seaDays: integer('sea_days'),
   embarkPortId: integer('embark_port_id').references(() => ports.id),
   disembarkPortId: integer('disembark_port_id').references(() => ports.id),
-  regionIds: jsonb('region_ids').default('[]'), // regionids array as INTEGER[]
-  portIds: jsonb('port_ids').default('[]'), // portids array as INTEGER[]
-  marketId: integer('market_id'), // marketid
-  ownerId: integer('owner_id'), // ownerid
-  noFly: boolean('no_fly').default(false), // nofly
-  departUk: boolean('depart_uk').default(false), // departuk
-  showCruise: boolean('show_cruise').default(true), // showcruise (active flag)
-  flyCruiseInfo: text('fly_cruise_info'), // flycruiseinfo
-  lineContent: text('line_content'), // linecontent
-  traveltekFilePath: varchar('traveltek_file_path', { length: 500 }), // [year]/[month]/[lineid]/[shipid]/[codetocruiseid].json
-  lastCached: timestamp('last_cached'), // lastcached
-  cachedDate: date('cached_date'), // cacheddate
-  currency: varchar('currency', { length: 3 }).default('USD'), // ISO currency code from file
+  portIds: varchar('port_ids', { length: 500 }), // Comma-separated string from API
+  regionIds: varchar('region_ids', { length: 500 }), // Comma-separated string from API
+  marketId: integer('market_id'),
+  ownerId: varchar('owner_id', { length: 50 }).default('system'),
+  noFly: boolean('no_fly').default(false),
+  departUk: boolean('depart_uk').default(false),
+  showCruise: boolean('show_cruise').default(true),
+  flyCruiseInfo: varchar('fly_cruise_info', { length: 50 }),
+  lastCached: integer('last_cached'),
+  cachedDate: timestamp('cached_date'),
+  traveltekFilePath: varchar('traveltek_file_path', { length: 500 }),
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
