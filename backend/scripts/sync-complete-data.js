@@ -182,6 +182,12 @@ async function syncPricingData(cruiseData, cruiseId) {
   const prices = cruiseData.prices || {};
   const pricingRecords = [];
   
+  // Helper to truncate strings
+  const truncateString = (str, maxLength) => {
+    if (!str) return null;
+    return str.length > maxLength ? str.substring(0, maxLength) : str;
+  };
+  
   for (const [rateCode, cabins] of Object.entries(prices)) {
     for (const [cabinCode, occupancies] of Object.entries(cabins)) {
       for (const [occupancyCode, priceData] of Object.entries(occupancies)) {
@@ -190,9 +196,9 @@ async function syncPricingData(cruiseData, cruiseId) {
         
         pricingRecords.push({
           cruise_id: cruiseId,
-          rate_code: rateCode,
-          cabin_code: cabinCode,
-          occupancy_code: occupancyCode,
+          rate_code: truncateString(rateCode, 50),  // VARCHAR(50)
+          cabin_code: truncateString(cabinCode, 10),  // VARCHAR(10)
+          occupancy_code: truncateString(occupancyCode, 10),  // VARCHAR(10)
           cabin_type: priceData.cabintype || null,
           base_price: priceData.price || null,
           adult_price: priceData.adultprice || null,
@@ -289,21 +295,27 @@ async function syncCabinCategories(cruiseData, shipId) {
   for (const [cabinCode, cabinData] of Object.entries(cabins)) {
     if (!cabinData) continue;
     
+    // Truncate cabin codes to 10 characters to fit VARCHAR(10)
+    const truncateString = (str, maxLength) => {
+      if (!str) return null;
+      return str.length > maxLength ? str.substring(0, maxLength) : str;
+    };
+    
     cabinRecords.push({
       ship_id: shipId,
-      cabin_code: cabinData.cabincode || cabinCode,
-      cabin_code_alt: cabinData.cabincode2 || null,
+      cabin_code: truncateString(cabinData.cabincode || cabinCode, 10),
+      cabin_code_alt: truncateString(cabinData.cabincode2, 10),
       name: cabinData.name || `Cabin ${cabinCode}`,
       description: cabinData.description || null,
       category: mapCabinCategory(cabinData.codtype || cabinData.type),
-      color_code: cabinData.colourcode || null,
+      color_code: truncateString(cabinData.colourcode, 7),  // VARCHAR(7) for color codes
       image_url: cabinData.imageurl || null,
       image_url_hd: cabinData.imageurlhd || null,
       image_url_2k: cabinData.imageurl2k || null,
       is_default: cabinData.isdefault === true || cabinData.isdefault === 'Y',
       valid_from: validateDate(cabinData.validfrom),
       valid_to: validateDate(cabinData.validto),
-      cabin_id: cabinData.id || null,
+      cabin_id: truncateString(cabinData.id, 20),  // VARCHAR(20) for cabin_id
       is_active: true,
     });
   }
@@ -537,13 +549,19 @@ async function syncAlternativeSailings(cruiseData, cruiseId) {
   for (const [altId, altData] of Object.entries(altSailings)) {
     if (!altData) continue;
     
+    // Helper to truncate strings
+    const truncateString = (str, maxLength) => {
+      if (!str) return null;
+      return str.length > maxLength ? str.substring(0, maxLength) : str;
+    };
+    
     altRecords.push({
       cruise_id: cruiseId,
       alternative_cruise_id: altId,
       sail_date: validateDate(altData.saildate),
       start_date: validateDate(altData.startdate),
       lead_price: altData.leadprice || null,
-      voyage_code: altData.voyagecode || null,
+      voyage_code: truncateString(altData.voyagecode, 50),  // VARCHAR(50)
       ship_id: altData.shipid || null,
     });
   }
@@ -704,11 +722,14 @@ async function processCruiseFile(ftpManager, filePath) {
         }
       }
       
-      // Validate and format time strings
+      // Validate and format time strings (max 10 chars for VARCHAR(10))
       const formatTime = (timeStr) => {
         if (!timeStr || timeStr === '00:00' || timeStr === 'N/A') return null;
         // Handle various time formats
-        if (/^\d{1,2}:\d{2}$/.test(timeStr)) return timeStr;
+        if (/^\d{1,2}:\d{2}$/.test(timeStr)) {
+          // Ensure it fits in VARCHAR(10)
+          return timeStr.substring(0, 10);
+        }
         if (/^\d{4}$/.test(timeStr)) {
           // Convert HHMM to HH:MM
           return `${timeStr.slice(0, 2)}:${timeStr.slice(2)}`;
