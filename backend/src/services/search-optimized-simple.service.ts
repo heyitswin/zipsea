@@ -232,7 +232,7 @@ export class SearchOptimizedSimpleService {
         LEFT JOIN ships s ON c.ship_id = s.id
         WHERE c.is_active = true
           AND c.sailing_date >= CURRENT_DATE
-        ORDER BY c.popularity_score DESC NULLS LAST
+        ORDER BY c.sailing_date ASC
         LIMIT ${limit}
       `;
       
