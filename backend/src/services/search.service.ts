@@ -332,10 +332,8 @@ export class SearchService {
         if (filters.price.max) {
           whereConditions.push(lte(sql`${cheapestPricing.cheapestPrice}::numeric`, filters.price.max));
         }
-        // Currency filter if specified
-        if (filters.price.currency) {
-          whereConditions.push(eq(cruises.currency, filters.price.currency));
-        }
+        // Currency filter removed - no longer stored in database
+        // All prices are in USD from Traveltek
       }
 
       // Deal filter
@@ -732,7 +730,7 @@ export class SearchService {
       },
       pricing: {
         from: pricing?.cheapestPrice ? parseFloat(pricing.cheapestPrice) : 0,
-        currency: cruise.currency || 'USD',
+        currency: 'USD', // Always USD from Traveltek
         cabinTypes: {
           interior: pricing?.interiorPrice ? parseFloat(pricing.interiorPrice) : undefined,
           oceanview: pricing?.oceanviewPrice ? parseFloat(pricing.oceanviewPrice) : undefined,
