@@ -11,8 +11,8 @@
  */
 
 require('dotenv').config();
-const fetch = require('node-fetch');
 const postgres = require('postgres');
+// Use native fetch (available in Node 18+)
 
 // Configuration
 const WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://zipsea-production.onrender.com/api/webhooks/traveltek';
