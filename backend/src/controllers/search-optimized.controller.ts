@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { searchOptimizedSimpleService } from '../services/search-optimized-simple.service';
 import { searchHotfixService } from '../services/search-hotfix.service';
+import { searchFixedService } from '../services/search-fixed.service';
 import logger from '../config/logger';
 
 /**
@@ -84,8 +85,22 @@ class SearchOptimizedController {
         }
       });
       
-      // Use optimized service
-      const result = await searchOptimizedSimpleService.searchCruises(filters, options);
+      // Use fixed service that works with new schema
+      // Map old filter format to new format for searchFixedService
+      const fixedFilters = {
+        startDate: filters.sailingDate?.from || req.query.startDate || req.body?.startDate,
+        endDate: filters.sailingDate?.to || req.query.endDate || req.body?.endDate,
+        nights: filters.nights?.min === filters.nights?.max ? filters.nights?.min : undefined,
+        minNights: filters.nights?.min,
+        maxNights: filters.nights?.max,
+        cruiseLineId: Array.isArray(filters.cruiseLine) ? filters.cruiseLine[0] : filters.cruiseLine,
+        shipId: Array.isArray(filters.ship) ? filters.ship[0] : filters.ship,
+        embarkPortId: filters.departurePort ? Number(filters.departurePort) : undefined,
+        limit: options.limit,
+        offset: (options.page - 1) * options.limit
+      };
+      
+      const result = await searchFixedService.searchCruises(fixedFilters);
       
       // Log performance
       const totalTime = Date.now() - startTime;
