@@ -549,17 +549,9 @@ async function syncAlternativeSailings(cruiseData, cruiseId) {
   }
   
   if (altRecords.length > 0) {
-    await sql`
-      INSERT INTO alternative_sailings ${sql(altRecords)}
-      ON CONFLICT (cruise_id, alternative_cruise_id) 
-      DO UPDATE SET
-        sail_date = EXCLUDED.sail_date,
-        start_date = EXCLUDED.start_date,
-        lead_price = EXCLUDED.lead_price,
-        voyage_code = EXCLUDED.voyage_code,
-        ship_id = EXCLUDED.ship_id,
-        updated_at = CURRENT_TIMESTAMP
-    `;
+    // Delete existing alternative sailings for this cruise, then insert new ones
+    await sql`DELETE FROM alternative_sailings WHERE cruise_id = ${cruiseId}`;
+    await sql`INSERT INTO alternative_sailings ${sql(altRecords)}`;
   }
 }
 
