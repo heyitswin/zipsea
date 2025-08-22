@@ -15,7 +15,7 @@ const postgres = require('postgres');
 // Use native fetch (available in Node 18+)
 
 // Configuration
-const API_BASE_URL = process.env.API_URL || 'https://zipsea-staging.onrender.com';
+const API_BASE_URL = process.env.API_URL || 'https://zipsea-production.onrender.com';
 const DATABASE_URL = process.env.DATABASE_URL;
 
 const sql = postgres(DATABASE_URL, {
