@@ -77,7 +77,7 @@ export interface CruiseSearchResult {
     id: number;
     name: string;
     code?: string;
-    logoUrl?: string;
+    logo?: string;
   };
   ship: {
     id: number;
@@ -116,7 +116,7 @@ export interface CruiseSearchResult {
 }
 
 export interface SearchFiltersResponse {
-  cruiseLines: Array<{ id: number; name: string; code?: string; logoUrl?: string; count: number }>;
+  cruiseLines: Array<{ id: number; name: string; code?: string; logo?: string; count: number }>;
   ships: Array<{ id: number; name: string; cruiseLineId: number; count: number }>;
   destinations: Array<{ name: string; type: 'region' | 'port'; id?: number; count: number }>;
   departurePorts: Array<{ id: number; name: string; city?: string; country?: string; count: number }>;
@@ -703,7 +703,7 @@ export class SearchService {
         id: cruiseLine?.id || 0,
         name: cruiseLine?.name || 'Unknown',
         code: cruiseLine?.code,
-        logoUrl: cruiseLine?.logoUrl,
+        logo: cruiseLine?.logo,
       },
       ship: {
         id: ship?.id || 0,
@@ -821,7 +821,7 @@ export class SearchService {
             id: cruiseLines.id,
             name: cruiseLines.name,
             code: cruiseLines.code,
-            logoUrl: cruiseLines.logoUrl,
+            logo: cruiseLines.logo,
             count: sql<number>`count(${cruises.id})`,
           })
           .from(cruiseLines)
@@ -831,7 +831,7 @@ export class SearchService {
             gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
           ))
           .where(eq(cruiseLines.isActive, true))
-          .groupBy(cruiseLines.id, cruiseLines.name, cruiseLines.code, cruiseLines.logoUrl)
+          .groupBy(cruiseLines.id, cruiseLines.name, cruiseLines.code, cruiseLines.logo)
           .having(sql`count(${cruises.id}) > 0`)
           .orderBy(desc(sql`count(${cruises.id})`), cruiseLines.name),
 
@@ -967,7 +967,7 @@ export class SearchService {
           id: cl.id,
           name: cl.name,
           code: cl.code,
-          logoUrl: cl.logoUrl,
+          logo: cl.logo,
           count: cl.count,
         })),
         ships: shipsResult.map(s => ({
@@ -1123,7 +1123,7 @@ export class SearchService {
             id: cruiseLines.id, 
             name: cruiseLines.name,
             code: cruiseLines.code,
-            logoUrl: cruiseLines.logoUrl,
+            logo: cruiseLines.logo,
             count: sql<number>`count(${cruises.id})`
           })
           .from(cruiseLines)
@@ -1139,7 +1139,7 @@ export class SearchService {
             ),
             eq(cruiseLines.isActive, true)
           ))
-          .groupBy(cruiseLines.id, cruiseLines.name, cruiseLines.code, cruiseLines.logoUrl)
+          .groupBy(cruiseLines.id, cruiseLines.name, cruiseLines.code, cruiseLines.logo)
           .orderBy(desc(sql`count(${cruises.id})`), cruiseLines.name)
           .limit(3),
 
@@ -1252,7 +1252,7 @@ export class SearchService {
         count: cl.count,
         metadata: {
           code: cl.code,
-          logoUrl: cl.logoUrl
+          logo: cl.logo
         }
       })));
 
