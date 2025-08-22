@@ -95,7 +95,7 @@ class SearchFixedService {
       }
 
       if (embarkPortId) {
-        conditions.push(`c.embark_port_id = $${paramCount}`);
+        conditions.push(`c.embarkation_port_id = $${paramCount}`);
         params.push(embarkPortId);
         paramCount++;
       }
@@ -127,9 +127,9 @@ class SearchFixedService {
           cl.name as cruise_line_name,
           c.ship_id,
           s.name as ship_name,
-          c.embark_port_id,
+          c.embarkation_port_id,
           p1.name as embark_port_name,
-          c.disembark_port_id,
+          c.disembarkation_port_id,
           p2.name as disembark_port_name,
           c.no_fly,
           c.depart_uk,
@@ -142,8 +142,8 @@ class SearchFixedService {
         FROM cruises c
         LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
         LEFT JOIN ships s ON c.ship_id = s.id
-        LEFT JOIN ports p1 ON c.embark_port_id = p1.id
-        LEFT JOIN ports p2 ON c.disembark_port_id = p2.id
+        LEFT JOIN ports p1 ON c.embarkation_port_id = p1.id
+        LEFT JOIN ports p2 ON c.disembarkation_port_id = p2.id
         WHERE ${whereClause}
         ORDER BY c.sailing_date ASC, c.nights ASC
         ${limitClause}
@@ -197,8 +197,8 @@ class SearchFixedService {
         FROM cruises c
         LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
         LEFT JOIN ships s ON c.ship_id = s.id
-        LEFT JOIN ports p1 ON c.embark_port_id = p1.id
-        LEFT JOIN ports p2 ON c.disembark_port_id = p2.id
+        LEFT JOIN ports p1 ON c.embarkation_port_id = p1.id
+        LEFT JOIN ports p2 ON c.disembarkation_port_id = p2.id
         WHERE c.id = ${id}
       `;
 
@@ -254,9 +254,9 @@ class SearchFixedService {
           SELECT DISTINCT p.id, p.name
           FROM ports p
           WHERE p.id IN (
-            SELECT embark_port_id FROM cruises WHERE is_active = true
+            SELECT embarkation_port_id FROM cruises WHERE is_active = true
             UNION
-            SELECT disembark_port_id FROM cruises WHERE is_active = true
+            SELECT disembarkation_port_id FROM cruises WHERE is_active = true
           )
           ORDER BY p.name
         `,

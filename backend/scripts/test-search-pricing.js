@@ -143,7 +143,7 @@ async function testSearchAndPricing() {
   // Test 1: Health check
   console.log('1️⃣ Health Check:');
   try {
-    const response = await fetch(`${API_BASE_URL}/api/health`, {
+    const response = await fetch(`${API_BASE_URL}/health`, {
       method: 'GET'
     });
     console.log(`   Status: ${response.status} ${response.statusText}`);
@@ -220,7 +220,7 @@ async function testSearchAndPricing() {
   }
   
   console.log('\n💡 Quick Checks:');
-  console.log(`   - API Health: ${API_BASE_URL}/api/health`);
+  console.log(`   - API Health: ${API_BASE_URL}/health`);
   console.log(`   - Search Sept: ${API_BASE_URL}/api/v1/search?startDate=2025-09-01&endDate=2025-09-30`);
   console.log(`   - With Price: ${API_BASE_URL}/api/v1/search?startDate=2025-09-01&endDate=2025-09-30&maxPrice=2000`);
   

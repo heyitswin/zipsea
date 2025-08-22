@@ -30,8 +30,8 @@ export class SearchHotfixService {
           c.name,
           c.sailing_date,
           c.nights,
-          c.embark_port_id,
-          c.disembark_port_id,
+          c.embarkation_port_id,
+          c.disembarkation_port_id,
           cl.name as cruise_line_name,
           s.name as ship_name,
           p1.name as embark_port,
@@ -40,8 +40,8 @@ export class SearchHotfixService {
         FROM cruises c
         LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
         LEFT JOIN ships s ON c.ship_id = s.id
-        LEFT JOIN ports p1 ON c.embark_port_id = p1.id
-        LEFT JOIN ports p2 ON c.disembark_port_id = p2.id
+        LEFT JOIN ports p1 ON c.embarkation_port_id = p1.id
+        LEFT JOIN ports p2 ON c.disembarkation_port_id = p2.id
         WHERE c.is_active = true
         AND c.sailing_date >= CURRENT_DATE
         ORDER BY c.sailing_date ASC
