@@ -1082,15 +1082,23 @@ async function main() {
     
     // Determine what to sync
     if (CONFIG.syncYears) {
-      // Sync entire years
-      for (const year of CONFIG.syncYears) {
-        for (let month = 1; month <= 12; month++) {
-          const monthStr = String(month).padStart(2, '0');
-          await syncMonth(year, monthStr);
+      // If SYNC_MONTH is also specified, sync only that month for each year
+      if (process.env.SYNC_MONTH) {
+        console.log(`📌 Syncing specific month ${CONFIG.syncMonth} for years: ${CONFIG.syncYears.join(', ')}`);
+        for (const year of CONFIG.syncYears) {
+          await syncMonth(year, CONFIG.syncMonth);
+        }
+      } else {
+        // Sync entire years (all 12 months)
+        for (const year of CONFIG.syncYears) {
+          for (let month = 1; month <= 12; month++) {
+            const monthStr = String(month).padStart(2, '0');
+            await syncMonth(year, monthStr);
+          }
         }
       }
     } else {
-      // Sync specific month
+      // Sync specific month for specific year
       await syncMonth(CONFIG.syncYear, CONFIG.syncMonth);
     }
     
