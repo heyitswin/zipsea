@@ -26,14 +26,27 @@ router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: R
       lineId: req.body.lineId || req.body.line_id,
     });
 
-    // Process using new Traveltek webhook service
-    await traveltekWebhookService.handleStaticPricingUpdate(req.body);
-
+    // TEMPORARILY PAUSED - Schema recreation in progress
+    logger.warn('⏸️ WEBHOOK PAUSED: Schema recreation in progress, skipping processing');
+    
+    // Acknowledge receipt but don't process
     res.status(200).json({
       success: true,
-      message: 'Cruiseline pricing update processed successfully',
+      message: 'Webhook received (processing paused for maintenance)',
       timestamp: new Date().toISOString(),
+      paused: true,
     });
+    
+    return;
+
+    // Process using new Traveltek webhook service
+    // await traveltekWebhookService.handleStaticPricingUpdate(req.body);
+
+    // res.status(200).json({
+    //   success: true,
+    //   message: 'Cruiseline pricing update processed successfully',
+    //   timestamp: new Date().toISOString(),
+    // });
   } catch (error) {
     logger.error('Error processing cruiseline pricing webhook', { error });
     // Always return 200 to prevent webhook retries
@@ -53,13 +66,14 @@ router.post('/traveltek/cruises-pricing-updated', async (req: Request, res: Resp
       cruiseIds: req.body.cruiseIds || req.body.cruise_ids,
     });
 
-    // Note: Live pricing webhooks are not currently used
-    logger.info('Live pricing webhook received but not processed (static only)');
+    // TEMPORARILY PAUSED - Schema recreation in progress
+    logger.warn('⏸️ WEBHOOK PAUSED: Schema recreation in progress, skipping processing');
 
     res.status(200).json({
       success: true,
-      message: 'Cruise pricing update processed successfully',
+      message: 'Webhook received (processing paused for maintenance)',
       timestamp: new Date().toISOString(),
+      paused: true,
     });
   } catch (error) {
     logger.error('Error processing cruise pricing webhook', { error });
@@ -88,12 +102,24 @@ router.post('/traveltek', async (req: Request, res: Response, next: NextFunction
       payload: body,
     });
 
+    // TEMPORARILY PAUSED - Schema recreation in progress
+    logger.warn('⏸️ WEBHOOK PAUSED: Schema recreation in progress, skipping processing');
+    
+    res.status(200).json({
+      success: true,
+      message: 'Webhook received (processing paused for maintenance)',
+      timestamp: new Date().toISOString(),
+      paused: true,
+    });
+    
+    return;
+
     // Route to appropriate handler based on event type
-    if (webhookEvent === 'cruiseline_pricing_updated' || body.event === 'cruiseline_pricing_updated') {
-      // Process static pricing update
-      await traveltekWebhookService.handleStaticPricingUpdate(body);
-    } else if (webhookEvent === 'cruises_live_pricing_updated' || body.event === 'cruises_live_pricing_updated') {
-      // Live pricing not currently used
+    // if (webhookEvent === 'cruiseline_pricing_updated' || body.event === 'cruiseline_pricing_updated') {
+    //   // Process static pricing update
+    //   await traveltekWebhookService.handleStaticPricingUpdate(body);
+    // } else if (webhookEvent === 'cruises_live_pricing_updated' || body.event === 'cruises_live_pricing_updated') {
+    //   // Live pricing not currently used
       logger.info('Live pricing webhook acknowledged but not processed', {
         paths: body.paths?.length || 0
       });
