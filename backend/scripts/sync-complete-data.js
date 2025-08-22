@@ -601,6 +601,18 @@ async function processCruiseFile(ftpManager, filePath) {
       `;
     }
     
+    // Helper function to validate dates
+    const validateDate = (dateStr) => {
+      if (!dateStr) return null;
+      try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return null;
+        return dateStr;
+      } catch (e) {
+        return null;
+      }
+    };
+
     // Upsert main cruise record
     const [cruise] = await sql`
       INSERT INTO cruises (
@@ -616,8 +628,8 @@ async function processCruiseFile(ftpManager, filePath) {
         ${cruiseData.nights || cruiseData.sailnights},
         ${cruiseData.startportid},
         ${cruiseData.endportid},
-        ${cruiseData.saildate || cruiseData.startdate},
-        ${cruiseData.enddate || cruiseData.returndate || null}
+        ${validateDate(cruiseData.saildate || cruiseData.startdate)},
+        ${validateDate(cruiseData.enddate || cruiseData.returndate)}
       )
       ON CONFLICT (id) 
       DO UPDATE SET
@@ -641,6 +653,37 @@ async function processCruiseFile(ftpManager, filePath) {
     for (let i = 0; i < itinerary.length; i++) {
       const day = itinerary[i];
       
+      // Ensure port exists if we have a port ID
+      let portId = null;
+      if (day.portid) {
+        try {
+          portId = parseInt(day.portid);
+          // Insert the port if it doesn't exist
+          await sql`
+            INSERT INTO ports (id, name)
+            VALUES (${portId}, ${day.name || day.portname || `Port ${portId}`})
+            ON CONFLICT (id) DO UPDATE SET
+              name = COALESCE(EXCLUDED.name, ports.name),
+              updated_at = CURRENT_TIMESTAMP
+          `;
+        } catch (e) {
+          console.warn(`Warning: Invalid port ID ${day.portid}, skipping port reference`);
+          portId = null;
+        }
+      }
+      
+      // Validate and format time strings
+      const formatTime = (timeStr) => {
+        if (!timeStr || timeStr === '00:00' || timeStr === 'N/A') return null;
+        // Handle various time formats
+        if (/^\d{1,2}:\d{2}$/.test(timeStr)) return timeStr;
+        if (/^\d{4}$/.test(timeStr)) {
+          // Convert HHMM to HH:MM
+          return `${timeStr.slice(0, 2)}:${timeStr.slice(2)}`;
+        }
+        return null;
+      };
+      
       await sql`
         INSERT INTO itineraries (
           cruise_id, day_number, port_id, port_name,
@@ -649,10 +692,10 @@ async function processCruiseFile(ftpManager, filePath) {
         ) VALUES (
           ${cruiseDbId},
           ${i + 1},
-          ${day.portid || null},
+          ${portId},
           ${day.name || day.portname || 'At Sea'},
-          ${day.arrivaltime || null},
-          ${day.departuretime || null},
+          ${formatTime(day.arrivaltime)},
+          ${formatTime(day.departuretime)},
           ${day.description || null},
           ${day.seaday === true},
           ${day.tender === true}
