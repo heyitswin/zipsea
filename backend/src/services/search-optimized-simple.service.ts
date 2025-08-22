@@ -64,13 +64,12 @@ export class SearchOptimizedSimpleService {
           s.name as ship_name,
           p1.name as embark_port_name,
           p2.name as disembark_port_name,
-          cp.cheapest_price
+          NULL as cheapest_price
         FROM cruises c
         LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
         LEFT JOIN ships s ON c.ship_id = s.id
         LEFT JOIN ports p1 ON c.embark_port_id = p1.id
         LEFT JOIN ports p2 ON c.disembark_port_id = p2.id
-        LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
         WHERE c.is_active = true
           AND c.sailing_date >= CURRENT_DATE`;
       
@@ -104,7 +103,8 @@ export class SearchOptimizedSimpleService {
       // Add ordering
       const sortBy = options.sortBy || 'date';
       if (sortBy === 'price') {
-        query = sql`${query} ORDER BY cp.cheapest_price ASC NULLS LAST`;
+        // Price sorting disabled until pricing data is synced
+        query = sql`${query} ORDER BY c.sailing_date ASC`;
       } else if (sortBy === 'nights') {
         query = sql`${query} ORDER BY c.nights ASC`;
       } else {
@@ -121,7 +121,6 @@ export class SearchOptimizedSimpleService {
       let countQuery = sql`
         SELECT COUNT(*) as total
         FROM cruises c
-        LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
         WHERE c.is_active = true
           AND c.sailing_date >= CURRENT_DATE`;
       
@@ -138,13 +137,14 @@ export class SearchOptimizedSimpleService {
         countQuery = sql`${countQuery} AND c.nights <= ${filters.nights.max}`;
       }
       
-      if (filters.price?.min) {
-        countQuery = sql`${countQuery} AND cp.cheapest_price >= ${filters.price.min}`;
-      }
-      
-      if (filters.price?.max) {
-        countQuery = sql`${countQuery} AND cp.cheapest_price <= ${filters.price.max}`;
-      }
+      // Price filtering disabled until pricing data is synced
+      // if (filters.price?.min) {
+      //   countQuery = sql`${countQuery} AND cp.cheapest_price >= ${filters.price.min}`;
+      // }
+      // 
+      // if (filters.price?.max) {
+      //   countQuery = sql`${countQuery} AND cp.cheapest_price <= ${filters.price.max}`;
+      // }
       
       const countResult = await db.execute(countQuery);
       
@@ -226,11 +226,10 @@ export class SearchOptimizedSimpleService {
           c.nights,
           cl.name as cruise_line_name,
           s.name as ship_name,
-          cp.cheapest_price
+          NULL as cheapest_price
         FROM cruises c
         LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
         LEFT JOIN ships s ON c.ship_id = s.id
-        LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
         WHERE c.is_active = true
           AND c.sailing_date >= CURRENT_DATE
         ORDER BY c.popularity_score DESC NULLS LAST
