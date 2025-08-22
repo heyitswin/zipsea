@@ -11,8 +11,8 @@
  */
 
 require('dotenv').config();
-const fetch = require('node-fetch');
 const postgres = require('postgres');
+// Use native fetch (available in Node 18+)
 
 // Configuration
 const API_BASE_URL = process.env.API_URL || 'https://zipsea-staging.onrender.com';
