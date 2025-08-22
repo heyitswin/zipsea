@@ -561,20 +561,18 @@ async function processCruiseFile(ftpManager, filePath) {
     const lineContent = cruiseData.linecontent || {};
     const lineName = lineContent.name || lineContent.enginename || `Line ${cruiseData.lineid}`;
     
-    // Upsert cruise line
+    // Upsert cruise line (website not available in Traveltek data)
     await sql`
-      INSERT INTO cruise_lines (id, name, logo, website)
+      INSERT INTO cruise_lines (id, name, logo)
       VALUES (
         ${cruiseData.lineid},
         ${lineName},
-        ${lineContent.logo || lineContent.logourl || null},
-        ${lineContent.website || null}
+        ${lineContent.logo || lineContent.logourl || null}
       )
       ON CONFLICT (id) 
       DO UPDATE SET
         name = EXCLUDED.name,
         logo = COALESCE(EXCLUDED.logo, cruise_lines.logo),
-        website = COALESCE(EXCLUDED.website, cruise_lines.website),
         updated_at = CURRENT_TIMESTAMP
     `;
     
