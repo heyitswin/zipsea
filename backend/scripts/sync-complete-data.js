@@ -182,7 +182,17 @@ async function syncPricingData(cruiseData, cruiseId) {
     }
     
     // Try different possible pricing field names
-    const prices = cruiseData.prices || cruiseData.cachedprices || cruiseData.pricing || {};
+    // NOTE: Based on logs, both 'prices' and 'cachedprices' exist
+    // We should check if prices is empty and use cachedprices as fallback
+    let prices = cruiseData.prices || {};
+    
+    // If prices is empty, try cachedprices
+    if (Object.keys(prices).length === 0 && cruiseData.cachedprices) {
+      prices = cruiseData.cachedprices;
+      if (global.pricingDebugCount && global.pricingDebugCount <= 3) {
+        console.log(`  - Using cachedprices instead of prices for cruise ${cruiseData.codetocruiseid}`);
+      }
+    }
     
     // Debug logging for first few cruises to see structure
     if (!global.pricingDebugCount) global.pricingDebugCount = 0;
@@ -197,13 +207,25 @@ async function syncPricingData(cruiseData, cruiseId) {
       const topKeys = Object.keys(cruiseData).slice(0, 15);
       console.log(`  - Top-level keys: ${topKeys.join(', ')}`);
       
-      // If prices exists, show its structure
-      if (cruiseData.prices && Object.keys(cruiseData.prices).length > 0) {
-        const firstRateCode = Object.keys(cruiseData.prices)[0];
-        console.log(`  - First rate code: ${firstRateCode}`);
-        if (cruiseData.prices[firstRateCode]) {
-          const firstCabin = Object.keys(cruiseData.prices[firstRateCode])[0];
-          console.log(`  - First cabin under ${firstRateCode}: ${firstCabin}`);
+      // Show the actual content of prices
+      if (cruiseData.prices) {
+        const priceKeys = Object.keys(cruiseData.prices);
+        console.log(`  - Prices object has ${priceKeys.length} keys`);
+        if (priceKeys.length > 0) {
+          console.log(`  - First rate code: ${priceKeys[0]}`);
+          if (cruiseData.prices[priceKeys[0]]) {
+            const firstCabin = Object.keys(cruiseData.prices[priceKeys[0]])[0];
+            console.log(`  - First cabin under ${priceKeys[0]}: ${firstCabin}`);
+          }
+        }
+      }
+      
+      // Also check cachedprices
+      if (cruiseData.cachedprices) {
+        const cachedKeys = Object.keys(cruiseData.cachedprices);
+        console.log(`  - Cachedprices has ${cachedKeys.length} keys`);
+        if (cachedKeys.length > 0) {
+          console.log(`  - First cached rate: ${cachedKeys[0]}`);
         }
       }
       
