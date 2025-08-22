@@ -223,7 +223,7 @@ export default {
   cruiseDateActiveIndex,
   cruiseLineShipDateIndex,
   cruiseFilePathIndex,
-  cruiseCodeToCruiseIdIndex,
+  cruiseCruiseIdIndex,
   
   // Alternative sailings indexes
   altSailingsBaseCruiseIndex,

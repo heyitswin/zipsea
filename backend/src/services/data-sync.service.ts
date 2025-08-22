@@ -325,33 +325,31 @@ export class DataSyncService {
     returnDate.setDate(returnDate.getDate() + data.nights);
 
     const cruiseRecord: NewCruise = {
-      id: data.cruiseid,
-      codeToCruiseId: data.codetocruiseid,
+      id: Number(data.codetocruiseid), // ID is now codetocruiseid (unique per sailing)
+      cruiseId: Number(data.cruiseid), // cruiseId is the original cruiseid (can duplicate)
       cruiseLineId: data.lineid,
       shipId: data.shipid,
       name: data.name,
       itineraryCode: data.itinerarycode || null,
       voyageCode: data.voyagecode || null,
       sailingDate: data.saildate,
-      returnDate: returnDate.toISOString().split('T')[0],
+      startDate: data.startdate || null,
       nights: data.nights,
       sailNights: data.sailnights || null,
       seaDays: data.seadays || null,
       embarkPortId: data.startportid || null,
       disembarkPortId: data.endportid || null,
-      regionIds: JSON.stringify(data.regionids || []),
-      portIds: JSON.stringify(data.portids || []),
+      regionIds: data.regionids ? data.regionids.join(',') : null, // Store as comma-separated string
+      portIds: data.portids ? data.portids.join(',') : null, // Store as comma-separated string
       marketId: data.marketid || null,
-      ownerId: data.ownerid || null,
+      ownerId: 'system', // Changed to VARCHAR with default 'system'
       noFly: data.nofly || false,
       departUk: data.departuk || false,
       showCruise: data.showcruise !== false,
       flyCruiseInfo: data.flycruiseinfo || null,
-      lineContent: data.linecontent || null,
       traveltekFilePath: file.filePath,
-      lastCached: data.lastcached ? new Date(data.lastcached) : null,
-      cachedDate: data.cacheddate || null,
-      currency: 'USD', // Default, will be overridden if found in pricing
+      lastCached: data.lastcached ? Number(data.lastcached) : null, // This is INTEGER (Unix timestamp)
+      cachedDate: data.cacheddate ? new Date(data.cacheddate) : null, // This is TIMESTAMP
       isActive: true,
       updatedAt: new Date(),
     };
