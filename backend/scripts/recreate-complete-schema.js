@@ -57,6 +57,8 @@ async function recreateSchema() {
       DROP TABLE IF EXISTS cabin_categories CASCADE;
       DROP TABLE IF EXISTS itineraries CASCADE;
       DROP TABLE IF EXISTS cruises CASCADE;
+      DROP TABLE IF EXISTS ship_images CASCADE;
+      DROP TABLE IF EXISTS ship_decks CASCADE;
       DROP TABLE IF EXISTS ships CASCADE;
       DROP TABLE IF EXISTS ports CASCADE;
       DROP TABLE IF EXISTS regions CASCADE;
