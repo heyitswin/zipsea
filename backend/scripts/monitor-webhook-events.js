@@ -152,8 +152,8 @@ async function monitorWebhooks() {
   console.log('1. Log into Traveltek iSell platform');
   console.log('2. Navigate to Settings > Webhooks');
   console.log('3. Add webhook URL:');
-  console.log('   Staging: https://zipsea-staging.onrender.com/api/webhooks/traveltek');
-  console.log('   Production: https://zipsea.onrender.com/api/webhooks/traveltek');
+  console.log('   https://zipsea-production.onrender.com/api/webhooks/traveltek');
+  console.log('   (Use production URL for both staging and production)');
   console.log('4. Select event types: price_update, availability_update');
   console.log('5. Save and test the webhook');
   

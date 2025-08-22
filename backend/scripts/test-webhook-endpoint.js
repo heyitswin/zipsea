@@ -15,7 +15,7 @@ const fetch = require('node-fetch');
 const postgres = require('postgres');
 
 // Configuration
-const WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://zipsea-staging.onrender.com/api/webhooks/traveltek';
+const WEBHOOK_URL = process.env.WEBHOOK_URL || 'https://zipsea-production.onrender.com/api/webhooks/traveltek';
 const DATABASE_URL = process.env.DATABASE_URL;
 
 const sql = postgres(DATABASE_URL, {
