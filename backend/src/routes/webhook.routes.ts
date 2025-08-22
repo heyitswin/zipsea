@@ -114,12 +114,13 @@ router.post('/traveltek', async (req: Request, res: Response, next: NextFunction
     
     return;
 
+    /* COMMENTED OUT DURING MAINTENANCE
     // Route to appropriate handler based on event type
-    // if (webhookEvent === 'cruiseline_pricing_updated' || body.event === 'cruiseline_pricing_updated') {
-    //   // Process static pricing update
-    //   await traveltekWebhookService.handleStaticPricingUpdate(body);
-    // } else if (webhookEvent === 'cruises_live_pricing_updated' || body.event === 'cruises_live_pricing_updated') {
-    //   // Live pricing not currently used
+    if (webhookEvent === 'cruiseline_pricing_updated' || body.event === 'cruiseline_pricing_updated') {
+      // Process static pricing update
+      await traveltekWebhookService.handleStaticPricingUpdate(body);
+    } else if (webhookEvent === 'cruises_live_pricing_updated' || body.event === 'cruises_live_pricing_updated') {
+      // Live pricing not currently used
       logger.info('Live pricing webhook acknowledged but not processed', {
         paths: body.paths?.length || 0
       });
@@ -134,6 +135,7 @@ router.post('/traveltek', async (req: Request, res: Response, next: NextFunction
       timestamp: new Date().toISOString(),
       event: webhookEvent,
     });
+    */
 
   } catch (error) {
     logger.error('Error processing Traveltek webhook', {
