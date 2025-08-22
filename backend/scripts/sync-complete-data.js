@@ -166,6 +166,19 @@ class FTPManager {
  * Extract and sync static pricing data from prices object
  */
 async function syncPricingData(cruiseData, cruiseId) {
+  // Check if pricing table exists first
+  const tableExists = await sql`
+    SELECT EXISTS (
+      SELECT FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name = 'pricing'
+    )
+  `;
+  
+  if (!tableExists[0].exists) {
+    return 0; // Skip pricing sync if table doesn't exist
+  }
+  
   const prices = cruiseData.prices || {};
   const pricingRecords = [];
   
@@ -707,7 +720,11 @@ async function processCruiseFile(ftpManager, filePath) {
 
 async function syncMonth(year, month) {
   const ftpManager = new FTPManager();
-  const directory = `/isell_json/${year}/${month}`;
+  // Try both path structures
+  const directories = [
+    `${year}/${month}`,  // New structure: 2025/09
+    `/isell_json/${year}/${month}`  // Old structure: /isell_json/2025/09
+  ];
   
   console.log(`\n📅 Syncing ${year}-${month}`);
   console.log('=' .repeat(50));
@@ -715,13 +732,61 @@ async function syncMonth(year, month) {
   try {
     await ftpManager.connect();
     
-    const files = await ftpManager.listFiles(directory);
-    console.log(`📁 Found ${files.length} cruise files`);
+    let allFiles = [];
     
-    if (files.length === 0) {
-      console.log('⚠️  No files found in this directory');
+    // Try different directory structures
+    for (const directory of directories) {
+      console.log(`🔍 Checking directory: ${directory}`);
+      
+      try {
+        // First check if it's a flat directory with JSON files
+        const files = await ftpManager.listFiles(directory);
+        if (files.length > 0) {
+          console.log(`  ✓ Found ${files.length} files in ${directory}`);
+          allFiles = files.map(f => ({ ...f, basePath: directory }));
+          break;
+        }
+        
+        // If no files, check for subdirectories (line/ship structure)
+        const dirs = await ftpManager.client.listAsync(directory);
+        const subdirs = dirs.filter(d => d.type === 'd');
+        
+        if (subdirs.length > 0) {
+          console.log(`  📂 Found ${subdirs.length} subdirectories, checking for cruise files...`);
+          
+          for (const lineDir of subdirs) {
+            const linePath = `${directory}/${lineDir.name}`;
+            const shipDirs = await ftpManager.client.listAsync(linePath);
+            
+            for (const shipDir of shipDirs.filter(d => d.type === 'd')) {
+              const shipPath = `${linePath}/${shipDir.name}`;
+              const shipFiles = await ftpManager.listFiles(shipPath);
+              
+              allFiles.push(...shipFiles.map(f => ({ 
+                ...f, 
+                basePath: shipPath,
+                lineName: lineDir.name,
+                shipName: shipDir.name 
+              })));
+            }
+          }
+          
+          if (allFiles.length > 0) {
+            console.log(`  ✓ Found ${allFiles.length} total cruise files across subdirectories`);
+            break;
+          }
+        }
+      } catch (err) {
+        console.log(`  ✗ Directory not accessible: ${err.message}`);
+      }
+    }
+    
+    if (allFiles.length === 0) {
+      console.log('⚠️  No cruise files found in any directory structure');
       return;
     }
+    
+    console.log(`📁 Total cruise files to process: ${allFiles.length}`);
     
     let processed = 0;
     let successful = 0;
@@ -729,13 +794,14 @@ async function syncMonth(year, month) {
     let totalCabins = 0;
     
     // Process in batches
-    for (let i = 0; i < files.length; i += CONFIG.batchSize) {
-      const batch = files.slice(i, Math.min(i + CONFIG.batchSize, files.length));
+    for (let i = 0; i < allFiles.length; i += CONFIG.batchSize) {
+      const batch = allFiles.slice(i, Math.min(i + CONFIG.batchSize, allFiles.length));
       
       const results = await Promise.all(
-        batch.map(file => 
-          processCruiseFile(ftpManager, `${directory}/${file.name}`)
-        )
+        batch.map(file => {
+          const filePath = `${file.basePath}/${file.name}`;
+          return processCruiseFile(ftpManager, filePath);
+        })
       );
       
       results.forEach(result => {
@@ -748,8 +814,8 @@ async function syncMonth(year, month) {
       });
       
       // Progress update
-      const progress = Math.round((processed / files.length) * 100);
-      process.stdout.write(`\r📊 Progress: ${progress}% (${processed}/${files.length}) | ✅ Success: ${successful} | 💰 Pricing: ${totalPricing} | 🛏️ Cabins: ${totalCabins}`);
+      const progress = Math.round((processed / allFiles.length) * 100);
+      process.stdout.write(`\r📊 Progress: ${progress}% (${processed}/${allFiles.length}) | ✅ Success: ${successful} | 💰 Pricing: ${totalPricing} | 🛏️ Cabins: ${totalCabins}`);
     }
     
     console.log('\n');
@@ -783,6 +849,21 @@ async function main() {
     const dbTest = await sql`SELECT NOW() as time`;
     console.log('✅ Database connection established');
     
+    // Check if pricing table exists, warn if not
+    const pricingTableExists = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'pricing'
+      )
+    `;
+    
+    if (!pricingTableExists[0].exists) {
+      console.log('⚠️  WARNING: pricing table does not exist in database');
+      console.log('   Run migrations first: npm run db:migrate');
+      console.log('   Continuing without pricing sync...');
+    }
+    
     // Determine what to sync
     if (CONFIG.syncYears) {
       // Sync entire years
@@ -802,22 +883,52 @@ async function main() {
     console.log('📊 FINAL STATISTICS');
     console.log('='.repeat(50));
     
-    const stats = await sql`
-      SELECT 
-        (SELECT COUNT(*) FROM cruises) as total_cruises,
-        (SELECT COUNT(*) FROM pricing) as total_pricing,
-        (SELECT COUNT(*) FROM cabin_categories) as total_cabins,
-        (SELECT COUNT(*) FROM ships) as total_ships,
-        (SELECT COUNT(*) FROM cruise_lines) as total_lines,
-        (SELECT COUNT(*) FROM ports) as total_ports
-    `;
+    // Get stats for tables that exist
+    let stats = {
+      total_cruises: 0,
+      total_pricing: 0,
+      total_cabins: 0,
+      total_ships: 0,
+      total_lines: 0,
+      total_ports: 0
+    };
     
-    console.log(`🚢 Total Cruises: ${stats[0].total_cruises}`);
-    console.log(`💰 Total Pricing Records: ${stats[0].total_pricing}`);
-    console.log(`🛏️ Total Cabin Categories: ${stats[0].total_cabins}`);
-    console.log(`⚓ Total Ships: ${stats[0].total_ships}`);
-    console.log(`🏢 Total Cruise Lines: ${stats[0].total_lines}`);
-    console.log(`🌍 Total Ports: ${stats[0].total_ports}`);
+    try {
+      const cruiseCount = await sql`SELECT COUNT(*) as count FROM cruises`;
+      stats.total_cruises = cruiseCount[0].count;
+    } catch (e) {}
+    
+    try {
+      const pricingCount = await sql`SELECT COUNT(*) as count FROM pricing`;
+      stats.total_pricing = pricingCount[0].count;
+    } catch (e) {}
+    
+    try {
+      const cabinCount = await sql`SELECT COUNT(*) as count FROM cabin_categories`;
+      stats.total_cabins = cabinCount[0].count;
+    } catch (e) {}
+    
+    try {
+      const shipCount = await sql`SELECT COUNT(*) as count FROM ships`;
+      stats.total_ships = shipCount[0].count;
+    } catch (e) {}
+    
+    try {
+      const lineCount = await sql`SELECT COUNT(*) as count FROM cruise_lines`;
+      stats.total_lines = lineCount[0].count;
+    } catch (e) {}
+    
+    try {
+      const portCount = await sql`SELECT COUNT(*) as count FROM ports`;
+      stats.total_ports = portCount[0].count;
+    } catch (e) {}
+    
+    console.log(`🚢 Total Cruises: ${stats.total_cruises}`);
+    console.log(`💰 Total Pricing Records: ${stats.total_pricing}`);
+    console.log(`🛏️ Total Cabin Categories: ${stats.total_cabins}`);
+    console.log(`⚓ Total Ships: ${stats.total_ships}`);
+    console.log(`🏢 Total Cruise Lines: ${stats.total_lines}`);
+    console.log(`🌍 Total Ports: ${stats.total_ports}`);
     
     console.log('\n✅ COMPLETE DATA SYNC SUCCESSFUL!');
     console.log('All available data has been extracted and synced.');
