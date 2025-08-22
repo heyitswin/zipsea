@@ -166,21 +166,57 @@ class FTPManager {
  * Extract and sync static pricing data from prices object
  */
 async function syncPricingData(cruiseData, cruiseId) {
-  // Check if pricing table exists first
-  const tableExists = await sql`
-    SELECT EXISTS (
-      SELECT FROM information_schema.tables 
-      WHERE table_schema = 'public' 
-      AND table_name = 'pricing'
-    )
-  `;
-  
-  if (!tableExists[0].exists) {
-    return 0; // Skip pricing sync if table doesn't exist
-  }
-  
-  const prices = cruiseData.prices || {};
-  const pricingRecords = [];
+  try {
+    // Check if pricing table exists first
+    const tableExists = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'pricing'
+      )
+    `;
+    
+    if (!tableExists[0].exists) {
+      console.warn('⚠️  Pricing table does not exist, skipping pricing sync');
+      return 0; // Skip pricing sync if table doesn't exist
+    }
+    
+    // Try different possible pricing field names
+    const prices = cruiseData.prices || cruiseData.cachedprices || cruiseData.pricing || {};
+    
+    // Debug logging for first few cruises to see structure
+    if (!global.pricingDebugCount) global.pricingDebugCount = 0;
+    if (global.pricingDebugCount < 3) {
+      console.log(`\n🔍 Debugging cruise ${cruiseData.codetocruiseid}:`);
+      console.log(`  - Has 'prices' field: ${!!cruiseData.prices}`);
+      console.log(`  - Has 'cachedprices' field: ${!!cruiseData.cachedprices}`);
+      console.log(`  - Has 'pricing' field: ${!!cruiseData.pricing}`);
+      console.log(`  - Has 'price' field: ${!!cruiseData.price}`);
+      
+      // Show first 15 top-level keys
+      const topKeys = Object.keys(cruiseData).slice(0, 15);
+      console.log(`  - Top-level keys: ${topKeys.join(', ')}`);
+      
+      // If prices exists, show its structure
+      if (cruiseData.prices && Object.keys(cruiseData.prices).length > 0) {
+        const firstRateCode = Object.keys(cruiseData.prices)[0];
+        console.log(`  - First rate code: ${firstRateCode}`);
+        if (cruiseData.prices[firstRateCode]) {
+          const firstCabin = Object.keys(cruiseData.prices[firstRateCode])[0];
+          console.log(`  - First cabin under ${firstRateCode}: ${firstCabin}`);
+        }
+      }
+      
+      global.pricingDebugCount++;
+    }
+    
+    // Check if prices object is empty
+    if (Object.keys(prices).length === 0) {
+      // This cruise has no pricing data
+      return 0;
+    }
+    
+    const pricingRecords = [];
   
   // Helper to truncate strings
   const truncateString = (str, maxLength) => {
@@ -256,6 +292,11 @@ async function syncPricingData(cruiseData, cruiseId) {
   }
   
   return pricingRecords.length;
+  } catch (error) {
+    console.error('❌ Error in syncPricingData:', error.message);
+    // Return 0 on error so the sync continues
+    return 0;
+  }
 }
 
 /**
