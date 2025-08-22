@@ -322,6 +322,82 @@ async function syncPricingData(cruiseData, cruiseId) {
 }
 
 /**
+ * Sync cheapest pricing data from top-level cruise fields
+ */
+async function syncCheapestPricing(cruiseData, cruiseId) {
+  try {
+    // Check if cheapest_pricing table exists
+    const tableExists = await sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'cheapest_pricing'
+      )
+    `;
+    
+    if (!tableExists[0].exists) {
+      return; // Skip if table doesn't exist
+    }
+    
+    // Extract cheapest prices from top-level fields
+    const cheapestData = {
+      cruise_id: cruiseId,
+      cheapest_price: cruiseData.cheapestprice || null,
+      cheapest_cabin_type: cruiseData.cheapestcabintype || null,
+      
+      // Interior pricing
+      interior_price: cruiseData.cheapestinside || cruiseData.cheapestinterior || null,
+      interior_price_code: cruiseData.cheapestinsidepricecode || null,
+      
+      // Oceanview pricing
+      oceanview_price: cruiseData.cheapestoceanview || cruiseData.cheapestoutside || null,
+      oceanview_price_code: cruiseData.cheapestoutsidepricecode || cruiseData.cheapestoceanviewpricecode || null,
+      
+      // Balcony pricing
+      balcony_price: cruiseData.cheapestbalcony || null,
+      balcony_price_code: cruiseData.cheapestbalconypricecode || null,
+      
+      // Suite pricing
+      suite_price: cruiseData.cheapestsuite || null,
+      suite_price_code: cruiseData.cheapestsuitepricecode || null,
+      
+      currency: cruiseData.currency || 'USD',
+    };
+    
+    // Only insert if we have at least one price
+    if (cheapestData.cheapest_price || cheapestData.interior_price || 
+        cheapestData.oceanview_price || cheapestData.balcony_price || 
+        cheapestData.suite_price) {
+      
+      await sql`
+        INSERT INTO cheapest_pricing ${sql(cheapestData)}
+        ON CONFLICT (cruise_id) 
+        DO UPDATE SET
+          cheapest_price = EXCLUDED.cheapest_price,
+          cheapest_cabin_type = EXCLUDED.cheapest_cabin_type,
+          interior_price = EXCLUDED.interior_price,
+          interior_price_code = EXCLUDED.interior_price_code,
+          oceanview_price = EXCLUDED.oceanview_price,
+          oceanview_price_code = EXCLUDED.oceanview_price_code,
+          balcony_price = EXCLUDED.balcony_price,
+          balcony_price_code = EXCLUDED.balcony_price_code,
+          suite_price = EXCLUDED.suite_price,
+          suite_price_code = EXCLUDED.suite_price_code,
+          currency = EXCLUDED.currency,
+          last_updated = CURRENT_TIMESTAMP
+      `;
+      
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('❌ Error in syncCheapestPricing:', error.message);
+    return false;
+  }
+}
+
+/**
  * Calculate total price from price components
  */
 function calculateTotalPrice(priceData) {
@@ -831,6 +907,9 @@ async function processCruiseFile(ftpManager, filePath) {
     
     // CRITICAL: Sync static pricing data
     const pricingCount = await syncPricingData(cruiseData, cruiseDbId);
+    
+    // CRITICAL: Sync cheapest pricing data
+    await syncCheapestPricing(cruiseData, cruiseDbId);
     
     // CRITICAL: Sync cabin categories
     const cabinCount = await syncCabinCategories(cruiseData, cruiseData.shipid);
