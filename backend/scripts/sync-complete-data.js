@@ -274,6 +274,18 @@ async function syncCabinCategories(cruiseData, shipId) {
   const cabins = cruiseData.cabins || {};
   const cabinRecords = [];
   
+  // Helper function to validate dates
+  const validateDate = (dateStr) => {
+    if (!dateStr) return null;
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return null;
+      return dateStr;
+    } catch (e) {
+      return null;
+    }
+  };
+  
   for (const [cabinCode, cabinData] of Object.entries(cabins)) {
     if (!cabinData) continue;
     
@@ -289,8 +301,8 @@ async function syncCabinCategories(cruiseData, shipId) {
       image_url_hd: cabinData.imageurlhd || null,
       image_url_2k: cabinData.imageurl2k || null,
       is_default: cabinData.isdefault === true || cabinData.isdefault === 'Y',
-      valid_from: cabinData.validfrom || null,
-      valid_to: cabinData.validto || null,
+      valid_from: validateDate(cabinData.validfrom),
+      valid_to: validateDate(cabinData.validto),
       cabin_id: cabinData.id || null,
       is_active: true,
     });
@@ -345,6 +357,18 @@ async function syncShipDetails(cruiseData) {
   
   const shipId = cruiseData.shipid;
   
+  // Helper function to validate dates
+  const validateDate = (dateStr) => {
+    if (!dateStr) return null;
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return null;
+      return dateStr;
+    } catch (e) {
+      return null;
+    }
+  };
+  
   // Update ship with additional details
   await sql`
     UPDATE ships SET
@@ -353,7 +377,7 @@ async function syncShipDetails(cruiseData) {
       occupancy = ${shipContent.limitof || null},
       total_crew = ${shipContent.crewno || null},
       length = ${shipContent.length || null},
-      launched = ${shipContent.launched || null},
+      launched = ${validateDate(shipContent.launched)},
       star_rating = ${shipContent.starrating || null},
       adults_only = ${shipContent.adultsonly === true},
       short_description = ${shipContent.shortdescription || null},
@@ -407,8 +431,8 @@ async function syncShipDetails(cruiseData) {
       plan_image: deckData.planimage || deckData.imageurl || null,
       live_name: deckData.livename || null,
       deck_plan_id: deckData.deckplanid || null,
-      valid_from: deckData.validfrom || null,
-      valid_to: deckData.validto || null,
+      valid_from: validateDate(deckData.validfrom),
+      valid_to: validateDate(deckData.validto),
     }));
     
     if (deckRecords.length > 0) {
@@ -496,6 +520,18 @@ async function syncAlternativeSailings(cruiseData, cruiseId) {
   
   if (!tableExists[0].exists) return;
   
+  // Helper function to validate dates
+  const validateDate = (dateStr) => {
+    if (!dateStr) return null;
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return null;
+      return dateStr;
+    } catch (e) {
+      return null;
+    }
+  };
+  
   const altRecords = [];
   
   for (const [altId, altData] of Object.entries(altSailings)) {
@@ -504,9 +540,11 @@ async function syncAlternativeSailings(cruiseData, cruiseId) {
     altRecords.push({
       cruise_id: cruiseId,
       alternative_cruise_id: altId,
-      departure_date: altData.departuredate || altData.saildate,
-      price_difference: altData.pricediff || 0,
-      availability_status: altData.availability || 'available',
+      sail_date: validateDate(altData.saildate),
+      start_date: validateDate(altData.startdate),
+      lead_price: altData.leadprice || null,
+      voyage_code: altData.voyagecode || null,
+      ship_id: altData.shipid || null,
     });
   }
   
@@ -515,9 +553,11 @@ async function syncAlternativeSailings(cruiseData, cruiseId) {
       INSERT INTO alternative_sailings ${sql(altRecords)}
       ON CONFLICT (cruise_id, alternative_cruise_id) 
       DO UPDATE SET
-        departure_date = EXCLUDED.departure_date,
-        price_difference = EXCLUDED.price_difference,
-        availability_status = EXCLUDED.availability_status,
+        sail_date = EXCLUDED.sail_date,
+        start_date = EXCLUDED.start_date,
+        lead_price = EXCLUDED.lead_price,
+        voyage_code = EXCLUDED.voyage_code,
+        ship_id = EXCLUDED.ship_id,
         updated_at = CURRENT_TIMESTAMP
     `;
   }
