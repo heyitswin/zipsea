@@ -1119,6 +1119,152 @@ export default function Home() {
           backgroundPosition: 'left top'
         }}
       />
+
+      {/* Footer Section */}
+      <footer className="bg-white py-16">
+        <div className="max-w-7xl mx-auto px-8">
+          <div className="flex justify-between items-start">
+            {/* Left side - Logo and links */}
+            <div className="flex flex-col">
+              {/* Zipsea Logo */}
+              <div className="mb-6">
+                <Image
+                  src="/images/zipsea-logo.svg"
+                  alt="Zipsea"
+                  width={110}
+                  height={40}
+                  className="brightness-0"
+                  style={{ filter: 'brightness(0) saturate(100%) invert(18%) sepia(0%) saturate(0%) hue-rotate(180deg) brightness(95%) contrast(89%)' }}
+                />
+              </div>
+              
+              {/* Terms & Conditions Link */}
+              <a 
+                href="#" 
+                className="font-geograph font-bold mb-3"
+                style={{
+                  fontSize: '9px',
+                  color: '#2f2f2f',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase'
+                }}
+              >
+                TERMS & CONDITIONS
+              </a>
+              
+              {/* Privacy Policy Link */}
+              <a 
+                href="#" 
+                className="font-geograph font-bold"
+                style={{
+                  fontSize: '9px',
+                  color: '#2f2f2f',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase'
+                }}
+              >
+                PRIVACY POLICY
+              </a>
+            </div>
+            
+            {/* Right side - Navigation links and social icons */}
+            <div className="flex items-center gap-8">
+              {/* Why Zipsea */}
+              <a 
+                href="#" 
+                className="flex items-center font-geograph font-medium hover:opacity-80 transition-opacity"
+                style={{
+                  fontSize: '16px',
+                  color: '#2f2f2f',
+                  letterSpacing: '-0.02em'
+                }}
+              >
+                <Image
+                  src="/images/whyzipsea.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="mr-3"
+                />
+                Why Zipsea
+              </a>
+              
+              {/* FAQs */}
+              <a 
+                href="#" 
+                className="flex items-center font-geograph font-medium hover:opacity-80 transition-opacity"
+                style={{
+                  fontSize: '16px',
+                  color: '#2f2f2f',
+                  letterSpacing: '-0.02em'
+                }}
+              >
+                <Image
+                  src="/images/faq.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="mr-3"
+                />
+                FAQs
+              </a>
+              
+              {/* Chat with us */}
+              <a 
+                href="#" 
+                className="flex items-center font-geograph font-medium hover:opacity-80 transition-opacity"
+                style={{
+                  fontSize: '16px',
+                  color: '#2f2f2f',
+                  letterSpacing: '-0.02em'
+                }}
+              >
+                <Image
+                  src="/images/chat.svg"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="mr-3"
+                />
+                Chat with us
+              </a>
+              
+              {/* TikTok Icon */}
+              <a 
+                href="https://www.tiktok.com/@zipseacruises"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:opacity-80 transition-opacity"
+              >
+                <Image
+                  src="/images/tiktok.svg"
+                  alt="TikTok"
+                  width={24}
+                  height={24}
+                />
+              </a>
+              
+              {/* Instagram Icon */}
+              <a 
+                href="https://www.instagram.com/zipseacruises/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:opacity-80 transition-opacity"
+              >
+                <Image
+                  src="/images/instagram.svg"
+                  alt="Instagram"
+                  width={24}
+                  height={24}
+                />
+              </a>
+            </div>
+          </div>
+        </div>
+        
+        {/* Bottom spacing */}
+        <div className="h-[300px]" />
+      </footer>
     </>
   );
 }
