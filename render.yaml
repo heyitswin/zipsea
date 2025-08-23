@@ -150,7 +150,7 @@ services:
       - key: PORT
         value: 3000
       - key: NEXT_PUBLIC_API_URL
-        value: https://zipsea-backend-staging.onrender.com/api/v1
+        value: https://zipsea-staging.onrender.com/api/v1
       - key: NEXT_PUBLIC_ENVIRONMENT
         value: staging
       - key: NEXT_PUBLIC_SITE_URL
@@ -174,7 +174,7 @@ services:
       - key: PORT
         value: 3000
       - key: NEXT_PUBLIC_API_URL
-        value: https://zipsea-backend-production.onrender.com/api/v1
+        value: https://zipsea-production.onrender.com/api/v1
       - key: NEXT_PUBLIC_ENVIRONMENT
         value: production
       - key: NEXT_PUBLIC_SITE_URL
