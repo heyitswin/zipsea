@@ -1,106 +1,146 @@
-# Render Blueprint for Zipsea Monorepo
-# This file manages all services: backend (prod/staging) and frontend (prod/staging)
-# Render automatically detects which service to deploy based on rootDir changes
+databases:
+  # Staging PostgreSQL Database
+  - name: zipsea-postgres-staging
+    databaseName: zipsea_staging_db
+    user: zipsea_staging_user
+    plan: basic-256mb
+    region: oregon
+    ipAllowList: []
+
+  # Production PostgreSQL Database
+  - name: zipsea-postgres-production
+    databaseName: zipsea_production_db
+    user: zipsea_production_user
+    plan: basic-256mb
+    region: oregon
+    ipAllowList: []
 
 services:
+
+  # Staging Redis Cache
+  - type: redis
+    name: zipsea-redis-staging
+    plan: free
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+  # Production Redis Cache
+  - type: redis
+    name: zipsea-redis-production
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
   # ===========================================
   # BACKEND SERVICES
   # ===========================================
-  
-  # Production Backend
-  - type: web
-    name: zipsea-backend-production
-    runtime: node
-    region: oregon
-    plan: starter
-    branch: production
-    rootDir: backend
-    buildCommand: npm ci --production=false
-    startCommand: npm run start
-    healthCheckPath: /api/v1/health
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 3001
-      - key: DATABASE_URL
-        fromDatabase:
-          name: zipsea-db-prod
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          name: zipsea-redis-prod
-          type: redis
-          property: connectionString
-      - key: CORS_ORIGIN
-        value: https://zipsea-frontend-production.onrender.com
-    autoDeploy: true
 
-  # Staging Backend
+  # Backend API - Staging Environment
   - type: web
     name: zipsea-backend-staging
-    runtime: node
+    env: node
     region: oregon
     plan: starter
-    branch: main
-    rootDir: backend
-    buildCommand: npm ci --production=false
-    startCommand: npm run start
-    healthCheckPath: /api/v1/health
+    branch: main  # Deploy from main branch
+    rootDir: backend  # Only deploy when backend changes
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: staging
       - key: PORT
-        value: 3001
+        value: 10000
       - key: DATABASE_URL
         fromDatabase:
-          name: zipsea-db-staging
+          name: zipsea-postgres-staging
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: zipsea-redis-staging
           type: redis
+          name: zipsea-redis-staging
           property: connectionString
       - key: CORS_ORIGIN
         value: https://zipsea-frontend-staging.onrender.com
+      - key: LOG_LEVEL
+        value: info
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 100
+      - key: JWT_SECRET
+        generateValue: true
+      - key: WEBHOOK_SECRET
+        generateValue: true
+      # These will be added manually in Render Dashboard
+      # - key: CLERK_PUBLISHABLE_KEY
+      # - key: CLERK_SECRET_KEY
+      # - key: SENTRY_DSN
+      # - key: TRAVELTEK_FTP_HOST
+      # - key: TRAVELTEK_FTP_USER
+      # - key: TRAVELTEK_FTP_PASSWORD
     autoDeploy: true
 
-  # ===========================================
-  # FRONTEND SERVICES
-  # ===========================================
-  
-  # Production Frontend
+  # Production Backend API
   - type: web
-    name: zipsea-frontend-production
-    runtime: node
+    name: zipsea-backend-production
+    env: node
     region: oregon
-    plan: starter
-    branch: production
-    rootDir: frontend
-    buildCommand: npm ci && npm run build
-    startCommand: npm run start
-    healthCheckPath: /
+    plan: standard
+    branch: production  # Deploy from production branch only
+    rootDir: backend  # Only deploy when backend changes
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3000
-      - key: NEXT_PUBLIC_API_URL
-        value: https://zipsea-backend-production.onrender.com/api/v1
-      - key: NEXT_PUBLIC_ENVIRONMENT
-        value: production
-      - key: NEXT_PUBLIC_SITE_URL
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: zipsea-postgres-production
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: zipsea-redis-production
+          property: connectionString
+      - key: CORS_ORIGIN
         value: https://zipsea-frontend-production.onrender.com
-    autoDeploy: true
+      - key: LOG_LEVEL
+        value: warn
+      - key: RATE_LIMIT_WINDOW_MS
+        value: 900000
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 200
+      - key: JWT_SECRET
+        generateValue: true
+      - key: WEBHOOK_SECRET
+        generateValue: true
+      # These will be added manually in Render Dashboard
+      # - key: CLERK_PUBLISHABLE_KEY
+      # - key: CLERK_SECRET_KEY
+      # - key: SENTRY_DSN
+      # - key: TRAVELTEK_FTP_HOST
+      # - key: TRAVELTEK_FTP_USER
+      # - key: TRAVELTEK_FTP_PASSWORD
+    autoDeploy: true  # Auto-deploy when production branch updates
 
-  # Staging Frontend
+  # ===========================================
+  # FRONTEND SERVICES (NEW)
+  # ===========================================
+  
+  # Frontend - Staging Environment
   - type: web
     name: zipsea-frontend-staging
-    runtime: node
+    env: node
     region: oregon
     plan: starter
     branch: main
-    rootDir: frontend
+    rootDir: frontend  # Only deploy when frontend changes
     buildCommand: npm ci && npm run build
     startCommand: npm run start
     healthCheckPath: /
@@ -117,20 +157,26 @@ services:
         value: https://zipsea-frontend-staging.onrender.com
     autoDeploy: true
 
-# ===========================================
-# DATABASES (Already Exist)
-# ===========================================
-databases:
-  - name: zipsea-db-prod
-    plan: starter
+  # Frontend - Production Environment
+  - type: web
+    name: zipsea-frontend-production
+    env: node
     region: oregon
-    
-  - name: zipsea-db-staging
     plan: starter
-    region: oregon
-
-# ===========================================
-# REDIS INSTANCES (Already Exist)
-# ===========================================
-# Note: Redis services are already created and will be referenced
-# by the backend services using fromService connections
+    branch: production
+    rootDir: frontend  # Only deploy when frontend changes
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: NEXT_PUBLIC_API_URL
+        value: https://zipsea-backend-production.onrender.com/api/v1
+      - key: NEXT_PUBLIC_ENVIRONMENT
+        value: production
+      - key: NEXT_PUBLIC_SITE_URL
+        value: https://zipsea-frontend-production.onrender.com
+    autoDeploy: true
