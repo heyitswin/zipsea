@@ -552,13 +552,17 @@ export default function Home() {
                 disabled={isSearching}
                 className="absolute right-2 w-[74px] h-[74px] bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Image
-                  src="/images/search.svg"
-                  alt="Search"
-                  width={32}
-                  height={32}
-                  className="brightness-0 invert"
-                />
+                {isSearching ? (
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+                ) : (
+                  <Image
+                    src="/images/search.svg"
+                    alt="Search"
+                    width={32}
+                    height={32}
+                    className="brightness-0 invert"
+                  />
+                )}
               </button>
             </div>
 
@@ -729,13 +733,6 @@ export default function Home() {
       {(isSearching || searchError || cruises.length > 0) && (
         <section className="bg-white py-16 px-8">
           <div className="max-w-7xl mx-auto">
-            {/* Loading State */}
-            {isSearching && (
-              <div className="text-center py-12">
-                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-light-blue"></div>
-                <p className="mt-4 text-gray-600 font-geograph">Searching for cruises...</p>
-              </div>
-            )}
 
             {/* Error State */}
             {searchError && !isSearching && (
@@ -1191,7 +1188,7 @@ export default function Home() {
                 }}
               >
                 <Image
-                  src="/images/whyzipsea.svg"
+                  src="/images/why-zipsea.svg"
                   alt=""
                   width={24}
                   height={24}
@@ -1211,7 +1208,7 @@ export default function Home() {
                 }}
               >
                 <Image
-                  src="/images/faq.svg"
+                  src="/images/faqs.svg"
                   alt=""
                   width={24}
                   height={24}
@@ -1231,7 +1228,7 @@ export default function Home() {
                 }}
               >
                 <Image
-                  src="/images/chat.svg"
+                  src="/images/chat-with-us.svg"
                   alt=""
                   width={24}
                   height={24}
@@ -1250,8 +1247,8 @@ export default function Home() {
                 <Image
                   src="/images/tiktok.svg"
                   alt="TikTok"
-                  width={24}
-                  height={24}
+                  width={45}
+                  height={45}
                 />
               </a>
               
@@ -1265,8 +1262,8 @@ export default function Home() {
                 <Image
                   src="/images/instagram.svg"
                   alt="Instagram"
-                  width={24}
-                  height={24}
+                  width={45}
+                  height={45}
                 />
               </a>
             </div>
