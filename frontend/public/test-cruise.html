@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Cruise API</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+        .success { background-color: #d4edda; }
+        .error { background-color: #f8d7da; }
+        .info { background-color: #d1ecf1; }
+    </style>
+</head>
+<body>
+    <h1>Test Cruise API</h1>
+    <div id="results"></div>
+    
+    <script>
+        const API_BASE_URL = 'http://localhost:3001/api/v1';
+        const slug = 'symphony-of-the-seas-2025-10-05-2143102';
+        
+        function addResult(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.textContent = message;
+            document.getElementById('results').appendChild(div);
+        }
+        
+        function parseCruiseSlug(slug) {
+            try {
+                const cleanSlug = slug.trim().replace(/^\/|\/$/, '');
+                const parts = cleanSlug.split('-');
+                
+                if (parts.length < 4) return null;
+                
+                const cruiseId = parseInt(parts[parts.length - 1], 10);
+                if (isNaN(cruiseId)) return null;
+                
+                const year = parts[parts.length - 4];
+                const month = parts[parts.length - 3];
+                const day = parts[parts.length - 2];
+                
+                if (!/^\\d{4}$/.test(year) || !/^\\d{2}$/.test(month) || !/^\\d{2}$/.test(day)) {
+                    return null;
+                }
+                
+                const departureDate = `${year}-${month}-${day}`;
+                const shipNameParts = parts.slice(0, parts.length - 4);
+                const shipName = shipNameParts.join('-');
+                
+                return {
+                    originalSlug: cleanSlug,
+                    shipName,
+                    departureDate,
+                    cruiseId,
+                };
+            } catch (error) {
+                return null;
+            }
+        }
+        
+        async function testAPIs() {
+            addResult('🚀 Starting cruise API test...', 'info');
+            addResult(`Testing slug: ${slug}`, 'info');
+            
+            // Parse slug
+            const parsedSlug = parseCruiseSlug(slug);
+            addResult(`Parsed slug: ${JSON.stringify(parsedSlug)}`, parsedSlug ? 'success' : 'error');
+            
+            if (!parsedSlug) {
+                addResult('❌ Failed to parse slug', 'error');
+                return;
+            }
+            
+            // Test comprehensive endpoint
+            try {
+                addResult(`🔍 Testing comprehensive endpoint with ID: ${parsedSlug.cruiseId}`, 'info');
+                const compUrl = `${API_BASE_URL}/cruises/${parsedSlug.cruiseId}/comprehensive`;
+                const compResponse = await fetch(compUrl);
+                
+                addResult(`Comprehensive endpoint response: ${compResponse.status}`, compResponse.ok ? 'success' : 'error');
+                
+                if (compResponse.ok) {
+                    const compData = await compResponse.json();
+                    addResult(`Success: ${compData.success}`, compData.success ? 'success' : 'error');
+                    
+                    if (compData.success && compData.data) {
+                        addResult(`Ship name: ${compData.data.ship?.name || 'N/A'}`, 'success');
+                        addResult(`Has pricing: ${!!compData.data.cheapestPricing}`, 'success');
+                        addResult(`Itinerary days: ${compData.data.itinerary?.length || 0}`, 'success');
+                        addResult(`Cabin categories: ${compData.data.cabinCategories?.length || 0}`, 'success');
+                        
+                        // Show pricing details
+                        if (compData.data.cheapestPricing) {
+                            const pricing = compData.data.cheapestPricing;
+                            addResult(`Interior: $${pricing.interiorPrice}`, 'success');
+                            addResult(`Oceanview: $${pricing.oceanviewPrice}`, 'success');
+                            addResult(`Balcony: $${pricing.balconyPrice}`, 'success');
+                            addResult(`Suite: $${pricing.suitePrice}`, 'success');
+                        }
+                    } else {
+                        addResult('❌ API returned success: false', 'error');
+                        addResult(`Error: ${JSON.stringify(compData.error || 'Unknown error')}`, 'error');
+                    }
+                } else {
+                    addResult(`❌ HTTP ${compResponse.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Network error: ${error.message}`, 'error');
+            }
+            
+            // Also test slug endpoint
+            try {
+                addResult('🔍 Testing slug endpoint...', 'info');
+                const slugUrl = `${API_BASE_URL}/cruises/slug/${slug}`;
+                const slugResponse = await fetch(slugUrl);
+                
+                addResult(`Slug endpoint response: ${slugResponse.status}`, slugResponse.ok ? 'success' : 'error');
+                
+                if (slugResponse.ok) {
+                    const slugData = await slugResponse.json();
+                    addResult(`Slug success: ${slugData.success}`, slugData.success ? 'success' : 'error');
+                    
+                    if (!slugData.success) {
+                        addResult(`Slug error: ${JSON.stringify(slugData.error)}`, 'error');
+                    }
+                } else {
+                    addResult(`❌ Slug HTTP ${slugResponse.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Slug network error: ${error.message}`, 'error');
+            }
+            
+            addResult('🏁 Test completed', 'info');
+        }
+        
+        // Run test when page loads
+        window.addEventListener('load', testAPIs);
+    </script>
+</body>
+</html>

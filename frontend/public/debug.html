@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Debug</title>
+</head>
+<body>
+    <h1>API Debug Page</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testAPI() {
+            const API_BASE_URL = 'http://localhost:3001/api/v1';
+            const slug = 'symphony-of-the-seas-2025-10-05-2143102';
+            const cruiseId = 2143102;
+            
+            console.log('🔍 Testing API calls...');
+            console.log('🔍 API_BASE_URL:', API_BASE_URL);
+            
+            const results = document.getElementById('results');
+            
+            try {
+                // Test slug endpoint
+                console.log('🔍 Testing slug endpoint...');
+                const slugUrl = `${API_BASE_URL}/cruises/slug/${slug}`;
+                console.log('🔍 Slug URL:', slugUrl);
+                
+                const slugResponse = await fetch(slugUrl);
+                console.log('🔍 Slug response status:', slugResponse.status);
+                
+                if (slugResponse.ok) {
+                    const slugData = await slugResponse.json();
+                    console.log('✅ Slug endpoint success:', slugData.success);
+                    results.innerHTML += `<p>✅ Slug endpoint: ${slugResponse.status}</p>`;
+                    
+                    if (slugData.success) {
+                        console.log('✅ Ship name:', slugData.data?.ship?.name);
+                        console.log('✅ Has pricing:', !!slugData.data?.cheapestPricing);
+                        console.log('✅ Has itinerary:', !!slugData.data?.itinerary?.length);
+                        results.innerHTML += `<p>Ship: ${slugData.data?.ship?.name}</p>`;
+                        results.innerHTML += `<p>Pricing available: ${!!slugData.data?.cheapestPricing}</p>`;
+                        results.innerHTML += `<p>Itinerary days: ${slugData.data?.itinerary?.length || 0}</p>`;
+                    }
+                } else {
+                    console.log('❌ Slug endpoint failed:', slugResponse.status);
+                    results.innerHTML += `<p>❌ Slug endpoint failed: ${slugResponse.status}</p>`;
+                }
+                
+                // Test comprehensive endpoint
+                console.log('🔍 Testing comprehensive endpoint...');
+                const compUrl = `${API_BASE_URL}/cruises/${cruiseId}/comprehensive`;
+                console.log('🔍 Comprehensive URL:', compUrl);
+                
+                const compResponse = await fetch(compUrl);
+                console.log('🔍 Comprehensive response status:', compResponse.status);
+                
+                if (compResponse.ok) {
+                    const compData = await compResponse.json();
+                    console.log('✅ Comprehensive endpoint success:', compData.success);
+                    results.innerHTML += `<p>✅ Comprehensive endpoint: ${compResponse.status}</p>`;
+                } else {
+                    console.log('❌ Comprehensive endpoint failed:', compResponse.status);
+                    results.innerHTML += `<p>❌ Comprehensive endpoint failed: ${compResponse.status}</p>`;
+                }
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                results.innerHTML += `<p>❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Run the test when page loads
+        testAPI();
+    </script>
+</body>
+</html>
