@@ -197,8 +197,23 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
   // Use comprehensive data if available, otherwise use fallback
   const cruise = cruiseData?.cruise || (fallbackData as any);
-  const ship = cruiseData?.ship || { name: fallbackData?.shipName };
-  const cruiseLine = cruiseData?.cruiseLine || { name: fallbackData?.cruiseLineName };
+  const ship = cruiseData?.ship || { 
+    name: fallbackData?.shipName,
+    defaultShipImage: undefined,
+    defaultShipImage2k: undefined,
+    defaultShipImageHd: undefined,
+    shortDescription: undefined,
+    tonnage: undefined,
+    starRating: undefined,
+    capacity: undefined,
+    yearBuilt: undefined,
+    length: undefined,
+    raw: undefined
+  };
+  const cruiseLine = cruiseData?.cruiseLine || { 
+    name: fallbackData?.cruiseLineName,
+    raw: undefined
+  };
   const embarkPort = cruiseData?.embarkPort || { name: fallbackData?.departurePort };
   const disembarkPort = cruiseData?.disembarkPort || { name: fallbackData?.departurePort };
   const pricing = cruiseData?.cheapestPricing;

@@ -953,11 +953,22 @@ export default function Home() {
                       // Handle cruise click - convert to expected format
                       const cruiseForNavigation = {
                         id: deal.id,
-                        ship_name: deal.ship_name,
-                        departure_date: deal.sailing_date,
-                        sailing_date: deal.sailing_date,
-                      };
-                      handleCruiseClick(cruiseForNavigation as Cruise);
+                        shipId: deal.ship_id || 0,
+                        shipName: deal.ship_name,
+                        cruiseLineName: deal.cruise_line_name,
+                        departureDate: deal.sailing_date,
+                        returnDate: deal.return_date || '',
+                        duration: deal.nights,
+                        itinerary: [],
+                        departurePort: deal.embarkation_port_name || deal.embark_port_name || '',
+                        prices: {
+                          interior: deal.cheapest_price || deal.cheapest_pricing,
+                          oceanView: deal.cheapest_price || deal.cheapest_pricing,
+                          balcony: deal.cheapest_price || deal.cheapest_pricing,
+                          suite: deal.cheapest_price || deal.cheapest_pricing
+                        }
+                      } as Cruise;
+                      handleCruiseClick(cruiseForNavigation);
                     }}
                   >
                     {/* Featured Image with Date Range Badge */}

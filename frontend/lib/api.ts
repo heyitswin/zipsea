@@ -434,12 +434,16 @@ export interface LastMinuteDeals {
   id: number;
   cruise_id?: string;
   name: string;
+  ship_id?: number;
   ship_name: string;
   cruise_line_name: string;
   nights: number;
   sailing_date: string;
+  return_date?: string;
   embark_port_name: string;
+  embarkation_port_name?: string;
   cheapest_pricing: number;
+  cheapest_price?: number;
   ship_image?: string;
   onboard_credit?: number;
 }
