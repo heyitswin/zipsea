@@ -21,6 +21,8 @@
 const postgres = require('postgres');
 const Client = require('ftp');
 const { promisify } = require('util');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 // =============================================================================
@@ -136,10 +138,47 @@ class FTPManager {
           stream.on('end', () => {
             try {
               const content = Buffer.concat(chunks).toString('utf8');
-              const data = JSON.parse(content);
-              resolve(data);
+              
+              // Try to clean up common JSON issues
+              let cleanedContent = content;
+              
+              // Remove any BOM (Byte Order Mark)
+              if (cleanedContent.charCodeAt(0) === 0xFEFF) {
+                cleanedContent = cleanedContent.slice(1);
+              }
+              
+              // Try to detect and fix common JSON errors
+              try {
+                const data = JSON.parse(cleanedContent);
+                resolve(data);
+              } catch (parseError) {
+                // Log more details about the error
+                console.error(`❌ JSON parse error in ${filePath}:`);
+                console.error(`   - Error: ${parseError.message}`);
+                
+                // Try to find the error position in the file
+                const match = parseError.message.match(/position (\d+)/);
+                if (match) {
+                  const position = parseInt(match[1]);
+                  const start = Math.max(0, position - 50);
+                  const end = Math.min(cleanedContent.length, position + 50);
+                  console.error(`   - Context around position ${position}:`);
+                  console.error(`     "${cleanedContent.substring(start, end).replace(/\n/g, '\\n')}"`);
+                }
+                
+                // Save problematic file for debugging
+                const debugDir = './debug-json-errors';
+                if (!fs.existsSync(debugDir)) {
+                  fs.mkdirSync(debugDir, { recursive: true });
+                }
+                const debugFile = path.join(debugDir, path.basename(filePath));
+                fs.writeFileSync(debugFile, content);
+                console.error(`   - Saved problematic file to: ${debugFile}`);
+                
+                reject(new Error(`Failed to parse JSON: ${parseError.message}`));
+              }
             } catch (error) {
-              reject(new Error(`Failed to parse JSON: ${error.message}`));
+              reject(error);
             }
           });
           stream.on('error', reject);

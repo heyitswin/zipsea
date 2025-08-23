@@ -66,8 +66,7 @@ export const cruiseLineShipDateIndex = index('cruises_line_ship_date_idx').on(
   cruises.sailingDate
 );
 
-// Traveltek file path for sync operations
-export const cruiseFilePathIndex = index('cruises_file_path_idx').on(cruises.traveltekFilePath);
+// Note: Traveltek file path is stored in cruise_sailings table, not cruises table
 export const cruiseCruiseIdIndex = index('cruises_cruise_id_idx').on(cruises.cruiseId);
 
 // Alternative sailings indexes
@@ -82,7 +81,7 @@ export const itineraryCruiseDayIndex = index('itineraries_cruise_day_idx').on(
   itineraries.dayNumber
 );
 export const itineraryPortIndex = index('itineraries_port_idx').on(itineraries.portId);
-export const itineraryDateIndex = index('itineraries_date_idx').on(itineraries.date);
+// Removed date index as itineraries table doesn't have a date column in production schema
 
 // Cabin category indexes
 export const cabinCategoryShipIndex = index('cabin_categories_ship_idx').on(cabinCategories.shipId);
@@ -140,7 +139,7 @@ export const fullTextSearchQueries = [
   `CREATE INDEX IF NOT EXISTS cruises_name_search_idx ON cruises USING GIN (to_tsvector('english', name))`,
   
   // Port name and location search
-  `CREATE INDEX IF NOT EXISTS ports_name_search_idx ON ports USING GIN (to_tsvector('english', name || ' ' || COALESCE(city, '') || ' ' || COALESCE(country, '')))`,
+  `CREATE INDEX IF NOT EXISTS ports_name_search_idx ON ports USING GIN (to_tsvector('english', name || ' ' || COALESCE(region, '') || ' ' || COALESCE(country, '')))`,
   
   // Ship name search
   `CREATE INDEX IF NOT EXISTS ships_name_search_idx ON ships USING GIN (to_tsvector('english', name))`,
@@ -222,7 +221,6 @@ export default {
   cruiseDateNightsLineIndex,
   cruiseDateActiveIndex,
   cruiseLineShipDateIndex,
-  cruiseFilePathIndex,
   cruiseCruiseIdIndex,
   
   // Alternative sailings indexes
@@ -234,7 +232,6 @@ export default {
   itineraryCruiseIndex,
   itineraryCruiseDayIndex,
   itineraryPortIndex,
-  itineraryDateIndex,
   
   // Cabin category indexes
   cabinCategoryShipIndex,

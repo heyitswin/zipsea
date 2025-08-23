@@ -15,8 +15,8 @@ export const cruiseDefinitions = pgTable('cruise_definitions', {
   nights: integer('nights').notNull(),
   sailNights: integer('sail_nights'), // sailnights
   seaDays: integer('sea_days'), // seadays
-  embarkPortId: integer('embark_port_id').references(() => ports.id),
-  disembarkPortId: integer('disembark_port_id').references(() => ports.id),
+  embarkPortId: integer('embarkation_port_id').references(() => ports.id),
+  disembarkPortId: integer('disembarkation_port_id').references(() => ports.id),
   regionIds: jsonb('region_ids').default('[]'), // regionids array as INTEGER[]
   portIds: jsonb('port_ids').default('[]'), // portids array as INTEGER[]
   marketId: integer('market_id'), // marketid
@@ -47,33 +47,30 @@ export const cruiseSailings = pgTable('cruise_sailings', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// Main cruises table - matches the actual database schema from recreate-database-correct-schema.js
+// Main cruises table - matches the working code expectations
 export const cruises = pgTable('cruises', {
-  id: integer('id').primaryKey(), // This stores code_to_cruise_id value (unique per sailing)
-  cruiseId: integer('cruise_id').notNull(), // Original cruiseid from Traveltek (can duplicate)
+  id: integer('id').primaryKey(), // Back to integer to match working code expectations
+  cruiseId: varchar('cruise_id'), // Original cruiseid from Traveltek (can duplicate)
   cruiseLineId: integer('cruise_line_id').references(() => cruiseLines.id).notNull(),
   shipId: integer('ship_id').references(() => ships.id).notNull(),
-  name: varchar('name', { length: 255 }),
+  name: varchar('name', { length: 500 }),
   voyageCode: varchar('voyage_code', { length: 50 }),
   itineraryCode: varchar('itinerary_code', { length: 50 }),
   sailingDate: date('sailing_date').notNull(),
-  startDate: date('start_date'),
+  returnDate: date('return_date'),
   nights: integer('nights'),
-  sailNights: integer('sail_nights'),
   seaDays: integer('sea_days'),
-  embarkPortId: integer('embark_port_id').references(() => ports.id),
-  disembarkPortId: integer('disembark_port_id').references(() => ports.id),
+  embarkPortId: integer('embarkation_port_id').references(() => ports.id), // Match working code
+  disembarkPortId: integer('disembarkation_port_id').references(() => ports.id), // Match working code
   portIds: varchar('port_ids', { length: 500 }), // Comma-separated string from API
-  regionIds: varchar('region_ids', { length: 500 }), // Comma-separated string from API
-  marketId: integer('market_id'),
-  ownerId: varchar('owner_id', { length: 50 }).default('system'),
+  regionIds: varchar('region_ids', { length: 200 }), // Comma-separated string from API
+  marketId: varchar('market_id', { length: 50 }),
+  ownerId: varchar('owner_id', { length: 50 }),
   noFly: boolean('no_fly').default(false),
   departUk: boolean('depart_uk').default(false),
   showCruise: boolean('show_cruise').default(true),
-  flyCruiseInfo: varchar('fly_cruise_info', { length: 50 }),
   lastCached: integer('last_cached'),
-  cachedDate: timestamp('cached_date'),
-  traveltekFilePath: varchar('traveltek_file_path', { length: 500 }),
+  cachedDate: varchar('cached_date', { length: 100 }),
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -81,7 +78,7 @@ export const cruises = pgTable('cruises', {
 
 // Alternative sailings table for cross-references
 export const alternativeSailings = pgTable('alternative_sailings', {
-  id: uuid('id').primaryKey().defaultRandom(),
+  id: integer('id').primaryKey(),
   baseCruiseId: integer('base_cruise_id').references(() => cruises.id).notNull(),
   alternativeCruiseId: integer('alternative_cruise_id').references(() => cruises.id).notNull(),
   sailingDate: date('sailing_date').notNull(),

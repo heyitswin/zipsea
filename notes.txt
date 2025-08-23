@@ -1,0 +1,14 @@
+ Commands to Run After Deploy:
+
+  # 1. Recreate schema with all fixes
+  cd backend
+  node scripts/recreate-complete-schema.js
+
+  # 2. Sync all data with pricing
+  FORCE_UPDATE=true SYNC_YEARS=2026 SYNC_MONTH=06 node scripts/sync-complete-data.js
+
+  # 3. Test critical features
+  node scripts/test-critical-features.js
+
+  # 4. Test specific direct search
+  curl "https://zipsea-production.onrender.com/api/v1/search/by-ship?shipName=Symphony%20of%20the%20Seas&departureDate=2025-10-5"

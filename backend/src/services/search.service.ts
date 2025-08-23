@@ -203,7 +203,7 @@ export class SearchService {
             sql`to_tsvector('english', ${cruises.name}) @@ plainto_tsquery('english', ${searchTerm})`,
             sql`to_tsvector('english', ${cruiseLines.name}) @@ plainto_tsquery('english', ${searchTerm})`,
             sql`to_tsvector('english', ${ships.name}) @@ plainto_tsquery('english', ${searchTerm})`,
-            sql`to_tsvector('english', ${embarkPort.name} || ' ' || COALESCE(${embarkPort.city}, '') || ' ' || COALESCE(${embarkPort.country}, '')) @@ plainto_tsquery('english', ${searchTerm})`,
+            sql`to_tsvector('english', ${embarkPort.name} || ' ' || COALESCE(${embarkPort.region}, '') || ' ' || COALESCE(${embarkPort.country}, '')) @@ plainto_tsquery('english', ${searchTerm})`,
             like(cruises.name, `%${searchTerm}%`)
           )
         );
@@ -860,7 +860,7 @@ export class SearchService {
           .select({
             id: ports.id,
             name: ports.name,
-            city: ports.city,
+            city: ports.region,
             country: ports.country,
             count: sql<number>`count(${cruises.id})`,
           })
@@ -874,7 +874,7 @@ export class SearchService {
             gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
           ))
           .where(eq(ports.isActive, true))
-          .groupBy(ports.id, ports.name, ports.city, ports.country)
+          .groupBy(ports.id, ports.name, ports.region, ports.country)
           .having(sql`count(${cruises.id}) > 0`)
           .orderBy(desc(sql`count(${cruises.id})`), ports.name),
 
@@ -1148,7 +1148,7 @@ export class SearchService {
           .select({ 
             id: ports.id, 
             name: ports.name,
-            city: ports.city,
+            city: ports.region,
             country: ports.country,
             count: sql<number>`count(${cruises.id})`
           })
@@ -1163,14 +1163,14 @@ export class SearchService {
           ))
           .where(and(
             or(
-              sql`to_tsvector('english', ${ports.name} || ' ' || COALESCE(${ports.city}, '') || ' ' || COALESCE(${ports.country}, '')) @@ plainto_tsquery('english', ${searchTerm})`,
+              sql`to_tsvector('english', ${ports.name} || ' ' || COALESCE(${ports.region}, '') || ' ' || COALESCE(${ports.country}, '')) @@ plainto_tsquery('english', ${searchTerm})`,
               like(ports.name, `%${searchTerm}%`),
-              like(ports.city, `%${searchTerm}%`),
+              like(ports.region, `%${searchTerm}%`),
               like(ports.country, `%${searchTerm}%`)
             ),
             eq(ports.isActive, true)
           ))
-          .groupBy(ports.id, ports.name, ports.city, ports.country)
+          .groupBy(ports.id, ports.name, ports.region, ports.country)
           .orderBy(desc(sql`count(${cruises.id})`), ports.name)
           .limit(3),
 

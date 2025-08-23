@@ -4,7 +4,7 @@
   "ignore": ["src/**/*.test.ts", "src/**/*.spec.ts"],
   "exec": "ts-node src/index.ts",
   "env": {
-    "NODE_ENV": "development"
+    "NODE_ENV": "staging"
   },
   "delay": "1000"
 }

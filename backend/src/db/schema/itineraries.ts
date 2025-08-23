@@ -1,24 +1,20 @@
 import { pgTable, uuid, integer, varchar, text, timestamp, date, time, boolean, jsonb } from 'drizzle-orm/pg-core';
-import { cruises, cruiseDefinitions, cruiseSailings } from './cruises';
+import { cruises } from './cruises';
 import { ports } from './ports';
 
 export const itineraries = pgTable('itineraries', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  cruiseId: integer('cruise_id').references(() => cruises.id).notNull(), // Legacy reference
-  cruiseDefinitionId: uuid('cruise_definition_id').references(() => cruiseDefinitions.id), // New reference to cruise definition
-  cruiseSailingId: uuid('cruise_sailing_id').references(() => cruiseSailings.id), // New reference to specific sailing
+  id: integer('id').primaryKey(), // Using serial ID to match production schema
+  cruiseId: varchar('cruise_id').references(() => cruises.id).notNull(), // Changed to varchar to match database
   dayNumber: integer('day_number').notNull(), // itinerary[].day
-  date: date('date').notNull(), // itinerary[].date
-  portName: varchar('port_name', { length: 255 }).notNull(), // itinerary[].port
   portId: integer('port_id').references(() => ports.id), // Foreign key, nullable
-  arrivalTime: time('arrival_time'), // itinerary[].arrive
-  departureTime: time('departure_time'), // itinerary[].depart
-  status: varchar('status', { length: 20 }).default('port'), // 'embark', 'port', 'at_sea', 'disembark'
-  overnight: boolean('overnight').default(false),
+  portName: varchar('port_name', { length: 255 }), // itinerary[].port
+  arrivalTime: varchar('arrival_time', { length: 10 }), // itinerary[].arrive
+  departureTime: varchar('departure_time', { length: 10 }), // itinerary[].depart
   description: text('description'), // itinerary[].description
-  activities: jsonb('activities').default('[]'),
-  shoreExcursions: jsonb('shore_excursions').default('[]'),
+  isSeaDay: boolean('is_sea_day').default(false),
+  isTenderPort: boolean('is_tender_port').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export type Itinerary = typeof itineraries.$inferSelect;

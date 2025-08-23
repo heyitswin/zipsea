@@ -32,6 +32,10 @@ export const CacheKeys = {
   // Cruise-related cache keys
   cruiseDetails: (cruiseId: string) => `cruise:${cruiseId}:details`,
   pricing: (cruiseId: string, cabinType: string) => `cruise:${cruiseId}:pricing:${cabinType}`,
+  
+  // Ship-related cache keys
+  shipsList: () => 'ships:list',
+  shipDetails: (shipId: string) => `ship:${shipId}:details`,
 
   // Cruise search patterns
   SEARCH: {
@@ -63,6 +67,7 @@ export const CacheKeys = {
 
   // Ship and line data
   SHIP: {
+    LIST: () => 'ships:list',
     DETAILS: (shipId: number) => `ship:${shipId}`,
     CONTENT: (shipId: number) => `ship:${shipId}:content`,
     IMAGES: (shipId: number) => `ship:${shipId}:images`,

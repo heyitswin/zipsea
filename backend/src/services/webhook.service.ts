@@ -53,7 +53,7 @@ export class WebhookService {
 
       // Get all cruises for this cruise line
       const cruisesInLine = await db
-        .select({ id: cruises.id, traveltekFilePath: cruises.traveltekFilePath })
+        .select({ id: cruises.id })
         .from(cruises)
         .where(and(
           eq(cruises.cruiseLineId, data.lineId),
@@ -77,7 +77,7 @@ export class WebhookService {
         
         await Promise.all(batch.map(async (cruise) => {
           try {
-            await this.updateCruisePricing(cruise.id, cruise.traveltekFilePath);
+            await this.updateCruisePricing(cruise.id);
             successful++;
           } catch (error) {
             failed++;
@@ -133,7 +133,6 @@ export class WebhookService {
           const cruise = await db
             .select({ 
               id: cruises.id, 
-              traveltekFilePath: cruises.traveltekFilePath,
               cruiseLineId: cruises.cruiseLineId 
             })
             .from(cruises)
@@ -145,7 +144,7 @@ export class WebhookService {
             continue;
           }
 
-          await this.updateCruisePricing(cruiseId, cruise[0].traveltekFilePath);
+          await this.updateCruisePricing(cruiseId);
           
           // Clear cache for this specific cruise
           await this.clearCacheForCruise(cruiseId);

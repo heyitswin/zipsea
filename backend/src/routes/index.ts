@@ -5,6 +5,7 @@ import webhookRoutes from './webhook.routes';
 import searchRoutes from './search.routes';
 import searchOptimizedRoutes from './search-optimized.routes';
 import cruiseRoutes from './cruise.routes';
+import shipRoutes from './ship.routes';
 import quoteRoutes from './quote.routes';
 import adminRoutes from './admin.routes';
 import priceHistoryRoutes from './price-history.routes';
@@ -33,6 +34,7 @@ apiRouter.use('/search', searchOptimizedRoutes);
 // Keep old search routes as fallback at different path if needed
 // apiRouter.use('/search-old', searchRoutes);
 apiRouter.use('/cruises', cruiseRoutes);
+apiRouter.use('/ships', shipRoutes);
 apiRouter.use('/quotes', quoteRoutes);
 apiRouter.use('/price-history', priceHistoryRoutes);
 
@@ -54,6 +56,7 @@ apiRouter.get('/', (req, res) => {
       admin: `${apiConfig.prefix}/${apiConfig.version}/admin`,
       search: `${apiConfig.prefix}/${apiConfig.version}/search`,
       cruises: `${apiConfig.prefix}/${apiConfig.version}/cruises`,
+      ships: `${apiConfig.prefix}/${apiConfig.version}/ships`,
       quotes: `${apiConfig.prefix}/${apiConfig.version}/quotes`,
       priceHistory: `${apiConfig.prefix}/${apiConfig.version}/price-history`,
     },
@@ -72,6 +75,11 @@ apiRouter.get('/', (req, res) => {
         itinerary: 'GET /cruises/:id/itinerary - Cruise itinerary',
         ship: 'GET /cruises/:id/ship - Ship details',
         alternatives: 'GET /cruises/:id/alternatives - Alternative sailings',
+      },
+      ships: {
+        list: 'GET /ships - List all ships with optional search',
+        details: 'GET /ships/:id - Detailed ship information',
+        search: 'GET /ships/search?q=term - Search ships by name or cruise line',
       },
       quotes: {
         create: 'POST /quotes - Create quote request',
