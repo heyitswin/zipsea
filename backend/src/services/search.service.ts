@@ -346,11 +346,12 @@ export class SearchService {
 
       // Apply destination filter (search in ports and regions)
       if (filters.destination) {
+        const destinationPattern = `%${filters.destination}%`;
         whereConditions.push(
           or(
-            sql`${cruises.portIds}::text ILIKE '%${filters.destination}%'`,
-            sql`${cruises.regionIds}::text ILIKE '%${filters.destination}%'`,
-            like(cruises.name, `%${filters.destination}%`)
+            sql`${cruises.portIds}::text ILIKE ${destinationPattern}`,
+            sql`${cruises.regionIds}::text ILIKE ${destinationPattern}`,
+            like(cruises.name, destinationPattern)
           )
         );
       }
