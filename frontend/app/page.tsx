@@ -35,6 +35,9 @@ export default function Home() {
   // Last minute deals states
   const [lastMinuteDeals, setLastMinuteDeals] = useState<LastMinuteDeals[]>([]);
   const [isLoadingDeals, setIsLoadingDeals] = useState(false);
+  
+  // Scroll states for navigation
+  const [isScrolled, setIsScrolled] = useState(false);
 
   // Load ships on component mount
   useEffect(() => {
@@ -75,6 +78,17 @@ export default function Home() {
     };
 
     loadLastMinuteDeals();
+  }, []);
+
+  // Handle scroll for navigation transition
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      setIsScrolled(scrollPosition > 500);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Filter ships based on search input
@@ -377,60 +391,121 @@ export default function Home() {
   return (
     <>
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 py-[30px] px-[60px]" style={{ backgroundColor: 'transparent' }}>
+      <nav 
+        className={`fixed top-0 left-0 right-0 z-50 py-[20px] px-[28px] transition-all duration-300 ease-in-out ${
+          isScrolled ? 'bg-white shadow-lg' : 'bg-transparent'
+        }`} 
+        style={{ height: '80px' }}
+      >
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="w-[110px]">
             <Image
-              src="/images/zipsea-logo.svg"
+              src={isScrolled ? "/images/zipsea-logo-blue.svg" : "/images/zipsea-logo.svg"}
               alt="Zipsea"
               width={110}
               height={40}
-              className="brightness-0 invert"
+              className={isScrolled ? "" : "brightness-0 invert"}
               priority
             />
           </div>
+          
+          {/* Minimized Search Bar - Only show when scrolled */}
+          {isScrolled && (
+            <div className="ml-[44px] flex-1 max-w-[400px] transition-all duration-300 ease-in-out">
+              <div className="h-[48px] bg-white rounded-full flex items-center overflow-hidden border border-gray-separator relative">
+                {/* Select Ship Input */}
+                <div className="flex-1 flex items-center px-4 h-full">
+                  <svg width="20" height="20" viewBox="0 0 34 27" fill="none" className="mr-3" style={{ shapeRendering: 'geometricPrecision' }}>
+                    <path d="M32.8662 25.4355C32.0707 25.4334 31.2888 25.2282 30.5947 24.8395C29.9005 24.4508 29.3171 23.8914 28.8995 23.2142C28.478 23.8924 27.8906 24.4519 27.1926 24.8398C26.4947 25.2278 25.7094 25.4314 24.9109 25.4314C24.1124 25.4314 23.3271 25.2278 22.6292 24.8398C21.9313 24.4519 21.3438 23.8924 20.9223 23.2142C20.5031 23.894 19.9167 24.4551 19.2191 24.844C18.5215 25.2329 17.7359 25.4365 16.9372 25.4355C14.8689 25.4355 11.4533 22.2962 9.31413 20.0961C9.17574 19.9536 8.99997 19.8529 8.80698 19.8057C8.61399 19.7585 8.4116 19.7666 8.22303 19.8292C8.03445 19.8917 7.86733 20.0062 7.74084 20.1594C7.61435 20.3126 7.53361 20.4984 7.50788 20.6954C7.36621 22.0086 6.83213 23.3105 5.25396 23.3105C4.30812 23.2648 3.39767 22.9367 2.64011 22.3686C1.88255 21.8004 1.31265 21.0183 1.00396 20.123" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    <path d="M18 20.123L22.8875 18.9005C24.0268 18.6152 25.0946 18.097 26.0236 17.3784C26.9526 16.6598 27.7226 15.7566 28.285 14.7255L32.875 6.31055L1 12.6855" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    <path d="M25.2861 7.8278L18.0002 4.18555L4.18772 6.31055" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    <path d="M6.31254 11.6236L4.18754 6.31109L1.9662 2.60934C1.86896 2.4482 1.81632 2.26409 1.81369 2.0759C1.81107 1.8877 1.85854 1.7022 1.95125 1.53841C2.04396 1.37461 2.17857 1.23843 2.34127 1.14382C2.50397 1.0492 2.68891 0.999569 2.87712 1H6.31254L11.54 5.18059" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Select Ship"
+                    value={searchValue}
+                    onChange={handleInputChange}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
+                    onKeyDown={handleKeyDown}
+                    className="flex-1 text-[18px] font-geograph text-dark-blue placeholder-dark-blue tracking-tight outline-none bg-transparent"
+                    style={{ letterSpacing: '-0.02em' }}
+                  />
+                </div>
+
+                {/* Separator */}
+                <div className="w-[1px] h-[calc(100%-12px)] bg-gray-separator" />
+
+                {/* Departure Date Input */}
+                <div className="flex-1 flex items-center px-4 h-full">
+                  <svg width="20" height="20" viewBox="0 0 33 33" fill="none" className="mr-3" style={{ shapeRendering: 'geometricPrecision' }}>
+                    <path d="M29.4667 5.06836H3.03333C1.91035 5.06836 1 5.97868 1 7.10161V29.4674C1 30.5903 1.91035 31.5006 3.03333 31.5006H29.4667C30.5896 31.5006 31.5 30.5903 31.5 29.4674V7.10161C31.5 5.97868 30.5896 5.06836 29.4667 5.06836Z" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    <path d="M1 13.1992H31.5" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    <path d="M9.13379 8.11638V1" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    <path d="M23.3662 8.11638V1" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Departure Date"
+                    value={dateValue}
+                    onFocus={handleDateInputFocus}
+                    onBlur={handleDateInputBlur}
+                    readOnly
+                    className="flex-1 text-[18px] font-geograph text-dark-blue placeholder-dark-blue tracking-tight outline-none bg-transparent cursor-pointer"
+                    style={{ letterSpacing: '-0.02em' }}
+                  />
+                </div>
+
+                {/* Search Button */}
+                <button 
+                  onClick={handleSearchCruises}
+                  className="absolute right-1.5 w-[40px] h-[40px] bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors"
+                >
+                  <svg width="20" height="20" viewBox="0 0 33 33" fill="none" style={{ shapeRendering: 'geometricPrecision' }}>
+                    <path d="M19.4999 25.5644C25.3213 23.0904 28.0349 16.3656 25.5608 10.5442C23.0868 4.72278 16.362 2.0092 10.5406 4.48324C4.71919 6.95728 2.00561 13.6821 4.47965 19.5035C6.95369 25.3249 13.6785 28.0385 19.4999 25.5644Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    <path d="M23.1172 23.123L31.9998 32.0069" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
           
           {/* Navigation Links and Button */}
           <div className="flex items-center gap-8">
             <a 
               href="/why-zipsea" 
-              className="flex items-center text-white text-[16px] font-medium font-geograph hover:opacity-80 transition-opacity"
+              className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
+                isScrolled ? 'text-dark-blue' : 'text-white'
+              }`}
             >
-              <svg width="16" height="16" viewBox="0 0 18 18" fill="none" className="mr-2" style={{ shapeRendering: 'geometricPrecision' }}>
-                <path d="M6.06934 6.31836C6.46126 6.14636 7.28356 5.90302 8.08594 6.04004C9.17853 6.22685 9.51264 6.66491 9.64844 6.77441C9.77739 6.87847 10.594 7.75839 11.8145 7.09766C11.897 7.05299 12 7.11255 12 7.20996V9.47949C12 9.53181 11.9688 9.57887 11.9219 9.59668L9.50684 10.5137C9.41136 10.5499 9.39926 10.6895 9.48145 10.752C9.50252 10.7679 9.52317 10.7842 9.54297 10.8008C10.0429 11.2194 10.3024 11.4638 10.833 11.4639C11.2557 11.4639 11.5536 11.3538 11.8193 11.208C11.9005 11.1636 12 11.2233 12 11.3193V12.7012C12 12.7522 11.9707 12.7988 11.9248 12.8154C11.6062 12.9306 10.964 13.0773 10.333 12.9521C9.63193 12.813 9.10651 12.4344 8.93164 12.2627C8.68655 12.05 8.0849 11.6332 7.63574 11.6641C7.11178 11.7001 7.00654 11.6684 6.16797 12.0615C6.08928 12.0984 6.00006 12.0386 6 11.9482V9.71973C6 9.66741 6.03125 9.62035 6.07812 9.60254L9.21387 8.41211C9.24017 8.40213 9.24459 8.3647 9.22266 8.34668C8.93261 8.11484 8.16089 7.50289 7.56836 7.52832C7.04679 7.551 6.6588 7.67374 6.17773 7.93555C6.09755 7.97919 6 7.919 6 7.82422V6.42969C6.00014 6.3813 6.02682 6.3371 6.06934 6.31836Z" fill="white"/>
-                <path fillRule="evenodd" clipRule="evenodd" d="M9 0.25C13.8325 0.25 17.75 4.16751 17.75 9C17.75 13.8325 13.8325 17.75 9 17.75C4.16751 17.75 0.25 13.8325 0.25 9C0.25 4.16751 4.16751 0.25 9 0.25ZM9 1.75C4.99594 1.75 1.75 4.99594 1.75 9C1.75 13.0041 4.99594 16.25 9 16.25C13.0041 16.25 16.25 13.0041 16.25 9C16.25 4.99594 13.0041 1.75 9 1.75Z" fill="white"/>
-              </svg>
               Why Zipsea
             </a>
             <a 
               href="/faqs" 
-              className="flex items-center text-white text-[16px] font-medium font-geograph hover:opacity-80 transition-opacity"
+              className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
+                isScrolled ? 'text-dark-blue' : 'text-white'
+              }`}
             >
-              <svg width="16" height="16" viewBox="0 0 18 19" fill="none" className="mr-2" style={{ shapeRendering: 'geometricPrecision' }}>
-                <path d="M6.8667 7.36535C6.86677 6.97426 6.97435 6.59071 7.17768 6.25663C7.38101 5.92255 7.67226 5.65079 8.01961 5.47106C8.36695 5.29132 8.75702 5.21053 9.14718 5.2375C9.53734 5.26448 9.91258 5.39819 10.2319 5.62401C10.5512 5.84984 10.8023 6.1591 10.9577 6.51798C11.1131 6.87686 11.1669 7.27157 11.1131 7.65895C11.0594 8.04633 10.9002 8.41148 10.6529 8.71449C10.4057 9.0175 10.0799 9.24672 9.71114 9.37708C9.50309 9.45064 9.32297 9.58692 9.19561 9.76713C9.06825 9.94735 8.99992 10.1626 9.00003 10.3833V11.0987" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                <path d="M9 12.75C8.85166 12.75 8.70666 12.794 8.58332 12.8764C8.45999 12.9588 8.36386 13.0759 8.30709 13.213C8.25032 13.35 8.23547 13.5008 8.26441 13.6463C8.29335 13.7918 8.36478 13.9254 8.46967 14.0303C8.57456 14.1352 8.7082 14.2066 8.85368 14.2356C8.99917 14.2645 9.14997 14.2497 9.28701 14.1929C9.42406 14.1361 9.54119 14.04 9.6236 13.9167C9.70601 13.7933 9.75 13.6483 9.75 13.5C9.75 13.3011 9.67098 13.1103 9.53033 12.9697C9.38968 12.829 9.19891 12.75 9 12.75Z" fill="white"/>
-                <path d="M9 17.5C13.4183 17.5 17 13.9183 17 9.5C17 5.08172 13.4183 1.5 9 1.5C4.58172 1.5 1 5.08172 1 9.5C1 13.9183 4.58172 17.5 9 17.5Z" stroke="white" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-              </svg>
               FAQs
             </a>
             <a 
               href="#" 
-              className="flex items-center text-white text-[16px] font-medium font-geograph hover:opacity-80 transition-opacity"
+              className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
+                isScrolled ? 'text-dark-blue' : 'text-white'
+              }`}
             >
-              <svg width="16" height="16" viewBox="0 0 18 18" fill="none" className="mr-2" style={{ shapeRendering: 'geometricPrecision' }}>
-                <path d="M9.53333 1.25001C8.2027 1.24809 6.89579 1.60231 5.74825 2.27589C4.6007 2.94948 3.65432 3.91789 3.00732 5.08063C2.36032 6.24337 2.03627 7.55808 2.06881 8.88831C2.10135 10.2185 2.48928 11.5158 3.19235 12.6456L1 17.25L5.60373 15.0569C6.58554 15.6676 7.69576 16.0419 8.8469 16.1504C9.99804 16.2589 11.1586 16.0985 12.2372 15.682C13.3158 15.2654 14.283 14.6041 15.0624 13.7501C15.8418 12.896 16.4123 11.8727 16.7288 10.7606C17.0453 9.64851 17.0992 8.47813 16.8863 7.34166C16.6734 6.2052 16.1994 5.13372 15.5018 4.21165C14.8042 3.28958 13.902 2.54212 12.8662 2.02817C11.8305 1.51423 10.6896 1.24785 9.53333 1.25001Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                <path d="M7.85226 7.4727C7.7214 7.20606 7.51841 6.98144 7.26632 6.82435C7.01424 6.66726 6.72316 6.58398 6.42613 6.58398C6.12911 6.58398 5.83803 6.66726 5.58594 6.82435C5.33386 6.98144 5.13086 7.20606 5 7.4727" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                <path d="M14.2483 7.4727C14.1174 7.20606 13.9144 6.98144 13.6623 6.82435C13.4102 6.66726 13.1192 6.58398 12.8221 6.58398C12.5251 6.58398 12.234 6.66726 11.9819 6.82435C11.7299 6.98144 11.5269 7.20606 11.396 7.4727" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                <path d="M6.87061 11.3828C7.62326 12.0691 8.6051 12.4495 9.62367 12.4495C10.6422 12.4495 11.6241 12.0691 12.3767 11.3828" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-              </svg>
               Chat with us
             </a>
             
             {/* Sign up/Log in Button */}
             <button 
-              className="px-5 py-3.5 border border-white rounded-full text-white text-[16px] font-medium font-geograph hover:opacity-80 transition-opacity"
-              style={{ backgroundColor: 'transparent' }}
+              className={`px-5 py-3.5 border rounded-full text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
+                isScrolled 
+                  ? 'border-gray-separator text-dark-blue bg-transparent' 
+                  : 'border-white text-white bg-transparent'
+              }`}
             >
               Sign up/Log in
             </button>
@@ -577,7 +652,7 @@ export default function Home() {
             </div>
 
             {/* Ship Dropdown - Now outside the overflow-hidden container */}
-            {isDropdownOpen && (
+            {isDropdownOpen && !isScrolled && (
               <div 
                 ref={dropdownRef}
                 className={`absolute left-[10px] mt-[12px] bg-white rounded-[10px] z-[10000] ${
@@ -621,7 +696,7 @@ export default function Home() {
             )}
 
             {/* Date Picker Dropdown */}
-            {isDateDropdownOpen && (
+            {isDateDropdownOpen && !isScrolled && (
               <div 
                 ref={dateDropdownRef}
                 className={`absolute mt-[12px] bg-white rounded-[10px] z-[10000] ${
@@ -719,6 +794,152 @@ export default function Home() {
         </div>
 
       </section>
+
+      {/* Minimized Search Bar Dropdowns - Only show when scrolled */}
+      {isScrolled && (
+        <>
+          {/* Ship Dropdown for Minimized Search */}
+          {isDropdownOpen && (
+            <div 
+              ref={dropdownRef}
+              className={`fixed bg-white rounded-[10px] z-[10000] ${
+                isDropdownClosing ? 'dropdown-fade-out' : 'dropdown-fade-in'
+              }`}
+              style={{ 
+                boxShadow: '0px 1px 14px rgba(0, 0, 0, 0.25)',
+                top: '80px', // Position below the minimized search bar
+                left: '72px', // Align with the minimized search bar
+                width: '300px',
+                position: 'fixed'
+              }}
+            >
+              <div className="max-h-[300px] overflow-y-auto custom-scrollbar rounded-[10px]">
+                {isLoading ? (
+                  <div className="px-6 py-3 font-geograph text-[18px] text-gray-500 font-normal">
+                    Loading ships...
+                  </div>
+                ) : filteredShips.length > 0 ? (
+                  filteredShips.map((ship, index) => (
+                    <div
+                      key={`${ship.id}-${index}`}
+                      onClick={() => handleShipSelect(ship)}
+                      className={`px-6 py-3 cursor-pointer font-geograph text-dark-blue dropdown-item-hover ${
+                        index === highlightedIndex 
+                          ? 'bg-light-blue bg-opacity-20' 
+                          : 'hover:bg-light-blue hover:bg-opacity-10'
+                      }`}
+                      style={{ letterSpacing: '-0.02em' }}
+                    >
+                      <div className="font-normal text-[18px]">{ship.name}</div>
+                      <div className="font-normal text-[14px] text-gray-500 mt-0.5">{ship.cruiseLineName}</div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="px-6 py-3 font-geograph text-[18px] text-gray-500 font-normal">
+                    No ships found
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Date Picker Dropdown for Minimized Search */}
+          {isDateDropdownOpen && (
+            <div 
+              ref={dateDropdownRef}
+              className={`fixed bg-white rounded-[10px] z-[10000] ${
+                isDateDropdownClosing ? 'dropdown-fade-out' : 'dropdown-fade-in'
+              }`}
+              style={{ 
+                boxShadow: '0px 1px 14px rgba(0, 0, 0, 0.25)',
+                top: '80px', // Position below the minimized search bar
+                right: '28px', // Align with the right side
+                width: '300px',
+                position: 'fixed'
+              }}
+            >
+              <div className="p-4 font-geograph">
+                {/* Calendar Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <button
+                    onClick={handlePreviousMonth}
+                    disabled={isPreviousMonthDisabled()}
+                    className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
+                      isPreviousMonthDisabled() 
+                        ? 'cursor-not-allowed opacity-30' 
+                        : 'hover:bg-gray-100 cursor-pointer'
+                    }`}
+                  >
+                    <svg width="32" height="32" viewBox="0 0 36 36" fill="none" style={{ shapeRendering: 'geometricPrecision' }} className={isPreviousMonthDisabled() ? 'opacity-50' : ''}>
+                      <rect x="35.5" y="35.5" width="35" height="35" rx="9.5" transform="rotate(-180 35.5 35.5)" stroke="#D9D9D9" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                      <path d="M15.125 18.125L20 13.25" stroke="#0E1B4D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                      <path d="M15.125 18.125L20 23" stroke="#0E1B4D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    </svg>
+                  </button>
+                  <h3 className="font-medium text-[18px] text-dark-blue">
+                    {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </h3>
+                  <button
+                    onClick={handleNextMonth}
+                    className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors"
+                  >
+                    <svg width="32" height="32" viewBox="0 0 36 36" fill="none" style={{ shapeRendering: 'geometricPrecision' }} className="rotate-180">
+                      <rect x="35.5" y="35.5" width="35" height="35" rx="9.5" transform="rotate(-180 35.5 35.5)" stroke="#D9D9D9" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                      <path d="M15.125 18.125L20 13.25" stroke="#0E1B4D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                      <path d="M15.125 18.125L20 23" stroke="#0E1B4D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Days of Week Headers */}
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
+                    <div
+                      key={index}
+                      className="w-[51px] h-12 flex items-center justify-center text-[14px] font-medium text-gray-600"
+                    >
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="grid grid-cols-7 gap-1">
+                  {generateCalendarDays().map((day, index) => {
+                    if (day === null) {
+                      return <div key={index} className="h-[51px]" />;
+                    }
+
+                    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+                    const isPast = isDateInPast(date);
+                    const isSelected = selectedDate && 
+                      date.getDate() === selectedDate.getDate() &&
+                      date.getMonth() === selectedDate.getMonth() &&
+                      date.getFullYear() === selectedDate.getFullYear();
+
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => handleDateSelect(date)}
+                        className={`w-[51px] h-[51px] flex items-center justify-center text-[16px] rounded-full transition-all ${
+                          isPast 
+                            ? 'text-gray-400 font-normal cursor-not-allowed' 
+                            : 'text-dark-blue font-medium hover:bg-light-blue hover:bg-opacity-20 cursor-pointer'
+                        } ${
+                          isSelected ? 'bg-light-blue text-white' : ''
+                        }`}
+                        disabled={isPast}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Separator Image */}
       <div 
@@ -1077,54 +1298,39 @@ export default function Home() {
                 {/* Why Zipsea */}
                 <a 
                   href="/why-zipsea" 
-                  className="flex items-center font-geograph font-medium hover:opacity-80 transition-opacity"
+                  className="font-geograph font-medium hover:opacity-80 transition-opacity"
                   style={{
                     fontSize: '16px',
                     color: '#2f2f2f',
                     letterSpacing: '-0.02em'
                   }}
                 >
-                  <svg width="24" height="24" viewBox="0 0 18 18" fill="none" className="mr-3" style={{ shapeRendering: 'geometricPrecision' }}>
-                    <path d="M6.06934 6.31836C6.46126 6.14636 7.28356 5.90302 8.08594 6.04004C9.17853 6.22685 9.51264 6.66491 9.64844 6.77441C9.77739 6.87847 10.594 7.75839 11.8145 7.09766C11.897 7.05299 12 7.11255 12 7.20996V9.47949C12 9.53181 11.9688 9.57887 11.9219 9.59668L9.50684 10.5137C9.41136 10.5499 9.39926 10.6895 9.48145 10.752C9.50252 10.7679 9.52317 10.7842 9.54297 10.8008C10.0429 11.2194 10.3024 11.4638 10.833 11.4639C11.2557 11.4639 11.5536 11.3538 11.8193 11.208C11.9005 11.1636 12 11.2233 12 11.3193V12.7012C12 12.7522 11.9707 12.7988 11.9248 12.8154C11.6062 12.9306 10.964 13.0773 10.333 12.9521C9.63193 12.813 9.10651 12.4344 8.93164 12.2627C8.68655 12.05 8.0849 11.6332 7.63574 11.6641C7.11178 11.7001 7.00654 11.6684 6.16797 12.0615C6.08928 12.0984 6.00006 12.0386 6 11.9482V9.71973C6 9.66741 6.03125 9.62035 6.07812 9.60254L9.21387 8.41211C9.24017 8.40213 9.24459 8.3647 9.22266 8.34668C8.93261 8.11484 8.16089 7.50289 7.56836 7.52832C7.04679 7.551 6.6588 7.67374 6.17773 7.93555C6.09755 7.97919 6 7.919 6 7.82422V6.42969C6.00014 6.3813 6.02682 6.3371 6.06934 6.31836Z" fill="#2f2f2f"/>
-                    <path fillRule="evenodd" clipRule="evenodd" d="M9 0.25C13.8325 0.25 17.75 4.16751 17.75 9C17.75 13.8325 13.8325 17.75 9 17.75C4.16751 17.75 0.25 13.8325 0.25 9C0.25 4.16751 4.16751 0.25 9 0.25ZM9 1.75C4.99594 1.75 1.75 4.99594 1.75 9C1.75 13.0041 4.99594 16.25 9 16.25C13.0041 16.25 16.25 13.0041 16.25 9C16.25 4.99594 13.0041 1.75 9 1.75Z" fill="#2f2f2f"/>
-                  </svg>
                   Why Zipsea
                 </a>
                 
                 {/* FAQs */}
                 <a 
                   href="/faqs" 
-                  className="flex items-center font-geograph font-medium hover:opacity-80 transition-opacity"
+                  className="font-geograph font-medium hover:opacity-80 transition-opacity"
                   style={{
                     fontSize: '16px',
                     color: '#2f2f2f',
                     letterSpacing: '-0.02em'
                   }}
                 >
-                  <svg width="24" height="24" viewBox="0 0 18 19" fill="none" className="mr-3" style={{ shapeRendering: 'geometricPrecision' }}>
-                    <path d="M6.8667 7.36535C6.86677 6.97426 6.97435 6.59071 7.17768 6.25663C7.38101 5.92255 7.67226 5.65079 8.01961 5.47106C8.36695 5.29132 8.75702 5.21053 9.14718 5.2375C9.53734 5.26448 9.91258 5.39819 10.2319 5.62401C10.5512 5.84984 10.8023 6.1591 10.9577 6.51798C11.1131 6.87686 11.1669 7.27157 11.1131 7.65895C11.0594 8.04633 10.9002 8.41148 10.6529 8.71449C10.4057 9.0175 10.0799 9.24672 9.71114 9.37708C9.50309 9.45064 9.32297 9.58692 9.19561 9.76713C9.06825 9.94735 8.99992 10.1626 9.00003 10.3833V11.0987" stroke="#2f2f2f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                    <path d="M9 12.75C8.85166 12.75 8.70666 12.794 8.58332 12.8764C8.45999 12.9588 8.36386 13.0759 8.30709 13.213C8.25032 13.35 8.23547 13.5008 8.26441 13.6463C8.29335 13.7918 8.36478 13.9254 8.46967 14.0303C8.57456 14.1352 8.7082 14.2066 8.85368 14.2356C8.99917 14.2645 9.14997 14.2497 9.28701 14.1929C9.42406 14.1361 9.54119 14.04 9.6236 13.9167C9.70601 13.7933 9.75 13.6483 9.75 13.5C9.75 13.3011 9.67098 13.1103 9.53033 12.9697C9.38968 12.829 9.19891 12.75 9 12.75Z" fill="#2f2f2f"/>
-                    <path d="M9 17.5C13.4183 17.5 17 13.9183 17 9.5C17 5.08172 13.4183 1.5 9 1.5C4.58172 1.5 1 5.08172 1 9.5C1 13.9183 4.58172 17.5 9 17.5Z" stroke="#2f2f2f" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                  </svg>
                   FAQs
                 </a>
                 
                 {/* Chat with us */}
                 <a 
                   href="#" 
-                  className="flex items-center font-geograph font-medium hover:opacity-80 transition-opacity"
+                  className="font-geograph font-medium hover:opacity-80 transition-opacity"
                   style={{
                     fontSize: '16px',
                     color: '#2f2f2f',
                     letterSpacing: '-0.02em'
                   }}
                 >
-                  <svg width="24" height="24" viewBox="0 0 18 18" fill="none" className="mr-3" style={{ shapeRendering: 'geometricPrecision' }}>
-                    <path d="M9.53333 1.25001C8.2027 1.24809 6.89579 1.60231 5.74825 2.27589C4.6007 2.94948 3.65432 3.91789 3.00732 5.08063C2.36032 6.24337 2.03627 7.55808 2.06881 8.88831C2.10135 10.2185 2.48928 11.5158 3.19235 12.6456L1 17.25L5.60373 15.0569C6.58554 15.6676 7.69576 16.0419 8.8469 16.1504C9.99804 16.2589 11.1586 16.0985 12.2372 15.682C13.3158 15.2654 14.283 14.6041 15.0624 13.7501C15.8418 12.896 16.4123 11.8727 16.7288 10.7606C17.0453 9.64851 17.0992 8.47813 16.8863 7.34166C16.6734 6.2052 16.1994 5.13372 15.5018 4.21165C14.8042 3.28958 13.902 2.54212 12.8662 2.02817C11.8305 1.51423 10.6896 1.24785 9.53333 1.25001Z" stroke="#2f2f2f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                    <path d="M7.85226 7.4727C7.7214 7.20606 7.51841 6.98144 7.26632 6.82435C7.01424 6.66726 6.72316 6.58398 6.42613 6.58398C6.12911 6.58398 5.83803 6.66726 5.58594 6.82435C5.33386 6.98144 5.13086 7.20606 5 7.4727" stroke="#2f2f2f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                    <path d="M14.2483 7.4727C14.1174 7.20606 13.9144 6.98144 13.6623 6.82435C13.4102 6.66726 13.1192 6.58398 12.8221 6.58398C12.5251 6.58398 12.234 6.66726 11.9819 6.82435C11.7299 6.98144 11.5269 7.20606 11.396 7.4727" stroke="#2f2f2f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                    <path d="M6.87061 11.3828C7.62326 12.0691 8.6051 12.4495 9.62367 12.4495C10.6422 12.4495 11.6241 12.0691 12.3767 11.3828" stroke="#2f2f2f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                  </svg>
                   Chat with us
                 </a>
               </div>

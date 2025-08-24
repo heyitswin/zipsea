@@ -241,3 +241,46 @@ img[src$=".svg"] {
   -moz-osx-font-smoothing: grayscale;
   image-rendering: -webkit-optimize-contrast;
 }
+
+/* Navigation scroll animations */
+.nav-scrolled {
+  background-color: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Minimized search bar animations */
+.minimized-search-enter {
+  animation: slideInFromLeft 0.3s ease-out forwards;
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.minimized-search-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* Enhanced navigation transitions */
+nav {
+  transition: background-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+nav .transition-colors {
+  transition: color 0.3s ease-in-out;
+}
+
+/* Ensure smooth transitions for all navigation elements */
+nav * {
+  transition: all 0.3s ease-in-out;
+}
