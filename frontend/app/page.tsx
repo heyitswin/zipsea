@@ -4,9 +4,11 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import { fetchShips, Ship, searchCruises, Cruise, fetchLastMinuteDeals, LastMinuteDeals } from "../lib/api";
 import { createSlugFromCruise } from "../lib/slug";
+import { useAlert } from "../components/GlobalAlertProvider";
 
 export default function Home() {
   const router = useRouter();
+  const { showAlert } = useAlert();
   const [searchValue, setSearchValue] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -14,7 +16,6 @@ export default function Home() {
   const [ships, setShips] = useState<Ship[]>([]);
   const [filteredShips, setFilteredShips] = useState<Ship[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
@@ -31,27 +32,24 @@ export default function Home() {
   // Cruise search states
   const [cruises, setCruises] = useState<Cruise[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
   const [selectedShip, setSelectedShip] = useState<Ship | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   
   // Last minute deals states
   const [lastMinuteDeals, setLastMinuteDeals] = useState<LastMinuteDeals[]>([]);
   const [isLoadingDeals, setIsLoadingDeals] = useState(false);
-  const [dealsError, setDealsError] = useState<string | null>(null);
 
   // Load ships on component mount
   useEffect(() => {
     const loadShips = async () => {
       try {
         setIsLoading(true);
-        setError(null);
         const shipsData = await fetchShips();
         setShips(shipsData);
         setFilteredShips(shipsData);
       } catch (err) {
         console.error('Failed to load ships:', err);
-        setError('Failed to load ships. Please try again later.');
+        showAlert('Failed to load ships. Please try again later.');
         // Fallback to empty array
         setShips([]);
         setFilteredShips([]);
@@ -68,12 +66,11 @@ export default function Home() {
     const loadLastMinuteDeals = async () => {
       try {
         setIsLoadingDeals(true);
-        setDealsError(null);
         const deals = await fetchLastMinuteDeals();
         setLastMinuteDeals(deals);
       } catch (err) {
         console.error('Failed to load last minute deals:', err);
-        setDealsError('Failed to load last minute deals. Please try again later.');
+        showAlert('Failed to load last minute deals. Please try again later.');
         setLastMinuteDeals([]);
       } finally {
         setIsLoadingDeals(false);
@@ -347,12 +344,11 @@ export default function Home() {
   // Search for cruises
   const handleSearchCruises = async () => {
     if (!selectedShip) {
-      setSearchError('Please select a ship');
+      showAlert('Please select a ship');
       return;
     }
 
     setIsSearching(true);
-    setSearchError(null);
     setCruises([]);
 
     try {
@@ -369,13 +365,13 @@ export default function Home() {
         handleCruiseClick(results[0]);
         return;
       } else if (results.length === 0) {
-        setSearchError('No cruises found for your search criteria');
+        showAlert('No cruises found for your search criteria');
       } else {
         setCruises(results);
       }
     } catch (err) {
       console.error('Error searching cruises:', err);
-      setSearchError('Failed to search cruises. Please try again.');
+      showAlert('Failed to search cruises. Please try again.');
     } finally {
       setIsSearching(false);
     }
@@ -401,13 +397,13 @@ export default function Home() {
           {/* Navigation Links */}
           <div className="flex items-center gap-8">
             <a 
-              href="#" 
+              href="/why-zipsea" 
               className="text-white text-[16px] font-medium font-geograph hover:opacity-80 transition-opacity"
             >
-              About us
+              Why Zipsea
             </a>
             <a 
-              href="#" 
+              href="/faqs" 
               className="text-white text-[16px] font-medium font-geograph hover:opacity-80 transition-opacity"
             >
               FAQ
@@ -585,10 +581,6 @@ export default function Home() {
                     <div className="px-6 py-3 font-geograph text-[18px] text-gray-500 font-normal">
                       Loading ships...
                     </div>
-                  ) : error ? (
-                    <div className="px-6 py-3 font-geograph text-[18px] text-red-500 font-normal">
-                      {error}
-                    </div>
                   ) : filteredShips.length > 0 ? (
                     filteredShips.map((ship, index) => (
                       <div
@@ -729,17 +721,24 @@ export default function Home() {
         }}
       />
 
-      {/* Search Results Section */}
-      {(isSearching || searchError || cruises.length > 0) && (
-        <section className="bg-white py-16 px-8">
+      {/* Search Results Section - Fixed height container to prevent layout shift */}
+      <section className="bg-white transition-all duration-300" style={{
+        minHeight: (isSearching || cruises.length > 0) ? 'auto' : '0px',
+        paddingTop: (isSearching || cruises.length > 0) ? '64px' : '0px',
+        paddingBottom: (isSearching || cruises.length > 0) ? '64px' : '0px',
+        paddingLeft: (isSearching || cruises.length > 0) ? '32px' : '0px',
+        paddingRight: (isSearching || cruises.length > 0) ? '32px' : '0px',
+      }}>
+        {(isSearching || cruises.length > 0) && (
           <div className="max-w-7xl mx-auto">
-
-            {/* Error State */}
-            {searchError && !isSearching && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg">
-                {searchError}
+            {/* Loading State */}
+            {isSearching && (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-dark-blue"></div>
+                <p className="mt-4 text-gray-600 font-geograph">Searching for cruises...</p>
               </div>
             )}
+
 
             {/* Results */}
             {!isSearching && cruises.length > 0 && (
@@ -829,8 +828,8 @@ export default function Home() {
               </>
             )}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* OBC Section */}
       <section className="bg-dark-blue py-[124px] relative">
@@ -911,12 +910,6 @@ export default function Home() {
             </div>
           )}
 
-          {/* Error State */}
-          {dealsError && !isLoadingDeals && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg text-center">
-              {dealsError}
-            </div>
-          )}
 
           {/* Cruise Grid - 3x2 on desktop */}
           {!isLoadingDeals && lastMinuteDeals.length > 0 && (
@@ -1177,95 +1170,101 @@ export default function Home() {
             
             {/* Right side - Navigation links and social icons */}
             <div className="flex items-center gap-8">
-              {/* Why Zipsea */}
-              <a 
-                href="#" 
-                className="flex items-center font-geograph font-medium hover:opacity-80 transition-opacity"
-                style={{
-                  fontSize: '16px',
-                  color: '#2f2f2f',
-                  letterSpacing: '-0.02em'
-                }}
-              >
-                <Image
-                  src="/images/why-zipsea.svg"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="mr-3"
-                />
-                Why Zipsea
-              </a>
+              {/* Navigation Links */}
+              <div className="flex items-center gap-8">
+                {/* Why Zipsea */}
+                <a 
+                  href="/why-zipsea" 
+                  className="flex items-center font-geograph font-medium hover:opacity-80 transition-opacity"
+                  style={{
+                    fontSize: '16px',
+                    color: '#2f2f2f',
+                    letterSpacing: '-0.02em'
+                  }}
+                >
+                  <Image
+                    src="/images/why-zipsea.svg"
+                    alt=""
+                    width={24}
+                    height={24}
+                    className="mr-3"
+                  />
+                  Why Zipsea
+                </a>
+                
+                {/* FAQs */}
+                <a 
+                  href="/faqs" 
+                  className="flex items-center font-geograph font-medium hover:opacity-80 transition-opacity"
+                  style={{
+                    fontSize: '16px',
+                    color: '#2f2f2f',
+                    letterSpacing: '-0.02em'
+                  }}
+                >
+                  <Image
+                    src="/images/faqs.svg"
+                    alt=""
+                    width={24}
+                    height={24}
+                    className="mr-3"
+                  />
+                  FAQs
+                </a>
+                
+                {/* Chat with us */}
+                <a 
+                  href="#" 
+                  className="flex items-center font-geograph font-medium hover:opacity-80 transition-opacity"
+                  style={{
+                    fontSize: '16px',
+                    color: '#2f2f2f',
+                    letterSpacing: '-0.02em'
+                  }}
+                >
+                  <Image
+                    src="/images/chat-with-us.svg"
+                    alt=""
+                    width={24}
+                    height={24}
+                    className="mr-3"
+                  />
+                  Chat with us
+                </a>
+              </div>
               
-              {/* FAQs */}
-              <a 
-                href="#" 
-                className="flex items-center font-geograph font-medium hover:opacity-80 transition-opacity"
-                style={{
-                  fontSize: '16px',
-                  color: '#2f2f2f',
-                  letterSpacing: '-0.02em'
-                }}
-              >
-                <Image
-                  src="/images/faqs.svg"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="mr-3"
-                />
-                FAQs
-              </a>
-              
-              {/* Chat with us */}
-              <a 
-                href="#" 
-                className="flex items-center font-geograph font-medium hover:opacity-80 transition-opacity"
-                style={{
-                  fontSize: '16px',
-                  color: '#2f2f2f',
-                  letterSpacing: '-0.02em'
-                }}
-              >
-                <Image
-                  src="/images/chat-with-us.svg"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="mr-3"
-                />
-                Chat with us
-              </a>
-              
-              {/* TikTok Icon */}
-              <a 
-                href="https://www.tiktok.com/@zipseacruises"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:opacity-80 transition-opacity"
-              >
-                <Image
-                  src="/images/tiktok.svg"
-                  alt="TikTok"
-                  width={45}
-                  height={45}
-                />
-              </a>
-              
-              {/* Instagram Icon */}
-              <a 
-                href="https://www.instagram.com/zipseacruises/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:opacity-80 transition-opacity"
-              >
-                <Image
-                  src="/images/instagram.svg"
-                  alt="Instagram"
-                  width={45}
-                  height={45}
-                />
-              </a>
+              {/* Social Icons with reduced spacing */}
+              <div className="flex items-center gap-4">
+                {/* TikTok Icon */}
+                <a 
+                  href="https://www.tiktok.com/@zipseacruises"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:opacity-80 transition-opacity"
+                >
+                  <Image
+                    src="/images/tiktok.svg"
+                    alt="TikTok"
+                    width={45}
+                    height={45}
+                  />
+                </a>
+                
+                {/* Instagram Icon */}
+                <a 
+                  href="https://www.instagram.com/zipseacruises/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:opacity-80 transition-opacity"
+                >
+                  <Image
+                    src="/images/instagram.svg"
+                    alt="Instagram"
+                    width={45}
+                    height={45}
+                  />
+                </a>
+              </div>
             </div>
           </div>
         </div>

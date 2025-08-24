@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getCruiseBySlug, getComprehensiveCruiseData, getCruiseDetailsById, ComprehensiveCruiseData, Cruise } from '../../../lib/api';
 import { parseCruiseSlug } from '../../../lib/slug';
+import { useAlert } from '../../../components/GlobalAlertProvider';
 
 interface CruiseDetailPageProps {}
 
@@ -11,6 +12,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug as string;
+  const { showAlert } = useAlert();
   
   const [cruiseData, setCruiseData] = useState<ComprehensiveCruiseData | null>(null);
   const [fallbackData, setFallbackData] = useState<Cruise | null>(null);
@@ -67,10 +69,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         }
 
         // If all methods fail
+        showAlert('Cruise not found');
         setError('Cruise not found');
       } catch (err) {
         console.error('Failed to load cruise data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load cruise data');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load cruise data';
+        showAlert(errorMessage);
+        setError(errorMessage);
       } finally {
         setIsLoading(false);
       }

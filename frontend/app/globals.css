@@ -203,3 +203,41 @@ body {
   animation: floatSwimmer3 52s ease-in-out infinite;
   animation-delay: -30s;
 }
+
+/* SVG Rendering Optimization */
+svg {
+  shape-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Next.js Image component SVG optimization */
+img[src$=".svg"] {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  shape-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* High DPI display optimizations for SVGs */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  img[src$=".svg"] {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: pixelated;
+  }
+  
+  svg {
+    shape-rendering: geometricPrecision;
+  }
+}
+
+/* Specific optimization for icon containers */
+.icon-container img,
+.icon-container svg {
+  shape-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  image-rendering: -webkit-optimize-contrast;
+}
