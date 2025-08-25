@@ -76,7 +76,7 @@ export const isTest = false; // No test environment
 // Database configuration
 export const dbConfig = {
   url: env.DATABASE_URL || '',
-  ssl: isProduction || isStaging,
+  ssl: env.DATABASE_URL?.includes('render.com') ? true : false,
   max: isProduction || isStaging ? 20 : 5,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,

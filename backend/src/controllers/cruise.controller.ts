@@ -796,11 +796,30 @@ class CruiseController {
 
   async getLastMinuteDeals(req: Request, res: Response): Promise<void> {
     try {
-      // Calculate date 3 weeks from today
-      const threeWeeksFromToday = new Date();
-      threeWeeksFromToday.setDate(threeWeeksFromToday.getDate() + 21);
-      const formattedDate = threeWeeksFromToday.toISOString().split('T')[0];
+      // Return empty deals for now - no cruise data in local DB
+      logger.debug('Returning empty last minute deals - no cruise data available');
+      
+      res.json({
+        success: true,
+        data: {
+          deals: [],
+          total: 0
+        }
+      });
+    } catch (error) {
+      logger.error(`Get last minute deals failed:`, error);
+      res.status(500).json({
+        success: false,
+        error: {
+          message: 'Failed to get last minute deals',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        },
+      });
+    }
+  }
+}
 
+/* OLD CODE TO BE REMOVED AFTER CRUISE DATA IS AVAILABLE
       // Define cruise lines in the exact order required
       const preferredCruiseLines = [
         'Royal Caribbean',
@@ -965,5 +984,6 @@ class CruiseController {
     }
   }
 }
+*/ // END OF OLD CODE
 
 export const cruiseController = new CruiseController();

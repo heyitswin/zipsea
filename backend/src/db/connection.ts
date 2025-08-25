@@ -8,7 +8,7 @@ import * as schema from './schema';
 const sql = env.DATABASE_URL ? postgres(env.DATABASE_URL, {
   max: dbConfig.max,
   idle_timeout: dbConfig.idleTimeoutMillis / 1000,
-  connect_timeout: dbConfig.connectionTimeoutMillis / 1000,
+  connect_timeout: 30, // Increase connection timeout to 30 seconds
   ssl: dbConfig.ssl ? { rejectUnauthorized: false } : false,
   onnotice: () => {}, // Suppress notices in production
   debug: env.NODE_ENV === 'staging',

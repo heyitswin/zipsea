@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { fetchShips, Ship, searchCruises, Cruise, fetchLastMinuteDeals, LastMinuteDeals } from "../lib/api";
 import { createSlugFromCruise } from "../lib/slug";
 import { useAlert } from "../components/GlobalAlertProvider";
+import Navigation from "./components/Navigation";
 
 export default function Home() {
   const router = useRouter();
@@ -36,8 +37,6 @@ export default function Home() {
   const [lastMinuteDeals, setLastMinuteDeals] = useState<LastMinuteDeals[]>([]);
   const [isLoadingDeals, setIsLoadingDeals] = useState(false);
   
-  // Scroll states for navigation
-  const [isScrolled, setIsScrolled] = useState(false);
 
   // Load ships on component mount
   useEffect(() => {
@@ -80,16 +79,6 @@ export default function Home() {
     loadLastMinuteDeals();
   }, []);
 
-  // Handle scroll for navigation transition
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      setIsScrolled(scrollPosition > 500);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Filter ships based on search input
   useEffect(() => {
@@ -390,128 +379,18 @@ export default function Home() {
 
   return (
     <>
-      {/* Navigation */}
-      <nav 
-        className={`fixed top-0 left-0 right-0 z-50 py-[20px] px-[28px] transition-all duration-300 ease-in-out ${
-          isScrolled ? 'bg-white shadow-lg' : 'bg-transparent'
-        }`} 
-        style={{ height: '80px' }}
-      >
-        <div className="flex items-center justify-between">
-          {/* Logo */}
-          <div className="w-[110px]">
-            <Image
-              src={isScrolled ? "/images/zipsea-logo-blue.svg" : "/images/zipsea-logo.svg"}
-              alt="Zipsea"
-              width={110}
-              height={40}
-              className={isScrolled ? "" : "brightness-0 invert"}
-              priority
-            />
-          </div>
-          
-          {/* Minimized Search Bar - Only show when scrolled */}
-          {isScrolled && (
-            <div className="ml-[44px] flex-1 max-w-[400px] transition-all duration-300 ease-in-out">
-              <div className="h-[48px] bg-white rounded-full flex items-center overflow-hidden border border-gray-separator relative">
-                {/* Select Ship Input */}
-                <div className="flex-1 flex items-center px-4 h-full">
-                  <svg width="20" height="20" viewBox="0 0 34 27" fill="none" className="mr-3" style={{ shapeRendering: 'geometricPrecision' }}>
-                    <path d="M32.8662 25.4355C32.0707 25.4334 31.2888 25.2282 30.5947 24.8395C29.9005 24.4508 29.3171 23.8914 28.8995 23.2142C28.478 23.8924 27.8906 24.4519 27.1926 24.8398C26.4947 25.2278 25.7094 25.4314 24.9109 25.4314C24.1124 25.4314 23.3271 25.2278 22.6292 24.8398C21.9313 24.4519 21.3438 23.8924 20.9223 23.2142C20.5031 23.894 19.9167 24.4551 19.2191 24.844C18.5215 25.2329 17.7359 25.4365 16.9372 25.4355C14.8689 25.4355 11.4533 22.2962 9.31413 20.0961C9.17574 19.9536 8.99997 19.8529 8.80698 19.8057C8.61399 19.7585 8.4116 19.7666 8.22303 19.8292C8.03445 19.8917 7.86733 20.0062 7.74084 20.1594C7.61435 20.3126 7.53361 20.4984 7.50788 20.6954C7.36621 22.0086 6.83213 23.3105 5.25396 23.3105C4.30812 23.2648 3.39767 22.9367 2.64011 22.3686C1.88255 21.8004 1.31265 21.0183 1.00396 20.123" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                    <path d="M18 20.123L22.8875 18.9005C24.0268 18.6152 25.0946 18.097 26.0236 17.3784C26.9526 16.6598 27.7226 15.7566 28.285 14.7255L32.875 6.31055L1 12.6855" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                    <path d="M25.2861 7.8278L18.0002 4.18555L4.18772 6.31055" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                    <path d="M6.31254 11.6236L4.18754 6.31109L1.9662 2.60934C1.86896 2.4482 1.81632 2.26409 1.81369 2.0759C1.81107 1.8877 1.85854 1.7022 1.95125 1.53841C2.04396 1.37461 2.17857 1.23843 2.34127 1.14382C2.50397 1.0492 2.68891 0.999569 2.87712 1H6.31254L11.54 5.18059" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                  </svg>
-                  <input
-                    type="text"
-                    placeholder="Select Ship"
-                    value={searchValue}
-                    onChange={handleInputChange}
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
-                    onKeyDown={handleKeyDown}
-                    className="flex-1 text-[18px] font-geograph text-dark-blue placeholder-dark-blue tracking-tight outline-none bg-transparent"
-                    style={{ letterSpacing: '-0.02em' }}
-                  />
-                </div>
-
-                {/* Separator */}
-                <div className="w-[1px] h-[calc(100%-12px)] bg-gray-separator" />
-
-                {/* Departure Date Input */}
-                <div className="flex-1 flex items-center px-4 h-full">
-                  <svg width="20" height="20" viewBox="0 0 33 33" fill="none" className="mr-3" style={{ shapeRendering: 'geometricPrecision' }}>
-                    <path d="M29.4667 5.06836H3.03333C1.91035 5.06836 1 5.97868 1 7.10161V29.4674C1 30.5903 1.91035 31.5006 3.03333 31.5006H29.4667C30.5896 31.5006 31.5 30.5903 31.5 29.4674V7.10161C31.5 5.97868 30.5896 5.06836 29.4667 5.06836Z" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                    <path d="M1 13.1992H31.5" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                    <path d="M9.13379 8.11638V1" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                    <path d="M23.3662 8.11638V1" stroke="#2F2F2F" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                  </svg>
-                  <input
-                    type="text"
-                    placeholder="Departure Date"
-                    value={dateValue}
-                    onFocus={handleDateInputFocus}
-                    onBlur={handleDateInputBlur}
-                    readOnly
-                    className="flex-1 text-[18px] font-geograph text-dark-blue placeholder-dark-blue tracking-tight outline-none bg-transparent cursor-pointer"
-                    style={{ letterSpacing: '-0.02em' }}
-                  />
-                </div>
-
-                {/* Search Button */}
-                <button 
-                  onClick={handleSearchCruises}
-                  className="absolute right-1.5 w-[40px] h-[40px] bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors"
-                >
-                  <svg width="20" height="20" viewBox="0 0 33 33" fill="none" style={{ shapeRendering: 'geometricPrecision' }}>
-                    <path d="M19.4999 25.5644C25.3213 23.0904 28.0349 16.3656 25.5608 10.5442C23.0868 4.72278 16.362 2.0092 10.5406 4.48324C4.71919 6.95728 2.00561 13.6821 4.47965 19.5035C6.95369 25.3249 13.6785 28.0385 19.4999 25.5644Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                    <path d="M23.1172 23.123L31.9998 32.0069" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          )}
-          
-          {/* Navigation Links and Button */}
-          <div className="flex items-center gap-8">
-            <a 
-              href="/why-zipsea" 
-              className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                isScrolled ? 'text-dark-blue' : 'text-white'
-              }`}
-            >
-              Why Zipsea
-            </a>
-            <a 
-              href="/faqs" 
-              className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                isScrolled ? 'text-dark-blue' : 'text-white'
-              }`}
-            >
-              FAQs
-            </a>
-            <a 
-              href="#" 
-              className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                isScrolled ? 'text-dark-blue' : 'text-white'
-              }`}
-            >
-              Chat with us
-            </a>
-            
-            {/* Sign up/Log in Button */}
-            <button 
-              className={`px-5 py-3.5 border rounded-full text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                isScrolled 
-                  ? 'border-gray-separator text-dark-blue bg-transparent' 
-                  : 'border-white text-white bg-transparent'
-              }`}
-            >
-              Sign up/Log in
-            </button>
-          </div>
-        </div>
-      </nav>
+      {/* Override global navigation with homepage-specific functionality */}
+      <Navigation 
+        showMinimizedSearch={true}
+        searchValue={searchValue}
+        onSearchValueChange={setSearchValue}
+        selectedShip={selectedShip}
+        onShipSelect={handleShipSelect}
+        dateValue={dateValue}
+        onDateSelect={handleDateSelect}
+        selectedDate={selectedDate}
+        onSearchClick={handleSearchCruises}
+      />
 
       {/* Hero Section */}
       <section className="relative h-[720px] bg-light-blue pt-[100px] overflow-visible z-20">
@@ -652,7 +531,7 @@ export default function Home() {
             </div>
 
             {/* Ship Dropdown - Now outside the overflow-hidden container */}
-            {isDropdownOpen && !isScrolled && (
+            {isDropdownOpen && (
               <div 
                 ref={dropdownRef}
                 className={`absolute left-[10px] mt-[12px] bg-white rounded-[10px] z-[10000] ${
@@ -660,8 +539,8 @@ export default function Home() {
                 }`}
                 style={{ 
                   boxShadow: '0px 1px 14px rgba(0, 0, 0, 0.25)',
-                  top: '90px', // Position below the search pill
-                  width: 'calc(50% - 10px)', // Half width, accounting for left margin
+                  top: '90px',
+                  width: 'calc(50% - 10px)',
                   position: 'absolute'
                 }}
               >
@@ -696,7 +575,7 @@ export default function Home() {
             )}
 
             {/* Date Picker Dropdown */}
-            {isDateDropdownOpen && !isScrolled && (
+            {isDateDropdownOpen && (
               <div 
                 ref={dateDropdownRef}
                 className={`absolute mt-[12px] bg-white rounded-[10px] z-[10000] ${
@@ -704,9 +583,9 @@ export default function Home() {
                 }`}
                 style={{ 
                   boxShadow: '0px 1px 14px rgba(0, 0, 0, 0.25)',
-                  top: '90px', // Position below the search pill
-                  left: 'calc(50% + 5px)', // Position on the right side
-                  width: 'calc(50% - 15px)', // Half width, accounting for margins
+                  top: '90px',
+                  left: 'calc(50% + 5px)',
+                  width: 'calc(50% - 15px)',
                   position: 'absolute'
                 }}
               >
@@ -795,151 +674,6 @@ export default function Home() {
 
       </section>
 
-      {/* Minimized Search Bar Dropdowns - Only show when scrolled */}
-      {isScrolled && (
-        <>
-          {/* Ship Dropdown for Minimized Search */}
-          {isDropdownOpen && (
-            <div 
-              ref={dropdownRef}
-              className={`fixed bg-white rounded-[10px] z-[10000] ${
-                isDropdownClosing ? 'dropdown-fade-out' : 'dropdown-fade-in'
-              }`}
-              style={{ 
-                boxShadow: '0px 1px 14px rgba(0, 0, 0, 0.25)',
-                top: '80px', // Position below the minimized search bar
-                left: '72px', // Align with the minimized search bar
-                width: '300px',
-                position: 'fixed'
-              }}
-            >
-              <div className="max-h-[300px] overflow-y-auto custom-scrollbar rounded-[10px]">
-                {isLoading ? (
-                  <div className="px-6 py-3 font-geograph text-[18px] text-gray-500 font-normal">
-                    Loading ships...
-                  </div>
-                ) : filteredShips.length > 0 ? (
-                  filteredShips.map((ship, index) => (
-                    <div
-                      key={`${ship.id}-${index}`}
-                      onClick={() => handleShipSelect(ship)}
-                      className={`px-6 py-3 cursor-pointer font-geograph text-dark-blue dropdown-item-hover ${
-                        index === highlightedIndex 
-                          ? 'bg-light-blue bg-opacity-20' 
-                          : 'hover:bg-light-blue hover:bg-opacity-10'
-                      }`}
-                      style={{ letterSpacing: '-0.02em' }}
-                    >
-                      <div className="font-normal text-[18px]">{ship.name}</div>
-                      <div className="font-normal text-[14px] text-gray-500 mt-0.5">{ship.cruiseLineName}</div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="px-6 py-3 font-geograph text-[18px] text-gray-500 font-normal">
-                    No ships found
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Date Picker Dropdown for Minimized Search */}
-          {isDateDropdownOpen && (
-            <div 
-              ref={dateDropdownRef}
-              className={`fixed bg-white rounded-[10px] z-[10000] ${
-                isDateDropdownClosing ? 'dropdown-fade-out' : 'dropdown-fade-in'
-              }`}
-              style={{ 
-                boxShadow: '0px 1px 14px rgba(0, 0, 0, 0.25)',
-                top: '80px', // Position below the minimized search bar
-                right: '28px', // Align with the right side
-                width: '300px',
-                position: 'fixed'
-              }}
-            >
-              <div className="p-4 font-geograph">
-                {/* Calendar Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <button
-                    onClick={handlePreviousMonth}
-                    disabled={isPreviousMonthDisabled()}
-                    className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
-                      isPreviousMonthDisabled() 
-                        ? 'cursor-not-allowed opacity-30' 
-                        : 'hover:bg-gray-100 cursor-pointer'
-                    }`}
-                  >
-                    <svg width="32" height="32" viewBox="0 0 36 36" fill="none" style={{ shapeRendering: 'geometricPrecision' }} className={isPreviousMonthDisabled() ? 'opacity-50' : ''}>
-                      <rect x="35.5" y="35.5" width="35" height="35" rx="9.5" transform="rotate(-180 35.5 35.5)" stroke="#D9D9D9" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                      <path d="M15.125 18.125L20 13.25" stroke="#0E1B4D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                      <path d="M15.125 18.125L20 23" stroke="#0E1B4D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                    </svg>
-                  </button>
-                  <h3 className="font-medium text-[18px] text-dark-blue">
-                    {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                  </h3>
-                  <button
-                    onClick={handleNextMonth}
-                    className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors"
-                  >
-                    <svg width="32" height="32" viewBox="0 0 36 36" fill="none" style={{ shapeRendering: 'geometricPrecision' }} className="rotate-180">
-                      <rect x="35.5" y="35.5" width="35" height="35" rx="9.5" transform="rotate(-180 35.5 35.5)" stroke="#D9D9D9" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                      <path d="M15.125 18.125L20 13.25" stroke="#0E1B4D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                      <path d="M15.125 18.125L20 23" stroke="#0E1B4D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Days of Week Headers */}
-                <div className="grid grid-cols-7 gap-1 mb-2">
-                  {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-                    <div
-                      key={index}
-                      className="w-[51px] h-12 flex items-center justify-center text-[14px] font-medium text-gray-600"
-                    >
-                      {day}
-                    </div>
-                  ))}
-                </div>
-
-                {/* Calendar Grid */}
-                <div className="grid grid-cols-7 gap-1">
-                  {generateCalendarDays().map((day, index) => {
-                    if (day === null) {
-                      return <div key={index} className="h-[51px]" />;
-                    }
-
-                    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-                    const isPast = isDateInPast(date);
-                    const isSelected = selectedDate && 
-                      date.getDate() === selectedDate.getDate() &&
-                      date.getMonth() === selectedDate.getMonth() &&
-                      date.getFullYear() === selectedDate.getFullYear();
-
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => handleDateSelect(date)}
-                        className={`w-[51px] h-[51px] flex items-center justify-center text-[16px] rounded-full transition-all ${
-                          isPast 
-                            ? 'text-gray-400 font-normal cursor-not-allowed' 
-                            : 'text-dark-blue font-medium hover:bg-light-blue hover:bg-opacity-20 cursor-pointer'
-                        } ${
-                          isSelected ? 'bg-light-blue text-white' : ''
-                        }`}
-                        disabled={isPast}
-                      >
-                        {day}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-        </>
-      )}
 
       {/* Separator Image */}
       <div 
@@ -1244,139 +978,6 @@ export default function Home() {
         }}
       />
 
-      {/* Footer Section */}
-      <footer className="bg-white py-16">
-        <div className="max-w-7xl mx-auto px-8">
-          <div className="flex justify-between items-start">
-            {/* Left side - Logo and links */}
-            <div className="flex flex-col">
-              {/* Zipsea Logo */}
-              <div className="mb-6">
-                <Image
-                  src="/images/zipsea-logo.svg"
-                  alt="Zipsea"
-                  width={110}
-                  height={40}
-                  className="brightness-0"
-                  style={{ filter: 'brightness(0) saturate(100%) invert(18%) sepia(0%) saturate(0%) hue-rotate(180deg) brightness(95%) contrast(89%)' }}
-                />
-              </div>
-              
-              {/* Terms & Conditions Link */}
-              <a 
-                href="#" 
-                className="font-geograph font-bold mb-3"
-                style={{
-                  fontSize: '9px',
-                  color: '#2f2f2f',
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase'
-                }}
-              >
-                TERMS & CONDITIONS
-              </a>
-              
-              {/* Privacy Policy Link */}
-              <a 
-                href="#" 
-                className="font-geograph font-bold"
-                style={{
-                  fontSize: '9px',
-                  color: '#2f2f2f',
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase'
-                }}
-              >
-                PRIVACY POLICY
-              </a>
-            </div>
-            
-            {/* Right side - Navigation links and social icons */}
-            <div className="flex items-center gap-8">
-              {/* Navigation Links */}
-              <div className="flex items-center gap-8">
-                {/* Why Zipsea */}
-                <a 
-                  href="/why-zipsea" 
-                  className="font-geograph font-medium hover:opacity-80 transition-opacity"
-                  style={{
-                    fontSize: '16px',
-                    color: '#2f2f2f',
-                    letterSpacing: '-0.02em'
-                  }}
-                >
-                  Why Zipsea
-                </a>
-                
-                {/* FAQs */}
-                <a 
-                  href="/faqs" 
-                  className="font-geograph font-medium hover:opacity-80 transition-opacity"
-                  style={{
-                    fontSize: '16px',
-                    color: '#2f2f2f',
-                    letterSpacing: '-0.02em'
-                  }}
-                >
-                  FAQs
-                </a>
-                
-                {/* Chat with us */}
-                <a 
-                  href="#" 
-                  className="font-geograph font-medium hover:opacity-80 transition-opacity"
-                  style={{
-                    fontSize: '16px',
-                    color: '#2f2f2f',
-                    letterSpacing: '-0.02em'
-                  }}
-                >
-                  Chat with us
-                </a>
-              </div>
-              
-              {/* Social Icons with reduced spacing */}
-              <div className="flex items-center gap-4">
-                {/* TikTok Icon */}
-                <a 
-                  href="https://www.tiktok.com/@zipseacruises"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:opacity-80 transition-opacity"
-                >
-                  <svg width="45" height="45" viewBox="0 0 45 45" fill="none" style={{ shapeRendering: 'geometricPrecision' }}>
-                    <circle cx="22.5" cy="22.5" r="22.5" fill="#2F2F2F"/>
-                    <path d="M29.5162 16.3304C29.3707 16.2552 29.229 16.1727 29.0917 16.0834C28.6925 15.8194 28.3264 15.5084 28.0015 15.1571C27.1884 14.2267 26.8847 13.2829 26.7729 12.6221H26.7774C26.6839 12.0736 26.7226 11.7188 26.7284 11.7188H23.025V26.0389C23.025 26.2312 23.025 26.4212 23.0169 26.609C23.0169 26.6324 23.0147 26.6539 23.0134 26.6791C23.0134 26.6894 23.0134 26.7002 23.0111 26.711C23.0111 26.7137 23.0111 26.7164 23.0111 26.7191C22.9721 27.2329 22.8074 27.7292 22.5315 28.1644C22.2556 28.5996 21.877 28.9604 21.429 29.2149C20.962 29.4806 20.4339 29.6199 19.8967 29.6192C18.1712 29.6192 16.7728 28.2123 16.7728 26.4747C16.7728 24.7371 18.1712 23.3302 19.8967 23.3302C20.2233 23.3299 20.5479 23.3813 20.8584 23.4824L20.8629 19.7117C19.9202 19.5899 18.9624 19.6648 18.0501 19.9317C17.1378 20.1986 16.2906 20.6517 15.5622 21.2624C14.9238 21.817 14.3872 22.4788 13.9764 23.2179C13.8201 23.4874 13.2303 24.5704 13.1588 26.3282C13.1139 27.326 13.4135 28.3596 13.5564 28.7868V28.7958C13.6462 29.0474 13.9944 29.9058 14.5617 30.6295C15.0193 31.21 15.5598 31.72 16.1659 32.1429V32.1339L16.1749 32.1429C17.9677 33.3612 19.9555 33.2812 19.9555 33.2812C20.2996 33.2673 21.4523 33.2812 22.7613 32.6609C24.2132 31.9731 25.0398 30.9485 25.0398 30.9485C25.5678 30.3362 25.9877 29.6385 26.2814 28.8852C26.6165 28.0043 26.7284 26.9477 26.7284 26.5254V18.9283C26.7733 18.9552 27.3717 19.351 27.3717 19.351C27.3717 19.351 28.2337 19.9035 29.5787 20.2633C30.5436 20.5194 31.8436 20.5733 31.8436 20.5733V16.8969C31.3881 16.9463 30.4632 16.8026 29.5162 16.3304Z" fill="white"/>
-                  </svg>
-                </a>
-                
-                {/* Instagram Icon */}
-                <a 
-                  href="https://www.instagram.com/zipseacruises/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:opacity-80 transition-opacity"
-                >
-                  <svg width="45" height="45" viewBox="0 0 45 45" fill="none" style={{ shapeRendering: 'geometricPrecision' }}>
-                    <circle cx="22.5" cy="22.5" r="22.5" fill="#2F2F2F"/>
-                    <g clipPath="url(#clip0_637_3559)">
-                      <path d="M23 13.163C26.204 13.163 26.584 13.175 27.85 13.233C31.102 13.381 32.621 14.924 32.769 18.152C32.827 19.417 32.838 19.797 32.838 23.001C32.838 26.206 32.826 26.585 32.769 27.85C32.62 31.075 31.105 32.621 27.85 32.769C26.584 32.827 26.206 32.839 23 32.839C19.796 32.839 19.416 32.827 18.151 32.769C14.891 32.62 13.38 31.07 13.232 27.849C13.174 26.584 13.162 26.205 13.162 23C13.162 19.796 13.175 19.417 13.232 18.151C13.381 14.924 14.896 13.38 18.151 13.232C19.417 13.175 19.796 13.163 23 13.163ZM23 11C19.741 11 19.333 11.014 18.053 11.072C13.695 11.272 11.273 13.69 11.073 18.052C11.014 19.333 11 19.741 11 23C11 26.259 11.014 26.668 11.072 27.948C11.272 32.306 13.69 34.728 18.052 34.928C19.333 34.986 19.741 35 23 35C26.259 35 26.668 34.986 27.948 34.928C32.302 34.728 34.73 32.31 34.927 27.948C34.986 26.668 35 26.259 35 23C35 19.741 34.986 19.333 34.928 18.053C34.732 13.699 32.311 11.273 27.949 11.073C26.668 11.014 26.259 11 23 11ZM23 16.838C19.597 16.838 16.838 19.597 16.838 23C16.838 26.403 19.597 29.163 23 29.163C26.403 29.163 29.162 26.404 29.162 23C29.162 19.597 26.403 16.838 23 16.838ZM23 27C20.791 27 19 25.21 19 23C19 20.791 20.791 19 23 19C25.209 19 27 20.791 27 23C27 25.21 25.209 27 23 27ZM29.406 15.155C28.61 15.155 27.965 15.8 27.965 16.595C27.965 17.39 28.61 18.035 29.406 18.035C30.201 18.035 30.845 17.39 30.845 16.595C30.845 15.8 30.201 15.155 29.406 15.155Z" fill="white"/>
-                    </g>
-                    <defs>
-                      <clipPath id="clip0_637_3559">
-                        <rect width="24" height="24" fill="white" transform="translate(11 11)"/>
-                      </clipPath>
-                    </defs>
-                  </svg>
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Bottom spacing */}
-        <div className="h-[300px]" />
-      </footer>
     </>
   );
 }

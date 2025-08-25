@@ -42,28 +42,30 @@ export default function GlobalAlert({ message, isVisible, onClose }: GlobalAlert
 
   return (
     <div
-      className={`fixed top-0 left-0 right-0 z-[10001] transform transition-all duration-300 ease-out ${
+      className={`fixed left-1/2 transform -translate-x-1/2 z-[10001] transition-all duration-300 ease-out ${
         isAnimating 
           ? 'translate-y-0 opacity-100' 
           : '-translate-y-full opacity-0'
       }`}
       style={{
+        top: '100px',
         backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+        borderRadius: '50px',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+        border: '1px solid #e5e7eb'
       }}
     >
-      <div className="max-w-7xl mx-auto px-8 py-4">
-        <div className="flex items-center justify-between">
+      <div className="px-6 py-3">
+        <div className="flex items-center gap-4">
           <p 
-            className="font-geograph font-medium text-[16px] tracking-tight"
+            className="font-geograph font-medium text-[16px] tracking-tight whitespace-nowrap"
             style={{ color: '#2f2f2f' }}
           >
             {message}
           </p>
           <button
             onClick={handleClose}
-            className="ml-4 text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
             aria-label="Close alert"
           >
             <svg
