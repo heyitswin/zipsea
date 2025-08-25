@@ -56,33 +56,59 @@ router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: R
     };
 
     // Always acknowledge receipt first (prevent webhook retries)
-    // Add webhook to BullMQ queue for parallel processing
-    const job = await webhookQueue.add('cruiseline-pricing-updated', {
-      webhookId,
-      eventType: 'cruiseline_pricing_updated',
-      lineId: payload.lineid,
-      payload,
-      timestamp: new Date().toISOString(),
-    }, {
-      jobId: webhookId,
-      priority: 1,
-    });
+    
+    // If queue is available, use it for parallel processing
+    if (webhookQueue) {
+      const job = await webhookQueue.add('cruiseline-pricing-updated', {
+        webhookId,
+        eventType: 'cruiseline_pricing_updated',
+        lineId: payload.lineid,
+        payload,
+        timestamp: new Date().toISOString(),
+      }, {
+        jobId: webhookId,
+        priority: 1,
+      });
 
-    logger.info('📨 Webhook added to processing queue', {
-      webhookId,
-      jobId: job.id,
-      lineId: payload.lineid,
-      queueName: 'webhook-processing',
-    });
+      logger.info('📨 Webhook added to processing queue', {
+        webhookId,
+        jobId: job.id,
+        lineId: payload.lineid,
+        queueName: 'webhook-processing',
+      });
 
-    res.status(200).json({
-      success: true,
-      message: 'Cruiseline pricing update webhook received and queued for processing',
-      timestamp: new Date().toISOString(),
-      webhookId,
-      lineId: payload.lineid,
-      jobId: job.id,
-    });
+      res.status(200).json({
+        success: true,
+        message: 'Cruiseline pricing update webhook received and queued for processing',
+        timestamp: new Date().toISOString(),
+        webhookId,
+        lineId: payload.lineid,
+        jobId: job.id,
+      });
+    } else {
+      // Process directly without queue
+      logger.info('📨 Processing webhook directly (no queue available)', {
+        webhookId,
+        lineId: payload.lineid,
+      });
+      
+      // Process in background without blocking response
+      setImmediate(async () => {
+        try {
+          await traveltekWebhookService.handleStaticPricingUpdate(payload);
+        } catch (error) {
+          logger.error('❌ Error processing webhook', { webhookId, error });
+        }
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: 'Cruiseline pricing update webhook received and processing',
+        timestamp: new Date().toISOString(),
+        webhookId,
+        lineId: payload.lineid,
+      });
+    }
 
   } catch (error) {
     logger.error('❌ Error in cruiseline pricing webhook handler', { 

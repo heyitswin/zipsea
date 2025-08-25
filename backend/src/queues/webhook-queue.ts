@@ -5,14 +5,36 @@ import { traveltekWebhookService } from '../services/traveltek-webhook.service';
 import { slackService } from '../services/slack.service';
 import IORedis from 'ioredis';
 
-// Redis connection configuration
-const redisConnection = new IORedis({
-  host: env.REDIS_HOST || 'localhost',
-  port: env.REDIS_PORT || 6379,
-  password: env.REDIS_PASSWORD,
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-});
+// Check if Redis is configured
+const REDIS_AVAILABLE = env.REDIS_URL || env.REDIS_HOST;
+
+let redisConnection: IORedis | null = null;
+
+if (REDIS_AVAILABLE) {
+  try {
+    // Redis connection configuration
+    if (env.REDIS_URL) {
+      redisConnection = new IORedis(env.REDIS_URL, {
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+      });
+    } else {
+      redisConnection = new IORedis({
+        host: env.REDIS_HOST || 'localhost',
+        port: env.REDIS_PORT || 6379,
+        password: env.REDIS_PASSWORD,
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+      });
+    }
+    logger.info('✅ Redis connection established for BullMQ');
+  } catch (error) {
+    logger.error('❌ Failed to connect to Redis, queues disabled:', error);
+    redisConnection = null;
+  }
+} else {
+  logger.warn('⚠️ Redis not configured, webhook queuing disabled');
+}
 
 // Define job data types
 export interface WebhookJobData {
@@ -32,8 +54,8 @@ export interface CruiseUpdateJobData {
   lineId: string;
 }
 
-// Create queues
-export const webhookQueue = new Queue<WebhookJobData>('webhook-processing', {
+// Create queues (only if Redis is available)
+export const webhookQueue = redisConnection ? new Queue<WebhookJobData>('webhook-processing', {
   connection: redisConnection,
   defaultJobOptions: {
     removeOnComplete: {
@@ -49,9 +71,9 @@ export const webhookQueue = new Queue<WebhookJobData>('webhook-processing', {
       delay: 2000,
     },
   },
-});
+}) : null;
 
-export const cruiseUpdateQueue = new Queue<CruiseUpdateJobData>('cruise-updates', {
+export const cruiseUpdateQueue = redisConnection ? new Queue<CruiseUpdateJobData>('cruise-updates', {
   connection: redisConnection,
   defaultJobOptions: {
     removeOnComplete: {
@@ -67,10 +89,10 @@ export const cruiseUpdateQueue = new Queue<CruiseUpdateJobData>('cruise-updates'
       delay: 1000,
     },
   },
-});
+}) : null;
 
-// Webhook processing worker - handles main webhook orchestration
-const webhookWorker = new Worker<WebhookJobData>(
+// Webhook processing worker - handles main webhook orchestration (only if Redis available)
+const webhookWorker = redisConnection ? new Worker<WebhookJobData>(
   'webhook-processing',
   async (job: Job<WebhookJobData>) => {
     const { webhookId, eventType, lineId, payload, timestamp } = job.data;
@@ -153,10 +175,10 @@ const webhookWorker = new Worker<WebhookJobData>(
       duration: 60000, // Max 10 webhooks per minute
     },
   }
-);
+) : null;
 
-// Cruise update worker - handles individual cruise updates
-const cruiseUpdateWorker = new Worker<CruiseUpdateJobData>(
+// Cruise update worker - handles individual cruise updates (only if Redis available)
+const cruiseUpdateWorker = redisConnection ? new Worker<CruiseUpdateJobData>(
   'cruise-updates',
   async (job: Job<CruiseUpdateJobData>) => {
     const { cruiseId, cruiseCode, filePath, webhookEventId, batchId, lineId } = job.data;
@@ -194,56 +216,71 @@ const cruiseUpdateWorker = new Worker<CruiseUpdateJobData>(
       duration: 1000, // Max 50 cruise updates per second
     },
   }
-);
+) : null;
 
-// Queue event listeners for monitoring
-const webhookQueueEvents = new QueueEvents('webhook-processing', {
+// Queue event listeners for monitoring (only if Redis available)
+const webhookQueueEvents = redisConnection ? new QueueEvents('webhook-processing', {
   connection: redisConnection,
-});
+}) : null;
 
-const cruiseQueueEvents = new QueueEvents('cruise-updates', {
+const cruiseQueueEvents = redisConnection ? new QueueEvents('cruise-updates', {
   connection: redisConnection,
-});
+}) : null;
 
 // Monitor webhook queue events
-webhookQueueEvents.on('completed', ({ jobId, returnvalue }) => {
+if (webhookQueueEvents) {
+  webhookQueueEvents.on('completed', ({ jobId, returnvalue }) => {
   logger.debug(`Webhook job ${jobId} completed`, { returnvalue });
-});
+  });
 
-webhookQueueEvents.on('failed', ({ jobId, failedReason }) => {
+  webhookQueueEvents.on('failed', ({ jobId, failedReason }) => {
   logger.error(`Webhook job ${jobId} failed`, { failedReason });
-});
+  });
+}
 
 // Monitor cruise update queue events
-cruiseQueueEvents.on('completed', ({ jobId }) => {
+if (cruiseQueueEvents) {
+  cruiseQueueEvents.on('completed', ({ jobId }) => {
   logger.debug(`Cruise update job ${jobId} completed`);
-});
+  });
 
-cruiseQueueEvents.on('failed', ({ jobId, failedReason }) => {
+  cruiseQueueEvents.on('failed', ({ jobId, failedReason }) => {
   logger.error(`Cruise update job ${jobId} failed`, { failedReason });
-});
+  });
+}
 
 // Error handlers for workers
-webhookWorker.on('error', (error) => {
+if (webhookWorker) {
+  webhookWorker.on('error', (error) => {
   logger.error('Webhook worker error', { error });
-});
+  });
+}
 
-cruiseUpdateWorker.on('error', (error) => {
+if (cruiseUpdateWorker) {
+  cruiseUpdateWorker.on('error', (error) => {
   logger.error('Cruise update worker error', { error });
-});
+  });
+}
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('Shutting down queue workers...');
-  await webhookWorker.close();
-  await cruiseUpdateWorker.close();
-  await webhookQueue.close();
-  await cruiseUpdateQueue.close();
-  await redisConnection.quit();
+  if (webhookWorker) await webhookWorker.close();
+  if (cruiseUpdateWorker) await cruiseUpdateWorker.close();
+  if (webhookQueue) await webhookQueue.close();
+  if (cruiseUpdateQueue) await cruiseUpdateQueue.close();
+  if (redisConnection) await redisConnection.quit();
 });
 
 // Queue management functions
 export const getQueueStats = async () => {
+  if (!webhookQueue || !cruiseUpdateQueue) {
+    return {
+      webhook: { active: 0, completed: 0, failed: 0, waiting: 0, delayed: 0 },
+      cruiseUpdates: { active: 0, completed: 0, failed: 0, waiting: 0, delayed: 0 },
+    };
+  }
+  
   const [webhookStats, cruiseStats] = await Promise.all([
     webhookQueue.getJobCounts(),
     cruiseUpdateQueue.getJobCounts(),
@@ -256,6 +293,10 @@ export const getQueueStats = async () => {
 };
 
 export const clearCompletedJobs = async () => {
+  if (!webhookQueue || !cruiseUpdateQueue) {
+    return;
+  }
+  
   await Promise.all([
     webhookQueue.clean(0, 1000, 'completed'),
     cruiseUpdateQueue.clean(0, 1000, 'completed'),
@@ -263,6 +304,13 @@ export const clearCompletedJobs = async () => {
 };
 
 export const retryFailedJobs = async () => {
+  if (!webhookQueue || !cruiseUpdateQueue) {
+    return {
+      webhookRetried: 0,
+      cruiseRetried: 0,
+    };
+  }
+  
   const [webhookFailed, cruiseFailed] = await Promise.all([
     webhookQueue.getFailed(0, 100),
     cruiseUpdateQueue.getFailed(0, 100),
