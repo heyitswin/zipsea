@@ -110,15 +110,23 @@ const webhookWorker = new Worker<WebhookJobData>(
 
       // Send Slack notification for completion
       if (result && result.success) {
-        await slackService.notifyWebhookProcessingCompleted({
-          webhookId,
-          lineId: lineId || 'Unknown',
-          cruisesProcessed: result.cruisesProcessed || 0,
-          cruisesUpdated: result.cruisesUpdated || 0,
-          cruisesFailed: result.cruisesFailed || 0,
-          processingTimeMs: processingTime,
-          snapshotsCreated: result.snapshotsCreated || 0,
-        });
+        await slackService.notifyWebhookProcessingCompleted(
+          {
+            eventType,
+            lineId: parseInt(lineId || '0'),
+            timestamp: timestamp
+          },
+          {
+            successful: result.cruisesUpdated || 0,
+            failed: result.cruisesFailed || 0,
+            errors: [],
+            startTime: new Date(startTime),
+            endTime: new Date(),
+            processingTimeMs: processingTime,
+            totalCruises: result.cruisesProcessed || 0,
+            priceSnapshotsCreated: result.snapshotsCreated || 0
+          }
+        );
       }
 
       return result;
@@ -129,11 +137,10 @@ const webhookWorker = new Worker<WebhookJobData>(
       });
 
       // Send Slack notification for error
-      await slackService.notifySyncError({
-        error: error instanceof Error ? error : new Error('Unknown error'),
-        context: `Webhook processing failed for ${lineId || 'Unknown'}`,
-        details: { webhookId, eventType },
-      });
+      await slackService.notifySyncError(
+        error instanceof Error ? error.message : 'Unknown error',
+        `Webhook processing failed for ${lineId || 'Unknown'}`
+      );
 
       throw error;
     }

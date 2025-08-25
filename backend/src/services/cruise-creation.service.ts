@@ -115,7 +115,7 @@ export class CruiseCreationService {
       ];
 
       for (const dir of directories) {
-        const files = await traveltekFTPService.listDirectory(dir);
+        const files = await traveltekFTPService.listFiles(dir);
         const matchingFile = files.find(f => 
           f.includes(cruiseCode) || 
           f.includes(cruiseCode.replace(/_/g, ''))

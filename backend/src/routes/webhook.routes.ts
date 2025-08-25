@@ -65,7 +65,7 @@ router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: R
       timestamp: new Date().toISOString(),
     }, {
       jobId: webhookId,
-      priority: payload.priority || 1,
+      priority: 1,
     });
 
     logger.info('📨 Webhook added to processing queue', {

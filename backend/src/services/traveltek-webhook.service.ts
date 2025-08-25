@@ -142,7 +142,14 @@ export class TraveltekWebhookService {
         logger.info(`📦 Processing batch ${batchNumber}/${totalBatches} (${batch.length} cruises)`);
         
         const batchResults = await Promise.allSettled(
-          batch.map(cruise => this.processCruiseUpdate(cruise, payload, webhookEventId, batchId))
+          batch.map(cruise => this.processCruiseUpdate({
+            cruiseId: cruise.id,
+            cruiseCode: cruise.cruiseCode,
+            filePath: cruise.filePath || '',
+            webhookEventId,
+            batchId,
+            lineId: payload.lineid.toString()
+          }))
         );
         
         // Aggregate batch results
@@ -327,7 +334,7 @@ export class TraveltekWebhookService {
     // Attempt to auto-create the cruise
     const newCruiseId = await cruiseCreationService.createCruiseFromWebhook(
       cruise.id.toString(),
-      payload.lineid,
+      payload.lineid.toString(),
       undefined // No specific file path, will attempt discovery
     );
     
@@ -1147,13 +1154,16 @@ export class TraveltekWebhookService {
     }
     
     // Default response for unknown webhooks
+    const now = new Date();
     return {
       successful: 0,
       failed: 0,
       totalCruises: 0,
       processingTimeMs: 0,
       priceSnapshotsCreated: 0,
-      errors: ['Unknown webhook event type']
+      errors: [{ error: 'Unknown webhook event type' }],
+      startTime: now,
+      endTime: now
     };
   }
 }
