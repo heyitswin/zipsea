@@ -796,14 +796,52 @@ class CruiseController {
 
   async getLastMinuteDeals(req: Request, res: Response): Promise<void> {
     try {
-      // Return empty deals for now - no cruise data in local DB
-      logger.debug('Returning empty last minute deals - no cruise data available');
-      
+      // For now, return static sample deals since we don't have cruise data
+      // This will work on both local and production environments
+      const sampleDeals = [
+        {
+          id: 1,
+          name: "7-Night Caribbean Cruise",
+          ship_name: "Wonder of the Seas",
+          cruise_line_name: "Royal Caribbean",
+          nights: 7,
+          sailing_date: "2025-09-15",
+          embark_port_name: "Miami",
+          cheapest_pricing: 899,
+          ship_image: "/images/ship-placeholder.jpg",
+          onboard_credit: 80
+        },
+        {
+          id: 2,
+          name: "5-Night Bahamas Escape",
+          ship_name: "Carnival Celebration",
+          cruise_line_name: "Carnival Cruise Line",
+          nights: 5,
+          sailing_date: "2025-09-20",
+          embark_port_name: "Port Canaveral",
+          cheapest_pricing: 599,
+          ship_image: "/images/ship-placeholder.jpg",
+          onboard_credit: 50
+        },
+        {
+          id: 3,
+          name: "4-Night Mexico Getaway",
+          ship_name: "Norwegian Bliss",
+          cruise_line_name: "Norwegian Cruise Line",
+          nights: 4,
+          sailing_date: "2025-09-25",
+          embark_port_name: "Los Angeles",
+          cheapest_pricing: 499,
+          ship_image: "/images/ship-placeholder.jpg",
+          onboard_credit: 40
+        }
+      ];
+
       res.json({
         success: true,
         data: {
-          deals: [],
-          total: 0
+          deals: sampleDeals,
+          total: sampleDeals.length
         }
       });
     } catch (error) {
