@@ -393,9 +393,9 @@ export default function Home() {
       />
 
       {/* Hero Section */}
-      <section className="relative h-[720px] bg-light-blue pt-[100px] overflow-visible z-20">
-        {/* Floating Swimmers - Behind all content */}
-        <div className="absolute inset-0 z-0">
+      <section className="relative h-[720px] bg-light-blue pt-[100px] pb-[50px] md:pb-[100px] overflow-visible z-20">
+        {/* Floating Swimmers - Behind all content - Hidden on mobile */}
+        <div className="absolute inset-0 z-0 hidden md:block">
           {/* Swimmer 1 */}
           <div className="absolute swimmer-float-1" style={{ 
             top: '15%', 
@@ -459,24 +459,84 @@ export default function Home() {
 
         {/* Content */}
         <div className="relative z-10 flex flex-col items-center justify-center h-[calc(720px-100px)] px-4 -mt-[80px]">
-          {/* Main Heading */}
-          <h1 className="text-sunshine text-[72px] font-whitney uppercase text-center leading-none tracking-tight mb-10">
+          {/* Main Heading - Responsive */}
+          <h1 className="text-sunshine text-[52px] md:text-[72px] font-whitney uppercase text-center leading-none tracking-tight mb-6 md:mb-10">
             The most onboard credit<br />
             Simple as that
           </h1>
 
-          {/* Subheading */}
-          <p className="text-white text-[18px] font-medium font-geograph tracking-tight text-center w-full max-w-[900px] mb-5">
+          {/* Subheading - Responsive */}
+          <p className="text-white text-[16px] md:text-[18px] font-medium font-geograph tracking-tight text-center w-full max-w-[900px] mb-8 md:mb-5">
             We pass on the absolute maximum onboard credit allowed by the cruise lines - every single booking
           </p>
 
-          {/* Search Input Container - Now relative for dropdown positioning */}
+          {/* Search Input Container - Responsive Layout */}
           <div className="w-full max-w-[900px] relative z-30">
-            {/* Search Pill */}
-            <div className="h-[90px] bg-white rounded-full flex items-center overflow-hidden p-2 relative" style={{ boxShadow: '0 0 0 5px rgba(255, 255, 255, 0.3)' }}>
-              {/* Select Ship Input */}
-              <div className="flex-1 flex items-center px-6 h-full">
-                <svg width="32" height="32" viewBox="0 0 34 27" fill="none" className="mr-4" style={{ shapeRendering: 'geometricPrecision' }}>
+            {/* Desktop: Single Search Pill */}
+            <div className="hidden md:block">
+              <div className="h-[90px] bg-white rounded-full flex items-center overflow-hidden p-2 relative" style={{ boxShadow: '0 0 0 5px rgba(255, 255, 255, 0.3)' }}>
+                {/* Select Ship Input */}
+                <div className="flex-1 flex items-center px-6 h-full">
+                  <svg width="32" height="32" viewBox="0 0 34 27" fill="none" className="mr-4" style={{ shapeRendering: 'geometricPrecision' }}>
+                    <path d="M32.8662 25.4355C32.0707 25.4334 31.2888 25.2282 30.5947 24.8395C29.9005 24.4508 29.3171 23.8914 28.8995 23.2142C28.478 23.8924 27.8906 24.4519 27.1926 24.8398C26.4947 25.2278 25.7094 25.4314 24.9109 25.4314C24.1124 25.4314 23.3271 25.2278 22.6292 24.8398C21.9313 24.4519 21.3438 23.8924 20.9223 23.2142C20.5031 23.894 19.9167 24.4551 19.2191 24.844C18.5215 25.2329 17.7359 25.4365 16.9372 25.4355C14.8689 25.4355 11.4533 22.2962 9.31413 20.0961C9.17574 19.9536 8.99997 19.8529 8.80698 19.8057C8.61399 19.7585 8.4116 19.7666 8.22303 19.8292C8.03445 19.8917 7.86733 20.0062 7.74084 20.1594C7.61435 20.3126 7.53361 20.4984 7.50788 20.6954C7.36621 22.0086 6.83213 23.3105 5.25396 23.3105C4.30812 23.2648 3.39767 22.9367 2.64011 22.3686C1.88255 21.8004 1.31265 21.0183 1.00396 20.123" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    <path d="M18 20.123L22.8875 18.9005C24.0268 18.6152 25.0946 18.097 26.0236 17.3784C26.9526 16.6598 27.7226 15.7566 28.285 14.7255L32.875 6.31055L1 12.6855" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    <path d="M25.2861 7.8278L18.0002 4.18555L4.18772 6.31055" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    <path d="M6.31254 11.6236L4.18754 6.31109L1.9662 2.60934C1.86896 2.4482 1.81632 2.26409 1.81369 2.0759C1.81107 1.8877 1.85854 1.7022 1.95125 1.53841C2.04396 1.37461 2.17857 1.23843 2.34127 1.14382C2.50397 1.0492 2.68891 0.999569 2.87712 1H6.31254L11.54 5.18059" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                  </svg>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    placeholder={isInputFocused && !searchValue ? "" : "Select Ship"}
+                    value={searchValue}
+                    onFocus={handleInputFocus}
+                    onBlur={handleInputBlur}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
+                    className="flex-1 text-[24px] font-geograph text-dark-blue placeholder-dark-blue tracking-tight outline-none bg-transparent"
+                  />
+                </div>
+
+                {/* Separator */}
+                <div className="w-[1px] h-[calc(100%-16px)] bg-gray-separator" />
+
+                {/* Departure Date Input */}
+                <div className="flex-1 flex items-center px-6 h-full">
+                  <svg width="32" height="32" viewBox="0 0 33 33" fill="none" className="mr-4" style={{ shapeRendering: 'geometricPrecision' }}>
+                    <path d="M29.4667 5.06836H3.03333C1.91035 5.06836 1 5.97868 1 7.10161V29.4674C1 30.5903 1.91035 31.5006 3.03333 31.5006H29.4667C30.5896 31.5006 31.5 30.5903 31.5 29.4674V7.10161C31.5 5.97868 30.5896 5.06836 29.4667 5.06836Z" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    <path d="M1 13.1992H31.5" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    <path d="M9.13379 8.11638V1" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    <path d="M23.3662 8.11638V1" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                  </svg>
+                  <input
+                    ref={dateInputRef}
+                    type="text"
+                    placeholder={isDateInputFocused && !dateValue ? "" : "Departure Date"}
+                    value={dateValue}
+                    onFocus={handleDateInputFocus}
+                    onBlur={handleDateInputBlur}
+                    readOnly
+                    className="flex-1 text-[24px] font-geograph text-dark-blue placeholder-dark-blue tracking-tight outline-none bg-transparent cursor-pointer"
+                  />
+                </div>
+
+                {/* Search Button */}
+                <button 
+                  onClick={handleSearchCruises}
+                  className="absolute right-2 w-[74px] h-[74px] bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors"
+                >
+                  <svg width="32" height="32" viewBox="0 0 33 33" fill="none" style={{ shapeRendering: 'geometricPrecision' }}>
+                    <path d="M19.4999 25.5644C25.3213 23.0904 28.0349 16.3656 25.5608 10.5442C23.0868 4.72278 16.362 2.0092 10.5406 4.48324C4.71919 6.95728 2.00561 13.6821 4.47965 19.5035C6.95369 25.3249 13.6785 28.0385 19.4999 25.5644Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                    <path d="M23.1172 23.123L31.9998 32.0069" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            {/* Mobile: 3 Separate Pills */}
+            <div className="md:hidden space-y-4">
+              {/* Ship Selector Pill */}
+              <div className="h-[64px] bg-white rounded-full flex items-center px-6 relative" style={{ boxShadow: '0 0 0 3px rgba(255, 255, 255, 0.3)' }}>
+                <svg width="24" height="24" viewBox="0 0 34 27" fill="none" className="mr-3" style={{ shapeRendering: 'geometricPrecision' }}>
                   <path d="M32.8662 25.4355C32.0707 25.4334 31.2888 25.2282 30.5947 24.8395C29.9005 24.4508 29.3171 23.8914 28.8995 23.2142C28.478 23.8924 27.8906 24.4519 27.1926 24.8398C26.4947 25.2278 25.7094 25.4314 24.9109 25.4314C24.1124 25.4314 23.3271 25.2278 22.6292 24.8398C21.9313 24.4519 21.3438 23.8924 20.9223 23.2142C20.5031 23.894 19.9167 24.4551 19.2191 24.844C18.5215 25.2329 17.7359 25.4365 16.9372 25.4355C14.8689 25.4355 11.4533 22.2962 9.31413 20.0961C9.17574 19.9536 8.99997 19.8529 8.80698 19.8057C8.61399 19.7585 8.4116 19.7666 8.22303 19.8292C8.03445 19.8917 7.86733 20.0062 7.74084 20.1594C7.61435 20.3126 7.53361 20.4984 7.50788 20.6954C7.36621 22.0086 6.83213 23.3105 5.25396 23.3105C4.30812 23.2648 3.39767 22.9367 2.64011 22.3686C1.88255 21.8004 1.31265 21.0183 1.00396 20.123" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
                   <path d="M18 20.123L22.8875 18.9005C24.0268 18.6152 25.0946 18.097 26.0236 17.3784C26.9526 16.6598 27.7226 15.7566 28.285 14.7255L32.875 6.31055L1 12.6855" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
                   <path d="M25.2861 7.8278L18.0002 4.18555L4.18772 6.31055" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
@@ -491,16 +551,13 @@ export default function Home() {
                   onBlur={handleInputBlur}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
-                  className="flex-1 text-[24px] font-geograph text-dark-blue placeholder-dark-blue tracking-tight outline-none bg-transparent"
+                  className="flex-1 text-[18px] font-geograph text-dark-blue placeholder-dark-blue tracking-tight outline-none bg-transparent"
                 />
               </div>
-
-              {/* Separator */}
-              <div className="w-[1px] h-[calc(100%-16px)] bg-gray-separator" />
-
-              {/* Departure Date Input */}
-              <div className="flex-1 flex items-center px-6 h-full">
-                <svg width="32" height="32" viewBox="0 0 33 33" fill="none" className="mr-4" style={{ shapeRendering: 'geometricPrecision' }}>
+              
+              {/* Departure Date Pill */}
+              <div className="h-[64px] bg-white rounded-full flex items-center px-6 relative" style={{ boxShadow: '0 0 0 3px rgba(255, 255, 255, 0.3)' }}>
+                <svg width="24" height="24" viewBox="0 0 33 33" fill="none" className="mr-3" style={{ shapeRendering: 'geometricPrecision' }}>
                   <path d="M29.4667 5.06836H3.03333C1.91035 5.06836 1 5.97868 1 7.10161V29.4674C1 30.5903 1.91035 31.5006 3.03333 31.5006H29.4667C30.5896 31.5006 31.5 30.5903 31.5 29.4674V7.10161C31.5 5.97868 30.5896 5.06836 29.4667 5.06836Z" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
                   <path d="M1 13.1992H31.5" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
                   <path d="M9.13379 8.11638V1" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
@@ -514,19 +571,21 @@ export default function Home() {
                   onFocus={handleDateInputFocus}
                   onBlur={handleDateInputBlur}
                   readOnly
-                  className="flex-1 text-[24px] font-geograph text-dark-blue placeholder-dark-blue tracking-tight outline-none bg-transparent cursor-pointer"
+                  className="flex-1 text-[18px] font-geograph text-dark-blue placeholder-dark-blue tracking-tight outline-none bg-transparent cursor-pointer"
                 />
               </div>
-
-              {/* Search Button */}
+              
+              {/* Search Button Pill */}
               <button 
                 onClick={handleSearchCruises}
-                className="absolute right-2 w-[74px] h-[74px] bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors"
+                className="h-[64px] w-full bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 active:bg-dark-blue transition-colors"
+                style={{ boxShadow: '0 0 0 3px rgba(255, 255, 255, 0.3)' }}
               >
-                <svg width="32" height="32" viewBox="0 0 33 33" fill="none" style={{ shapeRendering: 'geometricPrecision' }}>
+                <svg width="24" height="24" viewBox="0 0 33 33" fill="none" className="mr-3" style={{ shapeRendering: 'geometricPrecision' }}>
                   <path d="M19.4999 25.5644C25.3213 23.0904 28.0349 16.3656 25.5608 10.5442C23.0868 4.72278 16.362 2.0092 10.5406 4.48324C4.71919 6.95728 2.00561 13.6821 4.47965 19.5035C6.95369 25.3249 13.6785 28.0385 19.4999 25.5644Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
                   <path d="M23.1172 23.123L31.9998 32.0069" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
                 </svg>
+                <span className="text-white text-[18px] font-geograph font-medium">Search Cruises</span>
               </button>
             </div>
 
@@ -534,14 +593,13 @@ export default function Home() {
             {isDropdownOpen && (
               <div 
                 ref={dropdownRef}
-                className={`absolute left-[10px] mt-[12px] bg-white rounded-[10px] z-[10000] ${
+                className={`absolute left-0 md:left-[10px] bg-white rounded-[10px] z-[10000] w-full md:w-[calc(50%-10px)] ${
                   isDropdownClosing ? 'dropdown-fade-out' : 'dropdown-fade-in'
                 }`}
                 style={{ 
                   boxShadow: '0px 1px 14px rgba(0, 0, 0, 0.25)',
-                  top: '90px',
-                  width: 'calc(50% - 10px)',
-                  position: 'absolute'
+                  top: '68px',
+                  marginTop: '12px'
                 }}
               >
                 <div className="max-h-[300px] overflow-y-auto custom-scrollbar rounded-[10px]">
@@ -574,19 +632,17 @@ export default function Home() {
               </div>
             )}
 
-            {/* Date Picker Dropdown */}
+            {/* Date Picker Dropdown - Responsive positioning */}
             {isDateDropdownOpen && (
               <div 
                 ref={dateDropdownRef}
-                className={`absolute mt-[12px] bg-white rounded-[10px] z-[10000] ${
+                className={`absolute left-0 md:left-[calc(50%+5px)] bg-white rounded-[10px] z-[10000] w-full md:w-[calc(50%-15px)] ${
                   isDateDropdownClosing ? 'dropdown-fade-out' : 'dropdown-fade-in'
                 }`}
                 style={{ 
                   boxShadow: '0px 1px 14px rgba(0, 0, 0, 0.25)',
-                  top: '90px',
-                  left: 'calc(50% + 5px)',
-                  width: 'calc(50% - 15px)',
-                  position: 'absolute'
+                  top: '136px',
+                  marginTop: '12px'
                 }}
               >
                 <div className="p-4 font-geograph">
@@ -686,22 +742,22 @@ export default function Home() {
         }}
       />
 
-      {/* OBC Section */}
-      <section className="bg-dark-blue py-[124px] relative">
+      {/* OBC Section - Mobile Responsive */}
+      <section className="bg-dark-blue py-[62px] md:py-[124px] relative">
         <div className="max-w-4xl mx-auto px-8 text-center">
-          {/* Headline */}
-          <h2 className="text-white text-[52px] font-whitney leading-none tracking-tight mb-[100px]">
+          {/* Headline - Mobile Responsive */}
+          <h2 className="text-white text-[42px] md:text-[52px] font-whitney leading-none tracking-tight mb-[50px] md:mb-[100px]">
             WHAT'S ONBOARD CREDIT (OBC)?
           </h2>
           
-          {/* First Body Text */}
-          <p className="text-purple-obc text-[32px] font-geograph leading-[1.5] tracking-tight mb-[60px]">
+          {/* First Body Text - Mobile Responsive */}
+          <p className="text-purple-obc text-[20px] md:text-[32px] font-geograph leading-[1.5] tracking-tight mb-[30px] md:mb-[60px]">
             Think of OBC as cruise cash.<br /><br />
             When you book, the cruise line gives you money to spend onboard — like a gift card just for your vacation.
           </p>
           
-          {/* Image */}
-          <div className="mb-[60px]">
+          {/* Image - Mobile Responsive */}
+          <div className="mb-[30px] md:mb-[60px]">
             <Image
               src="/images/what-you-can-buy.png"
               alt="What you can buy with onboard credit"
@@ -711,19 +767,19 @@ export default function Home() {
             />
           </div>
           
-          {/* Second Body Text */}
-          <p className="text-purple-obc text-[32px] font-geograph leading-[1.5] tracking-tight mb-16">
+          {/* Second Body Text - Mobile Responsive */}
+          <p className="text-purple-obc text-[20px] md:text-[32px] font-geograph leading-[1.5] tracking-tight mb-8 md:mb-16">
             Most travel agents keep as much of the commission as possible and only pass along a little OBC. Cruise lines also set a cap on how much agents can give back.
           </p>
           
-          {/* Bottom Line Image */}
-          <div className="mx-auto relative z-10" style={{ marginBottom: '-300px' }}>
+          {/* Bottom Line Image - Mobile Responsive */}
+          <div className="mx-auto relative z-10 w-full" style={{ marginBottom: '-150px' }}>
             <Image
               src="/images/bottom-line.png"
               alt="The bottom line"
               width={1305}
               height={734}
-              className="h-auto mx-auto w-full max-w-[650px]"
+              className="h-auto mx-auto w-full max-w-[325px] md:max-w-[650px]"
             />
           </div>
         </div>
@@ -740,12 +796,12 @@ export default function Home() {
         }}
       />
 
-      {/* Last Minute Deals Section */}
-      <section className="bg-sand py-[100px] relative pt-[200px]">
+      {/* Last Minute Deals Section - Mobile Responsive */}
+      <section className="bg-sand py-[100px] md:py-[100px] relative pt-[100px] md:pt-[200px]">
         <div className="max-w-7xl mx-auto px-8">
-          {/* Headline with Hourglass Icon */}
+          {/* Headline with Hourglass Icon - Mobile Responsive */}
           <div className="flex items-center justify-center mb-[80px]">
-            <svg width="48" height="48" viewBox="0 0 55 55" fill="none" className="mr-6" style={{ shapeRendering: 'geometricPrecision' }}>
+            <svg width="36" height="36" viewBox="0 0 55 55" fill="none" className="mr-4 md:mr-6 md:w-12 md:h-12" style={{ shapeRendering: 'geometricPrecision' }}>
               <g clipPath="url(#clip0_573_3612)">
                 <path d="M38.4687 49.648L35.7206 48.9646L37.3152 42.5522C37.9504 39.989 37.8041 37.2943 36.8953 34.8148C35.9865 32.3354 34.3567 30.1845 32.2156 28.6388C34.8312 28.2759 37.2785 27.1389 39.2428 25.374C41.2071 23.6091 42.5986 21.297 43.2383 18.7349L44.833 12.3226L47.5812 13.006C48.0671 13.1269 48.5811 13.0497 49.0101 12.7916C49.4391 12.5335 49.748 12.1155 49.8689 11.6296C49.9897 11.1437 49.9126 10.6297 49.6544 10.2006C49.3963 9.77159 48.9783 9.46268 48.4924 9.34184L17.3467 1.59625C16.8608 1.47541 16.3468 1.55254 15.9178 1.81068C15.4888 2.06882 15.1799 2.48682 15.059 2.97272C14.9382 3.45863 15.0153 3.97263 15.2735 4.40166C15.5316 4.83069 15.9496 5.1396 16.4355 5.26044L19.1836 5.94388L17.589 12.3562C16.9541 14.9195 17.1005 17.614 18.0092 20.0935C18.918 22.5729 20.5477 24.7238 22.6886 26.2696C20.0729 26.6323 17.6255 27.7692 15.6611 29.5341C13.6968 31.2991 12.3054 33.6113 11.6659 36.1735L10.0712 42.5858L7.32304 41.9024C6.83713 41.7816 6.32313 41.8587 5.8941 42.1168C5.46507 42.375 5.15615 42.793 5.03532 43.2789C4.91448 43.7648 4.99161 44.2788 5.24975 44.7078C5.50789 45.1368 5.92589 45.4458 6.41179 45.5666L37.5575 53.3122C38.0434 53.433 38.5574 53.3559 38.9864 53.0978C39.4154 52.8396 39.7243 52.4216 39.8452 51.9357C39.966 51.4498 39.8889 50.9358 39.6307 50.5068C39.3726 50.0777 38.9546 49.7688 38.4687 49.648ZM22.7864 16.4112C23.0148 16.1494 23.311 15.9556 23.6424 15.8513C23.9738 15.747 24.3276 15.7362 24.6648 15.8201L35.3642 18.4809C35.7012 18.565 36.0085 18.7404 36.2522 18.9878C36.4959 19.2352 36.6667 19.5451 36.7457 19.8833C36.8247 20.2215 36.8088 20.5749 36.6999 20.9047C36.591 21.2345 36.3932 21.5278 36.1284 21.7525C35.0797 22.6448 33.8334 23.2744 32.4929 23.5891C31.1524 23.9039 29.7562 23.8947 28.42 23.5624C27.0837 23.2301 25.8458 22.5842 24.8089 21.6782C23.772 20.7722 22.9659 19.6322 22.4573 18.3526C22.3282 18.0301 22.2906 17.6782 22.3487 17.3356C22.4067 16.9931 22.5582 16.6732 22.7864 16.4112ZM16.9564 37.7421L23.871 33.75C24.5077 33.4096 25.248 33.3176 25.9487 33.4919C26.6493 33.6661 27.2603 34.0942 27.6634 34.6931L31.9012 41.4568C32.1985 41.9225 32.3362 42.4723 32.2936 43.0232C32.251 43.5741 32.0304 44.0962 31.6651 44.5107C31.3276 44.8836 30.8946 45.1571 30.4129 45.3017C29.9312 45.4463 29.4191 45.4564 28.9321 45.3309L17.7764 42.5566C17.2883 42.4411 16.8409 42.1945 16.4825 41.8435C16.1242 41.4924 15.8684 41.0503 15.7428 40.5646C15.6112 40.0262 15.6584 39.4595 15.8773 38.9503C16.0963 38.4411 16.475 38.017 16.9564 37.7421Z" fill="#0E1B4D"/>
               </g>
@@ -755,7 +811,7 @@ export default function Home() {
                 </clipPath>
               </defs>
             </svg>
-            <h2 className="text-dark-blue text-[52px] font-whitney font-black leading-none tracking-tight">
+            <h2 className="text-dark-blue text-[32px] md:text-[52px] font-whitney font-black leading-none tracking-tight">
               LAST MINUTE DEALS
             </h2>
           </div>

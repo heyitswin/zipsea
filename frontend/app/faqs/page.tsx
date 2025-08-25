@@ -96,15 +96,14 @@ export default function FAQs() {
   return (
     <>
 
-      {/* Hero Section */}
+      {/* Hero Section - Mobile Responsive */}
       <section className="relative pt-[100px] pb-[80px]" style={{ backgroundColor: '#0E1B4D' }}>
         <div className="max-w-4xl mx-auto px-8 text-center">
-          {/* Title */}
+          {/* Title - Mobile Responsive */}
           <h1 
-            className="font-whitney font-black uppercase"
+            className="font-whitney font-black uppercase text-[52px] md:text-[72px]"
             style={{
               color: '#F7F170',
-              fontSize: '72px',
               letterSpacing: '-0.02em'
             }}
           >
@@ -124,14 +123,14 @@ export default function FAQs() {
         }}
       />
 
-      {/* Main Content */}
-      <main style={{ backgroundColor: '#E9B4EB' }} className="py-[80px]">
+      {/* Main Content - Mobile Responsive */}
+      <main style={{ backgroundColor: '#E9B4EB' }} className="py-[40px] md:py-[80px]">
         {/* FAQ Section */}
         <section className="px-8">
           <div className="max-w-4xl mx-auto">
 
-            {/* FAQ Accordion */}
-            <div className="space-y-4">
+            {/* FAQ Accordion - Mobile Responsive */}
+            <div className="space-y-3 md:space-y-4">
               {faqs.map((faq) => (
                 <div 
                   key={faq.id}
@@ -140,12 +139,11 @@ export default function FAQs() {
                   {/* Question Button */}
                   <button
                     onClick={() => toggleAccordion(faq.id)}
-                    className="w-full px-8 py-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    className="w-full px-6 md:px-8 py-4 md:py-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
                   >
                     <h3 
-                      className="font-geograph font-medium pr-8"
+                      className="font-geograph font-medium pr-6 md:pr-8 text-[16px] md:text-[20px]"
                       style={{
-                        fontSize: '20px',
                         color: '#0E1B4D',
                         letterSpacing: '-0.02em',
                         lineHeight: '1.3'
@@ -184,11 +182,10 @@ export default function FAQs() {
                         : 'max-h-0 opacity-0'
                     }`}
                   >
-                    <div className="px-8 pb-6 pt-2">
+                    <div className="px-6 md:px-8 pb-4 md:pb-6 pt-2">
                       <p 
-                        className="font-geograph"
+                        className="font-geograph text-[14px] md:text-[18px]"
                         style={{
-                          fontSize: '18px',
                           color: '#0E1B4D',
                           letterSpacing: '-0.02em',
                           lineHeight: '1.6'

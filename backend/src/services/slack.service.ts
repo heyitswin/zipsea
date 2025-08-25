@@ -14,6 +14,21 @@ export interface SlackWebhookData {
   changes?: any;
 }
 
+export interface WebhookProcessingResult {
+  successful: number;
+  failed: number;
+  errors: Array<{
+    cruiseId?: number;
+    filePath?: string;
+    error: string;
+  }>;
+  startTime: Date;
+  endTime: Date;
+  processingTimeMs: number;
+  totalCruises: number;
+  priceSnapshotsCreated: number;
+}
+
 export class SlackService {
   private webhookUrl: string | undefined;
   private enabled: boolean;
@@ -341,6 +356,173 @@ export class SlackService {
   }
 
   /**
+   * Notify webhook processing started
+   */
+  async notifyWebhookProcessingStarted(data: SlackWebhookData): Promise<void> {
+    if (!this.enabled) return;
+
+    const lineDetails = data.lineId ? await this.getCruiseLineDetails(data.lineId) : 'Unknown';
+    const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+
+    const blocks = [
+      {
+        type: "header",
+        text: {
+          type: "plain_text",
+          text: "🚀 Traveltek Webhook Processing Started",
+          emoji: true
+        }
+      },
+      {
+        type: "section",
+        fields: [
+          {
+            type: "mrkdwn",
+            text: `*Cruise Line:*\n${lineDetails}`
+          },
+          {
+            type: "mrkdwn",
+            text: `*Event Type:*\n${data.eventType}`
+          }
+        ]
+      },
+      {
+        type: "context",
+        elements: [
+          {
+            type: "mrkdwn",
+            text: `🕒 ${timestamp} ET | Status: Processing...`
+          }
+        ]
+      }
+    ];
+
+    await this.sendToSlack(blocks);
+  }
+
+  /**
+   * Notify comprehensive webhook processing completed
+   */
+  async notifyWebhookProcessingCompleted(data: SlackWebhookData, result: WebhookProcessingResult): Promise<void> {
+    if (!this.enabled) return;
+
+    const lineDetails = data.lineId ? await this.getCruiseLineDetails(data.lineId) : 'Unknown';
+    const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+    const processingTimeSeconds = Math.round(result.processingTimeMs / 1000);
+    
+    // Determine status and emoji
+    const successRate = result.totalCruises > 0 ? Math.round((result.successful / result.totalCruises) * 100) : 0;
+    let statusEmoji = '✅';
+    let statusText = 'Completed Successfully';
+    
+    if (result.failed > 0) {
+      if (successRate < 50) {
+        statusEmoji = '❌';
+        statusText = 'Completed with Major Issues';
+      } else if (successRate < 90) {
+        statusEmoji = '⚠️';
+        statusText = 'Completed with Minor Issues';
+      } else {
+        statusEmoji = '✅';
+        statusText = 'Completed with Some Issues';
+      }
+    }
+
+    const blocks: any[] = [
+      {
+        type: "header",
+        text: {
+          type: "plain_text",
+          text: `${statusEmoji} Traveltek Webhook Processing Complete`,
+          emoji: true
+        }
+      },
+      {
+        type: "section",
+        fields: [
+          {
+            type: "mrkdwn",
+            text: `*Cruise Line:*\n${lineDetails}`
+          },
+          {
+            type: "mrkdwn",
+            text: `*Status:*\n${statusText}`
+          },
+          {
+            type: "mrkdwn",
+            text: `*Total Cruises:*\n${result.totalCruises}`
+          },
+          {
+            type: "mrkdwn",
+            text: `*Processing Time:*\n${processingTimeSeconds}s`
+          }
+        ]
+      },
+      {
+        type: "section",
+        fields: [
+          {
+            type: "mrkdwn",
+            text: `*✅ Successful:*\n${result.successful} (${successRate}%)`
+          },
+          {
+            type: "mrkdwn",
+            text: `*❌ Failed:*\n${result.failed}`
+          },
+          {
+            type: "mrkdwn",
+            text: `*📸 Price Snapshots:*\n${result.priceSnapshotsCreated}`
+          },
+          {
+            type: "mrkdwn",
+            text: `*📊 Success Rate:*\n${successRate}%`
+          }
+        ]
+      }
+    ];
+
+    // Add error details if there are failures
+    if (result.errors.length > 0) {
+      const errorSummary = result.errors.slice(0, 5).map(error => {
+        const cruiseInfo = error.cruiseId ? `Cruise ${error.cruiseId}` : (error.filePath || 'Unknown');
+        return `• ${cruiseInfo}: ${error.error.substring(0, 100)}${error.error.length > 100 ? '...' : ''}`;
+      }).join('\n');
+      
+      blocks.push({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*🔍 Error Details (${Math.min(result.errors.length, 5)} of ${result.errors.length}):*\n${errorSummary}`
+        }
+      });
+
+      if (result.errors.length > 5) {
+        blocks.push({
+          type: "context",
+          elements: [
+            {
+              type: "mrkdwn",
+              text: `_...and ${result.errors.length - 5} more errors. Check logs for full details._`
+            }
+          ]
+        });
+      }
+    }
+
+    blocks.push({
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: `🕒 ${timestamp} ET | Event: ${data.eventType} | Batch ID: ${result.startTime.getTime()}`
+        }
+      ]
+    });
+
+    await this.sendToSlack(blocks);
+  }
+
+  /**
    * Send alert for sync errors
    */
   async notifySyncError(error: string, context: string): Promise<void> {
@@ -377,6 +559,87 @@ export class SlackService {
   }
 
   /**
+   * Send webhook health status notifications
+   */
+  async notifyWebhookHealth(status: {
+    healthy: boolean;
+    lastProcessed?: Date;
+    pendingWebhooks: number;
+    avgProcessingTime?: number;
+    recentErrors?: string[];
+  }): Promise<void> {
+    if (!this.enabled) return;
+
+    const statusEmoji = status.healthy ? '✅' : '🚨';
+    const statusText = status.healthy ? 'Healthy' : 'Unhealthy';
+    
+    const blocks: any[] = [
+      {
+        type: "header",
+        text: {
+          type: "plain_text",
+          text: `${statusEmoji} Webhook Health Check`,
+          emoji: true
+        }
+      },
+      {
+        type: "section",
+        fields: [
+          {
+            type: "mrkdwn",
+            text: `*Status:*\n${statusText}`
+          },
+          {
+            type: "mrkdwn",
+            text: `*Pending Webhooks:*\n${status.pendingWebhooks}`
+          }
+        ]
+      }
+    ];
+
+    if (status.lastProcessed) {
+      const timeSinceLastProcessed = Math.round((Date.now() - status.lastProcessed.getTime()) / 1000 / 60);
+      blocks[1].fields.push({
+        type: "mrkdwn",
+        text: `*Last Processed:*\n${timeSinceLastProcessed} minutes ago`
+      });
+    }
+
+    if (status.avgProcessingTime) {
+      blocks[1].fields.push({
+        type: "mrkdwn",
+        text: `*Avg Processing Time:*\n${Math.round(status.avgProcessingTime / 1000)}s`
+      });
+    }
+
+    if (status.recentErrors && status.recentErrors.length > 0) {
+      const errorList = status.recentErrors.slice(0, 3).map(error => 
+        `• ${error.substring(0, 100)}${error.length > 100 ? '...' : ''}`
+      ).join('\n');
+      
+      blocks.push({
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `*Recent Errors:*\n${errorList}`
+        }
+      });
+    }
+
+    blocks.push({
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: `🕒 ${new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })} ET`
+        }
+      ]
+    });
+
+    await this.sendToSlack(blocks);
+  }
+
+  /**
    * Test Slack connection
    */
   async testConnection(): Promise<boolean> {
@@ -400,6 +663,64 @@ export class SlackService {
       logger.error('Slack test failed:', error);
       return false;
     }
+  }
+
+  /**
+   * Send custom notification message
+   */
+  async notifyCustomMessage(data: {
+    title: string;
+    message: string;
+    details?: any;
+    color?: string;
+  }): Promise<void> {
+    if (!this.enabled) return;
+
+    const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+    
+    const blocks: any = [
+      {
+        type: "header",
+        text: {
+          type: "plain_text",
+          text: data.title,
+          emoji: true
+        }
+      },
+      {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: data.message
+        }
+      }
+    ];
+
+    // Add details if provided
+    if (data.details) {
+      const fields = Object.entries(data.details).map(([key, value]) => ({
+        type: "mrkdwn",
+        text: `*${key}:* ${value}`
+      }));
+
+      blocks.push({
+        type: "section",
+        fields: fields.slice(0, 10) // Slack limits to 10 fields
+      });
+    }
+
+    // Add timestamp
+    blocks.push({
+      type: "context",
+      elements: [
+        {
+          type: "mrkdwn",
+          text: `🕒 ${timestamp} ET`
+        }
+      ]
+    });
+
+    await this.sendToSlack(blocks);
   }
 }
 

@@ -33,6 +33,9 @@ export default function Navigation({
   const [isLoading, setIsLoading] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   
+  // Mobile menu states
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
   // Dropdown states
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isDropdownClosing, setIsDropdownClosing] = useState(false);
@@ -300,7 +303,7 @@ export default function Navigation({
   return (
     <>
       <nav 
-        className={`fixed top-0 left-0 right-0 z-50 py-[20px] px-[28px] transition-all duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 right-0 z-50 py-[16px] md:py-[20px] px-[28px] transition-all duration-300 ease-in-out ${
           isScrolled ? 'bg-white shadow-lg' : 'bg-transparent'
         }`} 
         style={{ height: '80px' }}
@@ -308,23 +311,23 @@ export default function Navigation({
         <div className="flex items-center justify-between h-[40px]">
           {/* Logo and Search Bar Container */}
           <div className="flex items-center">
-            {/* Logo */}
-            <div className="w-[110px]">
+            {/* Logo - Responsive sizing */}
+            <div className="w-[83px] md:w-[110px]">
               <a href="/">
                 <Image
                   src={isScrolled ? "/images/zipsea-logo-blue.svg" : "/images/zipsea-logo.svg"}
                   alt="Zipsea"
                   width={110}
                   height={40}
-                  className={isScrolled ? "" : "brightness-0 invert"}
+                  className={`${isScrolled ? "" : "brightness-0 invert"} w-[83px] md:w-[110px] h-auto`}
                   priority
                 />
               </a>
             </div>
             
-            {/* Minimized Search Bar - Show when scrolled on all pages */}
+            {/* Minimized Search Bar - Show when scrolled on all pages (Hidden on Mobile) */}
             {isScrolled && (
-              <div className="ml-[28px] w-[600px] transition-all duration-300 ease-in-out">
+              <div className="hidden md:block ml-[28px] w-[600px] transition-all duration-300 ease-in-out">
                 <div className="h-[48px] bg-white rounded-full flex items-center overflow-hidden border border-gray-separator relative">
                   {/* Select Ship Input */}
                   <div className="flex-1 flex items-center px-4 h-full">
@@ -385,8 +388,37 @@ export default function Navigation({
             )}
           </div>
           
-          {/* Navigation Links and Button */}
-          <div className="flex items-center gap-8">
+          {/* Hamburger Menu Button (Mobile Only) */}
+          <button 
+            className="md:hidden flex flex-col items-center justify-center w-6 h-6 space-y-1"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            <span 
+              className={`block w-6 h-0.5 transition-all duration-300 ${
+                isScrolled ? 'bg-dark-blue' : 'bg-white'
+              } ${
+                isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''
+              }`}
+            />
+            <span 
+              className={`block w-6 h-0.5 transition-all duration-300 ${
+                isScrolled ? 'bg-dark-blue' : 'bg-white'
+              } ${
+                isMobileMenuOpen ? 'opacity-0' : ''
+              }`}
+            />
+            <span 
+              className={`block w-6 h-0.5 transition-all duration-300 ${
+                isScrolled ? 'bg-dark-blue' : 'bg-white'
+              } ${
+                isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''
+              }`}
+            />
+          </button>
+          
+          {/* Navigation Links and Button (Desktop Only) */}
+          <div className="hidden md:flex items-center gap-8">
             <a 
               href="/why-zipsea" 
               className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
@@ -561,6 +593,75 @@ export default function Navigation({
                   </button>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Menu Modal */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[10001] md:hidden">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-50"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          
+          {/* Menu Content */}
+          <div className="absolute inset-0 bg-white flex flex-col">
+            {/* Header with Close Button */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-separator">
+              <Image
+                src="/images/zipsea-logo-blue.svg"
+                alt="Zipsea"
+                width={110}
+                height={40}
+                className="w-[83px] h-auto"
+                priority
+              />
+              <button 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2"
+                aria-label="Close menu"
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6L6 18" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M6 6L18 18" stroke="#0E1B4D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            
+            {/* Navigation Links */}
+            <div className="flex-1 flex flex-col justify-center px-8 space-y-8">
+              <a 
+                href="/why-zipsea" 
+                className="text-dark-blue text-[24px] font-medium font-geograph py-4 border-b border-gray-separator"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Why Zipsea
+              </a>
+              <a 
+                href="/faqs" 
+                className="text-dark-blue text-[24px] font-medium font-geograph py-4 border-b border-gray-separator"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                FAQs
+              </a>
+              <a 
+                href="#" 
+                className="text-dark-blue text-[24px] font-medium font-geograph py-4 border-b border-gray-separator"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Chat with us
+              </a>
+              
+              {/* Sign up/Log in Button */}
+              <button 
+                className="mt-8 px-6 py-3 border border-gray-separator text-dark-blue bg-transparent rounded-full text-[18px] font-medium font-geograph hover:opacity-80 transition-opacity"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Sign up/Log in
+              </button>
             </div>
           </div>
         </div>

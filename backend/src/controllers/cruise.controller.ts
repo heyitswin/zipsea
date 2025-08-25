@@ -796,52 +796,105 @@ class CruiseController {
 
   async getLastMinuteDeals(req: Request, res: Response): Promise<void> {
     try {
-      // For now, return static sample deals since we don't have cruise data
-      // This will work on both local and production environments
-      const sampleDeals = [
-        {
-          id: 1,
-          name: "7-Night Caribbean Cruise",
-          ship_name: "Wonder of the Seas",
-          cruise_line_name: "Royal Caribbean",
-          nights: 7,
-          sailing_date: "2025-09-15",
-          embark_port_name: "Miami",
-          cheapest_pricing: 899,
-          ship_image: "/images/ship-placeholder.jpg",
-          onboard_credit: 80
-        },
-        {
-          id: 2,
-          name: "5-Night Bahamas Escape",
-          ship_name: "Carnival Celebration",
-          cruise_line_name: "Carnival Cruise Line",
-          nights: 5,
-          sailing_date: "2025-09-20",
-          embark_port_name: "Port Canaveral",
-          cheapest_pricing: 599,
-          ship_image: "/images/ship-placeholder.jpg",
-          onboard_credit: 50
-        },
-        {
-          id: 3,
-          name: "4-Night Mexico Getaway",
-          ship_name: "Norwegian Bliss",
-          cruise_line_name: "Norwegian Cruise Line",
-          nights: 4,
-          sailing_date: "2025-09-25",
-          embark_port_name: "Los Angeles",
-          cheapest_pricing: 499,
-          ship_image: "/images/ship-placeholder.jpg",
-          onboard_credit: 40
-        }
+      // Calculate date 3 weeks from today
+      const threeWeeksFromToday = new Date();
+      threeWeeksFromToday.setDate(threeWeeksFromToday.getDate() + 21);
+      const formattedDate = threeWeeksFromToday.toISOString().split('T')[0];
+
+      // Define cruise lines in the exact order required
+      const preferredCruiseLines = [
+        'Royal Caribbean',
+        'Carnival Cruise Line',
+        'Princess Cruises',
+        'MSC Cruises',
+        'Norwegian Cruise Line',
+        'Celebrity Cruises'
       ];
+
+      const deals = [];
+      const usedCruiseLines = new Set();
+
+      // Try to get one cruise from each preferred cruise line in order
+      for (const cruiseLineName of preferredCruiseLines) {
+        const cruiseForLine = await sql`
+          SELECT 
+            c.id,
+            c.cruise_id,
+            c.name,
+            s.name as ship_name,
+            cl.name as cruise_line_name,
+            c.nights,
+            c.sailing_date,
+            ep.name as embark_port_name,
+            cp.cheapest_price as cheapest_pricing,
+            s.default_ship_image as ship_image,
+            ROW_NUMBER() OVER (ORDER BY c.sailing_date ASC) as rn
+          FROM cruises c
+          LEFT JOIN ships s ON c.ship_id = s.id
+          LEFT JOIN cruise_lines cl ON s.cruise_line_id = cl.id
+          LEFT JOIN ports ep ON c.embarkation_port_id = ep.id
+          LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
+          WHERE 
+            c.is_active = true 
+            AND c.sailing_date >= ${formattedDate}
+            AND cp.cheapest_price IS NOT NULL
+            AND cp.cheapest_price <= 5000
+            AND (cl.name = ${cruiseLineName} OR cl.name ILIKE ${cruiseLineName + '%'})
+          ORDER BY c.sailing_date ASC
+          LIMIT 1
+        `;
+
+        if (cruiseForLine.length > 0) {
+          deals.push({
+            ...cruiseForLine[0],
+            onboard_credit: Math.floor(cruiseForLine[0].cheapest_pricing * 0.1)
+          });
+          usedCruiseLines.add(cruiseLineName);
+        }
+      }
+
+      // If we don't have 6 deals yet, fill with other cruises
+      if (deals.length < 6) {
+        const remainingDeals = await sql`
+          SELECT 
+            c.id,
+            c.cruise_id,
+            c.name,
+            s.name as ship_name,
+            cl.name as cruise_line_name,
+            c.nights,
+            c.sailing_date,
+            ep.name as embark_port_name,
+            cp.cheapest_price as cheapest_pricing,
+            s.default_ship_image as ship_image
+          FROM cruises c
+          LEFT JOIN ships s ON c.ship_id = s.id
+          LEFT JOIN cruise_lines cl ON s.cruise_line_id = cl.id
+          LEFT JOIN ports ep ON c.embarkation_port_id = ep.id
+          LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
+          WHERE 
+            c.is_active = true 
+            AND c.sailing_date >= ${formattedDate}
+            AND cp.cheapest_price IS NOT NULL
+            AND cp.cheapest_price <= 5000
+            AND cl.name NOT IN (${Array.from(usedCruiseLines).join(', ')})
+          ORDER BY c.sailing_date ASC
+          LIMIT ${6 - deals.length}
+        `;
+
+        for (const deal of remainingDeals) {
+          deals.push({
+            ...deal,
+            onboard_credit: Math.floor(deal.cheapest_pricing * 0.1)
+          });
+        }
+      }
 
       res.json({
         success: true,
         data: {
-          deals: sampleDeals,
-          total: sampleDeals.length
+          deals,
+          total: deals.length
         }
       });
     } catch (error) {

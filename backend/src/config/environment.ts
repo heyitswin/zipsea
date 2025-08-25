@@ -14,6 +14,9 @@ const envSchema = z.object({
   
   // Redis
   REDIS_URL: z.string().optional().transform(val => val === '' ? undefined : val).pipe(z.string().url().optional()),
+  REDIS_HOST: z.string().optional().default('localhost'),
+  REDIS_PORT: z.string().transform(Number).optional().default('6379'),
+  REDIS_PASSWORD: z.string().optional(),
   
   // Clerk
   CLERK_SECRET_KEY: z.string().min(1).optional(),

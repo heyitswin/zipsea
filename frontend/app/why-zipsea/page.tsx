@@ -5,27 +5,25 @@ export default function WhyZipsea() {
   return (
     <>
 
-      {/* Hero Section */}
+      {/* Hero Section - Mobile Responsive */}
       <section className="relative pt-[100px] pb-[80px]" style={{ backgroundColor: '#0E1B4D' }}>
         <div className="max-w-4xl mx-auto px-8 text-center">
-          {/* Title */}
+          {/* Title - Mobile Responsive */}
           <h1 
-            className="mb-0 font-whitney font-black uppercase"
+            className="mb-0 md:mb-0 font-whitney font-black uppercase text-[52px] md:text-[72px]"
             style={{
               color: '#F7F170',
-              fontSize: '72px',
               letterSpacing: '-0.02em'
             }}
           >
             Why Zipsea
           </h1>
 
-          {/* Subtitle */}
+          {/* Subtitle - Mobile Responsive */}
           <p 
-            className="font-geograph font-medium"
+            className="font-geograph font-medium text-[16px] md:text-[24px]"
             style={{
               color: '#F7F170',
-              fontSize: '24px',
               letterSpacing: '-0.02em',
               lineHeight: '1.4'
             }}
@@ -46,20 +44,19 @@ export default function WhyZipsea() {
         }}
       />
 
-      {/* Main Content */}
-      <main style={{ backgroundColor: '#E9B4EB' }} className="py-[80px]">
+      {/* Main Content - Mobile Responsive */}
+      <main style={{ backgroundColor: '#E9B4EB' }} className="py-[40px] md:py-[80px]">
         {/* Why Zipsea Section */}
         <section className="px-8">
           <div className="max-w-4xl mx-auto">
 
-            {/* Content Sections */}
-            <div className="space-y-[60px]">
-              {/* Section 1 */}
+            {/* Content Sections - Mobile Responsive */}
+            <div className="space-y-[30px] md:space-y-[60px]">
+              {/* Section 1 - Mobile Responsive */}
               <div className="text-center">
                 <p 
-                  className="font-geograph"
+                  className="font-geograph text-[16px] md:text-[24px]"
                   style={{
-                    fontSize: '24px',
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
                     lineHeight: '1.5'
@@ -69,12 +66,11 @@ export default function WhyZipsea() {
                 </p>
               </div>
 
-              {/* Section 2 */}
+              {/* Section 2 - Mobile Responsive */}
               <div className="text-center">
                 <h2 
-                  className="font-whitney font-black mb-[20px] uppercase"
+                  className="font-whitney font-black mb-[10px] md:mb-[20px] uppercase text-[32px] md:text-[42px]"
                   style={{
-                    fontSize: '42px',
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
                     lineHeight: '1'
@@ -83,9 +79,8 @@ export default function WhyZipsea() {
                   We're not like the old guard.
                 </h2>
                 <p 
-                  className="font-geograph"
+                  className="font-geograph text-[16px] md:text-[24px]"
                   style={{
-                    fontSize: '24px',
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
                     lineHeight: '1.5'
@@ -95,12 +90,11 @@ export default function WhyZipsea() {
                 </p>
               </div>
 
-              {/* Section 3 */}
+              {/* Section 3 - Mobile Responsive */}
               <div className="text-center">
                 <h2 
-                  className="font-whitney font-black mb-[20px] uppercase"
+                  className="font-whitney font-black mb-[10px] md:mb-[20px] uppercase text-[32px] md:text-[42px]"
                   style={{
-                    fontSize: '42px',
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
                     lineHeight: '1'
@@ -109,9 +103,8 @@ export default function WhyZipsea() {
                   We're built with tech that makes sense today.
                 </h2>
                 <p 
-                  className="font-geograph"
+                  className="font-geograph text-[16px] md:text-[24px]"
                   style={{
-                    fontSize: '24px',
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
                     lineHeight: '1.5'
@@ -121,12 +114,11 @@ export default function WhyZipsea() {
                 </p>
               </div>
 
-              {/* Section 4 */}
+              {/* Section 4 - Mobile Responsive */}
               <div className="text-center">
                 <h2 
-                  className="font-whitney font-black mb-[20px] uppercase"
+                  className="font-whitney font-black mb-[10px] md:mb-[20px] uppercase text-[32px] md:text-[42px]"
                   style={{
-                    fontSize: '42px',
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
                     lineHeight: '1'
@@ -135,9 +127,8 @@ export default function WhyZipsea() {
                   We're made for modern travelers.
                 </h2>
                 <p 
-                  className="font-geograph"
+                  className="font-geograph text-[16px] md:text-[24px]"
                   style={{
-                    fontSize: '24px',
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
                     lineHeight: '1.5'
@@ -147,12 +138,11 @@ export default function WhyZipsea() {
                 </p>
               </div>
 
-              {/* Section 5 */}
+              {/* Section 5 - Mobile Responsive */}
               <div className="text-center">
                 <h2 
-                  className="font-whitney font-black mb-[20px] uppercase"
+                  className="font-whitney font-black mb-[10px] md:mb-[20px] uppercase text-[32px] md:text-[42px]"
                   style={{
-                    fontSize: '42px',
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
                     lineHeight: '1'
@@ -161,9 +151,8 @@ export default function WhyZipsea() {
                   The bottom line?
                 </h2>
                 <div 
-                  className="font-geograph"
+                  className="font-geograph text-[16px] md:text-[24px]"
                   style={{
-                    fontSize: '24px',
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
                     lineHeight: '1.5'
