@@ -131,39 +131,43 @@ export class TraveltekWebhookService {
       
       result.totalCruises = cruisesToUpdate.length;
       
-      logger.info(`📊 Found ${result.totalCruises} cruises to update for line ${payload.lineid}`);
+      logger.info(`📊 Found ${result.totalCruises} cruises to update for line ${payload.lineid} (mapped to database line ${databaseLineId})`);
       
       if (result.totalCruises === 0) {
-        logger.warn(`⚠️ No active cruises found for line ${payload.lineid} - will create during sync`);
+        logger.warn(`⚠️ No active cruises found for database line ID ${databaseLineId} (webhook line ${payload.lineid})`);
         
-        // Ensure the cruise line exists in the database (use mapped ID)
-        await db.execute(sql`
-          INSERT INTO cruise_lines (id, name, code, is_active)
-          VALUES (${databaseLineId}, ${'Cruise Line ' + databaseLineId}, ${'CL' + databaseLineId}, true)
-          ON CONFLICT (id) DO NOTHING
+        // Verify the cruise line exists in the database
+        const existingCruiseLine = await db.execute(sql`
+          SELECT id, name FROM cruise_lines WHERE id = ${databaseLineId}
         `);
         
-        // Create a dummy cruise record to trigger the batch sync
-        // This ensures the batch sync will find something to process
-        await db.execute(sql`
-          INSERT INTO cruises (
-            id, cruise_id, cruise_line_id, ship_id, name,
-            sailing_date, nights, is_active, needs_price_update,
-            created_at, updated_at
-          ) VALUES (
-            9999999, '9999999', ${databaseLineId}, 1, 'Placeholder for sync',
-            CURRENT_DATE, 7, true, true,
-            CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-          )
-          ON CONFLICT (id) DO UPDATE SET
-            needs_price_update = true,
-            price_update_requested_at = CURRENT_TIMESTAMP
+        if (existingCruiseLine.length === 0) {
+          logger.warn(`⚠️ Cruise line ${databaseLineId} not found in database, creating it`);
+          await db.execute(sql`
+            INSERT INTO cruise_lines (id, name, code, is_active)
+            VALUES (${databaseLineId}, ${'Cruise Line ' + databaseLineId}, ${'CL' + databaseLineId}, true)
+            ON CONFLICT (id) DO NOTHING
+          `);
+        } else {
+          logger.info(`✅ Cruise line ${databaseLineId} exists: ${existingCruiseLine[0].name}`);
+        }
+        
+        // Just mark all future cruises for this line as needing updates
+        // Don't create dummy records
+        const markResult = await db.execute(sql`
+          UPDATE cruises 
+          SET needs_price_update = true,
+              price_update_requested_at = CURRENT_TIMESTAMP
+          WHERE cruise_line_id = ${databaseLineId} 
+            AND sailing_date >= CURRENT_DATE
         `);
+        
+        logger.info(`✅ Marked existing cruises for line ${databaseLineId} as needing price updates`);
         
         result.endTime = new Date();
         result.processingTimeMs = result.endTime.getTime() - result.startTime.getTime();
-        result.successful = 1; // Mark as successful since we queued it for sync
-        result.totalCruises = 1; // We created a placeholder
+        result.successful = 0; // No cruises were actually processed
+        result.totalCruises = 0;
         
         await slackService.notifyWebhookProcessingCompleted({
           eventType: payload.event,

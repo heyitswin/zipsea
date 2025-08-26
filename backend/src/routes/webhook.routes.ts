@@ -2,6 +2,8 @@ import { Router, Request, Response, NextFunction } from 'express';
 import logger from '../config/logger';
 import { traveltekWebhookService } from '../services/traveltek-webhook.service';
 import { webhookQueue, getQueueStats, retryFailedJobs } from '../queues/webhook-queue';
+import { db } from '../db/connection';
+import { sql } from 'drizzle-orm';
 
 const router = Router();
 
@@ -92,21 +94,62 @@ router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: R
         lineId: payload.lineid,
       });
       
-      // Process in background without blocking response
-      setImmediate(async () => {
-        try {
-          await traveltekWebhookService.handleStaticPricingUpdate(payload);
-        } catch (error) {
-          logger.error('❌ Error processing webhook', { webhookId, error });
-        }
-      });
-      
+      // Always acknowledge receipt first to prevent webhook retries
       res.status(200).json({
         success: true,
-        message: 'Cruiseline pricing update webhook received and processing',
+        message: 'Cruiseline pricing update webhook received and processing directly',
         timestamp: new Date().toISOString(),
         webhookId,
         lineId: payload.lineid,
+        note: 'Processing without queue - check logs for results'
+      });
+      
+      // Process in background with comprehensive error handling
+      setImmediate(async () => {
+        const processingStartTime = Date.now();
+        try {
+          logger.info('🔄 Starting direct webhook processing', {
+            webhookId,
+            lineId: payload.lineid,
+            mappingCheck: `Webhook line ${payload.lineid} maps to database line ${require('../config/cruise-line-mapping').getDatabaseLineId(payload.lineid)}`,
+          });
+          
+          const result = await traveltekWebhookService.handleStaticPricingUpdate(payload);
+          
+          const processingTime = Date.now() - processingStartTime;
+          
+          logger.info('✅ Direct webhook processing completed successfully', {
+            webhookId,
+            lineId: payload.lineid,
+            processingTimeMs: processingTime,
+            cruisesProcessed: result.totalCruises,
+            successful: result.successful,
+            failed: result.failed,
+            errors: result.errors?.length || 0
+          });
+          
+          // Log first few errors for debugging
+          if (result.errors && result.errors.length > 0) {
+            result.errors.slice(0, 3).forEach((error, index) => {
+              logger.error(`❌ Processing error ${index + 1}:`, {
+                webhookId,
+                error: error.error,
+                cruiseId: error.cruiseId,
+                filePath: error.filePath
+              });
+            });
+          }
+          
+        } catch (error) {
+          const processingTime = Date.now() - processingStartTime;
+          logger.error('❌ CRITICAL: Direct webhook processing failed', {
+            webhookId,
+            lineId: payload.lineid,
+            processingTimeMs: processingTime,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined
+          });
+        }
       });
     }
 
@@ -217,22 +260,50 @@ router.post('/traveltek', async (req: Request, res: Response, next: NextFunction
         lineId: payload.lineid
       });
 
-      // Process asynchronously
+      // Process asynchronously with comprehensive error handling
       setImmediate(async () => {
+        const processingStartTime = Date.now();
         try {
+          logger.info('🔄 Starting generic webhook processing', {
+            webhookId,
+            lineId: payload.lineid,
+            mappingCheck: `Webhook line ${payload.lineid} maps to database line ${require('../config/cruise-line-mapping').getDatabaseLineId(payload.lineid)}`,
+          });
+          
           const result = await traveltekWebhookService.handleStaticPricingUpdate(payload);
+          
+          const processingTime = Date.now() - processingStartTime;
+          
           logger.info('✅ Generic webhook cruise line pricing processing completed', {
             webhookId,
             lineId: payload.lineid,
+            processingTimeMs: processingTime,
             successful: result.successful,
             failed: result.failed,
-            totalCruises: result.totalCruises
+            totalCruises: result.totalCruises,
+            errors: result.errors?.length || 0
           });
+          
+          // Log first few errors for debugging
+          if (result.errors && result.errors.length > 0) {
+            result.errors.slice(0, 3).forEach((error, index) => {
+              logger.error(`❌ Generic processing error ${index + 1}:`, {
+                webhookId,
+                error: error.error,
+                cruiseId: error.cruiseId,
+                filePath: error.filePath
+              });
+            });
+          }
+          
         } catch (processingError) {
-          logger.error('❌ Error during generic webhook processing', {
+          const processingTime = Date.now() - processingStartTime;
+          logger.error('❌ CRITICAL: Generic webhook processing failed', {
             webhookId,
             lineId: payload.lineid,
-            error: processingError instanceof Error ? processingError.message : 'Unknown error'
+            processingTimeMs: processingTime,
+            error: processingError instanceof Error ? processingError.message : 'Unknown error',
+            stack: processingError instanceof Error ? processingError.stack : undefined
           });
         }
       });
@@ -348,6 +419,156 @@ router.get('/traveltek/health', async (req: Request, res: Response) => {
 });
 
 /**
+ * Simple Mapping Test Endpoint - Test line ID mapping only (no DB queries)
+ * Usage: GET /api/webhooks/traveltek/mapping-test?lineId=3
+ */
+router.get('/traveltek/mapping-test', async (req: Request, res: Response) => {
+  try {
+    const webhookLineId = parseInt(req.query.lineId as string);
+    
+    if (!webhookLineId) {
+      return res.status(400).json({
+        error: 'Missing lineId parameter',
+        usage: 'GET /api/webhooks/traveltek/mapping-test?lineId=3',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    const { getDatabaseLineId } = await import('../config/cruise-line-mapping');
+    const databaseLineId = getDatabaseLineId(webhookLineId);
+    
+    logger.info(`🔍 Testing webhook line ID mapping`, {
+      webhookLineId,
+      databaseLineId,
+      mappingApplied: webhookLineId !== databaseLineId
+    });
+    
+    const result = {
+      success: true,
+      timestamp: new Date().toISOString(),
+      mapping: {
+        webhookLineId,
+        databaseLineId,
+        mappingApplied: webhookLineId !== databaseLineId
+      }
+    };
+    
+    res.status(200).json(result);
+    
+  } catch (error) {
+    logger.error('Error in mapping test endpoint', { error });
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * Webhook Debugging Endpoint - Test line ID mapping and cruise queries
+ * Usage: GET /api/webhooks/traveltek/debug?lineId=3
+ */
+router.get('/traveltek/debug', async (req: Request, res: Response) => {
+  try {
+    const webhookLineId = parseInt(req.query.lineId as string);
+    
+    if (!webhookLineId) {
+      return res.status(400).json({
+        error: 'Missing lineId parameter',
+        usage: 'GET /api/webhooks/traveltek/debug?lineId=3',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    const { getDatabaseLineId } = await import('../config/cruise-line-mapping');
+    const databaseLineId = getDatabaseLineId(webhookLineId);
+    
+    logger.info(`🔍 Debugging webhook line ID mapping`, {
+      webhookLineId,
+      databaseLineId,
+      mappingApplied: webhookLineId !== databaseLineId
+    });
+    
+    // Test database queries
+    const cruiseLineResult = await db.execute(sql`
+      SELECT id, name, code, is_active 
+      FROM cruise_lines 
+      WHERE id = ${databaseLineId}
+    `);
+    
+    const cruisesResult = await db.execute(sql`
+      SELECT 
+        COUNT(*) as total_cruises,
+        COUNT(*) FILTER (WHERE sailing_date >= CURRENT_DATE) as future_cruises,
+        COUNT(*) FILTER (WHERE sailing_date >= CURRENT_DATE AND sailing_date <= CURRENT_DATE + INTERVAL '2 years') as target_cruises,
+        COUNT(*) FILTER (WHERE needs_price_update = true) as needs_updates,
+        MIN(sailing_date) as earliest_sailing,
+        MAX(sailing_date) as latest_sailing
+      FROM cruises 
+      WHERE cruise_line_id = ${databaseLineId}
+    `);
+    
+    const sampleCruises = await db.execute(sql`
+      SELECT id, cruise_id, name, sailing_date, needs_price_update, price_update_requested_at
+      FROM cruises 
+      WHERE cruise_line_id = ${databaseLineId}
+        AND sailing_date >= CURRENT_DATE 
+        AND sailing_date <= CURRENT_DATE + INTERVAL '2 years'
+      ORDER BY sailing_date
+      LIMIT 10
+    `);
+    
+    const debugInfo = {
+      webhook: {
+        lineId: webhookLineId,
+        mappedToDatabaseId: databaseLineId,
+        mappingApplied: webhookLineId !== databaseLineId
+      },
+      cruiseLine: {
+        exists: cruiseLineResult.length > 0,
+        data: cruiseLineResult[0] || null
+      },
+      cruises: {
+        statistics: cruisesResult[0] || {},
+        sampleCruises: sampleCruises || [],
+        queryUsed: `cruise_line_id = ${databaseLineId} AND sailing_date >= CURRENT_DATE AND sailing_date <= CURRENT_DATE + INTERVAL '2 years'`
+      },
+      recommendations: []
+    };
+    
+    // Add recommendations
+    if (!debugInfo.cruiseLine.exists) {
+      debugInfo.recommendations.push(`Cruise line ${databaseLineId} does not exist in the database`);
+    }
+    
+    if (debugInfo.cruises.statistics.target_cruises === 0) {
+      debugInfo.recommendations.push(`No future cruises found for cruise line ${databaseLineId}`);
+    } else {
+      debugInfo.recommendations.push(`Found ${debugInfo.cruises.statistics.target_cruises} cruises that would be updated by this webhook`);
+    }
+    
+    if (webhookLineId !== databaseLineId) {
+      debugInfo.recommendations.push(`Webhook line ID ${webhookLineId} is being mapped to database line ID ${databaseLineId}`);
+    }
+    
+    res.status(200).json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      debug: debugInfo
+    });
+    
+  } catch (error) {
+    logger.error('Error in webhook debug endpoint', { error });
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
  * Webhook Status and Statistics Dashboard
  */
 router.get('/traveltek/status', async (req: Request, res: Response) => {
@@ -401,6 +622,68 @@ router.get('/traveltek/status', async (req: Request, res: Response) => {
       error: 'Failed to retrieve status',
       timestamp: new Date().toISOString(),
       details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * Test webhook simulation endpoint
+ * Simulates a Traveltek webhook for debugging
+ * Usage: POST /api/webhooks/test-simulate with { "lineId": 3 }
+ */
+router.post('/test-simulate', async (req: Request, res: Response) => {
+  try {
+    const { lineId } = req.body;
+    
+    if (!lineId) {
+      return res.status(400).json({
+        error: 'Missing lineId in request body',
+        usage: 'POST /api/webhooks/test-simulate with { "lineId": 3 }',
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // Simulate the webhook payload that Traveltek would send
+    const simulatedPayload = {
+      event: 'cruiseline_pricing_updated',
+      lineid: parseInt(lineId),
+      marketid: 0,
+      currency: 'USD',
+      description: `TEST: Cruise line pricing update for line ${lineId}`,
+      source: 'test_simulation',
+      timestamp: Math.floor(Date.now() / 1000)
+    };
+    
+    logger.info('🧨 TEST: Simulating webhook call', {
+      simulatedPayload,
+      testEndpoint: '/test-simulate'
+    });
+    
+    // Process the webhook using our existing logic
+    const result = await traveltekWebhookService.handleStaticPricingUpdate(simulatedPayload);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Webhook simulation completed',
+      timestamp: new Date().toISOString(),
+      simulation: {
+        payload: simulatedPayload,
+        result: {
+          totalCruises: result.totalCruises,
+          successful: result.successful,
+          failed: result.failed,
+          processingTimeMs: result.processingTimeMs,
+          errors: result.errors?.slice(0, 5) || [] // Show first 5 errors
+        }
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Error in webhook simulation', { error });
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
     });
   }
 });
