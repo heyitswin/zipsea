@@ -136,43 +136,79 @@ export class TraveltekWebhookService {
         return result;
       }
 
-      // Process cruises in batches to avoid overwhelming the database
-      for (let i = 0; i < cruisesToUpdate.length; i += this.BATCH_SIZE) {
-        const batch = cruisesToUpdate.slice(i, i + this.BATCH_SIZE);
-        const batchNumber = Math.floor(i / this.BATCH_SIZE) + 1;
-        const totalBatches = Math.ceil(cruisesToUpdate.length / this.BATCH_SIZE);
+      // TEMPORARY FIX: Skip FTP downloads for large webhook updates
+      // Instead, just mark cruises as needing update
+      if (cruisesToUpdate.length > 100) {
+        logger.warn(`⚠️ Large webhook update (${cruisesToUpdate.length} cruises) - marking for later sync`);
         
-        logger.info(`📦 Processing batch ${batchNumber}/${totalBatches} (${batch.length} cruises)`);
+        // Update all cruises to mark them as needing price update
+        const updateResult = await db.execute(sql`
+          UPDATE cruises 
+          SET needs_price_update = true,
+              price_update_requested_at = CURRENT_TIMESTAMP
+          WHERE cruise_line_id = ${payload.lineid} 
+            AND sailing_date >= CURRENT_DATE 
+            AND sailing_date <= CURRENT_DATE + INTERVAL '2 years'
+        `);
         
-        const batchResults = await Promise.allSettled(
-          batch.map(cruise => this.processCruiseUpdate({
-            cruiseId: cruise.id,
-            cruiseCode: cruise.cruiseCode,
-            filePath: cruise.filePath || '',
-            webhookEventId,
-            batchId,
-            lineId: payload.lineid.toString()
-          }))
-        );
+        result.successful = cruisesToUpdate.length;
+        result.priceSnapshotsCreated = 0;
         
-        // Aggregate batch results
-        batchResults.forEach((batchResult, index) => {
-          if (batchResult.status === 'fulfilled') {
-            result.successful++;
-            result.priceSnapshotsCreated += batchResult.value.snapshotsCreated;
-          } else {
-            result.failed++;
-            result.errors.push({
-              cruiseId: batch[index].id,
-              error: batchResult.reason?.message || 'Unknown error'
-            });
-            logger.error(`❌ Failed to process cruise ${batch[index].id}:`, batchResult.reason);
-          }
+        logger.info(`✅ Marked ${cruisesToUpdate.length} cruises for price update`);
+        
+        // Send notification about deferred processing
+        await slackService.sendMessage({
+          text: `📋 Large webhook deferred for batch processing`,
+          blocks: [
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `*Cruise Line:* ${payload.lineid}\n*Cruises to Update:* ${cruisesToUpdate.length}\n*Status:* Marked for batch sync\n*Reason:* Too many cruises for real-time FTP processing`
+              }
+            }
+          ]
         });
         
-        // Brief pause between batches to prevent overwhelming the system
-        if (i + this.BATCH_SIZE < cruisesToUpdate.length) {
-          await new Promise(resolve => setTimeout(resolve, 100));
+      } else {
+        // Original processing for smaller updates
+        for (let i = 0; i < cruisesToUpdate.length; i += this.BATCH_SIZE) {
+          const batch = cruisesToUpdate.slice(i, i + this.BATCH_SIZE);
+          const batchNumber = Math.floor(i / this.BATCH_SIZE) + 1;
+          const totalBatches = Math.ceil(cruisesToUpdate.length / this.BATCH_SIZE);
+          
+          logger.info(`📦 Processing batch ${batchNumber}/${totalBatches} (${batch.length} cruises)`);
+          
+          const batchResults = await Promise.allSettled(
+            batch.map(cruise => this.processCruiseUpdate({
+              cruiseId: cruise.id,
+              cruiseCode: cruise.cruiseCode,
+              filePath: cruise.filePath || '',
+              webhookEventId,
+              batchId,
+              lineId: payload.lineid.toString()
+            }))
+          );
+          
+          // Aggregate batch results
+          batchResults.forEach((batchResult, index) => {
+            if (batchResult.status === 'fulfilled') {
+              result.successful++;
+              result.priceSnapshotsCreated += batchResult.value.snapshotsCreated;
+            } else {
+              result.failed++;
+              result.errors.push({
+                cruiseId: batch[index].id,
+                error: batchResult.reason?.message || 'Unknown error'
+              });
+              logger.error(`❌ Failed to process cruise ${batch[index].id}:`, batchResult.reason);
+            }
+          });
+          
+          // Brief pause between batches to prevent overwhelming the system
+          if (i + this.BATCH_SIZE < cruisesToUpdate.length) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
         }
       }
       
