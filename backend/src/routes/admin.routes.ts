@@ -330,20 +330,61 @@ router.get('/pending-syncs', async (req: Request, res: Response) => {
 
 /**
  * Manually trigger batch sync
+ * This endpoint is called by Render cron job every 5 minutes
  */
 router.post('/trigger-batch-sync', async (req: Request, res: Response) => {
   try {
-    // Import inside the route handler to avoid circular dependencies
-    const { priceSyncBatchService } = require('../services/price-sync-batch.service');
+    // Import the new V2 service that downloads ALL files for cruise lines
+    const { priceSyncBatchServiceV2 } = require('../services/price-sync-batch-v2.service');
     
-    // Run sync in background
+    // Check if there are any pending updates before proceeding
+    const pendingResult = await db.execute(sql`
+      SELECT COUNT(DISTINCT cruise_line_id) as pending_lines
+      FROM cruises
+      WHERE needs_price_update = true
+    `);
+    
+    const pendingLines = pendingResult.rows[0]?.pending_lines || 0;
+    
+    if (pendingLines === 0) {
+      return res.json({
+        message: 'No pending price updates',
+        timestamp: new Date(),
+        pendingLines: 0
+      });
+    }
+    
+    // Return response immediately for Render
     res.json({
       message: 'Batch sync triggered',
-      timestamp: new Date()
+      timestamp: new Date(),
+      pendingLines
     });
     
-    // Don't await - let it run in background
-    priceSyncBatchService.syncPendingPriceUpdates().catch(console.error);
+    // Run sync in background
+    priceSyncBatchServiceV2.syncPendingPriceUpdates()
+      .then(result => {
+        if (result.cruisesUpdated > 0) {
+          logger.info(`✅ Batch sync completed: ${result.cruisesUpdated} cruises updated`);
+          
+          // Send Slack notification for successful updates
+          slackService.notifyCustomMessage({
+            title: '✅ Price sync completed',
+            message: `Updated ${result.cruisesUpdated} cruise prices`,
+            details: result
+          });
+        }
+      })
+      .catch(error => {
+        logger.error('Batch sync failed:', error);
+        
+        // Send Slack notification for failures
+        slackService.notifyCustomMessage({
+          title: '❌ Price sync failed',
+          message: 'Batch price sync encountered an error',
+          details: { error: error.message }
+        });
+      });
     
   } catch (error) {
     res.status(500).json({

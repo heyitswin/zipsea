@@ -143,17 +143,9 @@ export class FTPConnectionPool {
     try {
       for (const filePath of filePaths) {
         try {
-          // Download to writable stream that collects to buffer
-          const chunks: Buffer[] = [];
-          const writableStream = new (require('stream').Writable)({
-            write(chunk: Buffer, encoding: string, callback: Function) {
-              chunks.push(chunk);
-              callback();
-            }
-          });
-          
-          await client.downloadTo(writableStream, filePath);
-          results.set(filePath, Buffer.concat(chunks));
+          // Use downloadToBuffer method from basic-ftp
+          const buffer = await client.downloadToBuffer(filePath);
+          results.set(filePath, buffer);
         } catch (error) {
           logger.warn(`Failed to download ${filePath}:`, error);
           errors.push(filePath);
