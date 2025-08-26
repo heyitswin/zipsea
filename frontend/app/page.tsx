@@ -598,7 +598,7 @@ export default function Home() {
                 }`}
                 style={{ 
                   boxShadow: '0px 1px 14px rgba(0, 0, 0, 0.25)',
-                  top: '68px',
+                  top: '102px',
                   marginTop: '12px'
                 }}
               >
@@ -641,7 +641,7 @@ export default function Home() {
                 }`}
                 style={{ 
                   boxShadow: '0px 1px 14px rgba(0, 0, 0, 0.25)',
-                  top: '136px',
+                  top: '102px',
                   marginTop: '12px'
                 }}
               >
@@ -797,7 +797,7 @@ export default function Home() {
       />
 
       {/* Last Minute Deals Section - Mobile Responsive */}
-      <section className="bg-sand py-[100px] md:py-[100px] relative pt-[100px] md:pt-[200px] mb-[24px] md:mb-[80px]">
+      <section className="bg-sand py-[100px] md:py-[100px] relative pt-[100px] md:pt-[200px]">
         <div className="max-w-7xl mx-auto px-8">
           {/* Headline with Hourglass Icon - Mobile Responsive */}
           <div className="flex items-center justify-center mb-[80px]">

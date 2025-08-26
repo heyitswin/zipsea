@@ -303,7 +303,7 @@ export default function Navigation({
   return (
     <>
       <nav 
-        className={`fixed top-0 left-0 right-0 z-50 py-[20px] md:py-[20px] px-[28px] transition-all duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 right-0 z-50 py-[10px] md:py-[20px] px-[28px] transition-all duration-300 ease-in-out ${
           isScrolled ? 'bg-white shadow-lg' : 'bg-transparent'
         }`} 
         style={{ height: '80px' }}
