@@ -101,7 +101,7 @@ export class TraveltekWebhookService {
         RETURNING id
       `);
       
-      const webhookEventId = eventResult.rows[0].id;
+      const webhookEventId = eventResult[0]?.id || 0;
       
       // Get all cruises for this line that need updating
       const cruisesToUpdate = await db
@@ -392,7 +392,7 @@ export class TraveltekWebhookService {
         RETURNING id
       `);
       
-      const webhookEventId = eventResult.rows[0].id;
+      const webhookEventId = eventResult[0]?.id || 0;
       
       logger.info(`Received live pricing update for ${payload.paths?.length || 0} cruises`);
       
