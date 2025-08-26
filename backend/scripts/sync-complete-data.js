@@ -977,8 +977,7 @@ async function syncMonth(year, month) {
   const ftpManager = new FTPManager();
   // Try both path structures
   const directories = [
-    `${year}/${month}`,  // New structure: 2025/09
-    `/isell_json/${year}/${month}`  // Old structure: /isell_json/2025/09
+    `${year}/${month}`  // Actual structure: 2025/09 (no isell_json prefix)
   ];
   
   console.log(`\n📅 Syncing ${year}-${month}`);

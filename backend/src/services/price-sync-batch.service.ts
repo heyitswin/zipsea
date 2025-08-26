@@ -329,13 +329,13 @@ export class PriceSyncBatchService {
     const year = cruise.sailingDate.getFullYear();
     const month = String(cruise.sailingDate.getMonth() + 1).padStart(2, '0');
     
-    // The structure is: isell_json/YYYY/MM/lineId/shipId/cruiseId.json (no leading slash)
+    // The actual FTP structure is: YYYY/MM/lineId/shipId/cruiseId.json (no isell_json prefix!)
     if (cruise.shipId && cruise.shipId > 0) {
-      return `isell_json/${year}/${month}/${cruise.cruiseLineId}/${cruise.shipId}/${cruise.cruiseId}.json`;
+      return `${year}/${month}/${cruise.cruiseLineId}/${cruise.shipId}/${cruise.cruiseId}.json`;
     } else {
       // If we don't know the ship ID, we need to search for it
       // This is a fallback that likely won't work
-      return `isell_json/${year}/${month}/${cruise.cruiseLineId}/${cruise.cruiseId}.json`;
+      return `${year}/${month}/${cruise.cruiseLineId}/${cruise.cruiseId}.json`;
     }
   }
 

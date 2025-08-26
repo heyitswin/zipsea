@@ -44,13 +44,11 @@ export class FTPFileSearchService {
         const month = String(date.getMonth() + 1).padStart(2, '0');
         
         if (shipId) {
-          // Try both with and without leading slash
-          searchPaths.push(`isell_json/${year}/${month}/${lineId}/${shipId}/${cruiseId}.json`);
-          searchPaths.push(`/isell_json/${year}/${month}/${lineId}/${shipId}/${cruiseId}.json`);
+          // The actual structure is: YYYY/MM/lineId/shipId/cruiseId.json
+          searchPaths.push(`${year}/${month}/${lineId}/${shipId}/${cruiseId}.json`);
         } else {
           // If no ship ID, we need to check all ship directories
-          searchPaths.push(`isell_json/${year}/${month}/${lineId}/*/${cruiseId}.json`);
-          searchPaths.push(`/isell_json/${year}/${month}/${lineId}/*/${cruiseId}.json`);
+          searchPaths.push(`${year}/${month}/${lineId}/*/${cruiseId}.json`);
         }
       }
 

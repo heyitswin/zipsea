@@ -316,8 +316,8 @@ router.get('/pending-syncs', async (req: Request, res: Response) => {
     `);
 
     res.json({
-      summary: result.rows[0],
-      byLine: byLine.rows,
+      summary: result.rows && result.rows.length > 0 ? result.rows[0] : { total_pending: 0, unique_lines: 0 },
+      byLine: byLine.rows || [],
       timestamp: new Date()
     });
   } catch (error) {
