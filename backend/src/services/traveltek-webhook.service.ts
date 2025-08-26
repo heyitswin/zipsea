@@ -107,6 +107,7 @@ export class TraveltekWebhookService {
       const cruisesToUpdate = await db
         .select({
           id: cruises.id,
+          cruiseCode: cruises.cruiseId,
           shipId: cruises.shipId,
           name: cruises.name,
           sailingDate: cruises.sailingDate
@@ -411,18 +412,18 @@ export class TraveltekWebhookService {
             }
             
             // Find cruise by id (which now stores the code_to_cruise_id value)
-            const cruiseResult = await db.execute(sql`
-              SELECT id FROM cruises
-              WHERE id = ${codeToId}
-              LIMIT 1
-            `);
+            const cruiseResult = await db
+              .select({ id: cruises.id })
+              .from(cruises)
+              .where(eq(cruises.id, codeToId))
+              .limit(1);
             
-            if (cruiseResult.rows.length === 0) {
+            if (cruiseResult.length === 0) {
               logger.warn(`Cruise not found for id: ${codeToId}`);
               continue;
             }
             
-            const cruiseId = cruiseResult.rows[0].id;
+            const cruiseId = cruiseResult[0].id;
             
             // Create price snapshot before update
             await this.createPriceSnapshotEnhanced(cruiseId, webhookEventId, '', 'before_update');
@@ -1072,12 +1073,16 @@ export class TraveltekWebhookService {
     
     try {
       // Check if cruise exists in database
-      const cruiseResult = await db.execute(sql`
-        SELECT c.id, c.ship_id, c.name, c.sailing_date
-        FROM cruises c
-        WHERE c.cruise_id = ${cruiseCode}
-        LIMIT 1
-      `);
+      const cruiseResult = await db
+        .select({
+          id: cruises.id,
+          shipId: cruises.shipId,
+          name: cruises.name,
+          sailingDate: cruises.sailingDate
+        })
+        .from(cruises)
+        .where(eq(cruises.cruiseId, cruiseCode))
+        .limit(1);
       
       if (!cruiseResult || cruiseResult.length === 0) {
         // Cruise doesn't exist - attempt auto-creation
@@ -1097,12 +1102,16 @@ export class TraveltekWebhookService {
         }
         
         // After creation, fetch the cruise data again
-        const newCruiseResult = await db.execute(sql`
-          SELECT c.id, c.ship_id, c.name, c.sailing_date
-          FROM cruises c
-          WHERE c.cruise_id = ${cruiseCode}
-          LIMIT 1
-        `);
+        const newCruiseResult = await db
+          .select({
+            id: cruises.id,
+            shipId: cruises.shipId,
+            name: cruises.name,
+            sailingDate: cruises.sailingDate
+          })
+          .from(cruises)
+          .where(eq(cruises.cruiseId, cruiseCode))
+          .limit(1);
         
         if (!newCruiseResult || newCruiseResult.length === 0) {
           throw new Error(`Cruise ${cruiseCode} still not found after auto-creation`);
