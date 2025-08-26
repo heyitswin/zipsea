@@ -1,5 +1,5 @@
 'use client';
-import Image from "next/image";
+import OptimizedImage from "../lib/OptimizedImage";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 import { fetchShips, Ship, searchCruises, Cruise, fetchLastMinuteDeals, LastMinuteDeals } from "../lib/api";
@@ -403,7 +403,7 @@ export default function Home() {
             width: 'auto',
             height: 'auto'
           }}>
-            <Image
+            <OptimizedImage
               src="/images/swimmer-1.png"
               alt=""
               width={200}
@@ -423,7 +423,7 @@ export default function Home() {
             width: 'auto',
             height: 'auto'
           }}>
-            <Image
+            <OptimizedImage
               src="/images/swimmer-2.png"
               alt=""
               width={200}
@@ -443,7 +443,7 @@ export default function Home() {
             width: 'auto',
             height: 'auto'
           }}>
-            <Image
+            <OptimizedImage
               src="/images/swimmer-3.png"
               alt=""
               width={200}
@@ -758,7 +758,7 @@ export default function Home() {
           
           {/* Image - Mobile Responsive */}
           <div className="mb-[30px] md:mb-[60px]">
-            <Image
+            <OptimizedImage
               src="/images/what-you-can-buy.png"
               alt="What you can buy with onboard credit"
               width={1236}
@@ -774,7 +774,7 @@ export default function Home() {
           
           {/* Bottom Line Image - Mobile Responsive */}
           <div className="mx-auto relative z-10 w-full" style={{ marginBottom: '-150px' }}>
-            <Image
+            <OptimizedImage
               src="/images/bottom-line.png"
               alt="The bottom line"
               width={1305}
@@ -879,7 +879,7 @@ export default function Home() {
                     <div className="relative">
                       <div className="h-[180px] bg-gray-200 relative overflow-hidden rounded-[18px]">
                         {deal.ship_image ? (
-                          <Image
+                          <OptimizedImage
                             src={deal.ship_image}
                             alt={deal.ship_name}
                             fill
