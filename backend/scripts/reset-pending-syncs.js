@@ -20,8 +20,22 @@ async function resetPendingCruises() {
       WHERE price_update_requested_at > NOW() - INTERVAL '4 hours'
     `);
     
-    if (linesResult.rows.length === 0) {
+    if (!linesResult || !linesResult.rows || linesResult.rows.length === 0) {
       console.log('No recent webhook activity found');
+      console.log('Checking for any cruises that might need syncing...');
+      
+      // Alternative: just reset cruise lines 3 and 48 which we know got webhooks
+      const knownLines = [3, 48];
+      console.log('Resetting known cruise lines:', knownLines);
+      
+      const updateResult = await db.execute(sql`
+        UPDATE cruises
+        SET needs_price_update = true
+        WHERE cruise_line_id = ANY(${knownLines})
+        RETURNING cruise_id
+      `);
+      
+      console.log(`Reset ${updateResult?.rowCount || 0} cruises`);
       return;
     }
     
@@ -36,7 +50,7 @@ async function resetPendingCruises() {
       RETURNING cruise_id
     `);
     
-    console.log(`\n✅ Reset ${updateResult.rows.length} cruises to pending sync status`);
+    console.log(`\n✅ Reset ${updateResult?.rowCount || 0} cruises to pending sync status`);
     
     // Show summary
     const summaryResult = await db.execute(sql`
@@ -50,15 +64,17 @@ async function resetPendingCruises() {
     `);
     
     console.log('\nPending syncs by cruise line:');
-    summaryResult.rows.forEach(row => {
-      console.log(`  Line ${row.cruise_line_id}: ${row.count} cruises`);
-    });
+    if (summaryResult?.rows) {
+      summaryResult.rows.forEach(row => {
+        console.log(`  Line ${row.cruise_line_id}: ${row.count} cruises`);
+      });
+    }
     
     const totalResult = await db.execute(sql`
       SELECT COUNT(*) as total FROM cruises WHERE needs_price_update = true
     `);
     
-    console.log(`\nTotal pending: ${totalResult.rows[0].total} cruises`);
+    console.log(`\nTotal pending: ${totalResult?.rows?.[0]?.total || 0} cruises`);
     
   } catch (error) {
     console.error('Error:', error);
