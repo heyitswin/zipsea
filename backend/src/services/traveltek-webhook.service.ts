@@ -7,6 +7,7 @@ import { cruiseCreationService } from './cruise-creation.service';
 import { cruiseUpdateQueue } from '../queues/webhook-queue';
 import { cruises, priceHistory } from '../db/schema';
 import { randomUUID } from 'crypto';
+import { getDatabaseLineId } from '../config/cruise-line-mapping';
 
 export interface WebhookProcessingResult {
   successful: number;
@@ -105,7 +106,14 @@ export class TraveltekWebhookService {
       
       // Get all cruises for this line that need updating
       // IMPORTANT: payload.lineid is the linecontent.id from JSON files
-      // which is stored as cruise_lines.id and referenced by cruises.cruise_line_id
+      // But our database might have different IDs due to sync script using root lineid
+      // Use mapping to translate webhook ID to database ID
+      const databaseLineId = getDatabaseLineId(payload.lineid);
+      
+      if (databaseLineId !== payload.lineid) {
+        logger.info(`📋 Mapping webhook line ID ${payload.lineid} to database line ID ${databaseLineId}`);
+      }
+      
       const cruisesToUpdate = await db
         .select({
           id: cruises.id,
@@ -116,7 +124,7 @@ export class TraveltekWebhookService {
         })
         .from(cruises)
         .where(
-          sql`cruise_line_id = ${payload.lineid} 
+          sql`cruise_line_id = ${databaseLineId} 
               AND sailing_date >= CURRENT_DATE 
               AND sailing_date <= CURRENT_DATE + INTERVAL '2 years'`
         );
@@ -128,10 +136,10 @@ export class TraveltekWebhookService {
       if (result.totalCruises === 0) {
         logger.warn(`⚠️ No active cruises found for line ${payload.lineid} - will create during sync`);
         
-        // Ensure the cruise line exists in the database
+        // Ensure the cruise line exists in the database (use mapped ID)
         await db.execute(sql`
           INSERT INTO cruise_lines (id, name, code, is_active)
-          VALUES (${payload.lineid}, ${'Cruise Line ' + payload.lineid}, ${'CL' + payload.lineid}, true)
+          VALUES (${databaseLineId}, ${'Cruise Line ' + databaseLineId}, ${'CL' + databaseLineId}, true)
           ON CONFLICT (id) DO NOTHING
         `);
         
@@ -143,7 +151,7 @@ export class TraveltekWebhookService {
             sailing_date, nights, is_active, needs_price_update,
             created_at, updated_at
           ) VALUES (
-            9999999, '9999999', ${payload.lineid}, 1, 'Placeholder for sync',
+            9999999, '9999999', ${databaseLineId}, 1, 'Placeholder for sync',
             CURRENT_DATE, 7, true, true,
             CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
           )
@@ -170,12 +178,12 @@ export class TraveltekWebhookService {
       if (cruisesToUpdate.length > 100) {
         logger.warn(`⚠️ Large webhook update (${cruisesToUpdate.length} cruises) - marking for later sync`);
         
-        // Update all cruises to mark them as needing price update
+        // Update all cruises to mark them as needing price update (use mapped ID)
         const updateResult = await db.execute(sql`
           UPDATE cruises 
           SET needs_price_update = true,
               price_update_requested_at = CURRENT_TIMESTAMP
-          WHERE cruise_line_id = ${payload.lineid} 
+          WHERE cruise_line_id = ${databaseLineId} 
             AND sailing_date >= CURRENT_DATE 
             AND sailing_date <= CURRENT_DATE + INTERVAL '2 years'
         `);
