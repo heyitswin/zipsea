@@ -163,7 +163,21 @@ export class PriceSyncBatchServiceV2 {
                       const codetocruiseid = parseInt(file.name.replace('.json', ''));
                       
                       try {
-                        const buffer = await connection.downloadToBuffer(filePath);
+                        // Create a writable stream that collects data into a buffer
+                        const { Writable } = require('stream');
+                        const chunks: Buffer[] = [];
+                        const writableStream = new Writable({
+                          write(chunk: Buffer, encoding: string, callback: Function) {
+                            chunks.push(chunk);
+                            callback();
+                          }
+                        });
+                        
+                        // Download to the writable stream
+                        await connection.downloadTo(writableStream, filePath);
+                        
+                        // Combine all chunks and parse JSON
+                        const buffer = Buffer.concat(chunks);
                         const data = JSON.parse(buffer.toString());
                         return { codetocruiseid, data, success: true };
                       } catch (err) {
