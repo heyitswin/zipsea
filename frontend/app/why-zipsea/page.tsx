@@ -55,11 +55,11 @@ export default function WhyZipsea() {
               {/* Section 1 - Mobile Responsive */}
               <div className="text-center">
                 <p 
-                  className="font-geograph text-[16px] md:text-[24px]"
+                  className="font-geograph text-[18px] md:text-[24px]"
                   style={{
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
-                    lineHeight: '1.5'
+                    lineHeight: '1.75'
                   }}
                 >
                   We get it. Most cruise booking sites still look like they were coded on a dial-up modem back in 1999. Tiny text, clunky forms, and search tools that make you want to close the tab and just… give up. We thought: It's 2025. Why should booking a cruise feel stuck in the past?
@@ -69,7 +69,7 @@ export default function WhyZipsea() {
               {/* Section 2 - Mobile Responsive */}
               <div className="text-center">
                 <h2 
-                  className="font-whitney font-black mb-[10px] md:mb-[20px] uppercase text-[32px] md:text-[42px]"
+                  className="font-whitney font-black mb-[20px] md:mb-[20px] uppercase text-[32px] md:text-[42px]"
                   style={{
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
@@ -79,11 +79,11 @@ export default function WhyZipsea() {
                   We're not like the old guard.
                 </h2>
                 <p 
-                  className="font-geograph text-[16px] md:text-[24px]"
+                  className="font-geograph text-[18px] md:text-[24px]"
                   style={{
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
-                    lineHeight: '1.5'
+                    lineHeight: '1.75'
                   }}
                 >
                   A lot of travel agents keep as much of their commission as they can, giving you little (if any) back. That means less onboard credit in your pocket and more money in theirs. At Zipsea, we flip the script: we give you the maximum onboard credit the cruise lines allow — every single time. Because your vacation should benefit you, not just your agent.
@@ -93,7 +93,7 @@ export default function WhyZipsea() {
               {/* Section 3 - Mobile Responsive */}
               <div className="text-center">
                 <h2 
-                  className="font-whitney font-black mb-[10px] md:mb-[20px] uppercase text-[32px] md:text-[42px]"
+                  className="font-whitney font-black mb-[20px] md:mb-[20px] uppercase text-[32px] md:text-[42px]"
                   style={{
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
@@ -103,11 +103,11 @@ export default function WhyZipsea() {
                   We're built with tech that makes sense today.
                 </h2>
                 <p 
-                  className="font-geograph text-[16px] md:text-[24px]"
+                  className="font-geograph text-[18px] md:text-[24px]"
                   style={{
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
-                    lineHeight: '1.5'
+                    lineHeight: '1.75'
                   }}
                 >
                   No more calling a 1-800 number just to hold a cabin. No more waiting for "office hours." We built Zipsea so you can browse, compare, and book online — with a modern design, clear pricing, and instant onboard credit shown upfront. The way booking should feel in 2025.
@@ -117,7 +117,7 @@ export default function WhyZipsea() {
               {/* Section 4 - Mobile Responsive */}
               <div className="text-center">
                 <h2 
-                  className="font-whitney font-black mb-[10px] md:mb-[20px] uppercase text-[32px] md:text-[42px]"
+                  className="font-whitney font-black mb-[20px] md:mb-[20px] uppercase text-[32px] md:text-[42px]"
                   style={{
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
@@ -127,11 +127,11 @@ export default function WhyZipsea() {
                   We're made for modern travelers.
                 </h2>
                 <p 
-                  className="font-geograph text-[16px] md:text-[24px]"
+                  className="font-geograph text-[18px] md:text-[24px]"
                   style={{
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
-                    lineHeight: '1.5'
+                    lineHeight: '1.75'
                   }}
                 >
                   Cruising isn't just for retirees anymore. Younger families, first-timers, and adventure-seekers are heading to sea in record numbers. We've designed Zipsea with you in mind — fresh, approachable, and actually fun to use. Because booking your dream vacation should feel as exciting as setting sail.
@@ -141,7 +141,7 @@ export default function WhyZipsea() {
               {/* Section 5 - Mobile Responsive */}
               <div className="text-center">
                 <h2 
-                  className="font-whitney font-black mb-[10px] md:mb-[20px] uppercase text-[32px] md:text-[42px]"
+                  className="font-whitney font-black mb-[20px] md:mb-[20px] uppercase text-[32px] md:text-[42px]"
                   style={{
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
@@ -151,11 +151,11 @@ export default function WhyZipsea() {
                   The bottom line?
                 </h2>
                 <div 
-                  className="font-geograph text-[16px] md:text-[24px]"
+                  className="font-geograph text-[18px] md:text-[24px]"
                   style={{
                     color: '#0E1B4D',
                     letterSpacing: '-0.02em',
-                    lineHeight: '1.5'
+                    lineHeight: '1.75'
                   }}
                 >
                   <p className="mb-4">We're here to make cruise booking transparent, modern, and rewarding.</p>

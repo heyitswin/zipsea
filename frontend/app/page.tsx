@@ -460,13 +460,13 @@ export default function Home() {
         {/* Content */}
         <div className="relative z-10 flex flex-col items-center justify-center h-[calc(720px-100px)] px-4 -mt-[80px]">
           {/* Main Heading - Responsive */}
-          <h1 className="text-sunshine text-[52px] md:text-[72px] font-whitney uppercase text-center leading-none tracking-tight mb-6 md:mb-10">
+          <h1 className="text-sunshine text-[48px] md:text-[72px] font-whitney uppercase text-center leading-none tracking-tight mb-6 md:mb-10">
             The most onboard credit<br />
             Simple as that
           </h1>
 
           {/* Subheading - Responsive */}
-          <p className="text-white text-[16px] md:text-[18px] font-medium font-geograph tracking-tight text-center w-full max-w-[900px] mb-8 md:mb-5">
+          <p className="text-white text-[18px] md:text-[18px] font-medium font-geograph tracking-tight text-center w-full max-w-[900px] mb-8 md:mb-5" style={{ lineHeight: '1.75' }}>
             We pass on the absolute maximum onboard credit allowed by the cruise lines - every single booking
           </p>
 
@@ -751,7 +751,7 @@ export default function Home() {
           </h2>
           
           {/* First Body Text - Mobile Responsive */}
-          <p className="text-purple-obc text-[20px] md:text-[32px] font-geograph leading-[1.5] tracking-tight mb-[30px] md:mb-[60px]">
+          <p className="text-purple-obc text-[18px] md:text-[32px] font-geograph leading-[1.75] md:leading-[1.5] tracking-tight mb-[30px] md:mb-[60px]">
             Think of OBC as cruise cash.<br /><br />
             When you book, the cruise line gives you money to spend onboard — like a gift card just for your vacation.
           </p>
@@ -768,7 +768,7 @@ export default function Home() {
           </div>
           
           {/* Second Body Text - Mobile Responsive */}
-          <p className="text-purple-obc text-[20px] md:text-[32px] font-geograph leading-[1.5] tracking-tight mb-8 md:mb-16">
+          <p className="text-purple-obc text-[18px] md:text-[32px] font-geograph leading-[1.75] md:leading-[1.5] tracking-tight mb-8 md:mb-16">
             Most travel agents keep as much of the commission as possible and only pass along a little OBC. Cruise lines also set a cap on how much agents can give back.
           </p>
           
@@ -779,7 +779,7 @@ export default function Home() {
               alt="The bottom line"
               width={1305}
               height={734}
-              className="h-auto mx-auto w-full max-w-[325px] md:max-w-[650px]"
+              className="h-auto mx-auto w-full"
             />
           </div>
         </div>
@@ -797,7 +797,7 @@ export default function Home() {
       />
 
       {/* Last Minute Deals Section - Mobile Responsive */}
-      <section className="bg-sand py-[100px] md:py-[100px] relative pt-[100px] md:pt-[200px]">
+      <section className="bg-sand py-[100px] md:py-[100px] relative pt-[100px] md:pt-[200px] mb-[24px] md:mb-[80px]">
         <div className="max-w-7xl mx-auto px-8">
           {/* Headline with Hourglass Icon - Mobile Responsive */}
           <div className="flex items-center justify-center mb-[80px]">

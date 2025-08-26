@@ -44,7 +44,7 @@ export default function Footer() {
           </div>
 
           {/* Navigation Links - Stacked vertically on mobile */}
-          <div className="flex flex-col space-y-6 mb-8">
+          <div className="flex flex-col space-y-3 mb-8">
             <a 
               href="/why-zipsea" 
               className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"

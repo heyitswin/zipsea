@@ -2,6 +2,7 @@ import { db } from '../db/connection';
 import { sql, eq, and, inArray } from 'drizzle-orm';
 import { cruises, priceHistory } from '../db/schema';
 import { ftpConnectionPool } from './ftp-connection-pool.service';
+import { ftpFileSearchService } from './ftp-file-search.service';
 import { cruiseCreationService } from './cruise-creation.service';
 import { slackService } from './slack.service';
 import logger from '../config/logger';
@@ -230,16 +231,48 @@ export class PriceSyncBatchService {
     try {
       logger.info(`Processing batch of ${batch.length} cruises`);
       
-      // Generate FTP paths for all cruises in batch
-      const filePaths = batch.map(cruise => this.getFTPPath(cruise));
+      // First, find the actual FTP paths for all cruises
+      const cruiseInfos = batch.map(c => ({
+        cruiseId: c.cruiseId,
+        lineId: c.cruiseLineId,
+        shipId: c.shipId > 0 ? c.shipId : undefined
+      }));
       
-      // Download all files in batch using connection pool
-      const fileData = await ftpConnectionPool.downloadBatch(filePaths);
+      logger.info('Searching for cruise files in FTP...');
+      const foundPaths = await ftpFileSearchService.findCruiseFiles(cruiseInfos);
       
-      // Process each cruise
-      for (let i = 0; i < batch.length; i++) {
-        const cruise = batch[i];
-        const data = fileData.get(filePaths[i]);
+      if (foundPaths.size === 0) {
+        logger.error('Could not find any cruise files in FTP');
+        result.failed = batch.length;
+        result.errors = batch.map(c => c.cruiseId);
+        return result;
+      }
+      
+      logger.info(`Found ${foundPaths.size}/${batch.length} cruise files`);
+      
+      // Build list of paths to download
+      const pathsToDownload: string[] = [];
+      const cruiseByPath = new Map<string, CruiseToSync>();
+      
+      for (const cruise of batch) {
+        const path = foundPaths.get(cruise.cruiseId);
+        if (path) {
+          pathsToDownload.push(path);
+          cruiseByPath.set(path, cruise);
+        } else {
+          logger.warn(`Could not find file for cruise ${cruise.cruiseId}`);
+          result.failed++;
+          result.errors.push(cruise.cruiseId);
+        }
+      }
+      
+      // Download all found files in batch
+      const fileData = await ftpConnectionPool.downloadBatch(pathsToDownload);
+      
+      // Process each downloaded file
+      for (const [path, data] of fileData.entries()) {
+        const cruise = cruiseByPath.get(path);
+        if (!cruise) continue;
         
         if (!data) {
           logger.warn(`No data downloaded for cruise ${cruise.cruiseId}`);
@@ -282,16 +315,22 @@ export class PriceSyncBatchService {
 
   /**
    * Generate FTP path for a cruise
+   * Note: The FTP structure is /isell_json/{year}/{month}/{cruiseLineId}/{shipId}/{cruiseId}.json
+   * We need to search for the file as we might not know the exact year/month from sailing date
    */
   private getFTPPath(cruise: CruiseToSync): string {
+    // For now, we'll use the sailing date as a best guess for the year/month
+    // In production, the files are organized by when they were created, not sailing date
     const year = cruise.sailingDate.getFullYear();
     const month = String(cruise.sailingDate.getMonth() + 1).padStart(2, '0');
     
-    // Try multiple path patterns
-    if (cruise.shipId) {
-      return `isell_json/${year}/${month}/${cruise.cruiseLineId}/${cruise.shipId}/${cruise.cruiseId}.json`;
+    // The structure is always: /isell_json/YYYY/MM/lineId/shipId/cruiseId.json
+    if (cruise.shipId && cruise.shipId > 0) {
+      return `/isell_json/${year}/${month}/${cruise.cruiseLineId}/${cruise.shipId}/${cruise.cruiseId}.json`;
     } else {
-      return `isell_json/${year}/${month}/${cruise.cruiseLineId}/${cruise.cruiseId}.json`;
+      // If we don't know the ship ID, we need to search for it
+      // This is a fallback that likely won't work
+      return `/isell_json/${year}/${month}/${cruise.cruiseLineId}/${cruise.cruiseId}.json`;
     }
   }
 
