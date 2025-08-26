@@ -269,6 +269,48 @@ export class PriceSyncBatchServiceV2 {
                       `);
                     }
                     
+                    // If still no match, create the cruise
+                    if (updateResult.rowCount === 0) {
+                      // Ensure ship exists
+                      await db.execute(sql`
+                        INSERT INTO ships (id, cruise_line_id, name, code, is_active)
+                        VALUES (${shipId}, ${lineId}, ${'Ship ' + shipId}, ${'S' + shipId}, true)
+                        ON CONFLICT (id) DO NOTHING
+                      `);
+                      
+                      // Create the cruise
+                      updateResult = await db.execute(sql`
+                        INSERT INTO cruises (
+                          id, cruise_id, cruise_line_id, ship_id,
+                          name, sailing_date, return_date, nights,
+                          interior_cheapest_price, oceanview_cheapest_price,
+                          balcony_cheapest_price, suite_cheapest_price,
+                          is_active, needs_price_update, created_at, updated_at
+                        ) VALUES (
+                          ${codetocruiseid}, ${cruiseid}, ${lineId}, ${shipId},
+                          ${data.cruisename || data.cruisecode || 'Cruise ' + codetocruiseid},
+                          ${sailingDate},
+                          ${data.enddate || data.returndate || null},
+                          ${data.nights || data.duration || 7},
+                          ${prices.interior}, ${prices.oceanview},
+                          ${prices.balcony}, ${prices.suite},
+                          true, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                        )
+                        ON CONFLICT (id) DO UPDATE SET
+                          interior_cheapest_price = EXCLUDED.interior_cheapest_price,
+                          oceanview_cheapest_price = EXCLUDED.oceanview_cheapest_price,
+                          balcony_cheapest_price = EXCLUDED.balcony_cheapest_price,
+                          suite_cheapest_price = EXCLUDED.suite_cheapest_price,
+                          needs_price_update = false,
+                          updated_at = CURRENT_TIMESTAMP
+                        RETURNING id
+                      `);
+                      
+                      if (updateResult.rowCount && updateResult.rowCount > 0) {
+                        logger.info(`✅ Created new cruise ${codetocruiseid} for line ${lineId}`);
+                      }
+                    }
+                    
                     if (updateResult.rowCount && updateResult.rowCount > 0) {
                       result.cruisesUpdated++;
                       
