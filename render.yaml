@@ -211,7 +211,7 @@ services:
       # These will be added manually in Render Dashboard
       # - key: TRAVELTEK_FTP_HOST
       # - key: TRAVELTEK_FTP_USER
-      # - key: TRAVELTEK_FTP_PASS
+      # - key: TRAVELTEK_FTP_PASSWORD
       # - key: SLACK_WEBHOOK_URL
 
   # Price Sync Cron Job - Production (Every 5 minutes)
@@ -240,7 +240,7 @@ services:
       # These will be added manually in Render Dashboard
       # - key: TRAVELTEK_FTP_HOST
       # - key: TRAVELTEK_FTP_USER
-      # - key: TRAVELTEK_FTP_PASS
+      # - key: TRAVELTEK_FTP_PASSWORD
       # - key: SLACK_WEBHOOK_URL
 
   # Daily Full Sync - Commented out as webhooks handle all updates
