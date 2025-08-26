@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { cronService } from '../services/cron.service';
 import { logger } from '../config/logger';
 import { slackService } from '../services/slack.service';
+import { db } from '../db/connection';
+import { sql } from 'drizzle-orm';
 
 const router = Router();
 
@@ -281,6 +283,72 @@ router.post('/slack/test-webhook', async (req: Request, res: Response) => {
         message: 'Failed to send test webhook notification',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
+    });
+  }
+});
+
+/**
+ * Get pending sync status
+ */
+router.get('/pending-syncs', async (req: Request, res: Response) => {
+  try {
+    const result = await db.execute(sql`
+      SELECT 
+        COUNT(*) as total_pending,
+        COUNT(DISTINCT cruise_line_id) as unique_lines,
+        MIN(price_update_requested_at) as oldest_request,
+        MAX(price_update_requested_at) as newest_request
+      FROM cruises 
+      WHERE needs_price_update = true
+    `);
+    
+    const byLine = await db.execute(sql`
+      SELECT 
+        cruise_line_id,
+        COUNT(*) as count,
+        MIN(price_update_requested_at) as oldest,
+        MAX(price_update_requested_at) as newest
+      FROM cruises 
+      WHERE needs_price_update = true
+      GROUP BY cruise_line_id
+      ORDER BY count DESC
+      LIMIT 10
+    `);
+
+    res.json({
+      summary: result.rows[0],
+      byLine: byLine.rows,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to get pending sync status',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * Manually trigger batch sync
+ */
+router.post('/trigger-batch-sync', async (req: Request, res: Response) => {
+  try {
+    // Import inside the route handler to avoid circular dependencies
+    const { priceSyncBatchService } = require('../services/price-sync-batch.service');
+    
+    // Run sync in background
+    res.json({
+      message: 'Batch sync triggered',
+      timestamp: new Date()
+    });
+    
+    // Don't await - let it run in background
+    priceSyncBatchService.syncPendingPriceUpdates().catch(console.error);
+    
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to trigger sync',
+      message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
