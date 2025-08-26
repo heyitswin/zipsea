@@ -31,7 +31,7 @@ async function resetPendingCruises() {
       const updateResult = await db.execute(sql`
         UPDATE cruises
         SET needs_price_update = true
-        WHERE cruise_line_id = ANY(${knownLines})
+        WHERE cruise_line_id IN (${sql.raw(knownLines.join(','))})
         RETURNING cruise_id
       `);
       
@@ -46,7 +46,7 @@ async function resetPendingCruises() {
     const updateResult = await db.execute(sql`
       UPDATE cruises
       SET needs_price_update = true
-      WHERE cruise_line_id = ANY(${lineIds})
+      WHERE cruise_line_id IN (${sql.raw(lineIds.join(','))})
       RETURNING cruise_id
     `);
     
