@@ -141,6 +141,28 @@ export class CruiseCreationService {
   }
 
   /**
+   * Create a cruise from JSON data (public method for batch sync)
+   */
+  async createFromJSON(cruiseData: any): Promise<number> {
+    const cruiseCode = cruiseData.cruiseid || cruiseData.cruise_id;
+    if (!cruiseCode) {
+      throw new Error('Cruise data missing cruise ID');
+    }
+    
+    // Check if cruise already exists
+    const existing = await db.execute(sql`
+      SELECT id FROM cruises WHERE cruise_id = ${cruiseCode} LIMIT 1
+    `);
+    
+    if (existing && existing.length > 0) {
+      logger.warn(`Cruise ${cruiseCode} already exists, skipping creation`);
+      return existing[0].id;
+    }
+    
+    return this.createCompleteCruise(cruiseData, cruiseCode);
+  }
+
+  /**
    * Create a complete cruise with all related records
    */
   private async createCompleteCruise(cruiseData: any, cruiseCode: string): Promise<number> {

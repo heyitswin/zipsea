@@ -180,3 +180,98 @@ services:
       - key: NEXT_PUBLIC_SITE_URL
         value: https://zipsea-frontend-production.onrender.com
     autoDeploy: true
+
+  # ===========================================
+  # CRON JOBS
+  # ===========================================
+  
+  # Price Sync Cron Job - Staging (Every 5 minutes)
+  - type: cron
+    name: price-sync-staging
+    env: node
+    region: oregon
+    plan: free
+    branch: main
+    rootDir: backend
+    buildCommand: npm ci && npm run build
+    startCommand: node scripts/sync-pending-prices.js
+    schedule: "*/5 * * * *"  # Every 5 minutes
+    envVars:
+      - key: NODE_ENV
+        value: staging
+      - key: DATABASE_URL
+        fromDatabase:
+          name: zipsea-postgres-staging
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: zipsea-redis-staging
+          property: connectionString
+      # These will be added manually in Render Dashboard
+      # - key: TRAVELTEK_FTP_HOST
+      # - key: TRAVELTEK_FTP_USER
+      # - key: TRAVELTEK_FTP_PASS
+      # - key: SLACK_WEBHOOK_URL
+
+  # Price Sync Cron Job - Production (Every 5 minutes)
+  - type: cron
+    name: price-sync-production
+    env: node
+    region: oregon
+    plan: free
+    branch: production
+    rootDir: backend
+    buildCommand: npm ci && npm run build
+    startCommand: node scripts/sync-pending-prices.js
+    schedule: "*/5 * * * *"  # Every 5 minutes
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: zipsea-postgres-production
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: zipsea-redis-production
+          property: connectionString
+      # These will be added manually in Render Dashboard
+      # - key: TRAVELTEK_FTP_HOST
+      # - key: TRAVELTEK_FTP_USER
+      # - key: TRAVELTEK_FTP_PASS
+      # - key: SLACK_WEBHOOK_URL
+
+  # Daily Full Sync - Production Only (2 AM EST)
+  - type: cron
+    name: daily-sync-production
+    env: node
+    region: oregon
+    plan: free
+    branch: production
+    rootDir: backend
+    buildCommand: npm ci && npm run build
+    startCommand: SYNC_YEARS=2025,2026,2027 node scripts/sync-complete-data.js
+    schedule: "0 7 * * *"  # 7 AM UTC = 2 AM EST
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: zipsea-postgres-production
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: zipsea-redis-production
+          property: connectionString
+      - key: SYNC_YEARS
+        value: "2025,2026,2027"
+      - key: FORCE_UPDATE
+        value: "false"
+      # These will be added manually in Render Dashboard
+      # - key: TRAVELTEK_FTP_HOST
+      # - key: TRAVELTEK_FTP_USER
+      # - key: TRAVELTEK_FTP_PASS
+      # - key: SLACK_WEBHOOK_URL
