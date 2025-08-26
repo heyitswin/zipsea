@@ -190,7 +190,7 @@ services:
     name: price-sync-staging
     env: node
     region: oregon
-    plan: free
+    plan: starter
     branch: main
     rootDir: backend
     buildCommand: npm ci && npm run build
@@ -219,7 +219,7 @@ services:
     name: price-sync-production
     env: node
     region: oregon
-    plan: free
+    plan: starter
     branch: production
     rootDir: backend
     buildCommand: npm ci && npm run build
@@ -248,7 +248,7 @@ services:
     name: daily-sync-production
     env: node
     region: oregon
-    plan: free
+    plan: starter
     branch: production
     rootDir: backend
     buildCommand: npm ci && npm run build
