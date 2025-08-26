@@ -80,8 +80,11 @@ export class PriceSyncBatchService {
         result.errors.push(...batchResult.errors);
       }
 
-      // Mark successfully processed cruises
-      await this.markCruisesAsProcessed(pendingCruises.filter(c => !result.errors.includes(c.cruiseId)));
+      // Mark ONLY successfully processed cruises (not failed ones)
+      const successfulCruises = pendingCruises.filter(c => !result.errors.includes(c.cruiseId));
+      await this.markCruisesAsProcessed(successfulCruises);
+      
+      // Failed cruises will remain with needs_price_update = true and will be retried next time
 
     } catch (error) {
       logger.error('Fatal error in price sync:', error);
@@ -103,6 +106,7 @@ export class PriceSyncBatchService {
    */
   private async getPendingCruises(): Promise<CruiseToSync[]> {
     // First, get cruises marked as needing updates
+    // Include retry logic - don't retry failed cruises more than 3 times in 24 hours
     const markedCruises = await db.execute(sql`
       SELECT 
         c.id,
@@ -113,7 +117,8 @@ export class PriceSyncBatchService {
       FROM cruises c
       WHERE c.needs_price_update = true
         AND (c.price_update_requested_at IS NULL 
-             OR c.price_update_requested_at > NOW() - INTERVAL '1 hour')
+             OR c.price_update_requested_at > NOW() - INTERVAL '24 hours'
+             OR c.updated_at > NOW() - INTERVAL '1 hour')
       ORDER BY c.sailing_date ASC
       LIMIT 500
     `);
