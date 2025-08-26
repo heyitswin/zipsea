@@ -329,13 +329,13 @@ export class PriceSyncBatchService {
     const year = cruise.sailingDate.getFullYear();
     const month = String(cruise.sailingDate.getMonth() + 1).padStart(2, '0');
     
-    // The structure is always: /isell_json/YYYY/MM/lineId/shipId/cruiseId.json
+    // The structure is: isell_json/YYYY/MM/lineId/shipId/cruiseId.json (no leading slash)
     if (cruise.shipId && cruise.shipId > 0) {
-      return `/isell_json/${year}/${month}/${cruise.cruiseLineId}/${cruise.shipId}/${cruise.cruiseId}.json`;
+      return `isell_json/${year}/${month}/${cruise.cruiseLineId}/${cruise.shipId}/${cruise.cruiseId}.json`;
     } else {
       // If we don't know the ship ID, we need to search for it
       // This is a fallback that likely won't work
-      return `/isell_json/${year}/${month}/${cruise.cruiseLineId}/${cruise.cruiseId}.json`;
+      return `isell_json/${year}/${month}/${cruise.cruiseLineId}/${cruise.cruiseId}.json`;
     }
   }
 

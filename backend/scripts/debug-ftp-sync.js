@@ -36,10 +36,23 @@ async function debugSync() {
     // List root directory
     const list = await client.list('/');
     console.log(`   Found ${list.length} items in root directory`);
+    console.log('   Root contents:');
+    list.forEach(item => {
+      console.log(`     ${item.type === 2 ? '[DIR]' : '[FILE]'} ${item.name}`);
+    });
     
-    // Check for isell_json directory
-    const isellList = await client.list('/isell_json');
-    console.log(`   Found ${isellList.length} items in /isell_json`);
+    // Check for isell_json directory - it might be without leading slash
+    try {
+      const isellList = await client.list('isell_json');
+      console.log(`   Found ${isellList.length} items in isell_json`);
+      
+      // Show subdirectories
+      const dirs = isellList.filter(item => item.type === 2).slice(0, 5);
+      console.log('   Year directories in isell_json:');
+      dirs.forEach(dir => console.log(`     - ${dir.name}`));
+    } catch (err) {
+      console.log('   Note: isell_json path might be different:', err.message);
+    }
     
     client.close();
   } catch (error) {
@@ -63,11 +76,15 @@ async function debugSync() {
       WHERE needs_price_update = true
     `);
     
-    const row = pendingResult.rows[0];
-    console.log(`   Pending cruises: ${row.total}`);
-    console.log(`   Unique lines: ${row.lines}`);
-    console.log(`   Oldest request: ${row.oldest}`);
-    console.log(`   Newest request: ${row.newest}`);
+    if (pendingResult && pendingResult.rows && pendingResult.rows.length > 0) {
+      const row = pendingResult.rows[0];
+      console.log(`   Pending cruises: ${row.total}`);
+      console.log(`   Unique lines: ${row.lines}`);
+      console.log(`   Oldest request: ${row.oldest || 'N/A'}`);
+      console.log(`   Newest request: ${row.newest || 'N/A'}`);
+    } else {
+      console.log('   No pending cruises found');
+    }
     
     // Get sample cruise IDs
     const sampleCruises = await db.execute(sql`
@@ -77,10 +94,12 @@ async function debugSync() {
       LIMIT 3
     `);
     
-    console.log('\n   Sample pending cruises:');
-    sampleCruises.rows.forEach(c => {
-      console.log(`   - ${c.cruise_id} (Line: ${c.cruise_line_id}, Ship: ${c.ship_id})`);
-    });
+    if (sampleCruises && sampleCruises.rows && sampleCruises.rows.length > 0) {
+      console.log('\n   Sample pending cruises:');
+      sampleCruises.rows.forEach(c => {
+        console.log(`   - ${c.cruise_id} (Line: ${c.cruise_line_id}, Ship: ${c.ship_id})`);
+      });
+    }
     
   } catch (error) {
     console.log('   ❌ Database query failed:', error.message);
@@ -103,7 +122,7 @@ async function debugSync() {
       LIMIT 1
     `);
     
-    if (sampleCruise.rows.length > 0) {
+    if (sampleCruise && sampleCruise.rows && sampleCruise.rows.length > 0) {
       const cruise = sampleCruise.rows[0];
       console.log(`   Searching for cruise ${cruise.cruise_id}...`);
       
