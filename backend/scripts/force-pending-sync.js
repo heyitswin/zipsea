@@ -14,24 +14,33 @@ async function forcePendingSync() {
   
   try {
     // First, check what cruise lines we actually have
-    const linesResult = await db.execute(sql`
-      SELECT 
-        cruise_line_id,
-        COUNT(*) as count
-      FROM cruises
-      GROUP BY cruise_line_id
-      ORDER BY cruise_line_id
-      LIMIT 20
-    `);
+    const { cruises } = require('../dist/db/schema');
+    const linesResult = await db
+      .select({
+        cruise_line_id: cruises.cruiseLineId,
+        count: sql<number>`COUNT(*)::int`
+      })
+      .from(cruises)
+      .groupBy(cruises.cruiseLineId)
+      .orderBy(cruises.cruiseLineId)
+      .limit(20);
     
-    if (!linesResult || !linesResult.rows || linesResult.rows.length === 0) {
+    if (!linesResult || linesResult.length === 0) {
       console.log('❌ No cruises found in database!');
-      console.log('The database appears to be empty. You need to run initial sync first.');
+      console.log('Trying raw SQL query...');
+      
+      // Try raw SQL as fallback
+      const rawResult = await db.execute(sql`SELECT COUNT(*) as count FROM cruises`);
+      console.log('Raw query result:', rawResult);
+      
+      if (rawResult?.rows?.[0]?.count > 0) {
+        console.log(`Found ${rawResult.rows[0].count} cruises via raw SQL`);
+      }
       return;
     }
     
     console.log('Cruise lines in database:');
-    linesResult.rows.forEach(row => {
+    linesResult.forEach(row => {
       console.log(`  Line ${row.cruise_line_id}: ${row.count} cruises`);
     });
     
