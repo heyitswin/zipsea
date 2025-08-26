@@ -104,6 +104,8 @@ export class TraveltekWebhookService {
       const webhookEventId = eventResult[0]?.id || 0;
       
       // Get all cruises for this line that need updating
+      // IMPORTANT: payload.lineid is the linecontent.id from JSON files
+      // which is stored as cruise_lines.id and referenced by cruises.cruise_line_id
       const cruisesToUpdate = await db
         .select({
           id: cruises.id,
@@ -158,10 +160,7 @@ export class TraveltekWebhookService {
         await slackService.notifyWebhookProcessingCompleted({
           eventType: payload.event,
           lineId: payload.lineid
-        }, {
-          ...result,
-          message: 'Cruise line queued for initial sync (placeholder created)'
-        });
+        }, result);
         
         return result;
       }

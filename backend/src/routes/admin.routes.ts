@@ -288,6 +288,67 @@ router.post('/slack/test-webhook', async (req: Request, res: Response) => {
 });
 
 /**
+ * Check cruise lines in database
+ */
+router.get('/cruise-lines', async (req: Request, res: Response) => {
+  try {
+    const result = await db.execute(sql`
+      SELECT cl.id, cl.name, cl.code, COUNT(c.id) as cruise_count
+      FROM cruise_lines cl
+      LEFT JOIN cruises c ON c.cruise_line_id = cl.id
+      GROUP BY cl.id, cl.name, cl.code
+      ORDER BY cl.id
+      LIMIT 100
+    `);
+    
+    res.json({
+      success: true,
+      count: result.length,
+      lines: result
+    });
+  } catch (error) {
+    logger.error('Error fetching cruise lines:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch cruise lines',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * Check specific cruise details including cruise_line_id
+ */
+router.get('/cruise-details/:cruiseId', async (req: Request, res: Response) => {
+  try {
+    const cruiseId = req.params.cruiseId;
+    
+    const result = await db.execute(sql`
+      SELECT c.id, c.cruise_id, c.cruise_line_id, c.name, 
+             cl.name as line_name, cl.id as line_table_id
+      FROM cruises c
+      LEFT JOIN cruise_lines cl ON cl.id = c.cruise_line_id
+      WHERE c.id = ${cruiseId} OR c.cruise_id = ${cruiseId}
+      LIMIT 1
+    `);
+    
+    if (!result || result.length === 0) {
+      return res.status(404).json({ error: 'Cruise not found' });
+    }
+    
+    res.json({
+      success: true,
+      cruise: result[0]
+    });
+  } catch (error) {
+    logger.error('Error fetching cruise details:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch cruise details',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
  * Get pending sync status
  */
 router.get('/pending-syncs', async (req: Request, res: Response) => {
