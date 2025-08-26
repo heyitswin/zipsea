@@ -344,7 +344,8 @@ router.post('/trigger-batch-sync', async (req: Request, res: Response) => {
       WHERE needs_price_update = true
     `);
     
-    const pendingLines = pendingResult.rows[0]?.pending_lines || 0;
+    const pendingLines = (pendingResult.rows && pendingResult.rows[0]) ? 
+      (pendingResult.rows[0].pending_lines || 0) : 0;
     
     if (pendingLines === 0) {
       return res.json({
