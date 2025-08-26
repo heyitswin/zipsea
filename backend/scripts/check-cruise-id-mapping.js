@@ -23,8 +23,8 @@ async function checkMapping() {
     // Get some cruises from line 3
     const dbResult = await pool.query(`
       SELECT 
+        id,
         cruise_id, 
-        cruise_code,
         ship_id, 
         sailing_date,
         name
@@ -41,7 +41,7 @@ async function checkMapping() {
     dbResult.rows.forEach(row => {
       const date = new Date(row.sailing_date);
       const month = date.toLocaleDateString('en-US', { month: 'short' });
-      console.log(`  ID: ${row.cruise_id} | Code: ${row.cruise_code || 'N/A'} | ${month} ${date.getDate()} | ${row.name}`);
+      console.log(`  PK(id): ${row.id} | cruise_id: ${row.cruise_id} | ${month} ${date.getDate()} | ${row.name}`);
     });
     
     // Connect to FTP and get a sample file
@@ -70,13 +70,13 @@ async function checkMapping() {
     console.log('  cruisename:', data.cruisename);
     
     // Check if this matches any cruise in our DB
-    if (data.cruiseid || data.cruisecode) {
+    if (data.cruiseid || data.codetocruiseid) {
       const matchResult = await pool.query(`
-        SELECT cruise_id, cruise_code, name 
+        SELECT id, cruise_id, name 
         FROM cruises 
-        WHERE cruise_id = $1 OR cruise_code = $2
+        WHERE cruise_id = $1 OR id = $2
         LIMIT 1
-      `, [data.cruiseid || '0', data.cruisecode || '0']);
+      `, [String(data.cruiseid || '0'), data.codetocruiseid || 0]);
       
       if (matchResult.rows.length > 0) {
         console.log('\n✅ Match found in database:', matchResult.rows[0]);
