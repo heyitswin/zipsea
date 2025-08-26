@@ -86,7 +86,7 @@ export class TraveltekWebhookService {
       const eventResult = await db.execute(sql`
         INSERT INTO webhook_events (
           event_type, line_id, market_id, currency,
-          description, source, timestamp, batch_id
+          description, source, timestamp, batch_id, payload
         ) VALUES (
           'cruiseline_pricing_updated',
           ${payload.lineid},
@@ -94,7 +94,9 @@ export class TraveltekWebhookService {
           ${payload.currency || 'USD'},
           ${payload.description || `Cruise line ${payload.lineid} pricing updated`},
           ${payload.source || 'traveltek_webhook'},
-          ${typeof payload.timestamp === 'string' ? payload.timestamp : new Date(payload.timestamp * 1000).toISOString()}
+          ${typeof payload.timestamp === 'string' ? payload.timestamp : new Date(payload.timestamp * 1000).toISOString()},
+          ${batchId},
+          ${JSON.stringify(payload)}
         )
         RETURNING id
       `);
@@ -377,15 +379,15 @@ export class TraveltekWebhookService {
       // Log webhook event
       const eventResult = await db.execute(sql`
         INSERT INTO webhook_events (
-          event_type, paths, currency,
+          event_type, payload, currency,
           description, source, timestamp
         ) VALUES (
           'cruises_live_pricing_updated',
-          ${payload.paths},
-          ${payload.currency},
-          ${payload.description},
+          ${JSON.stringify(payload)},
+          ${payload.currency || 'USD'},
+          ${payload.description || 'Live pricing update'},
           ${payload.source || 'json_cruise_export'},
-          ${payload.timestamp}
+          ${typeof payload.timestamp === 'string' ? payload.timestamp : new Date().toISOString()}
         )
         RETURNING id
       `);
