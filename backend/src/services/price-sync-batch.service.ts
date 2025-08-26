@@ -58,17 +58,13 @@ export class PriceSyncBatchService {
       logger.info(`Found ${pendingCruises.length} cruises needing price updates`);
       
       // Send Slack notification
-      await slackService.sendMessage({
-        text: `🔄 Starting batch price sync`,
-        blocks: [
-          {
-            type: 'section',
-            text: {
-              type: 'mrkdwn',
-              text: `*Cruises to Process:* ${pendingCruises.length}\n*Batch Size:* ${this.BATCH_SIZE}`
-            }
-          }
-        ]
+      await slackService.notifyCustomMessage({
+        title: '🔄 Starting batch price sync',
+        message: `Processing ${pendingCruises.length} cruises in batches of ${this.BATCH_SIZE}`,
+        details: {
+          cruisesToProcess: pendingCruises.length,
+          batchSize: this.BATCH_SIZE
+        }
       });
 
       // Group cruises by line and month for efficient FTP operations
@@ -373,24 +369,16 @@ export class PriceSyncBatchService {
   private async sendCompletionNotification(result: SyncResult): Promise<void> {
     const emoji = result.failed === 0 ? '✅' : result.failed > result.updated ? '❌' : '⚠️';
     
-    await slackService.sendMessage({
-      text: `${emoji} Price sync completed`,
-      blocks: [
-        {
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: `*Created:* ${result.created} cruises\n*Updated:* ${result.updated} cruises\n*Failed:* ${result.failed}\n*Duration:* ${(result.duration / 1000).toFixed(1)}s`
-          }
-        },
-        ...(result.errors.length > 0 ? [{
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: `*Failed Cruise IDs:* ${result.errors.slice(0, 10).join(', ')}${result.errors.length > 10 ? '...' : ''}`
-          }
-        }] : [])
-      ]
+    await slackService.notifyCustomMessage({
+      title: `${emoji} Price sync completed`,
+      message: `Created: ${result.created} | Updated: ${result.updated} | Failed: ${result.failed} | Duration: ${(result.duration / 1000).toFixed(1)}s`,
+      details: {
+        created: result.created,
+        updated: result.updated,
+        failed: result.failed,
+        durationMs: result.duration,
+        errors: result.errors.slice(0, 10)
+      }
     });
   }
 }

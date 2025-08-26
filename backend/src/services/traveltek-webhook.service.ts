@@ -157,17 +157,14 @@ export class TraveltekWebhookService {
         logger.info(`✅ Marked ${cruisesToUpdate.length} cruises for price update`);
         
         // Send notification about deferred processing
-        await slackService.sendMessage({
-          text: `📋 Large webhook deferred for batch processing`,
-          blocks: [
-            {
-              type: 'section',
-              text: {
-                type: 'mrkdwn',
-                text: `*Cruise Line:* ${payload.lineid}\n*Cruises to Update:* ${cruisesToUpdate.length}\n*Status:* Marked for batch sync\n*Reason:* Too many cruises for real-time FTP processing`
-              }
-            }
-          ]
+        await slackService.notifyCustomMessage({
+          title: `📋 Large webhook deferred for batch processing`,
+          message: `Line ${payload.lineid}: ${cruisesToUpdate.length} cruises marked for batch sync`,
+          details: {
+            lineId: payload.lineid,
+            cruiseCount: cruisesToUpdate.length,
+            reason: 'Too many cruises for real-time FTP processing'
+          }
         });
         
       } else {

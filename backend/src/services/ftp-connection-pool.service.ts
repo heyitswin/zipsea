@@ -91,9 +91,8 @@ export class FTPConnectionPool {
       await client.access({
         host: env.TRAVELTEK_FTP_HOST,
         user: env.TRAVELTEK_FTP_USER,
-        password: env.TRAVELTEK_FTP_PASS,
-        secure: false,
-        connTimeout: this.connectionTimeout
+        password: env.TRAVELTEK_FTP_PASSWORD,
+        secure: false
       });
       
       return client;
@@ -144,16 +143,16 @@ export class FTPConnectionPool {
     try {
       for (const filePath of filePaths) {
         try {
-          const stream = await client.downloadTo(null, filePath);
-          
-          // Convert stream to buffer
+          // Download to writable stream that collects to buffer
           const chunks: Buffer[] = [];
-          await new Promise((resolve, reject) => {
-            stream.on('data', chunk => chunks.push(chunk));
-            stream.on('end', resolve);
-            stream.on('error', reject);
+          const writableStream = new (require('stream').Writable)({
+            write(chunk: Buffer, encoding: string, callback: Function) {
+              chunks.push(chunk);
+              callback();
+            }
           });
           
+          await client.downloadTo(writableStream, filePath);
           results.set(filePath, Buffer.concat(chunks));
         } catch (error) {
           logger.warn(`Failed to download ${filePath}:`, error);
