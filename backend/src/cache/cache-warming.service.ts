@@ -235,7 +235,7 @@ export class CacheWarmingService {
     const cruise = await db
       .select()
       .from(cruises)
-      .where(eq(cruises.id, cruiseId))
+      .where(eq(cruises.id, String(cruiseId)))
       .limit(1);
     
     return cruise[0] || null;

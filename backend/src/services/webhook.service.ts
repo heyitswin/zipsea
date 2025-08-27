@@ -136,7 +136,7 @@ export class WebhookService {
               cruiseLineId: cruises.cruiseLineId 
             })
             .from(cruises)
-            .where(eq(cruises.id, cruiseId))
+            .where(eq(cruises.id, String(cruiseId)))
             .limit(1);
 
           if (cruise.length === 0) {

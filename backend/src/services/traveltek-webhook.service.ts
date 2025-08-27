@@ -489,7 +489,7 @@ export class TraveltekWebhookService {
             const cruiseResult = await db
               .select({ id: cruises.id })
               .from(cruises)
-              .where(eq(cruises.id, codeToId))
+              .where(eq(cruises.id, String(codeToId)))
               .limit(1);
             
             if (cruiseResult.length === 0) {

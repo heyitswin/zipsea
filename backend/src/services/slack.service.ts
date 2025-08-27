@@ -79,7 +79,7 @@ export class SlackService {
         .from(cruises)
         .leftJoin(cruiseLines, eq(cruises.cruiseLineId, cruiseLines.id))
         .leftJoin(ships, eq(cruises.shipId, ships.id))
-        .where(eq(cruises.id, cruiseId))
+        .where(eq(cruises.id, String(cruiseId)))
         .limit(1);
 
       if (cruise.length > 0) {

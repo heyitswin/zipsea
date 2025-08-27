@@ -523,7 +523,7 @@ export class CruiseService {
         .leftJoin(ships, eq(cruises.shipId, ships.id))
         .leftJoin(ports, eq(cruises.embarkPortId, ports.id))
         .leftJoin(disembarkPort, eq(cruises.disembarkPortId, disembarkPort.id))
-        .where(eq(cruises.id, cruiseId))
+        .where(eq(cruises.id, String(cruiseId)))
         .limit(1);
 
       if (cruiseResult.length === 0) {
@@ -1086,7 +1086,7 @@ export class CruiseService {
         .leftJoin(ships, eq(cruises.shipId, ships.id))
         .leftJoin(ports, eq(cruises.embarkPortId, ports.id))
         .leftJoin(disembarkPort, eq(cruises.disembarkPortId, disembarkPort.id))
-        .where(eq(cruises.id, cruiseId))
+        .where(eq(cruises.id, String(cruiseId)))
         .limit(1);
 
       if (cruiseResult.length === 0) {

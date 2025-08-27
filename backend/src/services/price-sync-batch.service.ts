@@ -365,7 +365,7 @@ export class PriceSyncBatchService {
         ...pricing,
         updatedAt: new Date()
       })
-      .where(eq(cruises.id, cruiseId));
+      .where(eq(cruises.id, String(cruiseId)));
 
     // Create price history entry
     await db.execute(sql`
@@ -403,7 +403,7 @@ export class PriceSyncBatchService {
           priceUpdateRequestedAt: null,
           updatedAt: new Date()
         })
-        .where(inArray(cruises.id, ids));
+        .where(inArray(cruises.id, ids.map(String)));
     }
   }
 
