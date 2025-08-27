@@ -49,7 +49,7 @@ export const cruiseSailings = pgTable('cruise_sailings', {
 
 // Main cruises table - matches the working code expectations
 export const cruises = pgTable('cruises', {
-  id: integer('id').primaryKey(), // Back to integer to match working code expectations
+  id: varchar('id').primaryKey(), // VARCHAR to store codetocruiseid from Traveltek
   cruiseId: varchar('cruise_id'), // Original cruiseid from Traveltek (can duplicate)
   cruiseLineId: integer('cruise_line_id').references(() => cruiseLines.id).notNull(),
   shipId: integer('ship_id').references(() => ships.id).notNull(),
@@ -72,10 +72,11 @@ export const cruises = pgTable('cruises', {
   lastCached: integer('last_cached'),
   cachedDate: varchar('cached_date', { length: 100 }),
   // Pricing columns for cheapest prices from Traveltek
-  interiorCheapestPrice: decimal('interior_cheapest_price', { precision: 10, scale: 2 }),
-  oceanviewCheapestPrice: decimal('oceanview_cheapest_price', { precision: 10, scale: 2 }),
-  balconyCheapestPrice: decimal('balcony_cheapest_price', { precision: 10, scale: 2 }),
-  suiteCheapestPrice: decimal('suite_cheapest_price', { precision: 10, scale: 2 }),
+  interiorPrice: decimal('interior_price', { precision: 10, scale: 2 }),
+  oceanviewPrice: decimal('oceanview_price', { precision: 10, scale: 2 }),
+  balconyPrice: decimal('balcony_price', { precision: 10, scale: 2 }),
+  suitePrice: decimal('suite_price', { precision: 10, scale: 2 }),
+  cheapestPrice: decimal('cheapest_price', { precision: 10, scale: 2 }),
   needsPriceUpdate: boolean('needs_price_update').default(false),
   processingStartedAt: timestamp('processing_started_at'),
   processingCompletedAt: timestamp('processing_completed_at'),
