@@ -1,0 +1,44 @@
+{
+  "event": "cruiseline_pricing_updated",
+  "lineid": 21,
+  "marketid": 1,
+  "currency": "USD",
+  "description": "Royal Caribbean pricing updated",
+  "source": "traveltek_api",
+  "timestamp": 1724784507,
+  
+  "// Alternative timestamp format": "2025-08-27T15:28:27Z",
+  
+  "// Optional fields that might be included": {
+    "cruiseIds": [2218838, 2143102, 2174874, 2129894],
+    "paths": [
+      "2025/09/21/123/2218838.json",
+      "2025/09/21/123/2143102.json"
+    ]
+  },
+  
+  "// Notes": [
+    "The 'lineid' is the cruise line ID (e.g., 21 = Royal Caribbean)",
+    "The 'event' is typically 'cruiseline_pricing_updated'",
+    "The timestamp can be either Unix timestamp (number) or ISO string",
+    "cruiseIds and paths are optional - usually not provided",
+    "When received, the system marks ALL cruises for that line as needing update",
+    "Large updates (>100 cruises) are deferred to batch processing"
+  ]
+}
+
+// Minimal webhook payload example:
+{
+  "event": "cruiseline_pricing_updated",
+  "lineid": 21,
+  "marketid": 1,
+  "currency": "USD",
+  "timestamp": 1724784507
+}
+
+// What happens when received:
+// 1. System queries database for all cruises with cruise_line_id = 21
+// 2. Finds 417 cruises (as shown in your logs)
+// 3. Since 417 > 100, it marks them all with needs_price_update = true
+// 4. Defers actual price sync to batch processing (cron job)
+// 5. Sends Slack notification about deferred processing
