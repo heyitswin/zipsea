@@ -595,6 +595,16 @@ export class PriceSyncBatchServiceV3 {
       prices.suite = prices.suite || (data.cachedprices.suite ? parseFloat(data.cachedprices.suite) : null);
     }
     
+    // Log what we're trying to update
+    logger.debug(`Attempting to update cruise ID ${codetocruiseid} with prices:`, {
+      interior: prices.interior,
+      oceanview: prices.oceanview,
+      balcony: prices.balcony,
+      suite: prices.suite,
+      cruiseid: cruiseid,
+      sailingDate: sailingDate
+    });
+    
     // Update database - use correct column names that exist in the database
     let updateResult = await db.execute(sql`
       UPDATE cruises
@@ -612,11 +622,13 @@ export class PriceSyncBatchServiceV3 {
         needs_price_update = false,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${codetocruiseid}
-      RETURNING id
+      RETURNING id, cruise_id, name
     `);
     
     // Try alternate matching if not found
     if (updateResult.length === 0) {
+      logger.debug(`No cruise found with ID ${codetocruiseid}, trying cruise_id + date match...`);
+      
       updateResult = await db.execute(sql`
         UPDATE cruises
         SET 
@@ -635,8 +647,12 @@ export class PriceSyncBatchServiceV3 {
         WHERE cruise_id = ${cruiseid}
           AND DATE(sailing_date) = DATE(${sailingDate})
           AND cruise_line_id = ${lineId}
-        RETURNING id
+        RETURNING id, cruise_id, name
       `);
+      
+      if (updateResult.length === 0) {
+        logger.warn(`❌ No cruise found for ID ${codetocruiseid} or cruise_id ${cruiseid} with date ${sailingDate} and line ${lineId}`);
+      }
     }
     
     // Create price history if updated
