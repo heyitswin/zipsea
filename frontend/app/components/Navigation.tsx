@@ -303,10 +303,10 @@ export default function Navigation({
   return (
     <>
       <nav 
-        className={`fixed top-0 left-0 right-0 z-50 py-[10px] md:py-[20px] px-[28px] transition-all duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 right-0 z-50 py-[8px] md:py-[20px] px-[28px] transition-all duration-300 ease-in-out ${
           isScrolled ? 'bg-white shadow-lg' : 'bg-transparent'
         }`} 
-        style={{ height: '80px' }}
+        style={{ height: '60px' }}
       >
         <div className="flex items-center justify-between h-[40px]">
           {/* Logo and Search Bar Container */}
@@ -467,7 +467,7 @@ export default function Navigation({
           }`}
           style={{ 
             boxShadow: '0px 1px 14px rgba(0, 0, 0, 0.25)',
-            top: '80px',
+            top: '60px',
             left: '166px',
             width: '300px',
             position: 'fixed'
@@ -512,7 +512,7 @@ export default function Navigation({
           }`}
           style={{ 
             boxShadow: '0px 1px 14px rgba(0, 0, 0, 0.25)',
-            top: '80px',
+            top: '60px',
             left: '466px',
             position: 'fixed'
           }}

@@ -596,13 +596,15 @@ export class PriceSyncBatchServiceV3 {
     }
     
     // Log what we're trying to update
-    logger.debug(`Attempting to update cruise ID ${codetocruiseid} with prices:`, {
+    logger.info(`🔍 Attempting to update cruise ID "${codetocruiseid}" (type: ${typeof codetocruiseid}) with prices:`, {
       interior: prices.interior,
       oceanview: prices.oceanview,
       balcony: prices.balcony,
       suite: prices.suite,
       cruiseid: cruiseid,
-      sailingDate: sailingDate
+      sailingDate: sailingDate,
+      lineId: lineId,
+      shipId: shipId
     });
     
     // Update database - use correct column names that exist in the database
