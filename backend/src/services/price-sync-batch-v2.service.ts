@@ -92,7 +92,7 @@ export class PriceSyncBatchServiceV2 {
       ORDER BY cruise_line_id
     `);
     
-    return result.rows.map(row => row.cruise_line_id as number);
+    return result.map(row => row.cruise_line_id as number);
   }
 
   /**
@@ -315,7 +315,7 @@ export class PriceSyncBatchServiceV2 {
                       result.cruisesUpdated++;
                       
                       // Create price history entry
-                      const cruiseId = updateResult.rows[0].id;
+                      const cruiseId = updateResult[0].id;
                       await db.execute(sql`
                         INSERT INTO price_history (
                           cruise_id,
