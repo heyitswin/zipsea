@@ -604,10 +604,10 @@ export class PriceSyncBatchServiceV3 {
         balcony_price = ${prices.balcony},
         suite_price = ${prices.suite},
         cheapest_price = LEAST(
-          ${prices.interior}, 
-          ${prices.oceanview}, 
-          ${prices.balcony}, 
-          ${prices.suite}
+          COALESCE(${prices.interior}, 999999)::numeric, 
+          COALESCE(${prices.oceanview}, 999999)::numeric, 
+          COALESCE(${prices.balcony}, 999999)::numeric, 
+          COALESCE(${prices.suite}, 999999)::numeric
         ),
         needs_price_update = false,
         updated_at = CURRENT_TIMESTAMP
@@ -626,10 +626,10 @@ export class PriceSyncBatchServiceV3 {
           balcony_price = ${prices.balcony},
           suite_price = ${prices.suite},
           cheapest_price = LEAST(
-            ${prices.interior}, 
-            ${prices.oceanview}, 
-            ${prices.balcony}, 
-            ${prices.suite}
+            COALESCE(${prices.interior}, 999999)::numeric, 
+            COALESCE(${prices.oceanview}, 999999)::numeric, 
+            COALESCE(${prices.balcony}, 999999)::numeric, 
+            COALESCE(${prices.suite}, 999999)::numeric
           ),
           needs_price_update = false,
           updated_at = CURRENT_TIMESTAMP
