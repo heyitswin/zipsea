@@ -20,15 +20,21 @@ async function fixSyncLocksConstraint() {
     `);
     console.log('✅ Dropped old constraint');
     
-    // 2. Create a new constraint that only applies to 'processing' status
-    console.log('\n2. Creating new constraint (only for processing status)...');
+    // 2. Create a partial unique index instead of constraint (better compatibility)
+    console.log('\n2. Creating partial unique index for processing status...');
+    
+    // First drop any existing index
     await pool.query(`
-      ALTER TABLE sync_locks 
-      ADD CONSTRAINT unique_active_processing_lock 
-      UNIQUE (cruise_line_id, lock_type) 
+      DROP INDEX IF EXISTS idx_unique_processing_lock
+    `);
+    
+    // Create partial unique index
+    await pool.query(`
+      CREATE UNIQUE INDEX idx_unique_processing_lock 
+      ON sync_locks (cruise_line_id, lock_type) 
       WHERE status = 'processing'
     `);
-    console.log('✅ Created new constraint - only one PROCESSING lock allowed per cruise line');
+    console.log('✅ Created unique index - only one PROCESSING lock allowed per cruise line');
     
     // 3. Clean up any duplicate completed locks
     console.log('\n3. Cleaning up duplicate completed locks...');
