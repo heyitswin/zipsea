@@ -84,10 +84,24 @@ export class FTPConnectionPool {
    * Create a new FTP connection
    */
   private async createConnection(): Promise<ftp.Client> {
+    // Check if FTP credentials are configured
+    if (!env.TRAVELTEK_FTP_HOST || !env.TRAVELTEK_FTP_USER || !env.TRAVELTEK_FTP_PASSWORD) {
+      const missingCreds = [];
+      if (!env.TRAVELTEK_FTP_HOST) missingCreds.push('TRAVELTEK_FTP_HOST');
+      if (!env.TRAVELTEK_FTP_USER) missingCreds.push('TRAVELTEK_FTP_USER');
+      if (!env.TRAVELTEK_FTP_PASSWORD) missingCreds.push('TRAVELTEK_FTP_PASSWORD');
+      
+      const error = new Error(`Missing FTP credentials: ${missingCreds.join(', ')}`);
+      logger.error('FTP credentials not configured:', missingCreds);
+      throw error;
+    }
+    
     const client = new ftp.Client();
     client.ftp.verbose = false;
     
     try {
+      logger.debug(`Connecting to FTP: ${env.TRAVELTEK_FTP_HOST} as ${env.TRAVELTEK_FTP_USER}`);
+      
       await client.access({
         host: env.TRAVELTEK_FTP_HOST,
         user: env.TRAVELTEK_FTP_USER,
@@ -95,9 +109,14 @@ export class FTPConnectionPool {
         secure: false
       });
       
+      logger.debug('FTP connection established successfully');
       return client;
     } catch (error) {
-      logger.error('Failed to create FTP connection:', error);
+      logger.error('Failed to create FTP connection:', {
+        error: error instanceof Error ? error.message : error,
+        host: env.TRAVELTEK_FTP_HOST,
+        user: env.TRAVELTEK_FTP_USER
+      });
       throw error;
     }
   }

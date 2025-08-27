@@ -65,6 +65,22 @@ export class PriceSyncBatchServiceV3 {
         logger.info('✅ sync_locks table created');
       }
       
+      // Check if FTP credentials are configured
+      if (!process.env.TRAVELTEK_FTP_HOST || !process.env.TRAVELTEK_FTP_USER || !process.env.TRAVELTEK_FTP_PASSWORD) {
+        logger.error('❌ FTP credentials not configured - cannot process price updates');
+        await slackService.notifyCustomMessage({
+          title: '❌ FTP Configuration Error',
+          message: 'FTP credentials are not configured on this server',
+          details: {
+            host: process.env.TRAVELTEK_FTP_HOST ? 'SET' : 'MISSING',
+            user: process.env.TRAVELTEK_FTP_USER ? 'SET' : 'MISSING',
+            password: process.env.TRAVELTEK_FTP_PASSWORD ? 'SET' : 'MISSING'
+          }
+        });
+        result.errors = 1;
+        return result;
+      }
+      
       // Get cruise lines that need updates and aren't currently being processed
       const linesNeedingUpdates = await this.getUnlockedLinesWithPendingUpdates();
       
@@ -297,7 +313,14 @@ export class PriceSyncBatchServiceV3 {
       }
       
       // Get FTP connection
-      connection = await ftpConnectionPool.getConnection();
+      try {
+        connection = await ftpConnectionPool.getConnection();
+        logger.info(`🔗 Got FTP connection for line ${lineId}`);
+      } catch (connErr) {
+        logger.error(`❌ Failed to get FTP connection for line ${lineId}:`, connErr);
+        result.errors++;
+        throw connErr;
+      }
       
       // Process each path
       for (const basePath of pathsToCheck) {
@@ -389,6 +412,8 @@ export class PriceSyncBatchServiceV3 {
   ): Promise<{ processed: number; updated: number; notFound: number; errors: number }> {
     const result = { processed: 0, updated: 0, notFound: 0, errors: 0 };
     
+    logger.info(`📦 Processing batch of ${files.length} files for ship ${shipId}, line ${lineId}`);
+    
     // Download files
     const downloads = await Promise.all(
       files.map(async (file) => {
@@ -413,10 +438,15 @@ export class PriceSyncBatchServiceV3 {
           const buffer = Buffer.concat(chunks);
           const data = JSON.parse(buffer.toString());
           
+          logger.debug(`✅ Downloaded and parsed ${file.name} successfully`);
           return { codetocruiseid, data, success: true };
           
         } catch (err) {
-          logger.debug(`Failed to process ${filePath}: ${err}`);
+          logger.error(`❌ Failed to download/parse ${filePath}:`, {
+            error: err instanceof Error ? err.message : err,
+            fileName: file.name,
+            codetocruiseid
+          });
           return { codetocruiseid, data: null, success: false };
         }
       })
