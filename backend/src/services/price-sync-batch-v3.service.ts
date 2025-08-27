@@ -215,7 +215,20 @@ export class PriceSyncBatchServiceV3 {
       
       const totalCruises = countResult[0]?.total || 0;
       
-      // Try to acquire lock
+      // First check if there's already a processing lock for this line
+      const existingLock = await db.execute(sql`
+        SELECT id FROM sync_locks
+        WHERE cruise_line_id = ${lineId}
+          AND lock_type = 'price_sync'
+          AND status = 'processing'
+      `);
+      
+      if (existingLock.length > 0) {
+        logger.debug(`Lock already exists for line ${lineId}, skipping`);
+        return null;
+      }
+      
+      // Try to acquire lock (no ON CONFLICT since we check above)
       const lockResult = await db.execute(sql`
         INSERT INTO sync_locks (
           cruise_line_id, lock_type, locked_by, 
@@ -224,8 +237,6 @@ export class PriceSyncBatchServiceV3 {
           ${lineId}, 'price_sync', ${this.workerId},
           ${totalCruises}, 'processing'
         )
-        ON CONFLICT (cruise_line_id, lock_type, status) 
-        DO NOTHING
         RETURNING id
       `);
       
