@@ -349,6 +349,65 @@ router.get('/cruise-details/:cruiseId', async (req: Request, res: Response) => {
 });
 
 /**
+ * Get active sync locks
+ */
+router.get('/sync-locks', async (req: Request, res: Response) => {
+  try {
+    // Check if sync_locks table exists
+    const tableExists = await db.execute(sql`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'sync_locks'
+      )
+    `);
+    
+    if (!tableExists || !tableExists[0]?.exists) {
+      return res.json({
+        message: 'sync_locks table does not exist yet',
+        activeLocks: [],
+        recentLocks: []
+      });
+    }
+    
+    // Get active locks
+    const activeLocks = await db.execute(sql`
+      SELECT 
+        sl.*,
+        cl.name as line_name
+      FROM sync_locks sl
+      LEFT JOIN cruise_lines cl ON cl.id = sl.cruise_line_id
+      WHERE sl.status = 'processing'
+      ORDER BY sl.locked_at DESC
+    `);
+    
+    // Get recent completed locks
+    const recentLocks = await db.execute(sql`
+      SELECT 
+        sl.*,
+        cl.name as line_name,
+        EXTRACT(EPOCH FROM (completed_at - locked_at))::INT as duration_seconds
+      FROM sync_locks sl
+      LEFT JOIN cruise_lines cl ON cl.id = sl.cruise_line_id
+      WHERE sl.status != 'processing'
+      ORDER BY sl.completed_at DESC
+      LIMIT 10
+    `);
+    
+    res.json({
+      activeLocks: activeLocks || [],
+      recentLocks: recentLocks || [],
+      timestamp: new Date()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to get sync lock status',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
  * Get pending sync status
  */
 router.get('/pending-syncs', async (req: Request, res: Response) => {
@@ -395,8 +454,8 @@ router.get('/pending-syncs', async (req: Request, res: Response) => {
  */
 router.post('/trigger-batch-sync', async (req: Request, res: Response) => {
   try {
-    // Import the new V2 service that downloads ALL files for cruise lines
-    const { priceSyncBatchServiceV2 } = require('../services/price-sync-batch-v2.service');
+    // Import the new V3 service with concurrency control
+    const { priceSyncBatchServiceV3 } = require('../services/price-sync-batch-v3.service');
     
     // Check if there are any pending updates before proceeding
     const pendingResult = await db.execute(sql`
@@ -423,8 +482,8 @@ router.post('/trigger-batch-sync', async (req: Request, res: Response) => {
       pendingLines
     });
     
-    // Run sync in background
-    priceSyncBatchServiceV2.syncPendingPriceUpdates()
+    // Run sync in background with V3 service
+    priceSyncBatchServiceV3.syncPendingPriceUpdates()
       .then(result => {
         if (result.cruisesUpdated > 0) {
           logger.info(`✅ Batch sync completed: ${result.cruisesUpdated} cruises updated`);

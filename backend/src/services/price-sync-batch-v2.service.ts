@@ -173,15 +173,36 @@ export class PriceSyncBatchServiceV2 {
                           }
                         });
                         
+                        logger.debug(`⬇️ Downloading file: ${filePath}`);
+                        
                         // Download to the writable stream
                         await connection.downloadTo(writableStream, filePath);
                         
                         // Combine all chunks and parse JSON
                         const buffer = Buffer.concat(chunks);
-                        const data = JSON.parse(buffer.toString());
+                        const fileContent = buffer.toString();
+                        
+                        logger.debug(`📦 Downloaded ${filePath}, size: ${buffer.length} bytes`);
+                        
+                        // Try to parse JSON
+                        let data;
+                        try {
+                          data = JSON.parse(fileContent);
+                          logger.debug(`✅ Successfully parsed JSON for cruise ${codetocruiseid}`);
+                        } catch (parseErr) {
+                          logger.error(`❌ JSON parse error for ${filePath}:`, parseErr);
+                          logger.error(`File content preview (first 500 chars): ${fileContent.substring(0, 500)}`);
+                          throw parseErr;
+                        }
+                        
                         return { codetocruiseid, data, success: true };
                       } catch (err) {
-                        logger.warn(`Failed to download ${filePath}: ${err}`);
+                        logger.error(`❌ Failed to download/process ${filePath}:`, {
+                          error: err instanceof Error ? err.message : err,
+                          stack: err instanceof Error ? err.stack : undefined,
+                          filePath,
+                          codetocruiseid
+                        });
                         return { codetocruiseid, data: null, success: false };
                       }
                     })
@@ -238,21 +259,10 @@ export class PriceSyncBatchServiceV2 {
                     
                     // Update database
                     // First try to match by id (if we have correct codetocruiseid)
-                    let updateResult = await db.execute(sql`
-                      UPDATE cruises
-                      SET 
-                        interior_cheapest_price = ${prices.interior},
-                        oceanview_cheapest_price = ${prices.oceanview},
-                        balcony_cheapest_price = ${prices.balcony},
-                        suite_cheapest_price = ${prices.suite},
-                        needs_price_update = false,
-                        updated_at = CURRENT_TIMESTAMP
-                      WHERE id = ${codetocruiseid}
-                      RETURNING id
-                    `);
+                    logger.debug(`🔄 Attempting to update cruise ${codetocruiseid} with prices:`, prices);
                     
-                    if (updateResult.rowCount === 0) {
-                      // If not found by id, try matching by cruise_id + sailing_date
+                    let updateResult;
+                    try {
                       updateResult = await db.execute(sql`
                         UPDATE cruises
                         SET 
@@ -262,15 +272,53 @@ export class PriceSyncBatchServiceV2 {
                           suite_cheapest_price = ${prices.suite},
                           needs_price_update = false,
                           updated_at = CURRENT_TIMESTAMP
-                        WHERE cruise_id = ${cruiseid}
-                          AND DATE(sailing_date) = DATE(${sailingDate})
-                          AND cruise_line_id = ${lineId}
+                        WHERE id = ${codetocruiseid}
                         RETURNING id
                       `);
+                      
+                      if (updateResult.length > 0) {
+                        logger.debug(`✅ Updated cruise ${codetocruiseid} by ID match`);
+                      }
+                    } catch (dbErr) {
+                      logger.error(`❌ Database update error for cruise ${codetocruiseid}:`, dbErr);
+                      result.errors++;
+                      continue;
+                    }
+                    
+                    if (updateResult.length === 0) {
+                      // If not found by id, try matching by cruise_id + sailing_date
+                      logger.debug(`🔍 No match by ID, trying cruise_id ${cruiseid} + date ${sailingDate}`);
+                      
+                      try {
+                        updateResult = await db.execute(sql`
+                          UPDATE cruises
+                          SET 
+                            interior_cheapest_price = ${prices.interior},
+                            oceanview_cheapest_price = ${prices.oceanview},
+                            balcony_cheapest_price = ${prices.balcony},
+                            suite_cheapest_price = ${prices.suite},
+                            needs_price_update = false,
+                            updated_at = CURRENT_TIMESTAMP
+                          WHERE cruise_id = ${cruiseid}
+                            AND DATE(sailing_date) = DATE(${sailingDate})
+                            AND cruise_line_id = ${lineId}
+                          RETURNING id
+                        `);
+                        
+                        if (updateResult.length > 0) {
+                          logger.debug(`✅ Updated cruise by cruise_id + date match`);
+                        }
+                      } catch (dbErr) {
+                        logger.error(`❌ Database update error (cruise_id match) for ${cruiseid}:`, dbErr);
+                        result.errors++;
+                        continue;
+                      }
                     }
                     
                     // If still no match, create the cruise
-                    if (updateResult.rowCount === 0) {
+                    if (updateResult.length === 0) {
+                      logger.info(`📝 Creating new cruise ${codetocruiseid} (cruise_id: ${cruiseid})`);
+                      
                       // Ensure ship exists
                       await db.execute(sql`
                         INSERT INTO ships (id, cruise_line_id, name, code, is_active)
@@ -306,12 +354,12 @@ export class PriceSyncBatchServiceV2 {
                         RETURNING id
                       `);
                       
-                      if (updateResult.rowCount && updateResult.rowCount > 0) {
+                      if (updateResult.length > 0) {
                         logger.info(`✅ Created new cruise ${codetocruiseid} for line ${lineId}`);
                       }
                     }
                     
-                    if (updateResult.rowCount && updateResult.rowCount > 0) {
+                    if (updateResult.length > 0) {
                       result.cruisesUpdated++;
                       
                       // Create price history entry
