@@ -476,7 +476,7 @@ export class PriceSyncBatchServiceV3 {
     
     for (const file of files) {
       const filePath = `${shipPath}/${file.name}`;
-      const codetocruiseid = parseInt(file.name.replace('.json', ''));
+      const codetocruiseid = file.name.replace('.json', ''); // Keep as string to match VARCHAR in DB
       
       try {
         logger.debug(`⬇️ Downloading: ${filePath} (${file.size} bytes)`);
@@ -571,7 +571,7 @@ export class PriceSyncBatchServiceV3 {
    * Update cruise prices in database
    */
   private async updateCruisePrices(
-    codetocruiseid: number,
+    codetocruiseid: string,
     data: any,
     lineId: number,
     shipId: number
