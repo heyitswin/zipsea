@@ -481,7 +481,7 @@ export class PriceSyncBatchServiceV3 {
           const { Writable } = require('stream');
           const chunks: Buffer[] = [];
           const writableStream = new Writable({
-            write(chunk: Buffer, encoding: string, callback: Function) {
+            write(chunk: Buffer, encoding: BufferEncoding, callback: (error?: Error | null) => void) {
               chunks.push(chunk);
               callback();
             }
@@ -532,7 +532,14 @@ export class PriceSyncBatchServiceV3 {
         result.processed++;
         
       } catch (error) {
-        logger.error(`Error updating cruise ${download.codetocruiseid}:`, error);
+        logger.error(`❌ Error updating cruise ${download.codetocruiseid}:`, {
+          error: error instanceof Error ? error.message : error,
+          stack: error instanceof Error ? error.stack : undefined,
+          codetocruiseid: download.codetocruiseid,
+          lineId,
+          shipId,
+          dataKeys: download.data ? Object.keys(download.data).slice(0, 10) : null
+        });
         result.errors++;
       }
     }
