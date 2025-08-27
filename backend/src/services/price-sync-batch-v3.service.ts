@@ -612,7 +612,6 @@ export class PriceSyncBatchServiceV3 {
         needs_price_update = false,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${codetocruiseid}
-        AND needs_price_update = true  -- Only update if still needed
       RETURNING id
     `);
     
@@ -636,7 +635,6 @@ export class PriceSyncBatchServiceV3 {
         WHERE cruise_id = ${cruiseid}
           AND DATE(sailing_date) = DATE(${sailingDate})
           AND cruise_line_id = ${lineId}
-          AND needs_price_update = true
         RETURNING id
       `);
     }
