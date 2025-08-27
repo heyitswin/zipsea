@@ -264,6 +264,22 @@ export class PriceSyncBatchServiceV3 {
    */
   private async releaseLock(lockId: number, status: string, errorMessage?: string): Promise<void> {
     try {
+      // First, check if the lock exists and its current status
+      const currentLock = await db.execute(sql`
+        SELECT status FROM sync_locks WHERE id = ${lockId}
+      `);
+      
+      if (!currentLock || currentLock.length === 0) {
+        logger.warn(`Lock ${lockId} not found - may have been cleaned up`);
+        return;
+      }
+      
+      // If already completed, don't update again
+      if (currentLock[0].status === 'completed') {
+        logger.debug(`Lock ${lockId} already completed, skipping update`);
+        return;
+      }
+      
       await db.execute(sql`
         UPDATE sync_locks
         SET status = ${status},
@@ -275,7 +291,36 @@ export class PriceSyncBatchServiceV3 {
       
       logger.info(`🔓 Released lock ${lockId} with status: ${status}`);
     } catch (error) {
-      logger.error(`Failed to release lock:`, error);
+      // If it's a constraint violation, try deleting the old completed lock
+      if (error instanceof Error && error.message.includes('unique_active_lock')) {
+        logger.warn(`Constraint violation releasing lock ${lockId}, attempting cleanup...`);
+        try {
+          // Delete any existing completed locks for this line
+          await db.execute(sql`
+            DELETE FROM sync_locks
+            WHERE id != ${lockId}
+              AND cruise_line_id = (SELECT cruise_line_id FROM sync_locks WHERE id = ${lockId})
+              AND lock_type = 'price_sync'
+              AND status = 'completed'
+          `);
+          
+          // Now try updating again
+          await db.execute(sql`
+            UPDATE sync_locks
+            SET status = ${status},
+                completed_at = CURRENT_TIMESTAMP,
+                error_message = ${errorMessage || null},
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ${lockId}
+          `);
+          
+          logger.info(`🔓 Released lock ${lockId} after cleanup`);
+        } catch (cleanupError) {
+          logger.error(`Failed to release lock after cleanup:`, cleanupError);
+        }
+      } else {
+        logger.error(`Failed to release lock:`, error);
+      }
     }
   }
 
