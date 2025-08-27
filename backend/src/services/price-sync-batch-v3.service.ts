@@ -470,48 +470,68 @@ export class PriceSyncBatchServiceV3 {
     
     logger.info(`📦 Processing batch of ${files.length} files for ship ${shipId}, line ${lineId}`);
     
-    // Download files
-    const downloads = await Promise.all(
-      files.map(async (file) => {
-        const filePath = `${shipPath}/${file.name}`;
-        const codetocruiseid = parseInt(file.name.replace('.json', ''));
+    // Process files sequentially to avoid connection issues
+    const downloads = [];
+    const { Writable } = require('stream');
+    
+    for (const file of files) {
+      const filePath = `${shipPath}/${file.name}`;
+      const codetocruiseid = parseInt(file.name.replace('.json', ''));
+      
+      try {
+        logger.debug(`⬇️ Downloading: ${filePath} (${file.size} bytes)`);
         
-        try {
-          // Create writable stream
-          const { Writable } = require('stream');
-          const chunks: Buffer[] = [];
-          const writableStream = new Writable({
-            write(chunk: Buffer, encoding: BufferEncoding, callback: (error?: Error | null) => void) {
-              chunks.push(chunk);
-              callback();
-            }
-          });
-          
-          // Download file
-          await connection.downloadTo(writableStream, filePath);
-          
-          // Parse JSON
-          const buffer = Buffer.concat(chunks);
-          const data = JSON.parse(buffer.toString());
-          
-          logger.debug(`✅ Downloaded and parsed ${file.name} successfully`);
-          return { codetocruiseid, data, success: true };
-          
-        } catch (err) {
-          logger.error(`❌ Failed to download/parse ${filePath}:`, {
-            error: err instanceof Error ? err.message : err,
-            fileName: file.name,
-            codetocruiseid
-          });
-          return { codetocruiseid, data: null, success: false };
+        // Create a buffer to collect data
+        const chunks: Buffer[] = [];
+        
+        // Create writable stream with proper error handling
+        const writableStream = new Writable({
+          write(chunk: Buffer, encoding: string, callback: Function) {
+            chunks.push(chunk);
+            callback();
+          }
+        });
+        
+        // Download file with timeout
+        await Promise.race([
+          connection.downloadTo(writableStream, filePath),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Download timeout after 30s')), 30000)
+          )
+        ]);
+        
+        // Parse JSON
+        const buffer = Buffer.concat(chunks);
+        const content = buffer.toString();
+        
+        if (!content || content.length === 0) {
+          throw new Error('Downloaded file is empty');
         }
-      })
-    );
+        
+        const data = JSON.parse(content);
+        
+        logger.debug(`✅ Downloaded and parsed ${file.name} successfully (${buffer.length} bytes)`);
+        downloads.push({ codetocruiseid, data, success: true });
+        
+      } catch (err) {
+        logger.error(`❌ Failed to download/parse ${filePath}:`, {
+          error: err instanceof Error ? err.message : err,
+          stack: err instanceof Error ? err.stack : undefined,
+          fileName: file.name,
+          codetocruiseid,
+          fileSize: file.size,
+          shipPath,
+          lineId
+        });
+        downloads.push({ codetocruiseid, data: null, success: false });
+        result.errors++;
+      }
+    }
     
     // Process downloaded files
     for (const download of downloads) {
       if (!download.success || !download.data) {
-        result.errors++;
+        // Error already counted during download
         continue;
       }
       
