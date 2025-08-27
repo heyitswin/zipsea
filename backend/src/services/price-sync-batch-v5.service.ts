@@ -304,6 +304,25 @@ export class PriceSyncBatchServiceV5 {
   private async upsertCruise(data: any, lineId: number, shipId: number): Promise<any> {
     const cruiseId = String(data.codetocruiseid);
     
+    // First ensure ship exists to avoid foreign key constraint errors
+    try {
+      await db.execute(sql`
+        INSERT INTO ships (id, cruise_line_id, name, code, is_active)
+        VALUES (
+          ${shipId},
+          ${lineId},
+          ${data.shipcontent?.name || `Ship ${shipId}`},
+          ${data.shipcontent?.code || `S${shipId}`},
+          true
+        )
+        ON CONFLICT (id) DO UPDATE SET
+          cruise_line_id = EXCLUDED.cruise_line_id,
+          updated_at = CURRENT_TIMESTAMP
+      `);
+    } catch (err) {
+      logger.debug(`Ship ${shipId} creation/update handled`);
+    }
+    
     // Extract prices
     const prices = {
       interior: data.cheapestinside ? parseFloat(String(data.cheapestinside)) : null,
