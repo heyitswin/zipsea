@@ -46,6 +46,25 @@ export class PriceSyncBatchServiceV3 {
     try {
       logger.info(`🚀 Starting batch price sync V3 (${this.workerId})`);
       
+      // Check if sync_locks table exists
+      const tableCheck = await db.execute(sql`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'sync_locks'
+        )
+      `);
+      
+      const tableExists = tableCheck[0]?.exists;
+      
+      if (!tableExists) {
+        logger.warn('⚠️ sync_locks table does not exist, creating it now...');
+        
+        // Create the table
+        await this.createSyncLocksTable();
+        logger.info('✅ sync_locks table created');
+      }
+      
       // Get cruise lines that need updates and aren't currently being processed
       const linesNeedingUpdates = await this.getUnlockedLinesWithPendingUpdates();
       
@@ -53,6 +72,9 @@ export class PriceSyncBatchServiceV3 {
         logger.info('No cruise lines available for processing (all locked or no updates needed)');
         return result;
       }
+      
+      logger.info(`Found ${linesNeedingUpdates.length} cruise lines needing updates: ${linesNeedingUpdates.join(', ')}`);
+      
 
       // Limit processing to avoid timeouts
       const linesToProcess = linesNeedingUpdates.slice(0, this.MAX_LINES_PER_RUN);
@@ -96,7 +118,12 @@ export class PriceSyncBatchServiceV3 {
           await this.releaseLock(lockId, 'completed');
           
         } catch (error) {
-          logger.error(`Error processing line ${lineId}:`, error);
+          logger.error(`Error processing line ${lineId}:`, {
+            error: error instanceof Error ? error.message : error,
+            stack: error instanceof Error ? error.stack : undefined,
+            lineId,
+            lockId
+          });
           await this.releaseLock(lockId, 'failed', error instanceof Error ? error.message : 'Unknown error');
           result.errors++;
         }
@@ -535,6 +562,78 @@ export class PriceSyncBatchServiceV3 {
         perLineLimit: this.MAX_LINES_PER_RUN
       }
     });
+  }
+
+  /**
+   * Create sync_locks table if it doesn't exist
+   */
+  private async createSyncLocksTable(): Promise<void> {
+    try {
+      // Create table
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS sync_locks (
+          id SERIAL PRIMARY KEY,
+          cruise_line_id INTEGER NOT NULL,
+          lock_type VARCHAR(50) NOT NULL,
+          locked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          locked_by VARCHAR(255),
+          status VARCHAR(50) DEFAULT 'processing',
+          total_cruises INTEGER,
+          processed_cruises INTEGER DEFAULT 0,
+          successful_updates INTEGER DEFAULT 0,
+          failed_updates INTEGER DEFAULT 0,
+          error_message TEXT,
+          completed_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      
+      // Add constraint (ignore errors if already exists)
+      try {
+        await db.execute(sql`
+          ALTER TABLE sync_locks 
+          ADD CONSTRAINT unique_active_lock 
+          UNIQUE (cruise_line_id, lock_type, status)
+        `);
+      } catch (e) {
+        // Constraint might already exist
+      }
+      
+      // Create index (ignore errors if already exists)
+      try {
+        await db.execute(sql`
+          CREATE INDEX idx_sync_locks_active 
+          ON sync_locks(cruise_line_id, status) 
+          WHERE status = 'processing'
+        `);
+      } catch (e) {
+        // Index might already exist
+      }
+      
+      // Add columns to cruises table if needed
+      try {
+        await db.execute(sql`
+          ALTER TABLE cruises 
+          ADD COLUMN IF NOT EXISTS processing_started_at TIMESTAMP
+        `);
+      } catch (e) {
+        // Column might already exist
+      }
+      
+      try {
+        await db.execute(sql`
+          ALTER TABLE cruises 
+          ADD COLUMN IF NOT EXISTS processing_completed_at TIMESTAMP
+        `);
+      } catch (e) {
+        // Column might already exist
+      }
+      
+    } catch (error) {
+      logger.error('Failed to create sync_locks table:', error);
+      throw error;
+    }
   }
 }
 
