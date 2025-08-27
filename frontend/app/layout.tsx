@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import GlobalAlertProvider from "../components/GlobalAlertProvider";
@@ -15,11 +15,18 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: '#5A4BDB',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+};
+
 export const metadata: Metadata = {
   title: "Zipsea - Find the Best Cruise Deals",
   description: "Discover amazing cruise deals and book your perfect vacation with Zipsea",
   manifest: '/manifest.webmanifest',
-  themeColor: '#5A4BDB',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },

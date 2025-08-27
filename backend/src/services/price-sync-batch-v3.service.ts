@@ -595,16 +595,21 @@ export class PriceSyncBatchServiceV3 {
       prices.suite = prices.suite || (data.cachedprices.suite ? parseFloat(data.cachedprices.suite) : null);
     }
     
-    // Update database
+    // Update database - use correct column names that exist in the database
     let updateResult = await db.execute(sql`
       UPDATE cruises
       SET 
-        interior_cheapest_price = ${prices.interior},
-        oceanview_cheapest_price = ${prices.oceanview},
-        balcony_cheapest_price = ${prices.balcony},
-        suite_cheapest_price = ${prices.suite},
+        interior_price = ${prices.interior},
+        oceanview_price = ${prices.oceanview},
+        balcony_price = ${prices.balcony},
+        suite_price = ${prices.suite},
+        cheapest_price = LEAST(
+          ${prices.interior}, 
+          ${prices.oceanview}, 
+          ${prices.balcony}, 
+          ${prices.suite}
+        ),
         needs_price_update = false,
-        processing_completed_at = CURRENT_TIMESTAMP,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ${codetocruiseid}
         AND needs_price_update = true  -- Only update if still needed
@@ -616,12 +621,17 @@ export class PriceSyncBatchServiceV3 {
       updateResult = await db.execute(sql`
         UPDATE cruises
         SET 
-          interior_cheapest_price = ${prices.interior},
-          oceanview_cheapest_price = ${prices.oceanview},
-          balcony_cheapest_price = ${prices.balcony},
-          suite_cheapest_price = ${prices.suite},
+          interior_price = ${prices.interior},
+          oceanview_price = ${prices.oceanview},
+          balcony_price = ${prices.balcony},
+          suite_price = ${prices.suite},
+          cheapest_price = LEAST(
+            ${prices.interior}, 
+            ${prices.oceanview}, 
+            ${prices.balcony}, 
+            ${prices.suite}
+          ),
           needs_price_update = false,
-          processing_completed_at = CURRENT_TIMESTAMP,
           updated_at = CURRENT_TIMESTAMP
         WHERE cruise_id = ${cruiseid}
           AND DATE(sailing_date) = DATE(${sailingDate})

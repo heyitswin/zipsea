@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:production": "cp next.config.production.ts next.config.ts && next build && cp next.config.ts next.config.dev.ts && mv next.config.production.ts next.config.ts",
+    "build:production": "NODE_ENV=production next build",
     "start": "next start",
     "generate-favicons": "node scripts/generate-favicons.js"
   },

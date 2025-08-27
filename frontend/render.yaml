@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: zipsea-frontend
+    env: node
+    plan: starter
+    buildCommand: npm install && npm run build:production
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: PORT
+        value: "3000"
+    healthCheckPath: /
+    autoDeploy: true
+    branch: main
+    # Add custom headers for better image handling
+    headers:
+      - path: /api/image-proxy
+        name: Cache-Control
+        value: public, max-age=3600, stale-while-revalidate=86400
+      - path: /images/*
+        name: Cache-Control
+        value: public, max-age=86400
+      - path: /_next/static/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable

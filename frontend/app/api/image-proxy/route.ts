@@ -17,14 +17,24 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 seconds timeout
+    
     const response = await fetch(imageUrl, {
       headers: {
         'User-Agent': 'ZipSea Frontend/1.0',
         'Accept': 'image/*',
+        'Accept-Encoding': 'identity', // Disable compression to avoid issues
+        'Cache-Control': 'max-age=3600',
       },
-      // Add timeout
-      signal: AbortSignal.timeout(10000), // 10 seconds
+      signal: controller.signal,
+      // Additional fetch options for reliability
+      redirect: 'follow',
+      keepalive: false,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       return NextResponse.json({ error: 'Failed to fetch image' }, { status: response.status });
@@ -39,10 +49,26 @@ export async function GET(request: NextRequest) {
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
         'Access-Control-Allow-Origin': '*',
+        'X-Proxy-Cache': 'MISS',
       },
     });
   } catch (error) {
     console.error('Image proxy error:', error);
-    return NextResponse.json({ error: 'Failed to proxy image' }, { status: 500 });
+    
+    // Handle specific error types with proper type checking
+    const errorObj = error as Error & { name?: string; code?: string };
+    
+    if (errorObj.name === 'AbortError') {
+      return NextResponse.json({ error: 'Image request timeout' }, { status: 408 });
+    }
+    
+    if (errorObj.code === 'ECONNREFUSED' || errorObj.code === 'ENOTFOUND') {
+      return NextResponse.json({ error: 'Image source unavailable' }, { status: 502 });
+    }
+    
+    return NextResponse.json({ 
+      error: 'Failed to proxy image', 
+      details: process.env.NODE_ENV === 'development' ? errorObj.message : undefined 
+    }, { status: 500 });
   }
 }

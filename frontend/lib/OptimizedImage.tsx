@@ -46,18 +46,18 @@ export default function OptimizedImage({
     
     const isExternalImage = src.startsWith('http://') || src.startsWith('https://');
     
-    if (isExternalImage && !useProxy) {
-      // First fallback: try using image proxy
+    // In production, always use proxy for external images first, then direct
+    if (isExternalImage && !useProxy && process.env.NODE_ENV === 'production') {
       console.log(`Trying image proxy for: ${src}`);
       setUseProxy(true);
-    } else {
-      // Second fallback: use direct image
+    } else if (!useDirectImage) {
+      // Final fallback: use direct image
       console.log(`Trying direct image for: ${src}`);
       setUseDirectImage(true);
     }
     
     onError?.();
-  }, [src, onError, useProxy]);
+  }, [src, onError, useProxy, useDirectImage]);
 
   const handleDirectImageError = useCallback(() => {
     console.error(`All image loading methods failed for: ${src}`);

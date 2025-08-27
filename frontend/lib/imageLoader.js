@@ -1,6 +1,18 @@
 export default function imageLoader({ src, width, quality }) {
-  // For external images, return the original URL without optimization
-  if (src.startsWith('http://') || src.startsWith('https://')) {
+  const isExternal = src.startsWith('http://') || src.startsWith('https://');
+  
+  // In production, handle external images differently
+  if (process.env.NODE_ENV === 'production' && isExternal) {
+    // For external images from known slow/problematic domains, use image proxy
+    if (src.includes('static.traveltek.net')) {
+      return `/api/image-proxy?url=${encodeURIComponent(src)}`;
+    }
+    // For other external images, return original URL
+    return src;
+  }
+  
+  // In development, or for local images, use Next.js optimization
+  if (isExternal) {
     return src;
   }
   
