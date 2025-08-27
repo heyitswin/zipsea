@@ -377,8 +377,8 @@ router.get('/pending-syncs', async (req: Request, res: Response) => {
     `);
 
     res.json({
-      summary: result.rows && result.rows.length > 0 ? result.rows[0] : { total_pending: 0, unique_lines: 0 },
-      byLine: byLine.rows || [],
+      summary: result && result.length > 0 ? result[0] : { total_pending: 0, unique_lines: 0 },
+      byLine: byLine || [],
       timestamp: new Date()
     });
   } catch (error) {
@@ -405,8 +405,8 @@ router.post('/trigger-batch-sync', async (req: Request, res: Response) => {
       WHERE needs_price_update = true
     `);
     
-    const pendingLines = (pendingResult.rows && pendingResult.rows[0]) ? 
-      (pendingResult.rows[0].pending_lines || 0) : 0;
+    const pendingLines = (pendingResult && pendingResult[0]) ? 
+      (pendingResult[0].pending_lines || 0) : 0;
     
     if (pendingLines === 0) {
       return res.json({
