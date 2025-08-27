@@ -454,8 +454,8 @@ router.get('/pending-syncs', async (req: Request, res: Response) => {
  */
 router.post('/trigger-batch-sync', async (req: Request, res: Response) => {
   try {
-    // Import the new V3 service with concurrency control
-    const { priceSyncBatchServiceV3 } = require('../services/price-sync-batch-v3.service');
+    // Import the new V4 service with comprehensive FTP sync
+    const { priceSyncBatchServiceV4 } = require('../services/price-sync-batch-v4.service');
     
     // Check if there are any pending updates before proceeding
     const pendingResult = await db.execute(sql`
@@ -482,18 +482,13 @@ router.post('/trigger-batch-sync', async (req: Request, res: Response) => {
       pendingLines
     });
     
-    // Run sync in background with V3 service
-    priceSyncBatchServiceV3.syncPendingPriceUpdates()
+    // Run sync in background with V4 service (comprehensive sync)
+    priceSyncBatchServiceV4.syncBatch()
       .then(result => {
-        if (result.cruisesUpdated > 0) {
-          logger.info(`✅ Batch sync completed: ${result.cruisesUpdated} cruises updated`);
+        if (result.totalCruisesUpdated > 0 || result.totalCruisesCreated > 0) {
+          logger.info(`✅ Batch sync V4 completed: ${result.totalCruisesCreated} created, ${result.totalCruisesUpdated} updated`);
           
-          // Send Slack notification for successful updates
-          slackService.notifyCustomMessage({
-            title: '✅ Price sync completed',
-            message: `Updated ${result.cruisesUpdated} cruise prices`,
-            details: result
-          });
+          // Slack notification is sent by V4 service itself
         }
       })
       .catch(error => {
