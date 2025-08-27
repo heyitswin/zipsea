@@ -454,8 +454,8 @@ router.get('/pending-syncs', async (req: Request, res: Response) => {
  */
 router.post('/trigger-batch-sync', async (req: Request, res: Response) => {
   try {
-    // Import the new V4 service with comprehensive FTP sync
-    const { priceSyncBatchServiceV4 } = require('../services/price-sync-batch-v4.service');
+    // Import the new V5 service - optimized with timeouts and limits
+    const { priceSyncBatchServiceV5 } = require('../services/price-sync-batch-v5.service');
     
     // Check if there are any pending updates before proceeding
     const pendingResult = await db.execute(sql`
@@ -482,11 +482,11 @@ router.post('/trigger-batch-sync', async (req: Request, res: Response) => {
       pendingLines
     });
     
-    // Run sync in background with V4 service (comprehensive sync)
-    priceSyncBatchServiceV4.syncBatch()
+    // Run sync in background with V5 service (optimized)
+    priceSyncBatchServiceV5.syncBatch()
       .then(result => {
         if (result.totalCruisesUpdated > 0 || result.totalCruisesCreated > 0) {
-          logger.info(`✅ Batch sync V4 completed: ${result.totalCruisesCreated} created, ${result.totalCruisesUpdated} updated`);
+          logger.info(`✅ Batch sync V5 completed: ${result.totalCruisesCreated} created, ${result.totalCruisesUpdated} updated`);
           
           // Slack notification is sent by V4 service itself
         }
