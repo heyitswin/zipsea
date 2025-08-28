@@ -379,8 +379,39 @@ export class PriceSyncBatchServiceV5 {
       RETURNING (xmax = 0) as created
     `);
 
+    const created = upsertResult[0]?.created || false;
+
+    // Create price snapshot if prices were updated
+    if (cheapestPrice !== null) {
+      try {
+        await db.execute(sql`
+          INSERT INTO price_history (
+            cruise_id,
+            interior_price,
+            oceanview_price,
+            balcony_price,
+            suite_price,
+            cheapest_price,
+            new_price,
+            snapshot_date
+          ) VALUES (
+            ${cruiseId},
+            ${prices.interior},
+            ${prices.oceanview},
+            ${prices.balcony},
+            ${prices.suite},
+            ${cheapestPrice},
+            ${cheapestPrice},
+            CURRENT_TIMESTAMP
+          )
+        `);
+      } catch (err) {
+        logger.debug(`Price snapshot for cruise ${cruiseId} handled: ${err}`);
+      }
+    }
+
     return {
-      created: upsertResult[0]?.created || false,
+      created,
       priceUpdated: cheapestPrice !== null
     };
   }
