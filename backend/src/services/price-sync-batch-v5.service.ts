@@ -25,9 +25,9 @@ interface SyncResult {
 }
 
 export class PriceSyncBatchServiceV5 {
-  private readonly MAX_LINES_PER_RUN = 8; // Increased from 3 with better DB
-  private readonly MONTHS_TO_SYNC = 6; // Increased from 3 months with better DB
-  private readonly MAX_FILES_PER_LINE = 1500; // Increased from 500 with better DB
+  private readonly MAX_LINES_PER_RUN = 5; // Balanced for more months of data
+  private readonly MONTHS_TO_SYNC = 24; // Sync 2 years ahead for cruise bookings
+  private readonly MAX_FILES_PER_LINE = 2000; // Increased to handle more months
   private readonly FILE_DOWNLOAD_TIMEOUT = 10000; // 10 seconds per file
   private readonly workerId: string;
 
@@ -77,7 +77,7 @@ export class PriceSyncBatchServiceV5 {
       // Send Slack notification
       await slackService.notifyCustomMessage({
         title: `🔄 Starting batch price sync V5`,
-        message: `Processing ${linesToProcess.length} lines (next ${this.MONTHS_TO_SYNC} months only)`,
+        message: `Processing ${linesToProcess.length} lines (all future cruises - ${this.MONTHS_TO_SYNC} months)`,
         details: {
           cruiseLines: linesToProcess,
           workerId: this.workerId

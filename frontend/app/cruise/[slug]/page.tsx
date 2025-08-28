@@ -19,6 +19,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isUsingFallback, setIsUsingFallback] = useState(false);
+  const [openAccordion, setOpenAccordion] = useState<number | null>(null);
+
+  const toggleAccordion = (index: number) => {
+    setOpenAccordion(openAccordion === index ? null : index);
+  };
 
   useEffect(() => {
     const loadCruiseData = async () => {
@@ -101,13 +106,15 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     try {
       // Parse the UTC date and format it properly
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', {
+      const formatted = date.toLocaleDateString('en-US', {
         weekday: 'short',
         year: 'numeric',
         month: 'short',
         day: 'numeric',
         timeZone: 'UTC' // Use UTC to avoid timezone conversion issues
       }).toUpperCase();
+      // Remove the second comma from the date format
+      return formatted.replace(/,\s*(\d+),/g, ' $1');
     } catch {
       return dateString;
     }
@@ -240,7 +247,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   }
 
   return (
-    <div className="min-h-screen pt-[60px] md:pt-[80px]">
+    <div className="min-h-screen mt-[60px] md:mt-[80px]">
 
       {/* Warning for fallback data */}
       {isUsingFallback && (
@@ -267,7 +274,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             {/* Left Side Content */}
             <div>
               {/* Cruise Name */}
-              <h1 className="font-whitney text-[52px] text-dark-blue mb-4" style={{ letterSpacing: '-0.02em', lineHeight: '1.1' }}>
+              <h1 className="font-whitney text-[52px] text-dark-blue mb-4 uppercase" style={{ letterSpacing: '-0.02em', lineHeight: '1.1' }}>
                 {cruise.name || `${ship?.name || 'Unknown Ship'} Cruise`}
               </h1>
               
@@ -358,18 +365,20 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         <div className="max-w-7xl mx-auto px-6">
           
           {/* Navigation Breadcrumbs */}
-          <div className="mb-8">
+          <div className="mb-8 flex gap-4">
             <button
               onClick={() => router.back()}
-              className="bg-gray-200 text-gray-600 px-4 py-2 rounded-md mr-4 hover:bg-gray-300 transition-colors"
+              className="bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-md hover:bg-gray-50 transition-colors font-geograph font-medium text-[16px]" 
+              style={{ letterSpacing: '-0.02em' }}
             >
               ← Back
             </button>
             <button
               onClick={() => router.push('/')}
-              className="bg-light-blue text-white px-4 py-2 rounded-md hover:bg-light-blue/90 transition-colors"
+              className="bg-light-blue text-white px-6 py-3 rounded-md hover:bg-light-blue/90 transition-colors font-geograph font-medium text-[16px]"
+              style={{ letterSpacing: '-0.02em' }}
             >
-              Back to Search
+              Back to search
             </button>
           </div>
           
@@ -396,564 +405,310 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         </div>
       </div>
 
-      {/* Pricing Section - Updated to use new data structure */}
+      {/* Choose Your Room Section */}
       {pricing && (
         <div className="bg-sand py-16">
           <div className="max-w-7xl mx-auto px-6">
-            <div style={{
-              backgroundColor: 'white',
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '2rem',
-              marginBottom: '2rem',
-              boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)'
-            }}>
-              <h2 style={{ 
-                fontSize: '1.75rem', 
-                fontWeight: '600', 
-                color: '#2d3748',
-                marginBottom: '1.5rem',
-                borderBottom: '2px solid #e2e8f0',
-                paddingBottom: '0.5rem'
-              }}>
-                Starting Prices (Per Person)
+            <div className="mb-12">
+              <h2 className="font-whitney font-black text-[32px] text-dark-blue uppercase mb-4" style={{ letterSpacing: '-0.02em' }}>
+                CHOOSE YOUR ROOM
               </h2>
-              
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                gap: '1.5rem' 
-              }}>
-                <div style={{ 
-                  backgroundColor: '#f7fafc', 
-                  padding: '1.5rem', 
-                  borderRadius: '8px',
-                  textAlign: 'center',
-                  border: '2px solid #e2e8f0'
-                }}>
-                  <div style={{ fontSize: '0.875rem', color: '#718096', marginBottom: '0.5rem' }}>
-                    Interior
+              <p className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5]" style={{ letterSpacing: '-0.02em' }}>
+                Prices shown are per person based on double occupancy and subject to availability
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              {/* Interior Cabin Card */}
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="flex flex-col md:flex-row">
+                  {/* Cabin Image */}
+                  <div className="md:w-48 h-32 md:h-auto flex-shrink-0">
+                    <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
+                      <span className="text-sm">Interior Cabin</span>
+                    </div>
                   </div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#2d3748' }}>
-                    {formatPrice(pricing.interiorPrice)}
-                  </div>
-                </div>
-                
-                <div style={{ 
-                  backgroundColor: '#f7fafc', 
-                  padding: '1.5rem', 
-                  borderRadius: '8px',
-                  textAlign: 'center',
-                  border: '2px solid #e2e8f0'
-                }}>
-                  <div style={{ fontSize: '0.875rem', color: '#718096', marginBottom: '0.5rem' }}>
-                    Oceanview
-                  </div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#2d3748' }}>
-                    {formatPrice(pricing.oceanviewPrice)}
-                  </div>
-                </div>
-                
-                <div style={{ 
-                  backgroundColor: '#f7fafc', 
-                  padding: '1.5rem', 
-                  borderRadius: '8px',
-                  textAlign: 'center',
-                  border: '2px solid #e2e8f0'
-                }}>
-                  <div style={{ fontSize: '0.875rem', color: '#718096', marginBottom: '0.5rem' }}>
-                    Balcony
-                  </div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#2d3748' }}>
-                    {formatPrice(pricing.balconyPrice)}
-                  </div>
-                </div>
-                
-                <div style={{ 
-                  backgroundColor: '#f7fafc', 
-                  padding: '1.5rem', 
-                  borderRadius: '8px',
-                  textAlign: 'center',
-                  border: '2px solid #e2e8f0'
-                }}>
-                  <div style={{ fontSize: '0.875rem', color: '#718096', marginBottom: '0.5rem' }}>
-                    Suite
-                  </div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#2d3748' }}>
-                    {formatPrice(pricing.suitePrice)}
+                  
+                  {/* Content */}
+                  <div className="flex-grow flex flex-col md:flex-row items-start md:items-center p-5">
+                    <div className="flex-grow mb-4 md:mb-0">
+                      <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-2">
+                        Inside Cabin
+                      </h3>
+                      <p className="font-geograph text-[14px] text-gray-600 leading-relaxed">
+                        Comfortable interior stateroom with twin beds that can convert to queen
+                      </p>
+                    </div>
+                    
+                    {/* Vertical Separator */}
+                    <div className="hidden md:block w-px h-16 bg-[#d9d9d9] mx-6"></div>
+                    
+                    {/* Price Block */}
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                      <div className="text-right">
+                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                          STARTING FROM
+                        </div>
+                        <div className="font-geograph font-bold text-[24px] text-dark-blue">
+                          {formatPrice(pricing.interiorPrice)}
+                        </div>
+                        <div className="font-geograph text-[12px] text-light-blue">
+                          +$50 onboard credit
+                        </div>
+                      </div>
+                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded hover:bg-[#2f7ddd]/90 transition-colors">
+                        Get quote
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
               
-              <div style={{ 
-                marginTop: '1.5rem', 
-                fontSize: '0.875rem', 
-                color: '#718096',
-                textAlign: 'center'
-              }}>
-                Prices shown are per person based on double occupancy and subject to availability. 
-                Currency: {pricing.currency}. Last updated: {formatDateShort(pricing.lastUpdated)}
+              {/* Outside Cabin Card */}
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="flex flex-col md:flex-row">
+                  {/* Cabin Image */}
+                  <div className="md:w-48 h-32 md:h-auto flex-shrink-0">
+                    <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
+                      <span className="text-sm">Outside Cabin</span>
+                    </div>
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="flex-grow flex flex-col md:flex-row items-start md:items-center p-5">
+                    <div className="flex-grow mb-4 md:mb-0">
+                      <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-2">
+                        Outside Cabin
+                      </h3>
+                      <p className="font-geograph text-[14px] text-gray-600 leading-relaxed">
+                        Ocean view stateroom with window and twin beds that can convert to queen
+                      </p>
+                    </div>
+                    
+                    {/* Vertical Separator */}
+                    <div className="hidden md:block w-px h-16 bg-[#d9d9d9] mx-6"></div>
+                    
+                    {/* Price Block */}
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                      <div className="text-right">
+                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                          STARTING FROM
+                        </div>
+                        <div className="font-geograph font-bold text-[24px] text-dark-blue">
+                          {formatPrice(pricing.oceanviewPrice)}
+                        </div>
+                        <div className="font-geograph text-[12px] text-light-blue">
+                          +$75 onboard credit
+                        </div>
+                      </div>
+                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded hover:bg-[#2f7ddd]/90 transition-colors">
+                        Get quote
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Balcony Cabin Card */}
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="flex flex-col md:flex-row">
+                  {/* Cabin Image */}
+                  <div className="md:w-48 h-32 md:h-auto flex-shrink-0">
+                    <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
+                      <span className="text-sm">Balcony Cabin</span>
+                    </div>
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="flex-grow flex flex-col md:flex-row items-start md:items-center p-5">
+                    <div className="flex-grow mb-4 md:mb-0">
+                      <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-2">
+                        Balcony Cabin
+                      </h3>
+                      <p className="font-geograph text-[14px] text-gray-600 leading-relaxed">
+                        Private balcony stateroom with sliding glass door and ocean views
+                      </p>
+                    </div>
+                    
+                    {/* Vertical Separator */}
+                    <div className="hidden md:block w-px h-16 bg-[#d9d9d9] mx-6"></div>
+                    
+                    {/* Price Block */}
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                      <div className="text-right">
+                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                          STARTING FROM
+                        </div>
+                        <div className="font-geograph font-bold text-[24px] text-dark-blue">
+                          {formatPrice(pricing.balconyPrice)}
+                        </div>
+                        <div className="font-geograph text-[12px] text-light-blue">
+                          +$100 onboard credit
+                        </div>
+                      </div>
+                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded hover:bg-[#2f7ddd]/90 transition-colors">
+                        Get quote
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Suite Cabin Card */}
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="flex flex-col md:flex-row">
+                  {/* Cabin Image */}
+                  <div className="md:w-48 h-32 md:h-auto flex-shrink-0">
+                    <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
+                      <span className="text-sm">Suite Cabin</span>
+                    </div>
+                  </div>
+                  
+                  {/* Content */}
+                  <div className="flex-grow flex flex-col md:flex-row items-start md:items-center p-5">
+                    <div className="flex-grow mb-4 md:mb-0">
+                      <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-2">
+                        Suite Cabin
+                      </h3>
+                      <p className="font-geograph text-[14px] text-gray-600 leading-relaxed">
+                        Spacious suite with separate living area, private balcony, and premium amenities
+                      </p>
+                    </div>
+                    
+                    {/* Vertical Separator */}
+                    <div className="hidden md:block w-px h-16 bg-[#d9d9d9] mx-6"></div>
+                    
+                    {/* Price Block */}
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                      <div className="text-right">
+                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                          STARTING FROM
+                        </div>
+                        <div className="font-geograph font-bold text-[24px] text-dark-blue">
+                          {formatPrice(pricing.suitePrice)}
+                        </div>
+                        <div className="font-geograph text-[12px] text-light-blue">
+                          +$150 onboard credit
+                        </div>
+                      </div>
+                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded hover:bg-[#2f7ddd]/90 transition-colors">
+                        Get quote
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Enhanced Itinerary Section */}
+      {/* Itinerary Section */}
       {cruiseData?.itinerary && cruiseData.itinerary.length > 0 && (
         <div className="bg-sand py-16">
           <div className="max-w-7xl mx-auto px-6">
-            <div style={{
-              backgroundColor: 'white',
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '2rem',
-              marginBottom: '2rem',
-              boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)'
-            }}>
-              <h2 style={{ 
-                fontSize: '1.75rem', 
-                fontWeight: '600', 
-                color: '#2d3748',
-                marginBottom: '1.5rem',
-                borderBottom: '2px solid #e2e8f0',
-                paddingBottom: '0.5rem'
-              }}>
-                {cruiseData.itinerary.length}-Day Itinerary
+            <div className="mb-12">
+              <h2 className="font-whitney font-black text-[32px] text-dark-blue uppercase mb-4" style={{ letterSpacing: '-0.02em' }}>
+                ITINERARY
               </h2>
-              
-              <div style={{ display: 'grid', gap: '1.5rem' }}>
-                {cruiseData.itinerary.map((day, index) => (
-                  <div key={index} style={{ 
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    padding: '1.5rem',
-                    backgroundColor: day.portName === 'At Sea' ? '#f0f9ff' : '#f7fafc',
-                    borderRadius: '8px',
-                    borderLeft: `4px solid ${day.portName === 'At Sea' ? '#0ea5e9' : '#4299e1'}`,
-                    border: '1px solid #e2e8f0'
-                  }}>
-                    <div style={{ 
-                      minWidth: '60px',
-                      backgroundColor: day.portName === 'At Sea' ? '#0ea5e9' : '#4299e1',
-                      color: 'white',
-                      borderRadius: '50%',
-                      width: '50px',
-                      height: '50px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: '700',
-                      fontSize: '1.1rem',
-                      marginRight: '1.5rem',
-                      flexShrink: 0
-                    }}>
-                      {day.dayNumber}
+            </div>
+            
+            {/* Accordion Itinerary */}
+            <div className="space-y-3 md:space-y-4">
+              {cruiseData.itinerary.map((day, index) => (
+                <div 
+                  key={index}
+                  className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200"
+                >
+                  {/* Question Button */}
+                  <button
+                    onClick={() => toggleAccordion(index)}
+                    className="w-full px-6 md:px-8 py-4 md:py-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  >
+                    <h3 
+                      className="font-geograph font-medium pr-6 md:pr-8 text-[16px] md:text-[20px]"
+                      style={{
+                        color: '#0E1B4D',
+                        letterSpacing: '-0.02em',
+                        lineHeight: '1.3'
+                      }}
+                    >
+                      DAY {day.dayNumber} - {day.portName}
+                    </h3>
+                    <div 
+                      className={`w-6 h-6 flex items-center justify-center transition-transform duration-300 ${
+                        openAccordion === index ? 'rotate-180' : ''
+                      }`}
+                    >
+                      <svg 
+                        width="24" 
+                        height="24" 
+                        viewBox="0 0 24 24" 
+                        fill="none"
+                        className="text-dark-blue"
+                      >
+                        <path 
+                          d="M6 9L12 15L18 9" 
+                          stroke="currentColor" 
+                          strokeWidth="2" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '1.25rem', fontWeight: '600', color: '#2d3748', marginBottom: '0.5rem' }}>
-                        {day.portName}
-                      </div>
+                  </button>
+
+                  {/* Answer Panel */}
+                  <div 
+                    className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                      openAccordion === index 
+                        ? 'max-h-96 opacity-100' 
+                        : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    <div className="px-6 md:px-8 pb-4 md:pb-6 pt-2">
                       {(day.arrivalTime || day.departureTime) && (
-                        <div style={{ fontSize: '0.875rem', color: '#4a5568', marginBottom: '0.75rem' }}>
+                        <div className="font-geograph text-[14px] md:text-[16px] text-gray-600 mb-3">
                           {day.arrivalTime && `Arrive: ${day.arrivalTime}`}
                           {day.arrivalTime && day.departureTime && ' | '}
                           {day.departureTime && `Depart: ${day.departureTime}`}
                         </div>
                       )}
                       {day.description && (
-                        <div style={{ 
-                          fontSize: '0.9rem', 
-                          color: '#4a5568', 
-                          marginTop: '0.75rem',
-                          lineHeight: '1.5',
-                          whiteSpace: 'pre-line'
-                        }}>
+                        <p 
+                          className="font-geograph text-[14px] md:text-[18px]"
+                          style={{
+                            color: '#0E1B4D',
+                            letterSpacing: '-0.02em',
+                            lineHeight: '1.6'
+                          }}
+                        >
                           {day.description}
-                        </div>
+                        </p>
                       )}
                       {day.overnight && (
-                        <div style={{ 
-                          fontSize: '0.75rem', 
-                          color: '#9f7aea', 
-                          marginTop: '0.5rem',
-                          fontWeight: '600'
-                        }}>
-                          OVERNIGHT STAY
+                        <div className="mt-3">
+                          <span className="inline-block bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">
+                            OVERNIGHT STAY
+                          </span>
                         </div>
                       )}
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       )}
 
-      {/* Enhanced Ship Details */}
-      {ship && (Object.keys(ship).length > 2 || ship.tonnage || ship.starRating) && (
-        <div className="bg-sand py-16">
-          <div className="max-w-7xl mx-auto px-6">
-            <div style={{
-              backgroundColor: 'white',
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '2rem',
-              marginBottom: '2rem',
-              boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)'
-            }}>
-              <h2 style={{ 
-                fontSize: '1.75rem', 
-                fontWeight: '600', 
-                color: '#2d3748',
-                marginBottom: '1.5rem',
-                borderBottom: '2px solid #e2e8f0',
-                paddingBottom: '0.5rem'
-              }}>
-                Ship Specifications
-              </h2>
-              
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                gap: '1.5rem' 
-              }}>
-                {ship.starRating && (
-                  <div>
-                    <div style={{ fontSize: '0.875rem', color: '#718096', marginBottom: '0.25rem' }}>
-                      Star Rating
-                    </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#2d3748', display: 'flex', alignItems: 'center' }}>
-                      {Array.from({ length: ship.starRating }, (_, i) => (
-                        <span key={i} style={{ color: '#f6ad55', marginRight: '2px' }}>★</span>
-                      ))}
-                      <span style={{ marginLeft: '0.5rem' }}>{ship.starRating} Stars</span>
-                    </div>
-                  </div>
-                )}
-
-                {ship.tonnage && (
-                  <div>
-                    <div style={{ fontSize: '0.875rem', color: '#718096', marginBottom: '0.25rem' }}>
-                      Gross Tonnage
-                    </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#2d3748' }}>
-                      {ship.tonnage.toLocaleString()} GT
-                    </div>
-                  </div>
-                )}
-                
-                {ship.length && (
-                  <div>
-                    <div style={{ fontSize: '0.875rem', color: '#718096', marginBottom: '0.25rem' }}>
-                      Length
-                    </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#2d3748' }}>
-                      {ship.length} ft
-                    </div>
-                  </div>
-                )}
-
-                {ship.raw?.launched && (
-                  <div>
-                    <div style={{ fontSize: '0.875rem', color: '#718096', marginBottom: '0.25rem' }}>
-                      Launched
-                    </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#2d3748' }}>
-                      {new Date(ship.raw.launched).getFullYear()}
-                    </div>
-                  </div>
-                )}
-
-                {ship.raw?.totalCabins && (
-                  <div>
-                    <div style={{ fontSize: '0.875rem', color: '#718096', marginBottom: '0.25rem' }}>
-                      Total Cabins
-                    </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#2d3748' }}>
-                      {ship.raw.totalCabins.toLocaleString()}
-                    </div>
-                  </div>
-                )}
-
-                {ship.raw?.occupancy && (
-                  <div>
-                    <div style={{ fontSize: '0.875rem', color: '#718096', marginBottom: '0.25rem' }}>
-                      Guest Capacity
-                    </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: '600', color: '#2d3748' }}>
-                      {ship.raw.occupancy.toLocaleString()} guests
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* New Cabin Categories Section */}
-      {cruiseData?.cabinCategories && cruiseData.cabinCategories.length > 0 && (
-        <div className="bg-sand py-16">
-          <div className="max-w-7xl mx-auto px-6">
-            <div style={{
-              backgroundColor: 'white',
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '2rem',
-              marginBottom: '2rem',
-              boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)'
-            }}>
-              <h2 style={{ 
-                fontSize: '1.75rem', 
-                fontWeight: '600', 
-                color: '#2d3748',
-                marginBottom: '1.5rem',
-                borderBottom: '2px solid #e2e8f0',
-                paddingBottom: '0.5rem'
-              }}>
-                Cabin Categories ({cruiseData.cabinCategories.length} options)
-              </h2>
-              
-              {/* Group cabins by category */}
-              {(() => {
-                const cabinGroups = cruiseData.cabinCategories.reduce((groups, cabin) => {
-                  const category = cabin.category || 'Other';
-                  if (!groups[category]) groups[category] = [];
-                  groups[category].push(cabin);
-                  return groups;
-                }, {} as Record<string, typeof cruiseData.cabinCategories>);
-
-                const categoryOrder = ['interior', 'oceanview', 'balcony', 'suite'];
-                const sortedCategories = Object.keys(cabinGroups).sort((a, b) => {
-                  const aIndex = categoryOrder.indexOf(a.toLowerCase());
-                  const bIndex = categoryOrder.indexOf(b.toLowerCase());
-                  if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
-                  if (aIndex === -1) return 1;
-                  if (bIndex === -1) return -1;
-                  return aIndex - bIndex;
-                });
-
-                return sortedCategories.map(category => (
-                  <div key={category} style={{ marginBottom: '2rem' }}>
-                    <h3 style={{ 
-                      fontSize: '1.3rem', 
-                      fontWeight: '600', 
-                      color: '#2d3748', 
-                      marginBottom: '1rem',
-                      textTransform: 'capitalize'
-                    }}>
-                      {category} Cabins ({cabinGroups[category].length})
-                    </h3>
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                      gap: '1.5rem'
-                    }}>
-                      {cabinGroups[category].slice(0, 6).map((cabin, index) => (
-                        <div key={index} style={{
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '8px',
-                          overflow: 'hidden',
-                          backgroundColor: '#fafafa'
-                        }}>
-                          {cabin.imageUrl && (
-                            <img 
-                              src={cabin.imageUrlHd || cabin.imageUrl}
-                              alt={cabin.name}
-                              style={{
-                                width: '100%',
-                                height: '150px',
-                                objectFit: 'cover'
-                              }}
-                            />
-                          )}
-                          <div style={{ padding: '1rem' }}>
-                            <h4 style={{ 
-                              fontSize: '1rem', 
-                              fontWeight: '600', 
-                              color: '#2d3748',
-                              marginBottom: '0.5rem',
-                              lineHeight: '1.3'
-                            }}>
-                              {cabin.name}
-                            </h4>
-                            <div style={{
-                              fontSize: '0.75rem',
-                              color: '#718096',
-                              marginBottom: '0.5rem',
-                              display: 'flex',
-                              gap: '1rem'
-                            }}>
-                              <span>Code: {cabin.cabinCode}</span>
-                              <span>Occupancy: {cabin.minOccupancy}-{cabin.maxOccupancy}</span>
-                            </div>
-                            {cabin.description && (
-                              <p style={{
-                                fontSize: '0.875rem',
-                                color: '#4a5568',
-                                lineHeight: '1.4',
-                                whiteSpace: 'pre-line',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 3,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden'
-                              }}>
-                                {cabin.description.length > 150 
-                                  ? cabin.description.substring(0, 150) + '...'
-                                  : cabin.description
-                                }
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    {cabinGroups[category].length > 6 && (
-                      <div style={{ 
-                        color: '#718096', 
-                        fontSize: '0.875rem', 
-                        marginTop: '1rem',
-                        textAlign: 'center'
-                      }}>
-                        Showing 6 of {cabinGroups[category].length} {category} cabins
-                      </div>
-                    )}
-                  </div>
-                ));
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Ports & Regions - if available */}
-      {(cruiseData?.ports?.length || cruiseData?.regions?.length) && (
-        <div className="bg-sand py-16">
-          <div className="max-w-7xl mx-auto px-6">
-            <div style={{
-              backgroundColor: 'white',
-              border: '1px solid #e2e8f0',
-              borderRadius: '12px',
-              padding: '2rem',
-              marginBottom: '2rem',
-              boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)'
-            }}>
-              <h2 style={{ 
-                fontSize: '1.75rem', 
-                fontWeight: '600', 
-                color: '#2d3748',
-                marginBottom: '1.5rem',
-                borderBottom: '2px solid #e2e8f0',
-                paddingBottom: '0.5rem'
-              }}>
-                Destinations
-              </h2>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-                {cruiseData?.regions && cruiseData.regions.length > 0 && (
-                  <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: '600', color: '#2d3748', marginBottom: '1rem' }}>
-                      Regions
-                    </h3>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      {cruiseData.regions.map((region, index) => (
-                        <span key={index} style={{
-                          backgroundColor: '#ebf8ff',
-                          color: '#2b6cb0',
-                          padding: '0.25rem 0.75rem',
-                          borderRadius: '20px',
-                          fontSize: '0.875rem',
-                          fontWeight: '500'
-                        }}>
-                          {region.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {cruiseData?.ports && cruiseData.ports.length > 0 && (
-                  <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: '600', color: '#2d3748', marginBottom: '1rem' }}>
-                      Ports of Call
-                    </h3>
-                    <div style={{ display: 'grid', gap: '0.5rem' }}>
-                      {cruiseData.ports.slice(0, 10).map((port, index) => (
-                        <div key={index} style={{
-                          padding: '0.5rem',
-                          backgroundColor: '#f7fafc',
-                          borderRadius: '6px',
-                          fontSize: '0.875rem'
-                        }}>
-                          <span style={{ fontWeight: '600', color: '#2d3748' }}>{port.name}</span>
-                          {port.country && (
-                            <span style={{ color: '#718096', marginLeft: '0.5rem' }}>
-                              ({port.country})
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                      {cruiseData.ports.length > 10 && (
-                        <div style={{ color: '#718096', fontSize: '0.875rem', marginTop: '0.5rem' }}>
-                          ...and {cruiseData.ports.length - 10} more ports
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Debug Information */}
-      <div className="bg-sand py-16">
-        <div className="max-w-7xl mx-auto px-6">
-          {cruiseData && (
-            <details style={{ 
-              marginTop: '2rem',
-              backgroundColor: '#f7fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: '8px',
-              padding: '1rem'
-            }}>
-              <summary style={{ 
-                cursor: 'pointer',
-                fontSize: '1.1rem',
-                fontWeight: '600',
-                color: '#4a5568',
-                marginBottom: '1rem'
-              }}>
-                Debug Information (Click to expand)
-              </summary>
-              <pre style={{
-                backgroundColor: 'white',
-                padding: '1rem',
-                borderRadius: '6px',
-                overflow: 'auto',
-                fontSize: '0.75rem',
-                border: '1px solid #e2e8f0',
-                whiteSpace: 'pre-wrap'
-              }}>
-                {JSON.stringify({ 
-                  slug, 
-                  isUsingFallback,
-                  cruiseId: cruise?.id,
-                  hasComprehensiveData: !!cruiseData,
-                  hasPricing: !!pricing,
-                  hasItinerary: !!cruiseData?.itinerary?.length,
-                  hasCabinCategories: !!cruiseData?.cabinCategories?.length,
-                  hasShipImage: !!ship?.defaultShipImage,
-                  hasCruiseLineLogo: !!cruiseLine?.raw?.logo,
-                  meta: cruiseData?.meta || 'No meta'
-                }, null, 2)}
-              </pre>
-            </details>
-          )}
-        </div>
+      {/* Footer Separator */}
+      <div className="w-full">
+        <img 
+          src="/images/separator-3.png" 
+          alt="Section Separator" 
+          className="w-full h-auto block"
+        />
       </div>
     </div>
   );
