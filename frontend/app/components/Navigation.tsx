@@ -303,12 +303,11 @@ export default function Navigation({
   return (
     <>
       <nav 
-        className={`fixed top-0 left-0 right-0 z-50 py-[8px] md:py-[20px] px-[28px] transition-all duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 right-0 z-50 py-[8px] md:py-[20px] px-[28px] transition-all duration-300 ease-in-out h-[60px] md:h-auto ${
           isScrolled ? 'bg-white shadow-lg' : 'bg-transparent'
-        }`} 
-        style={{ height: '60px' }}
+        }`}
       >
-        <div className="flex items-center justify-between h-[40px]">
+        <div className="flex items-center justify-between h-[40px] md:h-[44px]">
           {/* Logo and Search Bar Container */}
           <div className="flex items-center">
             {/* Logo - Responsive sizing */}

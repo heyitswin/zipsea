@@ -1,5 +1,11 @@
 export default function imageLoader({ src, width, quality }) {
   const isExternal = src.startsWith('http://') || src.startsWith('https://');
+  const isSvg = src.endsWith('.svg');
+  
+  // SVGs don't need optimization, serve them directly
+  if (isSvg) {
+    return src;
+  }
   
   // In production, handle external images differently
   if (process.env.NODE_ENV === 'production' && isExternal) {
@@ -16,6 +22,6 @@ export default function imageLoader({ src, width, quality }) {
     return src;
   }
   
-  // For local images, use Next.js optimization
+  // For local images (non-SVG), use Next.js optimization
   return `/_next/image?url=${encodeURIComponent(src)}&w=${width}&q=${quality || 75}`;
 }
