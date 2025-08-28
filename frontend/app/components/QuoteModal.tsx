@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useUser } from '../hooks/useClerkHooks';
 import LoginSignupModal from './LoginSignupModal';
+import { trackQuoteProgress, trackQuoteSubmit } from '../../lib/analytics';
 
 interface QuoteModalProps {
   isOpen: boolean;
@@ -82,6 +83,13 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
         newValue = Math.max(type === 'adults' ? 1 : 0, currentValue - 1);
       }
       
+      // Track passenger selection
+      trackQuoteProgress('passenger_selection', {
+        passenger_type: type,
+        count: newValue,
+        action: increment ? 'increase' : 'decrease'
+      });
+      
       return {
         ...prev,
         [type]: newValue
@@ -94,6 +102,12 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
       ...prev,
       [field]: value
     }));
+    
+    // Track discount selections
+    trackQuoteProgress('discount_selection', {
+      discount_type: field,
+      value: value
+    });
   };
 
   const handleGetFinalQuotes = async () => {
@@ -121,6 +135,25 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
       });
 
       if (response.ok) {
+        // Track successful quote submission
+        const activeDiscounts = Object.entries(discounts)
+          .filter(([key, value]) => value && key !== 'stateOfResidence' && key !== 'loyaltyNumber')
+          .map(([key]) => key);
+        
+        if (discounts.stateOfResidence) activeDiscounts.push('stateOfResidence');
+        if (discounts.loyaltyNumber) activeDiscounts.push('loyaltyNumber');
+        
+        trackQuoteSubmit({
+          cruiseId: cruiseData?.id || '',
+          cabinType,
+          adults: passengers.adults,
+          children: passengers.children,
+          hasDiscounts: activeDiscounts.length > 0,
+          discountTypes: activeDiscounts,
+          travelInsurance: discounts.travelInsurance,
+          estimatedPrice: typeof cabinPrice === 'string' ? parseFloat(cabinPrice) : cabinPrice
+        });
+        
         alert('Quote request submitted! We\'ll email you as soon as your quote is ready.');
         onClose();
       } else {

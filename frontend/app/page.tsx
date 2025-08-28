@@ -6,6 +6,7 @@ import { fetchShips, Ship, searchCruises, Cruise, fetchLastMinuteDeals, LastMinu
 import { createSlugFromCruise } from "../lib/slug";
 import { useAlert } from "../components/GlobalAlertProvider";
 import Navigation from "./components/Navigation";
+import { trackSearch, trackEngagement } from "../lib/analytics";
 
 export default function Home() {
   const router = useRouter();
@@ -361,6 +362,15 @@ export default function Home() {
       };
 
       const results = await searchCruises(searchParams);
+      
+      // Track search event
+      trackSearch({
+        destination: selectedShip.name,
+        departurePort: selectedShip.homePort,
+        cruiseLine: selectedShip.cruiseLineName,
+        dateRange: selectedDate.toISOString().split('T')[0],
+        resultsCount: results.length
+      });
       
       if (results.length === 1) {
         // Navigate directly to the cruise

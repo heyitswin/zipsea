@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useSignIn, useSignUp } from '../hooks/useClerkHooks';
+import { trackAuthEvent } from '../../lib/analytics';
 
 interface LoginSignupModalProps {
   isOpen: boolean;
@@ -32,6 +33,9 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
 
     setIsLoading(true);
     setMessage('');
+    
+    // Track auth start
+    trackAuthEvent('signup_started', 'email');
 
     try {
       // Try to sign in first
@@ -64,6 +68,7 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
 
   const handleGoogleAuth = async () => {
     setIsLoading(true);
+    trackAuthEvent('signup_started', 'google');
     try {
       await signIn?.authenticateWithRedirect({
         strategy: 'oauth_google',
@@ -79,6 +84,7 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
 
   const handleFacebookAuth = async () => {
     setIsLoading(true);
+    trackAuthEvent('signup_started', 'facebook');
     try {
       await signIn?.authenticateWithRedirect({
         strategy: 'oauth_facebook',

@@ -5,6 +5,8 @@ import GlobalAlertProvider from "../components/GlobalAlertProvider";
 import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
 import ClerkProviderWrapper from './components/ClerkProviderWrapper';
+import PostHogProviderWrapper, { PostHogPageView } from './providers/PosthogProvider';
+import { Suspense } from 'react';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -96,11 +98,16 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <GlobalAlertProvider>
-            <Navigation />
-            {children}
-            <Footer />
-          </GlobalAlertProvider>
+          <PostHogProviderWrapper>
+            <Suspense fallback={null}>
+              <PostHogPageView />
+            </Suspense>
+            <GlobalAlertProvider>
+              <Navigation />
+              {children}
+              <Footer />
+            </GlobalAlertProvider>
+          </PostHogProviderWrapper>
         </body>
       </html>
     </ClerkProviderWrapper>

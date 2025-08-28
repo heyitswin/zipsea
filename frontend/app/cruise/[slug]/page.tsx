@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getCruiseBySlug, getComprehensiveCruiseData, getCruiseDetailsById, ComprehensiveCruiseData, Cruise } from '../../../lib/api';
 import { parseCruiseSlug } from '../../../lib/slug';
 import { useAlert } from '../../../components/GlobalAlertProvider';
 import QuoteModal from '../../components/QuoteModal';
+import { trackCruiseView, trackTimeOnPage, trackQuoteStart } from '../../../lib/analytics';
 
 interface CruiseDetailPageProps {}
 
@@ -26,6 +27,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const [selectedCabinPrice, setSelectedCabinPrice] = useState<string | number>(0);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string>('');
+  
+  // Time tracking
+  const pageLoadTime = useRef<number>(Date.now());
+  const hasTrackedView = useRef(false);
 
   const toggleAccordion = (index: number) => {
     setOpenAccordion(openAccordion === index ? null : index);
@@ -35,6 +40,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     setSelectedCabinType(cabinType);
     setSelectedCabinPrice(price);
     setQuoteModalOpen(true);
+    
+    // Track quote start event
+    if (cruiseData?.cruise?.id) {
+      trackQuoteStart(cruiseData.cruise.id, cabinType);
+    }
   };
 
   const handleImageClick = (imageUrl: string) => {
@@ -59,6 +69,21 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             if (comprehensiveData) {
               setCruiseData(comprehensiveData);
               setIsUsingFallback(false);
+              
+              // Track cruise view
+              if (!hasTrackedView.current && comprehensiveData.cruise) {
+                trackCruiseView({
+                  cruiseId: comprehensiveData.cruise.id,
+                  cruiseName: comprehensiveData.cruise.name || '',
+                  cruiseLine: comprehensiveData.cruise.cruiseLineName || '',
+                  nights: comprehensiveData.cruise.nights || 0,
+                  departureDate: comprehensiveData.cruise.sailingDate || '',
+                  price: comprehensiveData.cruise.cheapestCabinPrice,
+                  destination: comprehensiveData.cruise.destinationName,
+                });
+                hasTrackedView.current = true;
+              }
+              
               return;
             }
           } catch (err) {
@@ -105,6 +130,16 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
     loadCruiseData();
   }, [slug]);
+
+  // Track time on page
+  useEffect(() => {
+    return () => {
+      const timeOnPageSeconds = Math.round((Date.now() - pageLoadTime.current) / 1000);
+      if (timeOnPageSeconds > 0 && cruiseData?.cruise?.name) {
+        trackTimeOnPage('cruise_detail', timeOnPageSeconds);
+      }
+    };
+  }, [cruiseData]);
 
   const formatPrice = (price: string | number | undefined) => {
     if (!price) return 'Unavailable';
