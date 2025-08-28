@@ -1,6 +1,7 @@
 'use client';
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { fetchShips, Ship } from "../../lib/api";
 import { useAlert } from "../../components/GlobalAlertProvider";
 
@@ -28,6 +29,8 @@ export default function Navigation({
   onSearchClick
 }: NavigationProps) {
   const { showAlert } = useAlert();
+  const pathname = usePathname();
+  const isCruiseDetailPage = pathname?.startsWith('/cruise/') || false;
   const [ships, setShips] = useState<Ship[]>([]);
   const [filteredShips, setFilteredShips] = useState<Ship[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -314,11 +317,11 @@ export default function Navigation({
             <div className="w-[83px] md:w-[110px]">
               <a href="/">
                 <Image
-                  src={isScrolled ? "/images/zipsea-logo-blue.svg" : "/images/zipsea-logo.svg"}
+                  src={isScrolled || (isCruiseDetailPage && !isScrolled) ? "/images/zipsea-logo-blue.svg" : "/images/zipsea-logo.svg"}
                   alt="Zipsea"
                   width={110}
                   height={40}
-                  className={`${isScrolled ? "" : "brightness-0 invert"} w-[83px] md:w-[110px] h-auto`}
+                  className={`${isScrolled || (isCruiseDetailPage && !isScrolled) ? "" : "brightness-0 invert"} w-[83px] md:w-[110px] h-auto`}
                   priority
                 />
               </a>
@@ -395,21 +398,21 @@ export default function Navigation({
           >
             <span 
               className={`block w-6 h-0.5 transition-all duration-300 ${
-                isScrolled ? 'bg-dark-blue' : 'bg-white'
+                isScrolled || (isCruiseDetailPage && !isScrolled) ? 'bg-[#0E1B4D]' : 'bg-white'
               } ${
                 isMobileMenuOpen ? 'rotate-45 translate-y-2' : ''
               }`}
             />
             <span 
               className={`block w-6 h-0.5 transition-all duration-300 ${
-                isScrolled ? 'bg-dark-blue' : 'bg-white'
+                isScrolled || (isCruiseDetailPage && !isScrolled) ? 'bg-[#0E1B4D]' : 'bg-white'
               } ${
                 isMobileMenuOpen ? 'opacity-0' : ''
               }`}
             />
             <span 
               className={`block w-6 h-0.5 transition-all duration-300 ${
-                isScrolled ? 'bg-dark-blue' : 'bg-white'
+                isScrolled || (isCruiseDetailPage && !isScrolled) ? 'bg-[#0E1B4D]' : 'bg-white'
               } ${
                 isMobileMenuOpen ? '-rotate-45 -translate-y-2' : ''
               }`}
@@ -421,7 +424,7 @@ export default function Navigation({
             <a 
               href="/why-zipsea" 
               className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                isScrolled ? 'text-dark-blue' : 'text-white'
+                isScrolled || (isCruiseDetailPage && !isScrolled) ? 'text-[#0E1B4D]' : 'text-white'
               }`}
             >
               Why Zipsea
@@ -429,7 +432,7 @@ export default function Navigation({
             <a 
               href="/faqs" 
               className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                isScrolled ? 'text-dark-blue' : 'text-white'
+                isScrolled || (isCruiseDetailPage && !isScrolled) ? 'text-[#0E1B4D]' : 'text-white'
               }`}
             >
               FAQs
@@ -437,7 +440,7 @@ export default function Navigation({
             <a 
               href="#" 
               className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                isScrolled ? 'text-dark-blue' : 'text-white'
+                isScrolled || (isCruiseDetailPage && !isScrolled) ? 'text-[#0E1B4D]' : 'text-white'
               }`}
             >
               Chat with us
@@ -446,8 +449,8 @@ export default function Navigation({
             {/* Sign up/Log in Button - Updated padding */}
             <button 
               className={`px-4 py-1.5 border rounded-full text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                isScrolled 
-                  ? 'border-gray-separator text-dark-blue bg-transparent' 
+                isScrolled || (isCruiseDetailPage && !isScrolled)
+                  ? 'border-[#0E1B4D] text-[#0E1B4D] bg-transparent' 
                   : 'border-white text-white bg-transparent'
               }`}
             >

@@ -113,8 +113,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         day: 'numeric',
         timeZone: 'UTC' // Use UTC to avoid timezone conversion issues
       }).toUpperCase();
-      // Remove the second comma from the date format
-      return formatted.replace(/,\s*(\d+),/g, ' $1');
+      // Remove the second comma and convert SEP to SEPT
+      return formatted.replace(/,\s*(\d+),/g, ' $1').replace(/SEP /g, 'SEPT ');
     } catch {
       return dateString;
     }
@@ -247,7 +247,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   }
 
   return (
-    <div className="min-h-screen mt-[60px] md:mt-[80px]">
+    <div className="min-h-screen">
 
       {/* Warning for fallback data */}
       {isUsingFallback && (
@@ -268,7 +268,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       )}
 
       {/* Hero Section with New Branded Design */}
-      <div className="bg-purple-obc py-12 px-6">
+      <div className="bg-purple-obc py-12 px-6 -mt-[60px] md:-mt-[80px] pt-[72px] md:pt-[92px]">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             {/* Left Side Content */}
@@ -279,7 +279,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               </h1>
               
               {/* Cruise Line | Ship Name */}
-              <div className="text-dark-blue text-[24px] font-geograph font-medium mb-12" style={{ letterSpacing: '-0.02em' }}>
+              <div className="text-dark-blue text-[18px] font-geograph font-medium mb-12" style={{ letterSpacing: '-0.02em' }}>
                 {cruiseLine?.name || 'Unknown Cruise Line'} | {ship?.name || 'Unknown Ship'}
               </div>
               
@@ -364,27 +364,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       <div className="bg-sand py-16">
         <div className="max-w-7xl mx-auto px-6">
           
-          {/* Navigation Breadcrumbs */}
-          <div className="mb-8 flex gap-4">
-            <button
-              onClick={() => router.back()}
-              className="bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-md hover:bg-gray-50 transition-colors font-geograph font-medium text-[16px]" 
-              style={{ letterSpacing: '-0.02em' }}
-            >
-              ← Back
-            </button>
-            <button
-              onClick={() => router.push('/')}
-              className="bg-light-blue text-white px-6 py-3 rounded-md hover:bg-light-blue/90 transition-colors font-geograph font-medium text-[16px]"
-              style={{ letterSpacing: '-0.02em' }}
-            >
-              Back to search
-            </button>
-          </div>
           
           {/* Description Section */}
           {ship?.shortDescription && (
-            <div className="mb-12">
+            <div>
               <p className="font-geograph text-[24px] leading-[1.5] text-dark-blue" style={{ letterSpacing: '-0.02em' }}>
                 {ship.shortDescription}
               </p>
@@ -407,10 +390,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
       {/* Choose Your Room Section */}
       {pricing && (
-        <div className="bg-sand py-16">
+        <div className="bg-sand">
           <div className="max-w-7xl mx-auto px-6">
-            <div className="mb-12">
-              <h2 className="font-whitney font-black text-[32px] text-dark-blue uppercase mb-4" style={{ letterSpacing: '-0.02em' }}>
+            <div className="mb-6">
+              <h2 className="font-whitney font-black text-[32px] text-dark-blue uppercase" style={{ letterSpacing: '-0.02em' }}>
                 CHOOSE YOUR ROOM
               </h2>
               <p className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5]" style={{ letterSpacing: '-0.02em' }}>
@@ -445,18 +428,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     
                     {/* Price Block */}
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                      <div className="text-right">
-                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                      <div className="text-right md:-ml-20">
+                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                           STARTING FROM
                         </div>
                         <div className="font-geograph font-bold text-[24px] text-dark-blue">
                           {formatPrice(pricing.interiorPrice)}
                         </div>
-                        <div className="font-geograph text-[12px] text-light-blue">
+                        <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
                           +$50 onboard credit
                         </div>
                       </div>
-                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded hover:bg-[#2f7ddd]/90 transition-colors">
+                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors">
                         Get quote
                       </button>
                     </div>
@@ -490,18 +473,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     
                     {/* Price Block */}
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                      <div className="text-right">
-                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                      <div className="text-right md:-ml-20">
+                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                           STARTING FROM
                         </div>
                         <div className="font-geograph font-bold text-[24px] text-dark-blue">
                           {formatPrice(pricing.oceanviewPrice)}
                         </div>
-                        <div className="font-geograph text-[12px] text-light-blue">
+                        <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
                           +$75 onboard credit
                         </div>
                       </div>
-                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded hover:bg-[#2f7ddd]/90 transition-colors">
+                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors">
                         Get quote
                       </button>
                     </div>
@@ -535,18 +518,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     
                     {/* Price Block */}
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                      <div className="text-right">
-                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                      <div className="text-right md:-ml-20">
+                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                           STARTING FROM
                         </div>
                         <div className="font-geograph font-bold text-[24px] text-dark-blue">
                           {formatPrice(pricing.balconyPrice)}
                         </div>
-                        <div className="font-geograph text-[12px] text-light-blue">
+                        <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
                           +$100 onboard credit
                         </div>
                       </div>
-                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded hover:bg-[#2f7ddd]/90 transition-colors">
+                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors">
                         Get quote
                       </button>
                     </div>
@@ -580,18 +563,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     
                     {/* Price Block */}
                     <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                      <div className="text-right">
-                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                      <div className="text-right md:-ml-20">
+                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                           STARTING FROM
                         </div>
                         <div className="font-geograph font-bold text-[24px] text-dark-blue">
                           {formatPrice(pricing.suitePrice)}
                         </div>
-                        <div className="font-geograph text-[12px] text-light-blue">
+                        <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
                           +$150 onboard credit
                         </div>
                       </div>
-                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded hover:bg-[#2f7ddd]/90 transition-colors">
+                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors">
                         Get quote
                       </button>
                     </div>
@@ -607,7 +590,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       {cruiseData?.itinerary && cruiseData.itinerary.length > 0 && (
         <div className="bg-sand py-16">
           <div className="max-w-7xl mx-auto px-6">
-            <div className="mb-12">
+            <div className="mb-6">
               <h2 className="font-whitney font-black text-[32px] text-dark-blue uppercase mb-4" style={{ letterSpacing: '-0.02em' }}>
                 ITINERARY
               </h2>
