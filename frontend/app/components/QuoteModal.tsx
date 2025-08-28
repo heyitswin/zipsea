@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useUser } from '../hooks/useClerkHooks';
 import LoginSignupModal from './LoginSignupModal';
 
 interface QuoteModalProps {

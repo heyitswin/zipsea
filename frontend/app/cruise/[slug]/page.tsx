@@ -168,6 +168,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const calculateOnboardCredit = (price: string | number | undefined) => {
     if (!isPriceAvailable(price)) return 0;
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    if (!numPrice || isNaN(numPrice)) return 0;
     // Calculate 2-3% of the price as onboard credit, rounded to nearest $25
     const creditPercent = 0.025; // 2.5%
     const rawCredit = numPrice * creditPercent;

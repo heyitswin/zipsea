@@ -6,10 +6,43 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userEmail, cruiseData, passengers, discounts, cabinType, cabinPrice } = body;
+    const { userEmail, cruiseData, passengers, discounts, cabinType, cabinPrice, travelInsurance } = body;
 
     if (!userEmail) {
       return NextResponse.json({ error: 'Email address is required' }, { status: 400 });
+    }
+
+    // Save quote request to backend database
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      const quoteResponse = await fetch(`${backendUrl}/api/v1/quotes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: userEmail,
+          cruiseId: cruiseData.id,
+          cabinType: cabinType.toLowerCase(),
+          adults: passengers.adults,
+          children: passengers.children,
+          travelInsurance: travelInsurance || false,
+          discountQualifiers: {
+            payInFull: discounts.payInFull,
+            seniorCitizen: discounts.age55Plus,
+            military: discounts.military,
+            stateOfResidence: discounts.stateOfResidence,
+            loyaltyNumber: discounts.loyaltyNumber,
+          },
+        }),
+      });
+
+      if (!quoteResponse.ok) {
+        console.error('Failed to save quote to database');
+      }
+    } catch (error) {
+      console.error('Error saving quote to database:', error);
+      // Continue with email sending even if database save fails
     }
 
     // Format passenger information

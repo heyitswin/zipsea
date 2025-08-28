@@ -4,7 +4,7 @@ import "./globals.css";
 import GlobalAlertProvider from "../components/GlobalAlertProvider";
 import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
-import { ClerkProvider } from '@clerk/nextjs';
+import ClerkProviderWrapper from './components/ClerkProviderWrapper';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -91,7 +91,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProviderWrapper>
       <html lang="en">
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
@@ -103,6 +103,6 @@ export default function RootLayout({
           </GlobalAlertProvider>
         </body>
       </html>
-    </ClerkProvider>
+    </ClerkProviderWrapper>
   );
 }

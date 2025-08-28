@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSignIn, useSignUp } from '@clerk/nextjs';
+import { useSignIn, useSignUp } from '../hooks/useClerkHooks';
 
 interface LoginSignupModalProps {
   isOpen: boolean;
@@ -37,7 +37,6 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
       // Try to sign in first
       const signInResult = await signIn?.create({
         identifier: email,
-        strategy: 'email_link',
         redirectUrl: window.location.href,
       });
 
@@ -50,8 +49,6 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
       // If sign in doesn't work, try sign up
       const signUpResult = await signUp?.create({
         emailAddress: email,
-        strategy: 'email_link',
-        redirectUrl: window.location.href,
       });
 
       if (signUpResult?.status === 'missing_requirements') {

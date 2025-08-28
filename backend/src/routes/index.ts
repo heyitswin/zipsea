@@ -9,6 +9,7 @@ import shipRoutes from './ship.routes';
 import quoteRoutes from './quote.routes';
 import adminRoutes from './admin.routes';
 import priceHistoryRoutes from './price-history.routes';
+import { userRoutes } from './user.routes';
 
 const router = Router();
 
@@ -38,9 +39,8 @@ apiRouter.use('/ships', shipRoutes);
 apiRouter.use('/quotes', quoteRoutes);
 apiRouter.use('/price-history', priceHistoryRoutes);
 
-// Additional API routes will be added here as we implement them
-// apiRouter.use('/auth', authRoutes);
-// apiRouter.use('/users', userRoutes);
+// User management routes
+apiRouter.use('/users', userRoutes);
 
 // API info endpoint
 apiRouter.get('/', (req, res) => {
