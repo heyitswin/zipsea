@@ -99,7 +99,7 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
       onClick={handleBackgroundClick}
     >
       <div 
-        className="bg-white w-full max-w-[760px] rounded-[10px] max-h-[90vh] overflow-y-auto"
+        className="bg-white w-full max-w-[530px] rounded-[10px] max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-8 text-center">
@@ -108,7 +108,7 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
             <h2 className="font-whitney font-black text-[32px] text-dark-blue uppercase" style={{ letterSpacing: '-0.02em' }}>
               SIGN UP / LOG IN
             </h2>
-            <p className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5] mt-4" style={{ letterSpacing: '-0.02em' }}>
+            <p className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5] mt-2" style={{ letterSpacing: '-0.02em' }}>
               We'll email you as soon as your quote is ready
             </p>
           </div>
@@ -182,13 +182,6 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
             </button>
           </div>
 
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="mt-6 text-gray-500 hover:text-gray-700 font-geograph text-[14px]"
-          >
-            Cancel
-          </button>
         </div>
       </div>
     </div>

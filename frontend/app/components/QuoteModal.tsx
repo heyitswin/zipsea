@@ -98,6 +98,7 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
 
   const handleGetFinalQuotes = async () => {
     if (!isSignedIn) {
+      onClose(); // Close the quote modal first
       setShowLoginModal(true);
       return;
     }
@@ -177,7 +178,7 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
                   >
                     <img src="/images/minus.svg" alt="Decrease" className="w-4 h-4" />
                   </button>
-                  <span className="flex-1 text-center font-geograph text-[16px]">
+                  <span className="flex-1 text-center font-geograph text-[32px]">
                     {passengers.adults}
                   </span>
                   <button 
@@ -201,7 +202,7 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
                   >
                     <img src="/images/minus.svg" alt="Decrease" className="w-4 h-4" />
                   </button>
-                  <span className="flex-1 text-center font-geograph text-[16px]">
+                  <span className="flex-1 text-center font-geograph text-[32px]">
                     {passengers.children}
                   </span>
                   <button 
@@ -216,22 +217,35 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
 
             {/* Travel Insurance Checkbox */}
             <div className="mb-8">
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={discounts.travelInsurance}
-                  onChange={(e) => handleDiscountChange('travelInsurance', e.target.checked)}
-                  className="mr-3 w-4 h-4"
-                />
-                <span className="font-geograph text-[16px] text-[#474747]">
-                  I'm interested in travel insurance for this cruise
-                </span>
-              </label>
+              <div className="border border-[#d9d9d9] rounded-[10px] p-4">
+                <label className="flex items-center cursor-pointer">
+                  <div className="relative mr-3">
+                    <input
+                      type="checkbox"
+                      checked={discounts.travelInsurance}
+                      onChange={(e) => handleDiscountChange('travelInsurance', e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div className={`w-6 h-6 border rounded flex items-center justify-center ${
+                      discounts.travelInsurance 
+                        ? 'bg-[#2F7DDD] border-[#2F7DDD]' 
+                        : 'bg-white border-[#d9d9d9]'
+                    }`}>
+                      {discounts.travelInsurance && (
+                        <img src="/images/checkmark.svg" alt="Checked" className="w-4 h-4" />
+                      )}
+                    </div>
+                  </div>
+                  <span className="font-geograph text-[18px] text-[#2f2f2f]" style={{ letterSpacing: '0px' }}>
+                    I'm interested in travel insurance for this cruise
+                  </span>
+                </label>
+              </div>
             </div>
 
             {/* Discount Qualifiers Section */}
             <div className="mb-8">
-              <h3 className="font-whitney font-black text-[32px] text-dark-blue uppercase mb-2" style={{ letterSpacing: '-0.02em' }}>
+              <h3 className="font-whitney font-black text-[32px] text-dark-blue uppercase mb-1" style={{ letterSpacing: '-0.02em' }}>
                 DISCOUNT QUALIFIERS
               </h3>
               <p className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5] mb-6" style={{ letterSpacing: '-0.02em' }}>
@@ -240,55 +254,92 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
 
               <div className="space-y-4">
                 {/* Pay in Full Checkbox */}
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={discounts.payInFull}
-                    onChange={(e) => handleDiscountChange('payInFull', e.target.checked)}
-                    className="mr-3 w-4 h-4"
-                  />
-                  <span className="font-geograph text-[16px] text-[#474747]">
-                    I want to pay in full/non-refundable
-                  </span>
-                </label>
+                <div className="border border-[#d9d9d9] rounded-[10px] p-4">
+                  <label className="flex items-center cursor-pointer">
+                    <div className="relative mr-3">
+                      <input
+                        type="checkbox"
+                        checked={discounts.payInFull}
+                        onChange={(e) => handleDiscountChange('payInFull', e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={`w-6 h-6 border rounded flex items-center justify-center ${
+                        discounts.payInFull 
+                          ? 'bg-[#2F7DDD] border-[#2F7DDD]' 
+                          : 'bg-white border-[#d9d9d9]'
+                      }`}>
+                        {discounts.payInFull && (
+                          <img src="/images/checkmark.svg" alt="Checked" className="w-4 h-4" />
+                        )}
+                      </div>
+                    </div>
+                    <span className="font-geograph text-[18px] text-[#2f2f2f]" style={{ letterSpacing: '0px' }}>
+                      I want to pay in full/non-refundable
+                    </span>
+                  </label>
+                </div>
 
                 {/* 55+ Checkbox */}
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={discounts.age55Plus}
-                    onChange={(e) => handleDiscountChange('age55Plus', e.target.checked)}
-                    className="mr-3 w-4 h-4"
-                  />
-                  <span className="font-geograph text-[16px] text-[#474747]">
-                    I am 55 or older
-                  </span>
-                </label>
+                <div className="border border-[#d9d9d9] rounded-[10px] p-4">
+                  <label className="flex items-center cursor-pointer">
+                    <div className="relative mr-3">
+                      <input
+                        type="checkbox"
+                        checked={discounts.age55Plus}
+                        onChange={(e) => handleDiscountChange('age55Plus', e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={`w-6 h-6 border rounded flex items-center justify-center ${
+                        discounts.age55Plus 
+                          ? 'bg-[#2F7DDD] border-[#2F7DDD]' 
+                          : 'bg-white border-[#d9d9d9]'
+                      }`}>
+                        {discounts.age55Plus && (
+                          <img src="/images/checkmark.svg" alt="Checked" className="w-4 h-4" />
+                        )}
+                      </div>
+                    </div>
+                    <span className="font-geograph text-[18px] text-[#2f2f2f]" style={{ letterSpacing: '0px' }}>
+                      I am 55 or older
+                    </span>
+                  </label>
+                </div>
 
                 {/* Military Checkbox */}
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={discounts.military}
-                    onChange={(e) => handleDiscountChange('military', e.target.checked)}
-                    className="mr-3 w-4 h-4"
-                  />
-                  <span className="font-geograph text-[16px] text-[#474747]">
-                    I am an active/retired military member or veteran
-                  </span>
-                </label>
+                <div className="border border-[#d9d9d9] rounded-[10px] p-4">
+                  <label className="flex items-center cursor-pointer">
+                    <div className="relative mr-3">
+                      <input
+                        type="checkbox"
+                        checked={discounts.military}
+                        onChange={(e) => handleDiscountChange('military', e.target.checked)}
+                        className="sr-only"
+                      />
+                      <div className={`w-6 h-6 border rounded flex items-center justify-center ${
+                        discounts.military 
+                          ? 'bg-[#2F7DDD] border-[#2F7DDD]' 
+                          : 'bg-white border-[#d9d9d9]'
+                      }`}>
+                        {discounts.military && (
+                          <img src="/images/checkmark.svg" alt="Checked" className="w-4 h-4" />
+                        )}
+                      </div>
+                    </div>
+                    <span className="font-geograph text-[18px] text-[#2f2f2f]" style={{ letterSpacing: '0px' }}>
+                      I am an active/retired military member or veteran
+                    </span>
+                  </label>
+                </div>
 
                 {/* State of Residence Dropdown */}
-                <div>
-                  <label className="font-geograph font-bold text-[14px] text-[#474747] tracking-[0.1em] uppercase mb-3 block">
-                    State of Residence
-                  </label>
+                <div className="border border-[#d9d9d9] rounded-[10px] p-4">
                   <select
                     value={discounts.stateOfResidence}
                     onChange={(e) => handleDiscountChange('stateOfResidence', e.target.value)}
-                    className="w-full border border-[#d9d9d9] rounded-[10px] p-3 font-geograph text-[16px]"
+                    className="w-full border-none outline-none font-geograph text-[18px] text-[#2f2f2f] bg-transparent"
+                    style={{ letterSpacing: '0px' }}
                   >
-                    <option value="">Select State</option>
+                    <option value="">State of Residence</option>
                     {US_STATES.map(state => (
                       <option key={state} value={state}>{state}</option>
                     ))}
@@ -296,16 +347,14 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
                 </div>
 
                 {/* Loyalty Number Input */}
-                <div>
-                  <label className="font-geograph font-bold text-[14px] text-[#474747] tracking-[0.1em] uppercase mb-3 block">
-                    Loyalty Number
-                  </label>
+                <div className="border border-[#d9d9d9] rounded-[10px] p-4">
                   <input
                     type="text"
                     value={discounts.loyaltyNumber}
                     onChange={(e) => handleDiscountChange('loyaltyNumber', e.target.value)}
-                    placeholder="Enter your loyalty number (optional)"
-                    className="w-full border border-[#d9d9d9] rounded-[10px] p-3 font-geograph text-[16px]"
+                    placeholder="Loyalty Number"
+                    className="w-full border-none outline-none font-geograph text-[18px] text-[#2f2f2f] bg-transparent"
+                    style={{ letterSpacing: '0px' }}
                   />
                 </div>
               </div>
@@ -319,20 +368,6 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
               Get final quotes
             </button>
 
-            {/* Cruise Summary (Optional) */}
-            {cruiseData && (
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-geograph font-bold text-[14px] text-[#474747] tracking-[0.1em] uppercase mb-2">
-                  CRUISE DETAILS
-                </h4>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p><strong>Cruise:</strong> {cruiseData.name}</p>
-                  <p><strong>Cabin Type:</strong> {cabinType}</p>
-                  <p><strong>Price:</strong> {formatPrice(cabinPrice)}</p>
-                  <p><strong>Adults:</strong> {passengers.adults}, <strong>Children:</strong> {passengers.children}</p>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

@@ -24,6 +24,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const [quoteModalOpen, setQuoteModalOpen] = useState(false);
   const [selectedCabinType, setSelectedCabinType] = useState<string>('');
   const [selectedCabinPrice, setSelectedCabinPrice] = useState<string | number>(0);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string>('');
 
   const toggleAccordion = (index: number) => {
     setOpenAccordion(openAccordion === index ? null : index);
@@ -33,6 +35,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     setSelectedCabinType(cabinType);
     setSelectedCabinPrice(price);
     setQuoteModalOpen(true);
+  };
+
+  const handleImageClick = (imageUrl: string) => {
+    setSelectedImage(imageUrl);
+    setImageModalOpen(true);
   };
 
   useEffect(() => {
@@ -393,8 +400,9 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 <img 
                   src={ship.defaultShipImage2k || ship.defaultShipImage}
                   alt={`${ship.name} - Ship`}
-                  className="w-full max-w-md rounded-[10px] object-cover"
+                  className="w-full max-w-md rounded-[10px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
                   style={{ height: '400px', aspectRatio: '4/3' }}
+                  onClick={() => handleImageClick(ship.defaultShipImage2k || ship.defaultShipImage)}
                 />
               ) : (
                 <div className="w-full max-w-md bg-gray-200 rounded-[10px] flex items-center justify-center text-gray-500"
@@ -462,7 +470,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               <div className="bg-white rounded-t-lg rounded-b-none md:rounded-lg border border-gray-200 overflow-hidden">
                 <div className="flex flex-col md:flex-row">
                   {/* Cabin Image */}
-                  <div className="md:w-48 md:h-auto flex-shrink-0" style={{ height: '128px' }}>
+                  <div className="md:w-48 h-32 md:h-full flex-shrink-0">
                     {(() => {
                       const interiorImage = getCabinImage('interior');
                       return interiorImage ? (
@@ -493,7 +501,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     {/* Price and Button Layout - All content in single row */}
                     <div className="flex flex-row items-center justify-between gap-4">
                       <div className="flex flex-row items-center gap-4 flex-grow">
-                        <div className="text-left">
+                        <div className="text-center md:text-left">
                           <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                             STARTING FROM
                           </div>
@@ -522,7 +530,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               <div className="bg-white rounded-t-lg rounded-b-none md:rounded-lg border border-gray-200 overflow-hidden">
                 <div className="flex flex-col md:flex-row">
                   {/* Cabin Image */}
-                  <div className="md:w-48 md:h-auto flex-shrink-0" style={{ height: '128px' }}>
+                  <div className="md:w-48 h-32 md:h-full flex-shrink-0">
                     {(() => {
                       const oceanviewImage = getCabinImage('oceanview');
                       return oceanviewImage ? (
@@ -553,7 +561,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     {/* Price and Button Layout - All content in single row */}
                     <div className="flex flex-row items-center justify-between gap-4">
                       <div className="flex flex-row items-center gap-4 flex-grow">
-                        <div className="text-left">
+                        <div className="text-center md:text-left">
                           <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                             STARTING FROM
                           </div>
@@ -582,7 +590,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               <div className="bg-white rounded-t-lg rounded-b-none md:rounded-lg border border-gray-200 overflow-hidden">
                 <div className="flex flex-col md:flex-row">
                   {/* Cabin Image */}
-                  <div className="md:w-48 md:h-auto flex-shrink-0" style={{ height: '128px' }}>
+                  <div className="md:w-48 h-32 md:h-full flex-shrink-0">
                     {(() => {
                       const balconyImage = getCabinImage('balcony');
                       return balconyImage ? (
@@ -613,7 +621,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     {/* Price and Button Layout - All content in single row */}
                     <div className="flex flex-row items-center justify-between gap-4">
                       <div className="flex flex-row items-center gap-4 flex-grow">
-                        <div className="text-left">
+                        <div className="text-center md:text-left">
                           <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                             STARTING FROM
                           </div>
@@ -642,7 +650,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               <div className="bg-white rounded-t-lg rounded-b-none md:rounded-lg border border-gray-200 overflow-hidden">
                 <div className="flex flex-col md:flex-row">
                   {/* Cabin Image */}
-                  <div className="md:w-48 md:h-auto flex-shrink-0" style={{ height: '128px' }}>
+                  <div className="md:w-48 h-32 md:h-full flex-shrink-0">
                     {(() => {
                       const suiteImage = getCabinImage('suite');
                       return suiteImage ? (
@@ -673,7 +681,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     {/* Price and Button Layout - All content in single row */}
                     <div className="flex flex-row items-center justify-between gap-4">
                       <div className="flex flex-row items-center gap-4 flex-grow">
-                        <div className="text-left">
+                        <div className="text-center md:text-left">
                           <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                             STARTING FROM
                           </div>
@@ -825,6 +833,22 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         cabinType={selectedCabinType}
         cabinPrice={selectedCabinPrice}
       />
+
+      {/* Image Modal */}
+      {imageModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
+          onClick={() => setImageModalOpen(false)}
+        >
+          <img 
+            src={selectedImage}
+            alt="Enlarged View"
+            className="max-w-full max-h-full object-contain rounded-[10px]"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
