@@ -147,6 +147,33 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     }
   };
 
+  // Helper function to get cabin image based on cabin type
+  const getCabinImage = (cabinType: string) => {
+    if (!cruiseData?.cabinCategories) return null;
+    
+    const normalizedType = cabinType.toLowerCase();
+    let targetCategory = '';
+    
+    // Map cabin types to categories
+    if (normalizedType.includes('interior') || normalizedType.includes('inside')) {
+      targetCategory = 'interior';
+    } else if (normalizedType.includes('oceanview') || normalizedType.includes('outside')) {
+      targetCategory = 'oceanview';
+    } else if (normalizedType.includes('balcony')) {
+      targetCategory = 'balcony';
+    } else if (normalizedType.includes('suite')) {
+      targetCategory = 'suite';
+    }
+    
+    // Find matching cabin category
+    const cabinCategory = cruiseData.cabinCategories.find(cabin => 
+      cabin.category.toLowerCase().includes(targetCategory) ||
+      cabin.name.toLowerCase().includes(targetCategory)
+    );
+    
+    return cabinCategory ? (cabinCategory.imageUrlHd || cabinCategory.imageUrl) : null;
+  };
+
   if (isLoading) {
     return (
       <div style={{ 
@@ -268,13 +295,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       )}
 
       {/* Hero Section with New Branded Design */}
-      <div className="bg-purple-obc py-12 px-6 -mt-[60px] md:-mt-[80px] pt-[72px] md:pt-[92px]">
+      <div className="bg-purple-obc py-12 px-6 -mt-[60px] md:-mt-[80px] pt-[72px] md:pt-[92px] md:pt-[200px] md:pb-[100px]">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             {/* Left Side Content */}
             <div>
               {/* Cruise Name */}
-              <h1 className="font-whitney text-[52px] text-dark-blue mb-4 uppercase" style={{ letterSpacing: '-0.02em', lineHeight: '1.1' }}>
+              <h1 className="font-whitney text-[32px] md:text-[52px] text-dark-blue mb-4 uppercase" style={{ letterSpacing: '-0.02em', lineHeight: '1.1' }}>
                 {cruise.name || `${ship?.name || 'Unknown Ship'} Cruise`}
               </h1>
               
@@ -368,7 +395,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           {/* Description Section */}
           {ship?.shortDescription && (
             <div>
-              <p className="font-geograph text-[24px] leading-[1.5] text-dark-blue" style={{ letterSpacing: '-0.02em' }}>
+              <p className="font-geograph text-[20px] md:text-[24px] leading-[1.5] text-dark-blue" style={{ letterSpacing: '-0.02em' }}>
                 {ship.shortDescription}
               </p>
             </div>
@@ -407,14 +434,25 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 <div className="flex flex-col md:flex-row">
                   {/* Cabin Image */}
                   <div className="md:w-48 h-32 md:h-auto flex-shrink-0">
-                    <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
-                      <span className="text-sm">Interior Cabin</span>
-                    </div>
+                    {(() => {
+                      const interiorImage = getCabinImage('interior');
+                      return interiorImage ? (
+                        <img 
+                          src={interiorImage} 
+                          alt="Interior Cabin" 
+                          className="w-full h-full object-cover rounded-l-lg"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
+                          <span className="text-sm">Interior Cabin</span>
+                        </div>
+                      );
+                    })()}
                   </div>
                   
-                  {/* Content */}
-                  <div className="flex-grow flex flex-col md:flex-row items-start md:items-center p-5">
-                    <div className="flex-grow mb-4 md:mb-0">
+                  {/* Content - Mobile Responsive Layout */}
+                  <div className="flex-grow flex flex-col p-5">
+                    <div className="flex-grow mb-4">
                       <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-2">
                         Inside Cabin
                       </h3>
@@ -423,12 +461,9 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       </p>
                     </div>
                     
-                    {/* Vertical Separator */}
-                    <div className="hidden md:block w-px h-16 bg-[#d9d9d9] mx-6"></div>
-                    
-                    {/* Price Block */}
-                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                      <div className="text-right md:-ml-20">
+                    {/* Price and Button Layout - Mobile: side by side at bottom, Desktop: right aligned */}
+                    <div className="flex flex-row md:flex-row items-end md:items-center justify-between md:justify-end gap-4">
+                      <div className="text-left md:text-right">
                         <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                           STARTING FROM
                         </div>
@@ -439,7 +474,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           +$50 onboard credit
                         </div>
                       </div>
-                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors">
+                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors flex-shrink-0">
                         Get quote
                       </button>
                     </div>
@@ -452,14 +487,25 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 <div className="flex flex-col md:flex-row">
                   {/* Cabin Image */}
                   <div className="md:w-48 h-32 md:h-auto flex-shrink-0">
-                    <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
-                      <span className="text-sm">Outside Cabin</span>
-                    </div>
+                    {(() => {
+                      const oceanviewImage = getCabinImage('oceanview');
+                      return oceanviewImage ? (
+                        <img 
+                          src={oceanviewImage} 
+                          alt="Outside Cabin" 
+                          className="w-full h-full object-cover rounded-l-lg"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
+                          <span className="text-sm">Outside Cabin</span>
+                        </div>
+                      );
+                    })()}
                   </div>
                   
-                  {/* Content */}
-                  <div className="flex-grow flex flex-col md:flex-row items-start md:items-center p-5">
-                    <div className="flex-grow mb-4 md:mb-0">
+                  {/* Content - Mobile Responsive Layout */}
+                  <div className="flex-grow flex flex-col p-5">
+                    <div className="flex-grow mb-4">
                       <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-2">
                         Outside Cabin
                       </h3>
@@ -468,12 +514,9 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       </p>
                     </div>
                     
-                    {/* Vertical Separator */}
-                    <div className="hidden md:block w-px h-16 bg-[#d9d9d9] mx-6"></div>
-                    
-                    {/* Price Block */}
-                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                      <div className="text-right md:-ml-20">
+                    {/* Price and Button Layout - Mobile: side by side at bottom, Desktop: right aligned */}
+                    <div className="flex flex-row md:flex-row items-end md:items-center justify-between md:justify-end gap-4">
+                      <div className="text-left md:text-right">
                         <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                           STARTING FROM
                         </div>
@@ -484,7 +527,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           +$75 onboard credit
                         </div>
                       </div>
-                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors">
+                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors flex-shrink-0">
                         Get quote
                       </button>
                     </div>
@@ -497,14 +540,25 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 <div className="flex flex-col md:flex-row">
                   {/* Cabin Image */}
                   <div className="md:w-48 h-32 md:h-auto flex-shrink-0">
-                    <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
-                      <span className="text-sm">Balcony Cabin</span>
-                    </div>
+                    {(() => {
+                      const balconyImage = getCabinImage('balcony');
+                      return balconyImage ? (
+                        <img 
+                          src={balconyImage} 
+                          alt="Balcony Cabin" 
+                          className="w-full h-full object-cover rounded-l-lg"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
+                          <span className="text-sm">Balcony Cabin</span>
+                        </div>
+                      );
+                    })()}
                   </div>
                   
-                  {/* Content */}
-                  <div className="flex-grow flex flex-col md:flex-row items-start md:items-center p-5">
-                    <div className="flex-grow mb-4 md:mb-0">
+                  {/* Content - Mobile Responsive Layout */}
+                  <div className="flex-grow flex flex-col p-5">
+                    <div className="flex-grow mb-4">
                       <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-2">
                         Balcony Cabin
                       </h3>
@@ -513,12 +567,9 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       </p>
                     </div>
                     
-                    {/* Vertical Separator */}
-                    <div className="hidden md:block w-px h-16 bg-[#d9d9d9] mx-6"></div>
-                    
-                    {/* Price Block */}
-                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                      <div className="text-right md:-ml-20">
+                    {/* Price and Button Layout - Mobile: side by side at bottom, Desktop: right aligned */}
+                    <div className="flex flex-row md:flex-row items-end md:items-center justify-between md:justify-end gap-4">
+                      <div className="text-left md:text-right">
                         <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                           STARTING FROM
                         </div>
@@ -529,7 +580,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           +$100 onboard credit
                         </div>
                       </div>
-                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors">
+                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors flex-shrink-0">
                         Get quote
                       </button>
                     </div>
@@ -542,14 +593,25 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 <div className="flex flex-col md:flex-row">
                   {/* Cabin Image */}
                   <div className="md:w-48 h-32 md:h-auto flex-shrink-0">
-                    <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
-                      <span className="text-sm">Suite Cabin</span>
-                    </div>
+                    {(() => {
+                      const suiteImage = getCabinImage('suite');
+                      return suiteImage ? (
+                        <img 
+                          src={suiteImage} 
+                          alt="Suite Cabin" 
+                          className="w-full h-full object-cover rounded-l-lg"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
+                          <span className="text-sm">Suite Cabin</span>
+                        </div>
+                      );
+                    })()}
                   </div>
                   
-                  {/* Content */}
-                  <div className="flex-grow flex flex-col md:flex-row items-start md:items-center p-5">
-                    <div className="flex-grow mb-4 md:mb-0">
+                  {/* Content - Mobile Responsive Layout */}
+                  <div className="flex-grow flex flex-col p-5">
+                    <div className="flex-grow mb-4">
                       <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-2">
                         Suite Cabin
                       </h3>
@@ -558,12 +620,9 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       </p>
                     </div>
                     
-                    {/* Vertical Separator */}
-                    <div className="hidden md:block w-px h-16 bg-[#d9d9d9] mx-6"></div>
-                    
-                    {/* Price Block */}
-                    <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                      <div className="text-right md:-ml-20">
+                    {/* Price and Button Layout - Mobile: side by side at bottom, Desktop: right aligned */}
+                    <div className="flex flex-row md:flex-row items-end md:items-center justify-between md:justify-end gap-4">
+                      <div className="text-left md:text-right">
                         <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                           STARTING FROM
                         </div>
@@ -574,7 +633,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           +$150 onboard credit
                         </div>
                       </div>
-                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors">
+                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors flex-shrink-0">
                         Get quote
                       </button>
                     </div>
