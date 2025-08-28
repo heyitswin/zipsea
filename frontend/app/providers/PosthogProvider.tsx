@@ -17,7 +17,6 @@ if (typeof window !== 'undefined') {
     capture_pageleave: true,
     autocapture: true,
     session_recording: {
-      enabled: true,
       maskAllInputs: false,
       maskInputOptions: {
         password: true,

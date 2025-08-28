@@ -43,7 +43,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     
     // Track quote start event
     if (cruiseData?.cruise?.id) {
-      trackQuoteStart(cruiseData.cruise.id, cabinType);
+      trackQuoteStart(String(cruiseData.cruise.id), cabinType);
     }
   };
 
@@ -72,14 +72,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               
               // Track cruise view
               if (!hasTrackedView.current && comprehensiveData.cruise) {
+                const price = comprehensiveData.cheapestPricing?.cheapestPrice 
+                  ? parseFloat(comprehensiveData.cheapestPricing.cheapestPrice) 
+                  : undefined;
+                
                 trackCruiseView({
-                  cruiseId: comprehensiveData.cruise.id,
+                  cruiseId: String(comprehensiveData.cruise.id),
                   cruiseName: comprehensiveData.cruise.name || '',
-                  cruiseLine: comprehensiveData.cruise.cruiseLineName || '',
+                  cruiseLine: comprehensiveData.cruiseLine?.name || '',
                   nights: comprehensiveData.cruise.nights || 0,
                   departureDate: comprehensiveData.cruise.sailingDate || '',
-                  price: comprehensiveData.cruise.cheapestCabinPrice,
-                  destination: comprehensiveData.cruise.destinationName,
+                  price: price,
+                  destination: comprehensiveData.regions?.[0]?.name,
                 });
                 hasTrackedView.current = true;
               }

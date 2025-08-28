@@ -145,7 +145,7 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
         
         trackQuoteSubmit({
           cruiseId: cruiseData?.id || '',
-          cabinType,
+          cabinType: cabinType || '',
           adults: passengers.adults,
           children: passengers.children,
           hasDiscounts: activeDiscounts.length > 0,

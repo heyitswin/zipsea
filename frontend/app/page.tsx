@@ -366,7 +366,7 @@ export default function Home() {
       // Track search event
       trackSearch({
         destination: selectedShip.name,
-        departurePort: selectedShip.homePort,
+        departurePort: undefined, // Ship doesn't have homePort in this interface
         cruiseLine: selectedShip.cruiseLineName,
         dateRange: selectedDate.toISOString().split('T')[0],
         resultsCount: results.length
