@@ -867,7 +867,7 @@ class CruiseController {
         
         // Add exclusion for already used cruise lines
         if (excludedLines.length > 0) {
-          const excludedLinesList = excludedLines.map(name => `'${name.replace(/'/g, "''")}'`).join(', ');
+          const excludedLinesList = excludedLines.map((name: string) => `'${name.replace(/'/g, "''")}'`).join(', ');
           whereClause += ` AND cl.name NOT IN (${excludedLinesList})`;
         }
         
