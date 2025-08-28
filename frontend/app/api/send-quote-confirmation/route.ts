@@ -291,19 +291,26 @@ export async function POST(request: NextRequest) {
       </html>
     `;
 
-    const { data, error } = await resend.emails.send({
-      from: 'ZipSea <quotes@zipsea.com>',
-      to: [userEmail],
-      subject: `Your Cruise Quote Request - ${cruiseData?.name || 'Cruise'} | ZipSea`,
-      html: emailHtml,
-    });
+    // Only send email if Resend is configured
+    if (resend) {
+      const { data, error } = await resend.emails.send({
+        from: 'ZipSea <quotes@zipsea.com>',
+        to: [userEmail],
+        subject: `Your Cruise Quote Request - ${cruiseData?.name || 'Cruise'} | ZipSea`,
+        html: emailHtml,
+      });
 
-    if (error) {
-      console.error('Error sending email:', error);
-      return NextResponse.json({ error: 'Failed to send confirmation email' }, { status: 500 });
+      if (error) {
+        console.error('Error sending email:', error);
+        return NextResponse.json({ error: 'Failed to send confirmation email' }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, messageId: data?.id });
+    } else {
+      // If Resend is not configured, just return success
+      console.log('Resend not configured, skipping email send');
+      return NextResponse.json({ success: true, messageId: 'mock-id' });
     }
-
-    return NextResponse.json({ success: true, messageId: data?.id });
 
   } catch (error) {
     console.error('API error:', error);

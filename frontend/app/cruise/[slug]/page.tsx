@@ -402,7 +402,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   alt={`${ship.name} - Ship`}
                   className="w-full max-w-md rounded-[10px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
                   style={{ height: '400px', aspectRatio: '4/3' }}
-                  onClick={() => handleImageClick(ship.defaultShipImage2k || ship.defaultShipImage)}
+                  onClick={() => {
+                    const imageUrl = ship.defaultShipImage2k || ship.defaultShipImage;
+                    if (imageUrl) handleImageClick(imageUrl);
+                  }}
                 />
               ) : (
                 <div className="w-full max-w-md bg-gray-200 rounded-[10px] flex items-center justify-center text-gray-500"
