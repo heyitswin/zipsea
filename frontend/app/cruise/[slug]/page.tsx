@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { getCruiseBySlug, getComprehensiveCruiseData, getCruiseDetailsById, ComprehensiveCruiseData, Cruise } from '../../../lib/api';
 import { parseCruiseSlug } from '../../../lib/slug';
 import { useAlert } from '../../../components/GlobalAlertProvider';
+import QuoteModal from '../../components/QuoteModal';
 
 interface CruiseDetailPageProps {}
 
@@ -20,9 +21,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [isUsingFallback, setIsUsingFallback] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<number | null>(null);
+  const [quoteModalOpen, setQuoteModalOpen] = useState(false);
+  const [selectedCabinType, setSelectedCabinType] = useState<string>('');
+  const [selectedCabinPrice, setSelectedCabinPrice] = useState<string | number>(0);
 
   const toggleAccordion = (index: number) => {
     setOpenAccordion(openAccordion === index ? null : index);
+  };
+
+  const handleGetQuote = (cabinType: string, price: string | number) => {
+    setSelectedCabinType(cabinType);
+    setSelectedCabinPrice(price);
+    setQuoteModalOpen(true);
   };
 
   useEffect(() => {
@@ -90,9 +100,9 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   }, [slug]);
 
   const formatPrice = (price: string | number | undefined) => {
-    if (!price) return 'N/A';
+    if (!price) return 'Unavailable';
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-    if (isNaN(numPrice)) return 'N/A';
+    if (isNaN(numPrice)) return 'Unavailable';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -114,7 +124,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         timeZone: 'UTC' // Use UTC to avoid timezone conversion issues
       }).toUpperCase();
       // Remove the second comma and convert SEP to SEPT
-      return formatted.replace(/,\s*(\d+),/g, ' $1').replace(/SEP /g, 'SEPT ');
+      return formatted.replace(/(\w{3}),\s*(\w{4})\s*(\d+),\s*(\d{4})/g, '$1, $2 $3 $4').replace(/SEP /g, 'SEPT ');
     } catch {
       return dateString;
     }
@@ -145,6 +155,23 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     } catch {
       return null;
     }
+  };
+
+  // Helper function to check if price is available
+  const isPriceAvailable = (price: string | number | undefined) => {
+    if (!price) return false;
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    return !isNaN(numPrice) && numPrice > 0;
+  };
+
+  // Helper function to calculate onboard credit based on price
+  const calculateOnboardCredit = (price: string | number | undefined) => {
+    if (!isPriceAvailable(price)) return 0;
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    // Calculate 2-3% of the price as onboard credit, rounded to nearest $25
+    const creditPercent = 0.025; // 2.5%
+    const rawCredit = numPrice * creditPercent;
+    return Math.round(rawCredit / 25) * 25; // Round to nearest $25
   };
 
   // Helper function to get cabin image based on cabin type
@@ -462,20 +489,27 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       </p>
                     </div>
                     
-                    {/* Price and Button Layout - Mobile: side by side at bottom, Desktop: right aligned */}
-                    <div className="flex flex-row md:flex-row items-end md:items-center justify-between md:justify-end gap-4">
-                      <div className="text-left md:text-right">
-                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                          STARTING FROM
-                        </div>
-                        <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                          {formatPrice(pricing.interiorPrice)}
-                        </div>
-                        <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                          +$50 onboard credit
+                    {/* Price and Button Layout - All content in single row */}
+                    <div className="flex flex-row items-center justify-between gap-4">
+                      <div className="flex flex-row items-center gap-4 flex-grow">
+                        <div className="text-left">
+                          <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
+                            STARTING FROM
+                          </div>
+                          <div className="font-geograph font-bold text-[24px] text-dark-blue">
+                            {formatPrice(pricing.interiorPrice)}
+                          </div>
+                          {isPriceAvailable(pricing.interiorPrice) && (
+                            <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                              +${calculateOnboardCredit(pricing.interiorPrice)} onboard credit
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors flex-shrink-0">
+                      <button 
+                        onClick={() => handleGetQuote('Interior Cabin', pricing.interiorPrice)}
+                        className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors flex-shrink-0"
+                      >
                         Get quote
                       </button>
                     </div>
@@ -515,20 +549,27 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       </p>
                     </div>
                     
-                    {/* Price and Button Layout - Mobile: side by side at bottom, Desktop: right aligned */}
-                    <div className="flex flex-row md:flex-row items-end md:items-center justify-between md:justify-end gap-4">
-                      <div className="text-left md:text-right">
-                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                          STARTING FROM
-                        </div>
-                        <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                          {formatPrice(pricing.oceanviewPrice)}
-                        </div>
-                        <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                          +$75 onboard credit
+                    {/* Price and Button Layout - All content in single row */}
+                    <div className="flex flex-row items-center justify-between gap-4">
+                      <div className="flex flex-row items-center gap-4 flex-grow">
+                        <div className="text-left">
+                          <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
+                            STARTING FROM
+                          </div>
+                          <div className="font-geograph font-bold text-[24px] text-dark-blue">
+                            {formatPrice(pricing.oceanviewPrice)}
+                          </div>
+                          {isPriceAvailable(pricing.oceanviewPrice) && (
+                            <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                              +${calculateOnboardCredit(pricing.oceanviewPrice)} onboard credit
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors flex-shrink-0">
+                      <button 
+                        onClick={() => handleGetQuote('Outside Cabin', pricing.oceanviewPrice)}
+                        className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors flex-shrink-0"
+                      >
                         Get quote
                       </button>
                     </div>
@@ -568,20 +609,27 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       </p>
                     </div>
                     
-                    {/* Price and Button Layout - Mobile: side by side at bottom, Desktop: right aligned */}
-                    <div className="flex flex-row md:flex-row items-end md:items-center justify-between md:justify-end gap-4">
-                      <div className="text-left md:text-right">
-                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                          STARTING FROM
-                        </div>
-                        <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                          {formatPrice(pricing.balconyPrice)}
-                        </div>
-                        <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                          +$100 onboard credit
+                    {/* Price and Button Layout - All content in single row */}
+                    <div className="flex flex-row items-center justify-between gap-4">
+                      <div className="flex flex-row items-center gap-4 flex-grow">
+                        <div className="text-left">
+                          <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
+                            STARTING FROM
+                          </div>
+                          <div className="font-geograph font-bold text-[24px] text-dark-blue">
+                            {formatPrice(pricing.balconyPrice)}
+                          </div>
+                          {isPriceAvailable(pricing.balconyPrice) && (
+                            <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                              +${calculateOnboardCredit(pricing.balconyPrice)} onboard credit
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors flex-shrink-0">
+                      <button 
+                        onClick={() => handleGetQuote('Balcony Cabin', pricing.balconyPrice)}
+                        className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors flex-shrink-0"
+                      >
                         Get quote
                       </button>
                     </div>
@@ -621,20 +669,27 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       </p>
                     </div>
                     
-                    {/* Price and Button Layout - Mobile: side by side at bottom, Desktop: right aligned */}
-                    <div className="flex flex-row md:flex-row items-end md:items-center justify-between md:justify-end gap-4">
-                      <div className="text-left md:text-right">
-                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                          STARTING FROM
-                        </div>
-                        <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                          {formatPrice(pricing.suitePrice)}
-                        </div>
-                        <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                          +$150 onboard credit
+                    {/* Price and Button Layout - All content in single row */}
+                    <div className="flex flex-row items-center justify-between gap-4">
+                      <div className="flex flex-row items-center gap-4 flex-grow">
+                        <div className="text-left">
+                          <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
+                            STARTING FROM
+                          </div>
+                          <div className="font-geograph font-bold text-[24px] text-dark-blue">
+                            {formatPrice(pricing.suitePrice)}
+                          </div>
+                          {isPriceAvailable(pricing.suitePrice) && (
+                            <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                              +${calculateOnboardCredit(pricing.suitePrice)} onboard credit
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <button className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors flex-shrink-0">
+                      <button 
+                        onClick={() => handleGetQuote('Suite Cabin', pricing.suitePrice)}
+                        className="bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors flex-shrink-0"
+                      >
                         Get quote
                       </button>
                     </div>
@@ -753,6 +808,22 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           className="w-full h-auto block"
         />
       </div>
+
+      {/* Quote Modal */}
+      <QuoteModal
+        isOpen={quoteModalOpen}
+        onClose={() => setQuoteModalOpen(false)}
+        cruiseData={{
+          id: cruise?.id?.toString(),
+          name: cruise?.name || `${ship?.name || 'Unknown Ship'} Cruise`,
+          cruiseLineName: cruiseLine?.name || 'Unknown Cruise Line',
+          shipName: ship?.name || 'Unknown Ship',
+          sailingDate: cruise?.sailingDate,
+          nights: cruise?.nights,
+        }}
+        cabinType={selectedCabinType}
+        cabinPrice={selectedCabinPrice}
+      />
     </div>
   );
 }
