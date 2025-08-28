@@ -295,7 +295,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       )}
 
       {/* Hero Section with New Branded Design */}
-      <div className="bg-purple-obc py-12 px-6 -mt-[60px] md:-mt-[80px] pt-[72px] md:pt-[92px] md:pt-[200px] md:pb-[100px]">
+      <div className="bg-purple-obc py-12 px-6 -mt-[60px] md:-mt-[80px] pt-[200px] md:pb-[100px]">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             {/* Left Side Content */}
@@ -317,7 +317,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   <div className="text-[11px] font-bold font-geograph tracking-[0.1em] text-[#2f2f2f] uppercase mb-1">
                     DEPART
                   </div>
-                  <div className="text-[24px] font-whitney text-dark-blue uppercase" style={{ letterSpacing: '-0.02em' }}>
+                  <div className="text-[24px] font-whitney text-dark-blue uppercase md:leading-normal leading-[1]" style={{ letterSpacing: '-0.02em' }}>
                     {formatDate(cruise.sailingDate)}
                   </div>
                 </div>
@@ -327,7 +327,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   <div className="text-[11px] font-bold font-geograph tracking-[0.1em] text-[#2f2f2f] uppercase mb-1">
                     RETURN
                   </div>
-                  <div className="text-[24px] font-whitney text-dark-blue uppercase" style={{ letterSpacing: '-0.02em' }}>
+                  <div className="text-[24px] font-whitney text-dark-blue uppercase md:leading-normal leading-[1]" style={{ letterSpacing: '-0.02em' }}>
                     {(() => {
                       const returnDateFromDb = cruise.returnDate;
                       const calculatedReturnDate = calculateReturnDate(cruise.sailingDate, cruise.nights);
@@ -342,7 +342,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   <div className="text-[11px] font-bold font-geograph tracking-[0.1em] text-[#2f2f2f] uppercase mb-1">
                     DEPARTURE PORT
                   </div>
-                  <div className="text-[24px] font-whitney text-dark-blue uppercase" style={{ letterSpacing: '-0.02em' }}>
+                  <div className="text-[24px] font-whitney text-dark-blue uppercase md:leading-normal leading-[1]" style={{ letterSpacing: '-0.02em' }}>
                     {embarkPort?.name || 'N/A'}
                   </div>
                 </div>
@@ -352,7 +352,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   <div className="text-[11px] font-bold font-geograph tracking-[0.1em] text-[#2f2f2f] uppercase mb-1">
                     NIGHTS
                   </div>
-                  <div className="text-[24px] font-whitney text-dark-blue uppercase" style={{ letterSpacing: '-0.02em' }}>
+                  <div className="text-[24px] font-whitney text-dark-blue uppercase md:leading-normal leading-[1]" style={{ letterSpacing: '-0.02em' }}>
                     {cruise.nights} NIGHTS
                   </div>
                 </div>
@@ -365,11 +365,12 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 <img 
                   src={ship.defaultShipImage2k || ship.defaultShipImage}
                   alt={`${ship.name} - Ship`}
-                  className="w-full max-w-md h-auto rounded-[10px] object-cover"
-                  style={{ maxHeight: '400px' }}
+                  className="w-full max-w-md rounded-[10px] object-cover"
+                  style={{ height: '400px', aspectRatio: '4/3' }}
                 />
               ) : (
-                <div className="w-full max-w-md h-64 bg-gray-200 rounded-[10px] flex items-center justify-center text-gray-500">
+                <div className="w-full max-w-md bg-gray-200 rounded-[10px] flex items-center justify-center text-gray-500"
+                     style={{ height: '400px', aspectRatio: '4/3' }}>
                   No Ship Image Available
                 </div>
               )}
@@ -430,20 +431,20 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             
             <div className="space-y-4">
               {/* Interior Cabin Card */}
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-t-lg rounded-b-none md:rounded-lg border border-gray-200 overflow-hidden">
                 <div className="flex flex-col md:flex-row">
                   {/* Cabin Image */}
-                  <div className="md:w-48 h-32 md:h-auto flex-shrink-0">
+                  <div className="md:w-48 md:h-auto flex-shrink-0" style={{ height: '128px' }}>
                     {(() => {
                       const interiorImage = getCabinImage('interior');
                       return interiorImage ? (
                         <img 
                           src={interiorImage} 
                           alt="Interior Cabin" 
-                          className="w-full h-full object-cover rounded-l-lg"
+                          className="w-full h-full object-cover md:rounded-l-lg rounded-t-lg md:rounded-t-none"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
+                        <div className="w-full h-full bg-gray-200 md:rounded-l-lg rounded-t-lg md:rounded-t-none flex items-center justify-center text-gray-500">
                           <span className="text-sm">Interior Cabin</span>
                         </div>
                       );
@@ -483,20 +484,20 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               </div>
               
               {/* Outside Cabin Card */}
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-t-lg rounded-b-none md:rounded-lg border border-gray-200 overflow-hidden">
                 <div className="flex flex-col md:flex-row">
                   {/* Cabin Image */}
-                  <div className="md:w-48 h-32 md:h-auto flex-shrink-0">
+                  <div className="md:w-48 md:h-auto flex-shrink-0" style={{ height: '128px' }}>
                     {(() => {
                       const oceanviewImage = getCabinImage('oceanview');
                       return oceanviewImage ? (
                         <img 
                           src={oceanviewImage} 
                           alt="Outside Cabin" 
-                          className="w-full h-full object-cover rounded-l-lg"
+                          className="w-full h-full object-cover md:rounded-l-lg rounded-t-lg md:rounded-t-none"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
+                        <div className="w-full h-full bg-gray-200 md:rounded-l-lg rounded-t-lg md:rounded-t-none flex items-center justify-center text-gray-500">
                           <span className="text-sm">Outside Cabin</span>
                         </div>
                       );
@@ -536,20 +537,20 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               </div>
               
               {/* Balcony Cabin Card */}
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-t-lg rounded-b-none md:rounded-lg border border-gray-200 overflow-hidden">
                 <div className="flex flex-col md:flex-row">
                   {/* Cabin Image */}
-                  <div className="md:w-48 h-32 md:h-auto flex-shrink-0">
+                  <div className="md:w-48 md:h-auto flex-shrink-0" style={{ height: '128px' }}>
                     {(() => {
                       const balconyImage = getCabinImage('balcony');
                       return balconyImage ? (
                         <img 
                           src={balconyImage} 
                           alt="Balcony Cabin" 
-                          className="w-full h-full object-cover rounded-l-lg"
+                          className="w-full h-full object-cover md:rounded-l-lg rounded-t-lg md:rounded-t-none"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
+                        <div className="w-full h-full bg-gray-200 md:rounded-l-lg rounded-t-lg md:rounded-t-none flex items-center justify-center text-gray-500">
                           <span className="text-sm">Balcony Cabin</span>
                         </div>
                       );
@@ -589,20 +590,20 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               </div>
               
               {/* Suite Cabin Card */}
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-t-lg rounded-b-none md:rounded-lg border border-gray-200 overflow-hidden">
                 <div className="flex flex-col md:flex-row">
                   {/* Cabin Image */}
-                  <div className="md:w-48 h-32 md:h-auto flex-shrink-0">
+                  <div className="md:w-48 md:h-auto flex-shrink-0" style={{ height: '128px' }}>
                     {(() => {
                       const suiteImage = getCabinImage('suite');
                       return suiteImage ? (
                         <img 
                           src={suiteImage} 
                           alt="Suite Cabin" 
-                          className="w-full h-full object-cover rounded-l-lg"
+                          className="w-full h-full object-cover md:rounded-l-lg rounded-t-lg md:rounded-t-none"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gray-200 rounded-l-lg flex items-center justify-center text-gray-500">
+                        <div className="w-full h-full bg-gray-200 md:rounded-l-lg rounded-t-lg md:rounded-t-none flex items-center justify-center text-gray-500">
                           <span className="text-sm">Suite Cabin</span>
                         </div>
                       );
