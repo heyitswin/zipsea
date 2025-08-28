@@ -856,58 +856,42 @@ class CruiseController {
       // If we don't have 6 deals yet, fill with other cruises
       if (deals.length < 6) {
         const excludedLines = Array.from(usedCruiseLines);
-        const remainingDeals = excludedLines.length > 0 
-          ? await sql`
-              SELECT 
-                c.id,
-                c.cruise_id,
-                c.name,
-                s.name as ship_name,
-                cl.name as cruise_line_name,
-                c.nights,
-                c.sailing_date,
-                ep.name as embark_port_name,
-                cp.cheapest_price as cheapest_pricing,
-                s.default_ship_image as ship_image
-              FROM cruises c
-              LEFT JOIN ships s ON c.ship_id = s.id
-              LEFT JOIN cruise_lines cl ON s.cruise_line_id = cl.id
-              LEFT JOIN ports ep ON c.embarkation_port_id = ep.id
-              LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
-              WHERE 
-                c.is_active = true 
-                AND c.sailing_date >= ${formattedDate}
-                AND cp.cheapest_price IS NOT NULL
-                AND cp.cheapest_price <= 5000
-                AND cl.name != ALL(${excludedLines})
-              ORDER BY c.sailing_date ASC
-              LIMIT ${6 - deals.length}
-            `
-          : await sql`
-              SELECT 
-                c.id,
-                c.cruise_id,
-                c.name,
-                s.name as ship_name,
-                cl.name as cruise_line_name,
-                c.nights,
-                c.sailing_date,
-                ep.name as embark_port_name,
-                cp.cheapest_price as cheapest_pricing,
-                s.default_ship_image as ship_image
-              FROM cruises c
-              LEFT JOIN ships s ON c.ship_id = s.id
-              LEFT JOIN cruise_lines cl ON s.cruise_line_id = cl.id
-              LEFT JOIN ports ep ON c.embarkation_port_id = ep.id
-              LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
-              WHERE 
-                c.is_active = true 
-                AND c.sailing_date >= ${formattedDate}
-                AND cp.cheapest_price IS NOT NULL
-                AND cp.cheapest_price <= 5000
-              ORDER BY c.sailing_date ASC
-              LIMIT ${6 - deals.length}
-            `;
+        
+        // Build the WHERE clause conditionally
+        let whereClause = `
+          c.is_active = true 
+          AND c.sailing_date >= '${formattedDate}'
+          AND cp.cheapest_price IS NOT NULL
+          AND cp.cheapest_price <= 5000
+        `;
+        
+        // Add exclusion for already used cruise lines
+        if (excludedLines.length > 0) {
+          const excludedLinesList = excludedLines.map(name => `'${name.replace(/'/g, "''")}'`).join(', ');
+          whereClause += ` AND cl.name NOT IN (${excludedLinesList})`;
+        }
+        
+        const remainingDeals = await sql.unsafe(`
+          SELECT 
+            c.id,
+            c.cruise_id,
+            c.name,
+            s.name as ship_name,
+            cl.name as cruise_line_name,
+            c.nights,
+            c.sailing_date,
+            ep.name as embark_port_name,
+            cp.cheapest_price as cheapest_pricing,
+            s.default_ship_image as ship_image
+          FROM cruises c
+          LEFT JOIN ships s ON c.ship_id = s.id
+          LEFT JOIN cruise_lines cl ON s.cruise_line_id = cl.id
+          LEFT JOIN ports ep ON c.embarkation_port_id = ep.id
+          LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
+          WHERE ${whereClause}
+          ORDER BY c.sailing_date ASC
+          LIMIT ${6 - deals.length}
+        `);
 
         for (const deal of remainingDeals) {
           deals.push({
