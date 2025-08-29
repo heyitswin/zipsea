@@ -2,7 +2,7 @@
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { fetchShips, Ship } from "../../lib/api";
+import { fetchShips, Ship, fetchAvailableSailingDates, AvailableSailingDate } from "../../lib/api";
 import { useAlert } from "../../components/GlobalAlertProvider";
 import { useUser } from "../hooks/useClerkHooks";
 import { SignOutButton } from '@clerk/nextjs';
@@ -64,6 +64,10 @@ export default function Navigation({
   const [internalDateValue, setInternalDateValue] = useState("");
   const [internalSelectedDate, setInternalSelectedDate] = useState<Date | null>(null);
   
+  // Available sailing dates states
+  const [availableSailingDates, setAvailableSailingDates] = useState<AvailableSailingDate[]>([]);
+  const [isLoadingSailingDates, setIsLoadingSailingDates] = useState(false);
+  
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -79,6 +83,21 @@ export default function Navigation({
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Load available sailing dates for a ship
+  const loadAvailableSailingDates = async (shipId: number) => {
+    try {
+      setIsLoadingSailingDates(true);
+      const dates = await fetchAvailableSailingDates(shipId);
+      setAvailableSailingDates(dates);
+    } catch (err) {
+      console.error('Failed to load available sailing dates:', err);
+      // Don't show alert for this - it's not critical, just disable smart filtering
+      setAvailableSailingDates([]);
+    } finally {
+      setIsLoadingSailingDates(false);
+    }
+  };
 
   // Load ships on component mount
   useEffect(() => {
@@ -282,6 +301,9 @@ export default function Navigation({
       setIsDropdownClosing(false);
     }, 150);
     inputRef.current?.blur();
+    
+    // Load available sailing dates for the selected ship
+    loadAvailableSailingDates(ship.id);
   };
 
   // Date picker handlers
@@ -365,6 +387,31 @@ export default function Navigation({
     return date < today;
   };
 
+  // Check if a date has available sailings for the selected ship
+  const hasAvailableSailing = (date: Date) => {
+    const currentShip = getCurrentSelectedShip();
+    if (!currentShip || availableSailingDates.length === 0) {
+      return true; // If no ship selected or no data, don't restrict
+    }
+    
+    const dateString = date.toISOString().split('T')[0];
+    return availableSailingDates.some(sailingDate => {
+      return sailingDate.sailingDates.some(sailing => {
+        const sailingDateOnly = sailing.split('T')[0];
+        return sailingDateOnly === dateString;
+      });
+    });
+  };
+
+  // Check if a date should be highlighted (has sailings)
+  const isHighlightedDate = (date: Date) => {
+    const currentShip = getCurrentSelectedShip();
+    if (!currentShip || availableSailingDates.length === 0) {
+      return false; // Don't highlight if no ship selected
+    }
+    return hasAvailableSailing(date) && !isDateInPast(date);
+  };
+
   const generateCalendarDays = () => {
     const daysInMonth = getDaysInMonth(currentMonth);
     const firstDayOfMonth = getFirstDayOfMonth(currentMonth);
@@ -414,7 +461,7 @@ export default function Navigation({
   return (
     <>
       <nav 
-        className={`fixed top-0 left-0 right-0 z-50 py-[8px] md:py-[20px] px-[28px] transition-all duration-300 ease-in-out h-[60px] md:h-auto ${
+        className={`fixed top-0 left-0 right-0 z-50 py-[12px] md:py-[20px] px-[28px] transition-all duration-300 ease-in-out h-[64px] md:h-auto ${
           isScrolled ? 'bg-white shadow-lg' : 'bg-transparent'
         }`}
       >
@@ -628,7 +675,7 @@ export default function Navigation({
           }`}
           style={{ 
             boxShadow: '0px 1px 14px rgba(0, 0, 0, 0.25)',
-            top: '60px',
+            top: '64px',
             left: '166px',
             width: '300px',
             position: 'fixed'
@@ -673,7 +720,7 @@ export default function Navigation({
           }`}
           style={{ 
             boxShadow: '0px 1px 14px rgba(0, 0, 0, 0.25)',
-            top: '60px',
+            top: '64px',
             left: '466px',
             position: 'fixed'
           }}
@@ -732,24 +779,31 @@ export default function Navigation({
 
                 const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
                 const isPast = isDateInPast(date);
+                const hasAvailable = hasAvailableSailing(date);
+                const isHighlighted = isHighlightedDate(date);
                 const currentSelectedDate = getCurrentSelectedDate();
                 const isSelected = currentSelectedDate && 
                   date.getDate() === currentSelectedDate.getDate() &&
                   date.getMonth() === currentSelectedDate.getMonth() &&
                   date.getFullYear() === currentSelectedDate.getFullYear();
+                
+                const isDisabled = isPast || (getCurrentSelectedShip() && !hasAvailable);
 
                 return (
                   <button
                     key={index}
-                    onClick={() => handleDateSelect(date)}
+                    onClick={() => !isDisabled && handleDateSelect(date)}
                     className={`w-[51px] h-[51px] flex items-center justify-center text-[16px] rounded-full transition-all ${
-                      isPast 
-                        ? 'text-gray-400 font-normal cursor-not-allowed' 
+                      isDisabled
+                        ? 'text-gray-400 font-normal cursor-not-allowed opacity-50' 
                         : 'text-dark-blue font-medium hover:bg-light-blue hover:bg-opacity-20 cursor-pointer'
                     } ${
                       isSelected ? 'bg-light-blue text-white' : ''
+                    } ${
+                      isHighlighted && !isSelected ? 'bg-green-100 border-2 border-green-500' : ''
                     }`}
-                    disabled={isPast}
+                    disabled={isDisabled}
+                    title={getCurrentSelectedShip() && !hasAvailable && !isPast ? 'No sailings available on this date' : ''}
                   >
                     {day}
                   </button>

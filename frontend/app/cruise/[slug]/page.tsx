@@ -387,7 +387,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       )}
 
       {/* Hero Section with New Branded Design */}
-      <div className="bg-purple-obc py-12 px-6 -mt-[60px] md:-mt-[80px] pt-[200px] md:pb-[100px]">
+      <div className="bg-purple-obc py-12 px-6 -mt-[60px] md:-mt-[80px] pt-[180px] md:pt-[200px] md:pb-[100px]">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-2 gap-4 md:gap-6 items-center">
             {/* Left Side Content */}
@@ -476,13 +476,15 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       </div>
       
       {/* Section Separator */}
-      <div className="w-full">
-        <img 
-          src="/images/separator-4.png" 
-          alt="Section Separator" 
-          className="w-full h-auto block"
-        />
-      </div>
+      <div 
+        className="w-full h-[21px]"
+        style={{
+          backgroundImage: 'url("/images/separator-4.png")',
+          backgroundRepeat: 'repeat-x',
+          backgroundSize: '1749px 21px',
+          backgroundPosition: 'left top'
+        }}
+      />
 
       {/* Body Section - Updated background and styling */}
       <div className="bg-sand py-16">
@@ -888,13 +890,15 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       )}
 
       {/* Footer Separator */}
-      <div className="w-full">
-        <img 
-          src="/images/separator-3.png" 
-          alt="Section Separator" 
-          className="w-full h-auto block"
-        />
-      </div>
+      <div 
+        className="w-full h-[21px]"
+        style={{
+          backgroundImage: 'url("/images/separator-3.png")',
+          backgroundRepeat: 'repeat-x',
+          backgroundSize: '1749px 21px',
+          backgroundPosition: 'left top'
+        }}
+      />
 
       {/* Quote Modal */}
       <QuoteModalNative

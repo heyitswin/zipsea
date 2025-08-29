@@ -2,7 +2,7 @@
 import OptimizedImage from "../lib/OptimizedImage";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from 'next/navigation';
-import { fetchShips, Ship, searchCruises, Cruise, fetchLastMinuteDeals, LastMinuteDeals } from "../lib/api";
+import { fetchShips, Ship, searchCruises, Cruise, fetchLastMinuteDeals, LastMinuteDeals, fetchAvailableSailingDates, AvailableSailingDate } from "../lib/api";
 import { createSlugFromCruise } from "../lib/slug";
 import { useAlert } from "../components/GlobalAlertProvider";
 import Navigation from "./components/Navigation";
@@ -38,16 +38,34 @@ export default function Home() {
   const [lastMinuteDeals, setLastMinuteDeals] = useState<LastMinuteDeals[]>([]);
   const [isLoadingDeals, setIsLoadingDeals] = useState(false);
   
+  // Available sailing dates states
+  const [availableSailingDates, setAvailableSailingDates] = useState<AvailableSailingDate[]>([]);
+  const [isLoadingSailingDates, setIsLoadingSailingDates] = useState(false);
+  
 
   // Handle post-authentication redirects
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const redirectUrl = sessionStorage.getItem('redirectAfterSignIn');
+      const hasPendingQuote = sessionStorage.getItem('pendingQuote');
+      
       if (redirectUrl && redirectUrl !== '/' && redirectUrl !== window.location.pathname) {
         // Clear the redirect URL and navigate to the stored path
         sessionStorage.removeItem('redirectAfterSignIn');
-        router.replace(redirectUrl);
+        
+        // Add a small delay to ensure the redirect works properly
+        setTimeout(() => {
+          router.replace(redirectUrl);
+        }, 100);
         return;
+      }
+      
+      // If we're on the homepage but have a pending quote, it means we came back from auth
+      // but the redirect URL was the homepage, so we should stay here
+      if (hasPendingQuote && window.location.pathname === '/') {
+        console.log('User returned to homepage after auth with pending quote');
+        // The quote processing will be handled by the QuoteModalNative component
+        // if they open a quote modal again
       }
     }
   }, [router]);
@@ -92,6 +110,21 @@ export default function Home() {
 
     loadLastMinuteDeals();
   }, []);
+
+  // Load available sailing dates for a ship
+  const loadAvailableSailingDates = async (shipId: number) => {
+    try {
+      setIsLoadingSailingDates(true);
+      const dates = await fetchAvailableSailingDates(shipId);
+      setAvailableSailingDates(dates);
+    } catch (err) {
+      console.error('Failed to load available sailing dates:', err);
+      // Don't show alert for this - it's not critical, just disable smart filtering
+      setAvailableSailingDates([]);
+    } finally {
+      setIsLoadingSailingDates(false);
+    }
+  };
 
 
   // Filter ships based on search input
@@ -234,6 +267,9 @@ export default function Home() {
       setIsDropdownClosing(false);
     }, 150);
     inputRef.current?.blur();
+    
+    // Load available sailing dates for the selected ship
+    loadAvailableSailingDates(ship.id);
   };
 
   // Date picker handlers
@@ -318,6 +354,29 @@ export default function Home() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return date < today;
+  };
+
+  // Check if a date has available sailings for the selected ship
+  const hasAvailableSailing = (date: Date) => {
+    if (!selectedShip || availableSailingDates.length === 0) {
+      return true; // If no ship selected or no data, don't restrict
+    }
+    
+    const dateString = date.toISOString().split('T')[0];
+    return availableSailingDates.some(sailingDate => {
+      return sailingDate.sailingDates.some(sailing => {
+        const sailingDateOnly = sailing.split('T')[0];
+        return sailingDateOnly === dateString;
+      });
+    });
+  };
+
+  // Check if a date should be highlighted (has sailings)
+  const isHighlightedDate = (date: Date) => {
+    if (!selectedShip || availableSailingDates.length === 0) {
+      return false; // Don't highlight if no ship selected
+    }
+    return hasAvailableSailing(date) && !isDateInPast(date);
   };
 
   const generateCalendarDays = () => {
@@ -416,7 +475,7 @@ export default function Home() {
       />
 
       {/* Hero Section */}
-      <section className="relative h-[720px] bg-light-blue pt-[100px] pb-[50px] md:pb-[100px] overflow-visible z-20">
+      <section className="relative h-[720px] bg-light-blue pt-[120px] md:pt-[100px] pb-[50px] md:pb-[100px] overflow-visible z-20">
         {/* Floating Swimmers - Behind all content - Hidden on mobile */}
         <div className="absolute inset-0 z-0 hidden md:block">
           {/* Swimmer 1 */}
@@ -722,23 +781,30 @@ export default function Home() {
 
                       const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
                       const isPast = isDateInPast(date);
+                      const hasAvailable = hasAvailableSailing(date);
+                      const isHighlighted = isHighlightedDate(date);
                       const isSelected = selectedDate && 
                         date.getDate() === selectedDate.getDate() &&
                         date.getMonth() === selectedDate.getMonth() &&
                         date.getFullYear() === selectedDate.getFullYear();
+                      
+                      const isDisabled = isPast || (selectedShip && !hasAvailable);
 
                       return (
                         <button
                           key={index}
-                          onClick={() => handleDateSelect(date)}
+                          onClick={() => !isDisabled && handleDateSelect(date)}
                           className={`w-[51px] h-[51px] flex items-center justify-center text-[16px] rounded-full transition-all ${
-                            isPast 
-                              ? 'text-gray-400 font-normal cursor-not-allowed' 
+                            isDisabled
+                              ? 'text-gray-400 font-normal cursor-not-allowed opacity-50' 
                               : 'text-dark-blue font-medium hover:bg-light-blue hover:bg-opacity-20 cursor-pointer'
                           } ${
                             isSelected ? 'bg-light-blue text-white' : ''
+                          } ${
+                            isHighlighted && !isSelected ? 'bg-green-100 border-2 border-green-500' : ''
                           }`}
-                          disabled={isPast}
+                          disabled={isDisabled}
+                          title={selectedShip && !hasAvailable && !isPast ? 'No sailings available on this date' : ''}
                         >
                           {day}
                         </button>
@@ -756,7 +822,7 @@ export default function Home() {
 
       {/* Separator Image */}
       <div 
-        className="w-full h-[21px]"
+        className="w-full h-[21px] -mt-[10px] md:mt-0"
         style={{
           backgroundImage: 'url("/images/separator-1.png")',
           backgroundRepeat: 'repeat-x',

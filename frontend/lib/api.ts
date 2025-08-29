@@ -483,3 +483,42 @@ export async function fetchLastMinuteDeals(): Promise<LastMinuteDeals[]> {
     throw error;
   }
 }
+
+export interface AvailableSailingDate {
+  date: string;
+  cruiseCount: number;
+  sailingDates: string[];
+}
+
+export interface AvailableSailingDatesResponse {
+  dates: AvailableSailingDate[];
+  total: number;
+}
+
+export async function fetchAvailableSailingDates(shipId: number): Promise<AvailableSailingDate[]> {
+  try {
+    const url = new URL(`${API_BASE_URL}/cruises/available-dates`);
+    url.searchParams.set('shipId', shipId.toString());
+    
+    const response = await fetch(url.toString(), {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result: ApiResponse<AvailableSailingDatesResponse> = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.error?.message || 'Failed to fetch available sailing dates');
+    }
+    
+    return result.data.dates;
+  } catch (error) {
+    console.error('Error fetching available sailing dates:', error);
+    throw error;
+  }
+}

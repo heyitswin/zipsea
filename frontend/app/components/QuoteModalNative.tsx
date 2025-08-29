@@ -136,8 +136,10 @@ export default function QuoteModalNative({ isOpen, onClose, cruiseData, cabinTyp
           
           console.log('Processing pending quote after sign-in:', quoteData);
           
-          // Submit the pending quote
-          submitQuote(quoteData);
+          // Submit the pending quote - use a timeout to ensure modal is properly mounted
+          setTimeout(() => {
+            submitQuote(quoteData);
+          }, 100);
         } catch (error) {
           console.error('Error processing pending quote:', error);
           sessionStorage.removeItem('pendingQuote');
@@ -145,6 +147,28 @@ export default function QuoteModalNative({ isOpen, onClose, cruiseData, cabinTyp
       }
     }
   }, [isLoaded, isSignedIn, user, submitQuote]);
+  
+  // Additional effect to handle pending quotes when the modal opens
+  useEffect(() => {
+    if (isOpen && isLoaded && isSignedIn && user && typeof window !== 'undefined') {
+      const pendingQuote = sessionStorage.getItem('pendingQuote');
+      if (pendingQuote) {
+        try {
+          const quoteData = JSON.parse(pendingQuote);
+          // Update email with the signed-in user's email
+          quoteData.userEmail = user.emailAddresses[0]?.emailAddress;
+          
+          console.log('Processing pending quote when modal opens:', quoteData);
+          
+          // Submit the pending quote immediately when modal is open
+          submitQuote(quoteData);
+        } catch (error) {
+          console.error('Error processing pending quote when modal opens:', error);
+          sessionStorage.removeItem('pendingQuote');
+        }
+      }
+    }
+  }, [isOpen, isLoaded, isSignedIn, user, submitQuote]);
 
   if (!isOpen) return null;
 
@@ -454,7 +478,6 @@ export default function QuoteModalNative({ isOpen, onClose, cruiseData, cabinTyp
           ) : (
             <SignInButton 
               mode="modal"
-              redirectUrl={typeof window !== 'undefined' ? window.location.href : undefined}
             >
               <button
                 onClick={handleGetFinalQuotes}
