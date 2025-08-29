@@ -35,8 +35,9 @@ export default function ClerkProviderWrapper({ children }: ClerkProviderWrapperP
         publishableKey={publishableKey}
         signInUrl="/sign-in"
         signUpUrl="/sign-up"
-        signInFallbackRedirectUrl="/"
-        signUpFallbackRedirectUrl="/"
+        // Remove fallback redirect URLs to allow dynamic redirects
+        afterSignInUrl={process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL}
+        afterSignUpUrl={process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL}
       >
         {children}
       </ClerkProvider>

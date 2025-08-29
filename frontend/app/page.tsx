@@ -39,6 +39,19 @@ export default function Home() {
   const [isLoadingDeals, setIsLoadingDeals] = useState(false);
   
 
+  // Handle post-authentication redirects
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const redirectUrl = sessionStorage.getItem('redirectAfterSignIn');
+      if (redirectUrl && redirectUrl !== '/' && redirectUrl !== window.location.pathname) {
+        // Clear the redirect URL and navigate to the stored path
+        sessionStorage.removeItem('redirectAfterSignIn');
+        router.replace(redirectUrl);
+        return;
+      }
+    }
+  }, [router]);
+
   // Load ships on component mount
   useEffect(() => {
     const loadShips = async () => {

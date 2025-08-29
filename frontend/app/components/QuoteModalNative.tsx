@@ -81,6 +81,9 @@ export default function QuoteModalNative({ isOpen, onClose, cruiseData, cabinTyp
       });
 
       if (response.ok) {
+        const result = await response.json();
+        console.log('Quote submission result:', result);
+        
         // Track successful submission
         const activeDiscounts = Object.entries(data.discounts || {})
           .filter(([key, value]) => value && key !== 'stateOfResidence' && key !== 'loyaltyNumber')
@@ -100,12 +103,19 @@ export default function QuoteModalNative({ isOpen, onClose, cruiseData, cabinTyp
           estimatedPrice: typeof data.cabinPrice === 'string' ? parseFloat(data.cabinPrice) : data.cabinPrice
         });
         
-        showAlert('Quote request submitted! We\'ll email you as soon as your quote is ready.');
+        // Show success message with details about what worked
+        let message = 'Quote request submitted! We\'ll email you as soon as your quote is ready.';
+        if (result.details && (!result.details.emailSent || !result.details.slackSent)) {
+          message += ' (Some notifications may be delayed)';
+        }
+        showAlert(message);
         onClose();
         
         // Clear the pending quote from sessionStorage
         sessionStorage.removeItem('pendingQuote');
       } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Quote submission failed:', errorData);
         showAlert('There was an error submitting your quote request. Please try again.');
       }
     } catch (error) {
@@ -195,7 +205,9 @@ export default function QuoteModalNative({ isOpen, onClose, cruiseData, cabinTyp
       // Save quote data to sessionStorage - it will be submitted after sign-in
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('pendingQuote', JSON.stringify(quoteData));
-        console.log('Saving pending quote for after sign-in');
+        // Save current URL to redirect back after sign-in
+        sessionStorage.setItem('redirectAfterSignIn', window.location.pathname + window.location.search);
+        console.log('Saving pending quote and current URL for after sign-in');
       }
       // The SignInButton will handle showing the modal
       return;
@@ -440,7 +452,10 @@ export default function QuoteModalNative({ isOpen, onClose, cruiseData, cabinTyp
               Get final quotes
             </button>
           ) : (
-            <SignInButton mode="modal">
+            <SignInButton 
+              mode="modal"
+              redirectUrl={typeof window !== 'undefined' ? window.location.href : undefined}
+            >
               <button
                 onClick={handleGetFinalQuotes}
                 className="w-full bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-6 py-4 rounded-full hover:bg-[#2f7ddd]/90 transition-colors"

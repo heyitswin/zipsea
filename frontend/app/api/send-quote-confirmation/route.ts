@@ -17,7 +17,9 @@ export async function POST(request: NextRequest) {
       cruiseId: cruiseData?.id,
       cabinType,
       passengers,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      hasSlackUrl: !!process.env.SLACK_WEBHOOK_URL && process.env.SLACK_WEBHOOK_URL !== 'your_slack_webhook_url_here',
+      hasResendKey: !!process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'your_resend_api_key_here'
     });
 
     if (!userEmail) {
@@ -70,6 +72,7 @@ export async function POST(request: NextRequest) {
     try {
       const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
       if (slackWebhookUrl && slackWebhookUrl !== 'your_slack_webhook_url_here') {
+        console.log('Attempting to send Slack notification...');
         const slackResult = await sendSlackQuoteNotification({
           userEmail,
           cruiseData,
@@ -85,6 +88,8 @@ export async function POST(request: NextRequest) {
         if (slackResult?.success) {
           slackSent = true;
           console.log('Slack notification sent successfully');
+        } else {
+          console.error('Slack notification failed:', slackResult);
         }
       } else {
         console.log('Slack webhook not configured, skipping notification');
@@ -137,6 +142,7 @@ export async function POST(request: NextRequest) {
     // Send email if Resend is configured
     if (resend) {
       try {
+        console.log('Attempting to send confirmation email...');
         const emailHtml = `
           <!DOCTYPE html>
           <html>
