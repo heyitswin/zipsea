@@ -3,9 +3,21 @@ import { Resend } from 'resend';
 import { sendSlackQuoteNotification } from '../../../lib/slack';
 
 const resendApiKey = process.env.RESEND_API_KEY;
-const resend = resendApiKey && resendApiKey !== 'your_resend_api_key_here' 
+const resend = resendApiKey && resendApiKey !== 'your_resend_api_key_here' && resendApiKey.trim() !== ''
   ? new Resend(resendApiKey) 
   : null;
+
+// Log email configuration status
+if (resend) {
+  console.log('Email service initialized successfully with Resend');
+} else {
+  console.log('Email service disabled:', {
+    hasKey: !!resendApiKey,
+    keyLength: resendApiKey?.length || 0,
+    isPlaceholder: resendApiKey === 'your_resend_api_key_here',
+    isEmpty: resendApiKey?.trim() === ''
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -142,7 +154,7 @@ export async function POST(request: NextRequest) {
     // Send email if Resend is configured
     if (resend) {
       try {
-        console.log('Attempting to send confirmation email...');
+        console.log('Attempting to send confirmation email to:', userEmail);
         const emailHtml = `
           <!DOCTYPE html>
           <html>
@@ -339,17 +351,21 @@ export async function POST(request: NextRequest) {
         });
 
         if (error) {
-          console.error('Resend error:', error);
+          console.error('Resend API error:', error);
+          console.error('Error details:', {
+            name: error.name,
+            message: error.message
+          });
         } else {
           emailSent = true;
-          console.log('Email sent successfully:', data?.id);
+          console.log('Email sent successfully! Resend ID:', data?.id);
         }
       } catch (error) {
-        console.error('Error sending email:', error);
+        console.error('Error sending email via Resend:', error);
         // Continue - email is optional
       }
     } else {
-      console.log('Resend not configured, skipping email');
+      console.log('Email service not configured - emails disabled. Configure RESEND_API_KEY to enable email confirmations.');
     }
 
     // Return success if at least we logged the request

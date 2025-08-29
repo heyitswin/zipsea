@@ -506,19 +506,33 @@ export async function fetchAvailableSailingDates(shipId: number): Promise<Availa
       },
     });
     
+    // Handle common error cases
+    if (response.status === 400) {
+      console.warn(`Available sailing dates API returned 400 for shipId ${shipId}. This feature may not be implemented on the backend yet.`);
+      return []; // Return empty array instead of throwing
+    }
+    
+    if (response.status === 404) {
+      console.warn(`Available sailing dates endpoint not found. This feature may not be implemented on the backend yet.`);
+      return []; // Return empty array instead of throwing
+    }
+    
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      console.warn(`Available sailing dates API error: ${response.status}. Disabling smart date filtering.`);
+      return []; // Return empty array instead of throwing
     }
     
     const result: ApiResponse<AvailableSailingDatesResponse> = await response.json();
     
     if (!result.success) {
-      throw new Error(result.error?.message || 'Failed to fetch available sailing dates');
+      console.warn(`Available sailing dates API returned error: ${result.error?.message}. Disabling smart date filtering.`);
+      return []; // Return empty array instead of throwing
     }
     
+    console.log(`Successfully loaded ${result.data.dates.length} available sailing dates for ship ${shipId}`);
     return result.data.dates;
   } catch (error) {
-    console.error('Error fetching available sailing dates:', error);
-    throw error;
+    console.warn('Available sailing dates feature unavailable:', error);
+    return []; // Return empty array instead of throwing
   }
 }

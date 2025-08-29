@@ -113,17 +113,10 @@ export default function Home() {
 
   // Load available sailing dates for a ship
   const loadAvailableSailingDates = async (shipId: number) => {
-    try {
-      setIsLoadingSailingDates(true);
-      const dates = await fetchAvailableSailingDates(shipId);
-      setAvailableSailingDates(dates);
-    } catch (err) {
-      console.error('Failed to load available sailing dates:', err);
-      // Don't show alert for this - it's not critical, just disable smart filtering
-      setAvailableSailingDates([]);
-    } finally {
-      setIsLoadingSailingDates(false);
-    }
+    setIsLoadingSailingDates(true);
+    const dates = await fetchAvailableSailingDates(shipId);
+    setAvailableSailingDates(dates);
+    setIsLoadingSailingDates(false);
   };
 
 
