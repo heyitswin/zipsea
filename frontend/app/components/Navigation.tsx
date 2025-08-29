@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { fetchShips, Ship, fetchAvailableSailingDates, AvailableSailingDate } from "../../lib/api";
 import { useAlert } from "../../components/GlobalAlertProvider";
 import { useUser } from "../hooks/useClerkHooks";
+import { useAdmin } from "../hooks/useAdmin";
 import { SignOutButton } from '@clerk/nextjs';
 import LoginSignupModal from "./LoginSignupModal";
 
@@ -54,6 +55,7 @@ export default function Navigation({
   
   // User authentication states
   const { isSignedIn, user, isLoaded } = useUser();
+  const { isAdmin } = useAdmin();
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
@@ -639,6 +641,15 @@ export default function Navigation({
                     {/* User Dropdown Menu */}
                     {isUserDropdownOpen && (
                       <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[10000]">
+                        {isAdmin && (
+                          <a
+                            href="/admin"
+                            onClick={() => setIsUserDropdownOpen(false)}
+                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-geograph"
+                          >
+                            Admin Dashboard
+                          </a>
+                        )}
                         <SignOutButton redirectUrl="/">
                           <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-geograph">
                             Log out
@@ -895,6 +906,17 @@ export default function Navigation({
                           {getUserDisplayName()}
                         </span>
                       </div>
+                      
+                      {/* Admin Dashboard Button */}
+                      {isAdmin && (
+                        <a
+                          href="/admin"
+                          className="block w-full px-6 py-3 border border-gray-separator text-dark-blue bg-transparent rounded-full text-[18px] font-medium font-geograph hover:opacity-80 transition-opacity text-center"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          Admin Dashboard
+                        </a>
+                      )}
                       
                       {/* Logout Button */}
                       <SignOutButton redirectUrl="/">
