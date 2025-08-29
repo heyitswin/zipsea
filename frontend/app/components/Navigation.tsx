@@ -587,14 +587,6 @@ export default function Navigation({
             >
               FAQs
             </a>
-            <a 
-              href="#" 
-              className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                isScrolled || (isCruiseDetailPage && !isScrolled) ? 'text-[#0E1B4D]' : 'text-white'
-              }`}
-            >
-              Chat with us
-            </a>
             
             {/* User Authentication Area */}
             {isLoaded && (
@@ -866,13 +858,6 @@ export default function Navigation({
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 FAQs
-              </a>
-              <a 
-                href="#" 
-                className="text-dark-blue text-[24px] font-medium font-geograph py-4 border-b border-gray-separator"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Chat with us
               </a>
               
               {/* User Authentication Area - Mobile */}

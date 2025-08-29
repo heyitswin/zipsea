@@ -68,18 +68,6 @@ export default function Footer() {
             >
               FAQs
             </a>
-            
-            <a 
-              href="#" 
-              className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
-              style={{
-                fontSize: '18px',
-                color: '#2f2f2f',
-                letterSpacing: '-0.02em'
-              }}
-            >
-              Chat with us
-            </a>
           </div>
 
           {/* Logo and legal links - Bottom on mobile */}
@@ -202,19 +190,6 @@ export default function Footer() {
                 }}
               >
                 FAQs
-              </a>
-              
-              {/* Chat with us */}
-              <a 
-                href="#" 
-                className="font-geograph font-medium hover:opacity-80 transition-opacity"
-                style={{
-                  fontSize: '16px',
-                  color: '#2f2f2f',
-                  letterSpacing: '-0.02em'
-                }}
-              >
-                Chat with us
               </a>
             </div>
             
