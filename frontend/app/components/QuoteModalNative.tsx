@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useUser, SignInButton } from '@clerk/nextjs';
 import { useAlert } from '../../components/GlobalAlertProvider';
 import { trackQuoteProgress, trackQuoteSubmit } from '../../lib/analytics';
 
@@ -51,7 +50,6 @@ const US_STATES = [
 export default function QuoteModalNative({ isOpen, onClose, cruiseData, cabinType, cabinPrice }: QuoteModalProps) {
   const { isSignedIn, user, isLoaded } = useUser();
   const { showAlert } = useAlert();
-  const router = useRouter();
   const [passengers, setPassengers] = useState<PassengerData>({
     adults: 2,
     children: 0
@@ -66,23 +64,77 @@ export default function QuoteModalNative({ isOpen, onClose, cruiseData, cabinTyp
     travelInsurance: false
   });
 
+  // Define submitQuote using useCallback to avoid re-creation
+  const submitQuote = useCallback(async (data: any) => {
+    try {
+      // Ensure we have user email
+      if (!data.userEmail && user?.emailAddresses?.[0]?.emailAddress) {
+        data.userEmail = user.emailAddresses[0].emailAddress;
+      }
+
+      const response = await fetch('/api/send-quote-confirmation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        // Track successful submission
+        const activeDiscounts = Object.entries(data.discounts || {})
+          .filter(([key, value]) => value && key !== 'stateOfResidence' && key !== 'loyaltyNumber')
+          .map(([key]) => key);
+        
+        if (data.discounts?.stateOfResidence) activeDiscounts.push('stateOfResidence');
+        if (data.discounts?.loyaltyNumber) activeDiscounts.push('loyaltyNumber');
+        
+        trackQuoteSubmit({
+          cruiseId: data.cruiseData?.id || '',
+          cabinType: data.cabinType || '',
+          adults: data.passengers?.adults || 2,
+          children: data.passengers?.children || 0,
+          hasDiscounts: activeDiscounts.length > 0,
+          discountTypes: activeDiscounts,
+          travelInsurance: data.discounts?.travelInsurance || false,
+          estimatedPrice: typeof data.cabinPrice === 'string' ? parseFloat(data.cabinPrice) : data.cabinPrice
+        });
+        
+        showAlert('Quote request submitted! We\'ll email you as soon as your quote is ready.');
+        onClose();
+        
+        // Clear the pending quote from sessionStorage
+        sessionStorage.removeItem('pendingQuote');
+      } else {
+        showAlert('There was an error submitting your quote request. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting quote request:', error);
+      showAlert('There was an error submitting your quote request. Please try again.');
+    }
+  }, [user, showAlert, onClose]);
+
   // Check if we have pending quote data in sessionStorage after login
   useEffect(() => {
-    if (isLoaded && isSignedIn && typeof window !== 'undefined') {
+    if (isLoaded && isSignedIn && user && typeof window !== 'undefined') {
       const pendingQuote = sessionStorage.getItem('pendingQuote');
       if (pendingQuote) {
         try {
           const quoteData = JSON.parse(pendingQuote);
-          sessionStorage.removeItem('pendingQuote');
+          // Update email with the signed-in user's email
+          quoteData.userEmail = user.emailAddresses[0]?.emailAddress;
+          
+          console.log('Processing pending quote after sign-in:', quoteData);
           
           // Submit the pending quote
           submitQuote(quoteData);
         } catch (error) {
           console.error('Error processing pending quote:', error);
+          sessionStorage.removeItem('pendingQuote');
         }
       }
     }
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, user, submitQuote]);
 
   if (!isOpen) return null;
 
@@ -128,50 +180,9 @@ export default function QuoteModalNative({ isOpen, onClose, cruiseData, cabinTyp
     });
   };
 
-  const submitQuote = async (data: any) => {
-    try {
-      const response = await fetch('/api/send-quote-confirmation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (response.ok) {
-        // Track successful submission
-        const activeDiscounts = Object.entries(data.discounts)
-          .filter(([key, value]) => value && key !== 'stateOfResidence' && key !== 'loyaltyNumber')
-          .map(([key]) => key);
-        
-        if (data.discounts.stateOfResidence) activeDiscounts.push('stateOfResidence');
-        if (data.discounts.loyaltyNumber) activeDiscounts.push('loyaltyNumber');
-        
-        trackQuoteSubmit({
-          cruiseId: data.cruiseData?.id || '',
-          cabinType: data.cabinType || '',
-          adults: data.passengers.adults,
-          children: data.passengers.children,
-          hasDiscounts: activeDiscounts.length > 0,
-          discountTypes: activeDiscounts,
-          travelInsurance: data.discounts.travelInsurance,
-          estimatedPrice: typeof data.cabinPrice === 'string' ? parseFloat(data.cabinPrice) : data.cabinPrice
-        });
-        
-        showAlert('Quote request submitted! We\'ll email you as soon as your quote is ready.');
-        onClose();
-      } else {
-        showAlert('There was an error submitting your quote request. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error submitting quote request:', error);
-      showAlert('There was an error submitting your quote request. Please try again.');
-    }
-  };
-
   const handleGetFinalQuotes = async () => {
     const quoteData = {
-      userEmail: user?.emailAddresses[0]?.emailAddress,
+      userEmail: user?.emailAddresses?.[0]?.emailAddress,
       cruiseData,
       passengers,
       discounts,
@@ -181,14 +192,12 @@ export default function QuoteModalNative({ isOpen, onClose, cruiseData, cabinTyp
     };
 
     if (!isSignedIn) {
-      // Save quote data to sessionStorage before redirecting to sign-in
+      // Save quote data to sessionStorage - it will be submitted after sign-in
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('pendingQuote', JSON.stringify(quoteData));
-        sessionStorage.setItem('returnUrl', window.location.pathname);
+        console.log('Saving pending quote for after sign-in');
       }
-      
-      // Redirect to Clerk sign-in page
-      router.push('/sign-in');
+      // The SignInButton will handle showing the modal
       return;
     }
 
@@ -423,12 +432,23 @@ export default function QuoteModalNative({ isOpen, onClose, cruiseData, cabinTyp
           </div>
 
           {/* Submit Button */}
-          <button
-            onClick={handleGetFinalQuotes}
-            className="w-full bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-6 py-4 rounded-full hover:bg-[#2f7ddd]/90 transition-colors"
-          >
-            {isSignedIn ? 'Get final quotes' : 'Sign in to get final quotes'}
-          </button>
+          {isSignedIn ? (
+            <button
+              onClick={handleGetFinalQuotes}
+              className="w-full bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-6 py-4 rounded-full hover:bg-[#2f7ddd]/90 transition-colors"
+            >
+              Get final quotes
+            </button>
+          ) : (
+            <SignInButton mode="modal">
+              <button
+                onClick={handleGetFinalQuotes}
+                className="w-full bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-6 py-4 rounded-full hover:bg-[#2f7ddd]/90 transition-colors"
+              >
+                Sign in to get final quotes
+              </button>
+            </SignInButton>
+          )}
 
         </div>
       </div>
