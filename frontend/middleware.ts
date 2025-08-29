@@ -33,7 +33,9 @@ export default clerkMiddleware(async (auth, req) => {
     
     // Check if user has admin role
     // Note: This requires setting publicMetadata.role = 'admin' in Clerk Dashboard
-    const isAdmin = sessionClaims?.publicMetadata?.role === 'admin';
+    // AND configuring the session token to include publicMetadata
+    const userRole = (sessionClaims as any)?.publicMetadata?.role;
+    const isAdmin = userRole === 'admin';
     
     if (!isAdmin) {
       // Redirect non-admin users to homepage with an error message

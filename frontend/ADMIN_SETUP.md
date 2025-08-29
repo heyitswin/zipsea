@@ -5,22 +5,31 @@ The ZipSea admin dashboard provides comprehensive business analytics and reporti
 
 ## Setting Up Admin Users in Clerk
 
-### Step 1: Access Clerk Dashboard
+### Step 1: Configure Session Token
 1. Go to [dashboard.clerk.com](https://dashboard.clerk.com)
 2. Select your ZipSea application
-3. Navigate to "Users" in the left sidebar
+3. Navigate to "Sessions" in the left sidebar
+4. Click on "Edit" for the session token
+5. Add the following to include publicMetadata in the session:
+```json
+{
+  "publicMetadata": "{{user.public_metadata}}"
+}
+```
+6. Save the session token configuration
 
 ### Step 2: Assign Admin Role to a User
-1. Find the user you want to make an admin
-2. Click on the user to open their profile
-3. Scroll down to "Public Metadata" section
-4. Click "Edit" and add the following JSON:
+1. Navigate to "Users" in the left sidebar
+2. Find the user you want to make an admin
+3. Click on the user to open their profile
+4. Scroll down to "Public Metadata" section
+5. Click "Edit" and add the following JSON:
 ```json
 {
   "role": "admin"
 }
 ```
-5. Save the changes
+6. Save the changes
 
 ### Step 3: Verify Admin Access
 1. The user should now see "Admin Dashboard" in their dropdown menu when logged in
