@@ -1,6 +1,10 @@
 // API configuration and service functions
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+// Use relative URL in production to leverage Next.js rewrites
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
+  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+    ? '/api/v1'  // Use relative path in production
+    : 'http://localhost:3001/api/v1');
 
 export interface Ship {
   id: number;
