@@ -12,13 +12,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { userEmail, cruiseData, passengers, discounts, cabinType, cabinPrice, travelInsurance } = body;
 
+    console.log('Quote submission received:', { 
+      userEmail, 
+      cruiseId: cruiseData?.id,
+      cabinType,
+      passengers 
+    });
+
     if (!userEmail) {
       return NextResponse.json({ error: 'Email address is required' }, { status: 400 });
     }
 
     // Save quote request to backend database
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
       const quoteResponse = await fetch(`${backendUrl}/api/v1/quotes`, {
         method: 'POST',
         headers: {
@@ -333,8 +340,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, messageId: 'mock-id' });
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const errorMessage = error?.message || 'Internal server error';
+    const errorDetails = {
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+    };
+    return NextResponse.json(errorDetails, { status: 500 });
   }
 }
