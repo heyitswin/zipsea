@@ -837,8 +837,12 @@ class CruiseController {
           WHERE 
             c.is_active = true 
             AND c.sailing_date >= ${formattedDate}
+            AND c.sailing_date <= CURRENT_DATE + INTERVAL '1 year'
             AND cp.cheapest_price IS NOT NULL
+            AND cp.cheapest_price > 0
             AND cp.cheapest_price <= 5000
+            AND c.name IS NOT NULL
+            AND c.nights > 0
             AND (cl.name = ${cruiseLineName} OR cl.name ILIKE ${cruiseLineName + '%'})
           ORDER BY c.sailing_date ASC
           LIMIT 1
@@ -861,8 +865,12 @@ class CruiseController {
         let whereClause = `
           c.is_active = true 
           AND c.sailing_date >= '${formattedDate}'
+          AND c.sailing_date <= CURRENT_DATE + INTERVAL '1 year'
           AND cp.cheapest_price IS NOT NULL
+          AND cp.cheapest_price > 0
           AND cp.cheapest_price <= 5000
+          AND c.name IS NOT NULL
+          AND c.nights > 0
         `;
         
         // Add exclusion for already used cruise lines
@@ -958,8 +966,12 @@ class CruiseController {
           WHERE 
             c.is_active = true 
             AND c.sailing_date >= ${formattedDate}
+            AND c.sailing_date <= CURRENT_DATE + INTERVAL '1 year'
             AND cp.cheapest_price IS NOT NULL
+            AND cp.cheapest_price > 0
             AND cp.cheapest_price <= 5000
+            AND c.name IS NOT NULL
+            AND c.nights > 0
             AND (cl.name = ${cruiseLineName} OR cl.name ILIKE ${cruiseLineName + '%'})
           ORDER BY c.sailing_date ASC
           LIMIT 1
@@ -1011,8 +1023,12 @@ class CruiseController {
           WHERE 
             c.is_active = true 
             AND c.sailing_date >= ${formattedDate}
+            AND c.sailing_date <= CURRENT_DATE + INTERVAL '1 year'
             AND cp.cheapest_price IS NOT NULL
+            AND cp.cheapest_price > 0
             AND cp.cheapest_price <= 5000
+            AND c.name IS NOT NULL
+            AND c.nights > 0
           ORDER BY c.sailing_date ASC
           LIMIT ${remainingSlots + 10}
         `;
