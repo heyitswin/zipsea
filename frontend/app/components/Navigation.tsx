@@ -166,7 +166,7 @@ export default function Navigation({
 
   // Helper function to get user avatar
   const getUserAvatarSrc = () => {
-    return user?.imageUrl || user?.profileImageUrl || null;
+    return user?.imageUrl || null;
   };
 
   // Handle click outside to close dropdowns
