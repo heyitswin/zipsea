@@ -35,7 +35,7 @@ export default function TermsOfService() {
       <div 
         className="w-full h-[21px]"
         style={{
-          backgroundImage: 'url("/images/separator-1.png")',
+          backgroundImage: 'url("/images/separator-2.png")',
           backgroundRepeat: 'repeat-x',
           backgroundSize: '1749px 21px',
           backgroundPosition: 'left top'
