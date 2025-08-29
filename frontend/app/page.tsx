@@ -803,7 +803,7 @@ export default function Home() {
                           } ${
                             isHighlighted && !isSelected ? 'bg-green-100 border-2 border-green-500' : ''
                           }`}
-                          disabled={isDisabled}
+                          disabled={isDisabled || undefined}
                           title={selectedShip && !hasAvailable && !isPast ? 'No sailings available on this date' : ''}
                         >
                           {day}

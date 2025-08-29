@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '../hooks/useAdmin';
-import { useAlert } from '../components/GlobalAlertProvider';
+import { useAlert } from '../../components/GlobalAlertProvider';
 
 // Define types for analytics data
 interface QuoteAnalytics {

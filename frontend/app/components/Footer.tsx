@@ -99,8 +99,8 @@ export default function Footer() {
             
             <div className="flex space-x-6">
               <a 
-                href="#" 
-                className="font-geograph font-bold"
+                href="/terms" 
+                className="font-geograph font-bold hover:opacity-80 transition-opacity"
                 style={{
                   fontSize: '9px',
                   color: '#2f2f2f',
@@ -112,8 +112,8 @@ export default function Footer() {
               </a>
               
               <a 
-                href="#" 
-                className="font-geograph font-bold"
+                href="/privacy" 
+                className="font-geograph font-bold hover:opacity-80 transition-opacity"
                 style={{
                   fontSize: '9px',
                   color: '#2f2f2f',
@@ -147,8 +147,8 @@ export default function Footer() {
             
             {/* Terms & Conditions Link */}
             <a 
-              href="#" 
-              className="font-geograph font-bold mb-3"
+              href="/terms" 
+              className="font-geograph font-bold mb-3 hover:opacity-80 transition-opacity"
               style={{
                 fontSize: '9px',
                 color: '#2f2f2f',
@@ -161,8 +161,8 @@ export default function Footer() {
             
             {/* Privacy Policy Link */}
             <a 
-              href="#" 
-              className="font-geograph font-bold"
+              href="/privacy" 
+              className="font-geograph font-bold hover:opacity-80 transition-opacity"
               style={{
                 fontSize: '9px',
                 color: '#2f2f2f',
