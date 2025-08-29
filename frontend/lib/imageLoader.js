@@ -8,20 +8,25 @@ export default function imageLoader({ src, width, quality }) {
   }
   
   // In production, handle external images differently
-  if (process.env.NODE_ENV === 'production' && isExternal) {
-    // For external images from known slow/problematic domains, use image proxy
-    if (src.includes('static.traveltek.net')) {
-      return `/api/image-proxy?url=${encodeURIComponent(src)}`;
+  if (process.env.NODE_ENV === 'production') {
+    if (isExternal) {
+      // For external images from known slow/problematic domains, use image proxy
+      if (src.includes('static.traveltek.net')) {
+        return `/api/image-proxy?url=${encodeURIComponent(src)}`;
+      }
+      // For other external images, return original URL
+      return src;
     }
-    // For other external images, return original URL
+    // For local images in production, serve them directly without optimization
+    // This avoids 404 errors when Next.js image optimization isn't available
     return src;
   }
   
-  // In development, or for local images, use Next.js optimization
+  // In development, use Next.js optimization for local images
   if (isExternal) {
     return src;
   }
   
-  // For local images (non-SVG), use Next.js optimization
+  // For local images (non-SVG) in development, use Next.js optimization
   return `/_next/image?url=${encodeURIComponent(src)}&w=${width}&q=${quality || 75}`;
 }
