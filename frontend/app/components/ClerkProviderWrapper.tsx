@@ -15,8 +15,11 @@ export default function ClerkProviderWrapper({ children }: ClerkProviderWrapperP
     return <>{children}</>;
   }
 
-  // Use custom domain for Clerk in production
-  const domain = process.env.NEXT_PUBLIC_CLERK_DOMAIN || 'clerk.zipsea.com';
+  // For production keys (pk_live_), use the main domain as configured in Clerk
+  // For test keys (pk_test_), use default or custom domain
+  const domain = publishableKey.startsWith('pk_live_') 
+    ? 'zipsea.com'  // Production keys are configured for main domain
+    : process.env.NEXT_PUBLIC_CLERK_DOMAIN || undefined;
 
   return (
     <ClerkProvider 

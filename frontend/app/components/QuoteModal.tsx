@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useUser } from '../hooks/useClerkHooks';
+import { useAlert } from '../../components/GlobalAlertProvider';
 import LoginSignupModal from './LoginSignupModal';
 import { trackQuoteProgress, trackQuoteSubmit } from '../../lib/analytics';
 
@@ -49,6 +50,7 @@ const US_STATES = [
 
 export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cabinPrice }: QuoteModalProps) {
   const { isSignedIn, user } = useUser();
+  const { showAlert } = useAlert();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [passengers, setPassengers] = useState<PassengerData>({
     adults: 2,
@@ -63,6 +65,13 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
     loyaltyNumber: '',
     travelInsurance: false
   });
+
+  // Reset login modal state when quote modal opens/closes
+  React.useEffect(() => {
+    if (!isOpen) {
+      setShowLoginModal(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -112,11 +121,12 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
 
   const handleGetFinalQuotes = async () => {
     if (!isSignedIn) {
+      // Close the quote modal first to prevent double modals
+      onClose();
       // Use setTimeout to ensure quote modal closes before login modal opens
-      onClose(); // Close the quote modal first
       setTimeout(() => {
         setShowLoginModal(true);
-      }, 100); // Small delay to prevent double modal issue
+      }, 200); // Small delay to prevent double modal issue
       return;
     }
 
@@ -134,6 +144,7 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
           discounts,
           cabinType,
           cabinPrice,
+          travelInsurance: discounts.travelInsurance,
         }),
       });
 
@@ -157,14 +168,15 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
           estimatedPrice: typeof cabinPrice === 'string' ? parseFloat(cabinPrice) : cabinPrice
         });
         
-        alert('Quote request submitted! We\'ll email you as soon as your quote is ready.');
+        // Use global alert system instead of browser alert
+        showAlert('Quote request submitted! We\'ll email you as soon as your quote is ready.');
         onClose();
       } else {
-        alert('There was an error submitting your quote request. Please try again.');
+        showAlert('There was an error submitting your quote request. Please try again.');
       }
     } catch (error) {
       console.error('Error submitting quote request:', error);
-      alert('There was an error submitting your quote request. Please try again.');
+      showAlert('There was an error submitting your quote request. Please try again.');
     }
   };
 
@@ -182,12 +194,13 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
 
   return (
     <>
-      {/* Main Quote Modal */}
-      <div 
-        className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
-        onClick={handleBackgroundClick}
-      >
+      {/* Main Quote Modal - Only render if login modal is not shown */}
+      {!showLoginModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
+          onClick={handleBackgroundClick}
+        >
         <div 
           className="bg-white w-full max-w-[760px] rounded-[10px] max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
@@ -406,7 +419,8 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
 
           </div>
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Login/Signup Modal */}
       {showLoginModal && (
@@ -415,10 +429,12 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
           onClose={() => setShowLoginModal(false)}
           onSuccess={() => {
             setShowLoginModal(false);
-            // Use setTimeout to ensure login modal closes before proceeding
+            // Show success message and handle quote submission after login
+            showAlert('Successfully logged in! Now submitting your quote request...');
+            // Use setTimeout to ensure login modal closes and alert shows before proceeding
             setTimeout(() => {
               handleGetFinalQuotes(); // Retry after successful login
-            }, 200);
+            }, 1000);
           }}
         />
       )}
