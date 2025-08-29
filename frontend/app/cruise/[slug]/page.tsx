@@ -191,6 +191,24 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     }
   };
 
+  // Helper function to check if an itinerary day should be non-interactive
+  const isSeaDayWithoutContent = (day: any) => {
+    if (!day) return false;
+    
+    // Check if port name indicates it's a sea day
+    const isSeaDay = day.portName?.toLowerCase().includes('at sea') || 
+                     day.portName?.toLowerCase().includes('sea day') ||
+                     day.portName?.toLowerCase().includes('cruising');
+    
+    // Check if there's meaningful content to show
+    const hasContent = (day.description && day.description.trim().length > 0) ||
+                      (day.arrivalTime && day.arrivalTime.trim().length > 0) ||
+                      (day.departureTime && day.departureTime.trim().length > 0) ||
+                      day.overnight;
+    
+    return isSeaDay && !hasContent;
+  };
+
   const calculateReturnDate = (sailingDate: string | undefined, nights: number | undefined) => {
     if (!sailingDate || !nights) return null;
     try {
@@ -385,7 +403,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               </div>
               
               {/* Information Grid - 2x2 Layout */}
-              <div className="grid grid-cols-2 gap-8">
+              <div className="grid grid-cols-2 gap-3">
                 {/* Depart */}
                 <div>
                   <div className="text-[11px] font-bold font-geograph tracking-[0.1em] text-[#2f2f2f] uppercase mb-1">
@@ -509,7 +527,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             
             <div className="space-y-4">
               {/* Interior Cabin Card */}
-              <div className="bg-white rounded-t-lg rounded-b-none md:rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden" style={{ padding: '16px' }}>
                 <div className="flex flex-col md:flex-row md:items-center">
                   {/* Cabin Image */}
                   <div className="md:w-48 h-32 md:h-24 flex-shrink-0">
@@ -519,10 +537,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         <img 
                           src={interiorImage} 
                           alt="Interior Cabin" 
-                          className="w-full h-full object-cover md:rounded-l-lg rounded-t-lg md:rounded-t-none"
+                          className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => handleImageClick(interiorImage)}
                         />
                       ) : (
-                        <div className="w-full h-full bg-gray-200 md:rounded-l-lg rounded-t-lg md:rounded-t-none flex items-center justify-center text-gray-500">
+                        <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
                           <span className="text-sm">Interior Cabin</span>
                         </div>
                       );
@@ -540,7 +559,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
                   
                   {/* Pricing Block */}
-                  <div className="px-5 md:px-0 md:pr-5 text-center md:text-left">
+                  <div className="px-5 md:px-0 md:pr-5 md:-ml-5 text-center md:text-left">
                     <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                       STARTING FROM
                     </div>
@@ -567,7 +586,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               </div>
               
               {/* Outside Cabin Card */}
-              <div className="bg-white rounded-t-lg rounded-b-none md:rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden" style={{ padding: '16px' }}>
                 <div className="flex flex-col md:flex-row md:items-center">
                   {/* Cabin Image */}
                   <div className="md:w-48 h-32 md:h-24 flex-shrink-0">
@@ -577,10 +596,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         <img 
                           src={oceanviewImage} 
                           alt="Outside Cabin" 
-                          className="w-full h-full object-cover md:rounded-l-lg rounded-t-lg md:rounded-t-none"
+                          className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => handleImageClick(oceanviewImage)}
                         />
                       ) : (
-                        <div className="w-full h-full bg-gray-200 md:rounded-l-lg rounded-t-lg md:rounded-t-none flex items-center justify-center text-gray-500">
+                        <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
                           <span className="text-sm">Outside Cabin</span>
                         </div>
                       );
@@ -598,7 +618,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
                   
                   {/* Pricing Block */}
-                  <div className="px-5 md:px-0 md:pr-5 text-center md:text-left">
+                  <div className="px-5 md:px-0 md:pr-5 md:-ml-5 text-center md:text-left">
                     <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                       STARTING FROM
                     </div>
@@ -625,7 +645,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               </div>
               
               {/* Balcony Cabin Card */}
-              <div className="bg-white rounded-t-lg rounded-b-none md:rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden" style={{ padding: '16px' }}>
                 <div className="flex flex-col md:flex-row md:items-center">
                   {/* Cabin Image */}
                   <div className="md:w-48 h-32 md:h-24 flex-shrink-0">
@@ -635,10 +655,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         <img 
                           src={balconyImage} 
                           alt="Balcony Cabin" 
-                          className="w-full h-full object-cover md:rounded-l-lg rounded-t-lg md:rounded-t-none"
+                          className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => handleImageClick(balconyImage)}
                         />
                       ) : (
-                        <div className="w-full h-full bg-gray-200 md:rounded-l-lg rounded-t-lg md:rounded-t-none flex items-center justify-center text-gray-500">
+                        <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
                           <span className="text-sm">Balcony Cabin</span>
                         </div>
                       );
@@ -656,7 +677,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
                   
                   {/* Pricing Block */}
-                  <div className="px-5 md:px-0 md:pr-5 text-center md:text-left">
+                  <div className="px-5 md:px-0 md:pr-5 md:-ml-5 text-center md:text-left">
                     <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                       STARTING FROM
                     </div>
@@ -683,7 +704,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               </div>
               
               {/* Suite Cabin Card */}
-              <div className="bg-white rounded-t-lg rounded-b-none md:rounded-lg border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden" style={{ padding: '16px' }}>
                 <div className="flex flex-col md:flex-row md:items-center">
                   {/* Cabin Image */}
                   <div className="md:w-48 h-32 md:h-24 flex-shrink-0">
@@ -693,10 +714,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         <img 
                           src={suiteImage} 
                           alt="Suite Cabin" 
-                          className="w-full h-full object-cover md:rounded-l-lg rounded-t-lg md:rounded-t-none"
+                          className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => handleImageClick(suiteImage)}
                         />
                       ) : (
-                        <div className="w-full h-full bg-gray-200 md:rounded-l-lg rounded-t-lg md:rounded-t-none flex items-center justify-center text-gray-500">
+                        <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
                           <span className="text-sm">Suite Cabin</span>
                         </div>
                       );
@@ -714,7 +736,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
                   
                   {/* Pricing Block */}
-                  <div className="px-5 md:px-0 md:pr-5 text-center md:text-left">
+                  <div className="px-5 md:px-0 md:pr-5 md:-ml-5 text-center md:text-left">
                     <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                       STARTING FROM
                     </div>
@@ -756,88 +778,110 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             
             {/* Accordion Itinerary */}
             <div className="space-y-3 md:space-y-4">
-              {cruiseData.itinerary.map((day, index) => (
-                <div 
-                  key={index}
-                  className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200"
-                >
-                  {/* Question Button */}
-                  <button
-                    onClick={() => toggleAccordion(index)}
-                    className="w-full px-6 md:px-8 py-4 md:py-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-                  >
-                    <h3 
-                      className="font-geograph font-medium pr-6 md:pr-8 text-[16px] md:text-[20px]"
-                      style={{
-                        color: '#0E1B4D',
-                        letterSpacing: '-0.02em',
-                        lineHeight: '1.3'
-                      }}
-                    >
-                      DAY {day.dayNumber} - {day.portName}
-                    </h3>
-                    <div 
-                      className={`w-6 h-6 flex items-center justify-center transition-transform duration-300 ${
-                        openAccordion === index ? 'rotate-180' : ''
-                      }`}
-                    >
-                      <svg 
-                        width="24" 
-                        height="24" 
-                        viewBox="0 0 24 24" 
-                        fill="none"
-                        className="text-dark-blue"
-                      >
-                        <path 
-                          d="M6 9L12 15L18 9" 
-                          stroke="currentColor" 
-                          strokeWidth="2" 
-                          strokeLinecap="round" 
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
-                  </button>
-
-                  {/* Answer Panel */}
+              {cruiseData.itinerary.map((day, index) => {
+                const isNonInteractive = isSeaDayWithoutContent(day);
+                
+                return (
                   <div 
-                    className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                      openAccordion === index 
-                        ? 'max-h-96 opacity-100' 
-                        : 'max-h-0 opacity-0'
-                    }`}
+                    key={index}
+                    className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200"
                   >
-                    <div className="px-6 md:px-8 pb-4 md:pb-6 pt-2">
-                      {(day.arrivalTime || day.departureTime) && (
-                        <div className="font-geograph text-[14px] md:text-[16px] text-gray-600 mb-3">
-                          {day.arrivalTime && `Arrive: ${day.arrivalTime}`}
-                          {day.arrivalTime && day.departureTime && ' | '}
-                          {day.departureTime && `Depart: ${day.departureTime}`}
-                        </div>
-                      )}
-                      {day.description && (
-                        <p 
-                          className="font-geograph text-[14px] md:text-[18px]"
+                    {isNonInteractive ? (
+                      /* Non-interactive sea day header */
+                      <div className="w-full px-6 md:px-8 py-4 md:py-6 text-left">
+                        <h3 
+                          className="font-geograph font-medium text-[16px] md:text-[20px]"
                           style={{
                             color: '#0E1B4D',
                             letterSpacing: '-0.02em',
-                            lineHeight: '1.6'
+                            lineHeight: '1.3'
                           }}
                         >
-                          {day.description}
-                        </p>
-                      )}
-                      {day.overnight && (
-                        <div className="mt-3">
-                          <span className="inline-block bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">
-                            OVERNIGHT STAY
-                          </span>
+                          DAY {day.dayNumber} - {day.portName}
+                        </h3>
+                      </div>
+                    ) : (
+                      /* Interactive header with accordion functionality */
+                      <>
+                        <button
+                          onClick={() => toggleAccordion(index)}
+                          className="w-full px-6 md:px-8 py-4 md:py-6 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                        >
+                          <h3 
+                            className="font-geograph font-medium pr-6 md:pr-8 text-[16px] md:text-[20px]"
+                            style={{
+                              color: '#0E1B4D',
+                              letterSpacing: '-0.02em',
+                              lineHeight: '1.3'
+                            }}
+                          >
+                            DAY {day.dayNumber} - {day.portName}
+                          </h3>
+                          <div 
+                            className={`w-6 h-6 flex items-center justify-center transition-transform duration-300 ${
+                              openAccordion === index ? 'rotate-180' : ''
+                            }`}
+                          >
+                            <svg 
+                              width="24" 
+                              height="24" 
+                              viewBox="0 0 24 24" 
+                              fill="none"
+                              className="text-dark-blue"
+                            >
+                              <path 
+                                d="M6 9L12 15L18 9" 
+                                stroke="currentColor" 
+                                strokeWidth="2" 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </div>
+                        </button>
+
+                        {/* Answer Panel */}
+                        <div 
+                          className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                            openAccordion === index 
+                              ? 'max-h-96 opacity-100' 
+                              : 'max-h-0 opacity-0'
+                          }`}
+                        >
+                          <div className="px-6 md:px-8 pb-4 md:pb-6 pt-2">
+                            {(day.arrivalTime || day.departureTime) && (
+                              <div className="font-geograph text-[14px] md:text-[16px] text-gray-600 mb-3">
+                                {day.arrivalTime && `Arrive: ${day.arrivalTime}`}
+                                {day.arrivalTime && day.departureTime && ' | '}
+                                {day.departureTime && `Depart: ${day.departureTime}`}
+                              </div>
+                            )}
+                            {day.description && (
+                              <p 
+                                className="font-geograph text-[14px] md:text-[18px]"
+                                style={{
+                                  color: '#0E1B4D',
+                                  letterSpacing: '-0.02em',
+                                  lineHeight: '1.6'
+                                }}
+                              >
+                                {day.description}
+                              </p>
+                            )}
+                            {day.overnight && (
+                              <div className="mt-3">
+                                <span className="inline-block bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">
+                                  OVERNIGHT STAY
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
+                      </>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

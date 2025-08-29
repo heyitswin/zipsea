@@ -38,39 +38,82 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
     trackAuthEvent('signup_started', 'email');
 
     try {
-      // Try to sign in first
-      const signInResult = await signIn?.create({
-        identifier: email,
-        redirectUrl: window.location.href,
-      });
-
-      if (signInResult?.status === 'complete') {
-        setMessage('Sign in successful!');
-        onSuccess();
+      // Check if signIn and signUp are available
+      if (!signIn || !signUp) {
+        setMessage('Authentication service is not available. Please try refreshing the page.');
+        setIsLoading(false);
         return;
       }
 
-      // If sign in doesn't work, try sign up
-      const signUpResult = await signUp?.create({
+      // Try to sign up first with email link strategy
+      const signUpResult = await signUp.create({
         emailAddress: email,
       });
 
       if (signUpResult?.status === 'missing_requirements') {
-        setMessage('Check your email for a magic link to continue!');
+        // Send magic link
+        const magicLinkResult = await signUp.prepareEmailAddressVerification({
+          strategy: 'email_link',
+          redirectUrl: window.location.href
+        });
+        
+        if (magicLinkResult) {
+          setMessage('Check your email for a magic link to continue!');
+          // Don't close modal yet - user needs to click the email link
+        }
+      } else if (signUpResult?.status === 'complete') {
+        setMessage('Sign up successful!');
+        trackAuthEvent('signup_completed', 'email');
+        setTimeout(() => onSuccess(), 1000);
       }
     } catch (error: any) {
       console.error('Email auth error:', error);
-      setMessage('Error: ' + (error.message || 'Something went wrong'));
+      
+      // If email already exists, try sign in instead
+      if (error?.errors?.[0]?.code === 'form_identifier_exists') {
+        try {
+          const signInResult = await signIn?.create({
+            identifier: email,
+          });
+          
+          if (signInResult?.status === 'needs_identifier') {
+            // Send magic link for sign in
+            const magicLinkResult = await signIn.prepareFirstFactor({
+              strategy: 'email_link',
+              emailAddressId: signInResult.supportedFirstFactors[0].emailAddressId,
+              redirectUrl: window.location.href
+            });
+            
+            if (magicLinkResult) {
+              setMessage('Check your email for a magic link to sign in!');
+            }
+          } else if (signInResult?.status === 'complete') {
+            setMessage('Sign in successful!');
+            trackAuthEvent('signin_completed', 'email');
+            setTimeout(() => onSuccess(), 1000);
+          }
+        } catch (signInError: any) {
+          console.error('Sign in error:', signInError);
+          setMessage('Error: ' + (signInError.message || 'Something went wrong with sign in'));
+        }
+      } else {
+        setMessage('Error: ' + (error.message || 'Something went wrong'));
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleAuth = async () => {
+    if (!signIn) {
+      setMessage('Authentication service is not available. Please try refreshing the page.');
+      return;
+    }
+    
     setIsLoading(true);
     trackAuthEvent('signup_started', 'google');
     try {
-      await signIn?.authenticateWithRedirect({
+      await signIn.authenticateWithRedirect({
         strategy: 'oauth_google',
         redirectUrl: '/auth/callback',
         redirectUrlComplete: window.location.href,
@@ -83,10 +126,15 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
   };
 
   const handleFacebookAuth = async () => {
+    if (!signIn) {
+      setMessage('Authentication service is not available. Please try refreshing the page.');
+      return;
+    }
+    
     setIsLoading(true);
     trackAuthEvent('signup_started', 'facebook');
     try {
-      await signIn?.authenticateWithRedirect({
+      await signIn.authenticateWithRedirect({
         strategy: 'oauth_facebook',
         redirectUrl: '/auth/callback',
         redirectUrlComplete: window.location.href,

@@ -73,6 +73,13 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
     }
   }, [isOpen]);
 
+  // Reset state when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setShowLoginModal(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -121,12 +128,8 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
 
   const handleGetFinalQuotes = async () => {
     if (!isSignedIn) {
-      // Close the quote modal first to prevent double modals
-      onClose();
-      // Use setTimeout to ensure quote modal closes before login modal opens
-      setTimeout(() => {
-        setShowLoginModal(true);
-      }, 200); // Small delay to prevent double modal issue
+      // Don't close the quote modal - just show the login modal over it
+      setShowLoginModal(true);
       return;
     }
 
@@ -431,10 +434,13 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
             setShowLoginModal(false);
             // Show success message and handle quote submission after login
             showAlert('Successfully logged in! Now submitting your quote request...');
-            // Use setTimeout to ensure login modal closes and alert shows before proceeding
+            // Use setTimeout to ensure login modal closes and user state updates
             setTimeout(() => {
-              handleGetFinalQuotes(); // Retry after successful login
-            }, 1000);
+              // The user should now be signed in, so we can retry the submission
+              if (isSignedIn) {
+                handleGetFinalQuotes(); // Retry after successful login
+              }
+            }, 500);
           }}
         />
       )}
