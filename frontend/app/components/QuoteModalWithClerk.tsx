@@ -397,7 +397,7 @@ export default function QuoteModalWithClerk({ isOpen, onClose, cruiseData, cabin
               Get final quotes
             </button>
           ) : (
-            <SignInButton mode="modal" afterSignInUrl={window.location.pathname}>
+            <SignInButton mode="modal">
               <button className="w-full bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-6 py-4 rounded-full hover:bg-[#2f7ddd]/90 transition-colors">
                 Sign in to get final quotes
               </button>
