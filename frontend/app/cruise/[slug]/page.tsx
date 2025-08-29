@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { getCruiseBySlug, getComprehensiveCruiseData, getCruiseDetailsById, ComprehensiveCruiseData, Cruise } from '../../../lib/api';
 import { parseCruiseSlug } from '../../../lib/slug';
 import { useAlert } from '../../../components/GlobalAlertProvider';
-import QuoteModal from '../../components/QuoteModal';
+import QuoteModalNative from '../../components/QuoteModalNative';
 import { trackCruiseView, trackTimeOnPage, trackQuoteStart } from '../../../lib/analytics';
 
 interface CruiseDetailPageProps {}
@@ -897,7 +897,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       </div>
 
       {/* Quote Modal */}
-      <QuoteModal
+      <QuoteModalNative
         isOpen={quoteModalOpen}
         onClose={() => setQuoteModalOpen(false)}
         cruiseData={{
