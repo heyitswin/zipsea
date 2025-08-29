@@ -108,6 +108,7 @@ export const trackQuoteSubmit = (quoteData: {
   estimatedPrice?: number;
 }) => {
   if (typeof window !== 'undefined' && posthog) {
+    console.log('📊 Tracking quote_submitted event:', quoteData);
     posthog.capture('quote_submitted', {
       category: EventCategories.QUOTE,
       cruise_id: quoteData.cruiseId,
@@ -132,6 +133,7 @@ export const trackQuoteSubmit = (quoteData: {
 // Track authentication events
 export const trackAuthEvent = (event: 'signup_started' | 'signup_completed' | 'login' | 'logout', method?: string) => {
   if (typeof window !== 'undefined' && posthog) {
+    console.log('🔐 Tracking auth event:', event, method);
     posthog.capture(event, {
       category: EventCategories.AUTH,
       method: method || 'email',
