@@ -169,8 +169,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         day: 'numeric',
         timeZone: 'UTC' // Use UTC to avoid timezone conversion issues
       }).toUpperCase();
-      // Remove the second comma and convert SEP to SEPT
-      return formatted.replace(/(\w{3}),\s*(\w{4})\s*(\d+),\s*(\d{4})/g, '$1, $2 $3 $4').replace(/SEP /g, 'SEPT ');
+      // Remove the second comma (between day and year) and convert SEP to SEPT
+      return formatted.replace(/,\s*(\d{4})$/, ' $1').replace(/SEP /g, 'SEPT ');
     } catch {
       return dateString;
     }
@@ -233,8 +233,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     if (!isPriceAvailable(price)) return 0;
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
     if (!numPrice || isNaN(numPrice)) return 0;
-    // Calculate 2-3% of the price as onboard credit, rounded to nearest $25
-    const creditPercent = 0.025; // 2.5%
+    // Calculate 8% of the price as onboard credit, rounded to nearest $25
+    const creditPercent = 0.08; // 8%
     const rawCredit = numPrice * creditPercent;
     return Math.round(rawCredit / 25) * 25; // Round to nearest $25
   };

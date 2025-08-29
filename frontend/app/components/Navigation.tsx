@@ -592,15 +592,6 @@ export default function Navigation({
                     {/* User Dropdown Menu */}
                     {isUserDropdownOpen && (
                       <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[10000]">
-                        <button
-                          onClick={() => {
-                            setIsUserDropdownOpen(false);
-                            // Add settings navigation here if needed
-                          }}
-                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-geograph"
-                        >
-                          Settings
-                        </button>
                         <SignOutButton redirectUrl="/">
                           <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-geograph">
                             Log out
@@ -850,14 +841,6 @@ export default function Navigation({
                           {getUserDisplayName()}
                         </span>
                       </div>
-                      
-                      {/* Settings Button */}
-                      <button 
-                        className="w-full px-6 py-3 border border-gray-separator text-dark-blue bg-transparent rounded-full text-[18px] font-medium font-geograph hover:opacity-80 transition-opacity"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        Settings
-                      </button>
                       
                       {/* Logout Button */}
                       <SignOutButton redirectUrl="/">
