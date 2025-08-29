@@ -114,10 +114,14 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
     setIsLoading(true);
     trackAuthEvent('signup_started', 'google');
     try {
+      // Save the current URL to redirect back after auth
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('returnUrl', window.location.href);
+      }
       await signIn.authenticateWithRedirect({
         strategy: 'oauth_google',
         redirectUrl: '/auth/callback',
-        redirectUrlComplete: window.location.href,
+        redirectUrlComplete: '/',
       });
     } catch (error: any) {
       console.error('Google auth error:', error);
@@ -135,10 +139,14 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
     setIsLoading(true);
     trackAuthEvent('signup_started', 'facebook');
     try {
+      // Save the current URL to redirect back after auth
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('returnUrl', window.location.href);
+      }
       await signIn.authenticateWithRedirect({
         strategy: 'oauth_facebook',
         redirectUrl: '/auth/callback',
-        redirectUrlComplete: window.location.href,
+        redirectUrlComplete: '/',
       });
     } catch (error: any) {
       console.error('Facebook auth error:', error);
