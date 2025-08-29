@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useUser } from './useClerkHooks';
 
 export function useAdmin() {
   const { user, isLoaded } = useUser();

@@ -1,6 +1,10 @@
 'use client';
 
 import { useUser as useClerkUser, useSignIn as useClerkSignIn, useSignUp as useClerkSignUp } from '@clerk/nextjs';
+import { useEffect, useState } from 'react';
+
+// Check if we're in the browser environment
+const isBrowser = typeof window !== 'undefined';
 
 // Check if Clerk is properly configured
 const isClerkConfigured = () => {
@@ -10,11 +14,18 @@ const isClerkConfigured = () => {
 
 // Wrapper for useUser hook
 export const useUser = () => {
-  if (!isClerkConfigured()) {
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Return default state during SSR or if not mounted
+  if (!isMounted || !isBrowser || !isClerkConfigured()) {
     return {
       isSignedIn: false,
       user: null,
-      isLoaded: true,
+      isLoaded: false, // Set to false during SSR to prevent premature rendering
     };
   }
   
@@ -31,10 +42,16 @@ export const useUser = () => {
 
 // Wrapper for useSignIn hook
 export const useSignIn = () => {
-  if (!isClerkConfigured()) {
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted || !isBrowser || !isClerkConfigured()) {
     return {
       signIn: null,
-      isLoaded: true,
+      isLoaded: false,
     };
   }
   
@@ -50,10 +67,16 @@ export const useSignIn = () => {
 
 // Wrapper for useSignUp hook
 export const useSignUp = () => {
-  if (!isClerkConfigured()) {
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted || !isBrowser || !isClerkConfigured()) {
     return {
       signUp: null,
-      isLoaded: true,
+      isLoaded: false,
     };
   }
   

@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+
+// Force dynamic rendering for this page
+export const dynamic = 'force-dynamic';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from '../hooks/useAdmin';
 import { useAlert } from '../../components/GlobalAlertProvider';
@@ -119,92 +122,37 @@ export default function AdminDashboard() {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://zipsea-production.onrender.com';
       
-      // Fetch all analytics data in parallel
-      const [quotes, cruises, users, revenue, recent] = await Promise.all([
-        fetch(`${backendUrl}/api/v1/admin/analytics/quotes?range=${dateRange}`).then(r => r.ok ? r.json() : null),
-        fetch(`${backendUrl}/api/v1/admin/analytics/cruises?range=${dateRange}`).then(r => r.ok ? r.json() : null),
-        fetch(`${backendUrl}/api/v1/admin/analytics/users?range=${dateRange}`).then(r => r.ok ? r.json() : null),
-        fetch(`${backendUrl}/api/v1/admin/analytics/revenue?range=${dateRange}`).then(r => r.ok ? r.json() : null),
-        fetch(`${backendUrl}/api/v1/admin/quotes/recent?limit=10`).then(r => r.ok ? r.json() : null),
-      ]);
+      // Test each endpoint and only use real data
+      const endpoints = [
+        { key: 'quotes', url: `${backendUrl}/api/v1/admin/analytics/quotes?range=${dateRange}`, setter: setQuoteAnalytics },
+        { key: 'cruises', url: `${backendUrl}/api/v1/admin/analytics/cruises?range=${dateRange}`, setter: setCruiseAnalytics },
+        { key: 'users', url: `${backendUrl}/api/v1/admin/analytics/users?range=${dateRange}`, setter: setUserAnalytics },
+        { key: 'revenue', url: `${backendUrl}/api/v1/admin/analytics/revenue?range=${dateRange}`, setter: setRevenueAnalytics },
+        { key: 'recent', url: `${backendUrl}/api/v1/admin/quotes/recent?limit=10`, setter: (data: any) => setRecentQuotes(data?.quotes || []) }
+      ];
       
-      // For now, use mock data if API endpoints don't exist yet
-      setQuoteAnalytics(quotes || {
-        totalQuotes: 1847,
-        quotesToday: 23,
-        quotesThisWeek: 156,
-        quotesThisMonth: 624,
-        conversionRate: 12.5,
-        averageQuoteValue: 3250,
-        quotesByStatus: {
-          pending: 234,
-          contacted: 156,
-          booked: 89,
-          cancelled: 12
+      // Test each endpoint individually
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(endpoint.url);
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              console.log(`✓ Admin ${endpoint.key} endpoint working`);
+              endpoint.setter(result.data);
+            } else {
+              console.log(`✗ Admin ${endpoint.key} endpoint failed:`, result.error?.message);
+              endpoint.setter(null);
+            }
+          } else {
+            console.log(`✗ Admin ${endpoint.key} endpoint returned ${response.status}`);
+            endpoint.setter(null);
+          }
+        } catch (endpointError) {
+          console.log(`✗ Admin ${endpoint.key} endpoint error:`, endpointError);
+          endpoint.setter(null);
         }
-      });
-      
-      setCruiseAnalytics(cruises || {
-        totalCruises: 3456,
-        upcomingCruises: 892,
-        popularCruises: [
-          { id: '1', name: '7-Night Caribbean', cruiseLineName: 'Royal Caribbean', shipName: 'Wonder of the Seas', quoteCount: 234, viewCount: 5678, revenue: 456000 },
-          { id: '2', name: '5-Night Bahamas', cruiseLineName: 'Carnival', shipName: 'Carnival Magic', quoteCount: 189, viewCount: 4321, revenue: 234000 },
-          { id: '3', name: '10-Night Mediterranean', cruiseLineName: 'Norwegian', shipName: 'Norwegian Epic', quoteCount: 167, viewCount: 3890, revenue: 567000 },
-        ],
-        cruisesByLine: [
-          { cruiseLineName: 'Royal Caribbean', count: 456, revenue: 2340000, avgPrice: 5131 },
-          { cruiseLineName: 'Carnival', count: 389, revenue: 1560000, avgPrice: 4010 },
-          { cruiseLineName: 'Norwegian', count: 312, revenue: 1890000, avgPrice: 6057 },
-        ],
-        cruisesByDestination: [
-          { destination: 'Caribbean', count: 678, popularity: 35 },
-          { destination: 'Mediterranean', count: 456, popularity: 28 },
-          { destination: 'Alaska', count: 234, popularity: 18 },
-        ]
-      });
-      
-      setUserAnalytics(users || {
-        totalUsers: 8923,
-        activeUsers: 2134,
-        newUsersToday: 67,
-        newUsersThisWeek: 423,
-        usersBySource: {
-          organic: 3456,
-          google: 2134,
-          social: 1890,
-          direct: 987,
-          referral: 456
-        },
-        topUsers: [
-          { email: 'john.smith@example.com', quoteCount: 23, totalValue: 45000 },
-          { email: 'sarah.jones@example.com', quoteCount: 19, totalValue: 38000 },
-          { email: 'mike.wilson@example.com', quoteCount: 17, totalValue: 34000 },
-        ]
-      });
-      
-      setRevenueAnalytics(revenue || {
-        totalRevenue: 4567890,
-        revenueToday: 23456,
-        revenueThisWeek: 156789,
-        revenueThisMonth: 678901,
-        revenueByMonth: [
-          { month: 'Jan', revenue: 456789, bookings: 123 },
-          { month: 'Feb', revenue: 523456, bookings: 145 },
-          { month: 'Mar', revenue: 612345, bookings: 167 },
-          { month: 'Apr', revenue: 578901, bookings: 156 },
-          { month: 'May', revenue: 689012, bookings: 189 },
-          { month: 'Jun', revenue: 723456, bookings: 198 },
-        ],
-        averageBookingValue: 3456,
-        projectedRevenue: 8901234
-      });
-      
-      setRecentQuotes(recent?.quotes || [
-        { id: 1, email: 'john@example.com', cruiseName: '7-Night Caribbean', date: '2025-01-15', status: 'pending', value: 3450 },
-        { id: 2, email: 'sarah@example.com', cruiseName: '5-Night Bahamas', date: '2025-01-14', status: 'contacted', value: 2890 },
-        { id: 3, email: 'mike@example.com', cruiseName: '10-Night Mediterranean', date: '2025-01-14', status: 'booked', value: 5670 },
-      ]);
+      }
       
     } catch (err) {
       console.error('Error fetching analytics:', err);
@@ -228,10 +176,12 @@ export default function AdminDashboard() {
         a.click();
         window.URL.revokeObjectURL(url);
         showAlert(`${type} data exported successfully`);
+      } else {
+        showAlert(`Export ${type} endpoint not available (${response.status})`);
       }
     } catch (err) {
       console.error('Export error:', err);
-      showAlert('Failed to export data');
+      showAlert('Export feature not available yet');
     }
   };
 
@@ -298,19 +248,25 @@ export default function AdminDashboard() {
             </div>
           </div>
           
-          {/* Tabs */}
+          {/* Tabs - Only show tabs for sections with real data */}
           <div className="flex space-x-8 border-b border-gray-200 -mb-px">
-            {['overview', 'quotes', 'cruises', 'users', 'revenue'].map((tab) => (
+            {[
+              { key: 'overview', label: 'Overview', condition: true }, // Always show overview
+              { key: 'quotes', label: 'Quotes', condition: quoteAnalytics !== null },
+              { key: 'cruises', label: 'Cruises', condition: cruiseAnalytics !== null },
+              { key: 'users', label: 'Users', condition: userAnalytics !== null },
+              { key: 'revenue', label: 'Revenue', condition: revenueAnalytics !== null }
+            ].filter(tab => tab.condition).map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
                 className={`py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors ${
-                  activeTab === tab
+                  activeTab === tab.key
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                {tab}
+                {tab.label}
               </button>
             ))}
           </div>
@@ -328,160 +284,188 @@ export default function AdminDashboard() {
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* Key Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Total Revenue Card */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {formatCurrency(revenueAnalytics?.totalRevenue || 0)}
-                    </p>
-                    <p className="text-xs text-green-600 mt-1">
-                      +12.5% from last period
-                    </p>
-                  </div>
-                  <div className="p-3 bg-green-100 rounded-full">
-                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              {/* Total Quotes Card */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Total Quotes</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {formatNumber(quoteAnalytics?.totalQuotes || 0)}
-                    </p>
-                    <p className="text-xs text-green-600 mt-1">
-                      {formatNumber(quoteAnalytics?.quotesToday || 0)} today
-                    </p>
-                  </div>
-                  <div className="p-3 bg-blue-100 rounded-full">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              {/* Active Users Card */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Active Users</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {formatNumber(userAnalytics?.activeUsers || 0)}
-                    </p>
-                    <p className="text-xs text-green-600 mt-1">
-                      {formatNumber(userAnalytics?.newUsersToday || 0)} new today
-                    </p>
-                  </div>
-                  <div className="p-3 bg-purple-100 rounded-full">
-                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              {/* Conversion Rate Card */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {formatPercent(quoteAnalytics?.conversionRate || 0)}
-                    </p>
-                    <p className="text-xs text-green-600 mt-1">
-                      +2.3% from last period
-                    </p>
-                  </div>
-                  <div className="p-3 bg-yellow-100 rounded-full">
-                    <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Revenue Chart */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Trend</h3>
-              <div className="h-64 flex items-center justify-center bg-gray-50 rounded">
-                <div className="text-center">
-                  <svg className="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            {/* Show message if no data is available */}
+            {!revenueAnalytics && !quoteAnalytics && !userAnalytics && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+                <div className="mb-2">
+                  <svg className="w-12 h-12 text-blue-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <p className="text-sm text-gray-500">Chart visualization would go here</p>
-                  <p className="text-xs text-gray-400 mt-1">Integrate with Chart.js or Recharts</p>
+                </div>
+                <h3 className="text-lg font-semibold text-blue-900 mb-2">Admin Analytics Not Available</h3>
+                <p className="text-blue-700 mb-4">The admin analytics endpoints are not yet implemented in the backend API.</p>
+                <p className="text-sm text-blue-600">Once the backend analytics endpoints are ready, real data will appear here.</p>
+              </div>
+            )}
+            
+            {/* Key Metrics Grid - Only show if we have data */}
+            {(revenueAnalytics || quoteAnalytics || userAnalytics) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Total Revenue Card */}
+                {revenueAnalytics && (
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {formatCurrency(revenueAnalytics.totalRevenue)}
+                        </p>
+                        <p className="text-xs text-green-600 mt-1">
+                          +12.5% from last period
+                        </p>
+                      </div>
+                      <div className="p-3 bg-green-100 rounded-full">
+                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Total Quotes Card */}
+                {quoteAnalytics && (
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Total Quotes</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {formatNumber(quoteAnalytics.totalQuotes)}
+                        </p>
+                        <p className="text-xs text-green-600 mt-1">
+                          {formatNumber(quoteAnalytics.quotesToday)} today
+                        </p>
+                      </div>
+                      <div className="p-3 bg-blue-100 rounded-full">
+                        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Active Users Card */}
+                {userAnalytics && (
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Active Users</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {formatNumber(userAnalytics.activeUsers)}
+                        </p>
+                        <p className="text-xs text-green-600 mt-1">
+                          {formatNumber(userAnalytics.newUsersToday)} new today
+                        </p>
+                      </div>
+                      <div className="p-3 bg-purple-100 rounded-full">
+                        <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Conversion Rate Card */}
+                {quoteAnalytics && (
+                  <div className="bg-white rounded-lg shadow p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {formatPercent(quoteAnalytics.conversionRate)}
+                        </p>
+                        <p className="text-xs text-green-600 mt-1">
+                          +2.3% from last period
+                        </p>
+                      </div>
+                      <div className="p-3 bg-yellow-100 rounded-full">
+                        <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Revenue Chart - Only show if we have revenue data */}
+            {revenueAnalytics && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Revenue Trend</h3>
+                <div className="h-64 flex items-center justify-center bg-gray-50 rounded">
+                  <div className="text-center">
+                    <svg className="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <p className="text-sm text-gray-500">Chart visualization would go here</p>
+                    <p className="text-xs text-gray-400 mt-1">Integrate with Chart.js or Recharts</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Recent Quotes Table */}
-            <div className="bg-white rounded-lg shadow">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900">Recent Quote Requests</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Customer
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Cruise
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Value
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {recentQuotes.map((quote) => (
-                      <tr key={quote.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {quote.email}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {quote.cruiseName}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {quote.date}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            quote.status === 'booked' ? 'bg-green-100 text-green-800' :
-                            quote.status === 'contacted' ? 'bg-blue-100 text-blue-800' :
-                            quote.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {quote.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          {formatCurrency(quote.value)}
-                        </td>
+            {/* Recent Quotes Table - Only show if we have quote data */}
+            {recentQuotes.length > 0 && (
+              <div className="bg-white rounded-lg shadow">
+                <div className="px-6 py-4 border-b border-gray-200">
+                  <h3 className="text-lg font-semibold text-gray-900">Recent Quote Requests</h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Customer
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Cruise
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Date
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Value
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {recentQuotes.map((quote) => (
+                        <tr key={quote.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {quote.email}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {quote.cruiseName}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {quote.date}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              quote.status === 'booked' ? 'bg-green-100 text-green-800' :
+                              quote.status === 'contacted' ? 'bg-blue-100 text-blue-800' :
+                              quote.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {quote.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {formatCurrency(quote.value)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -516,7 +500,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Export Button */}
+            {/* Export Button - Only show if quotes data exists */}
             <div className="flex justify-end">
               <button
                 onClick={() => exportData('quotes')}
@@ -633,7 +617,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Export Button */}
+            {/* Export Button - Only show if cruises data exists */}
             <div className="flex justify-end">
               <button
                 onClick={() => exportData('cruises')}
@@ -699,7 +683,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Export Button */}
+            {/* Export Button - Only show if users data exists */}
             <div className="flex justify-end">
               <button
                 onClick={() => exportData('users')}
@@ -781,7 +765,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Export Button */}
+            {/* Export Button - Only show if revenue data exists */}
             <div className="flex justify-end">
               <button
                 onClick={() => exportData('revenue')}

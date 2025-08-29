@@ -6,6 +6,7 @@ import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
 import ClerkProviderWrapper from './components/ClerkProviderWrapper';
 import PostHogProviderWrapper, { PostHogPageView } from './providers/PosthogProvider';
+import MissiveChat from './components/MissiveChat';
 import { Suspense } from 'react';
 
 const geistSans = Geist({
@@ -106,6 +107,7 @@ export default function RootLayout({
               <Navigation />
               {children}
               <Footer />
+              <MissiveChat />
             </GlobalAlertProvider>
           </PostHogProviderWrapper>
         </body>
