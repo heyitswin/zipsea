@@ -3,20 +3,26 @@ import { Resend } from 'resend';
 import { sendSlackQuoteNotification } from '../../../lib/slack';
 
 const resendApiKey = process.env.RESEND_API_KEY;
+
+// Enhanced debugging for API key
+console.log('Resend API Key Debug:', {
+  exists: !!resendApiKey,
+  length: resendApiKey?.length || 0,
+  startsWithRe: resendApiKey?.startsWith('re_') || false,
+  isPlaceholder: resendApiKey === 'your_resend_api_key_here',
+  isEmpty: !resendApiKey || resendApiKey.trim() === '',
+  firstChars: resendApiKey ? resendApiKey.substring(0, 3) + '...' : 'none'
+});
+
 const resend = resendApiKey && resendApiKey !== 'your_resend_api_key_here' && resendApiKey.trim() !== ''
   ? new Resend(resendApiKey) 
   : null;
 
 // Log email configuration status
 if (resend) {
-  console.log('Email service initialized successfully with Resend');
+  console.log('✅ Email service initialized successfully with Resend');
 } else {
-  console.log('Email service disabled:', {
-    hasKey: !!resendApiKey,
-    keyLength: resendApiKey?.length || 0,
-    isPlaceholder: resendApiKey === 'your_resend_api_key_here',
-    isEmpty: resendApiKey?.trim() === ''
-  });
+  console.log('❌ Email service disabled - check RESEND_API_KEY environment variable');
 }
 
 export async function POST(request: NextRequest) {
@@ -343,22 +349,50 @@ export async function POST(request: NextRequest) {
           </html>
         `;
 
-        const { data, error } = await resend.emails.send({
-          from: 'ZipSea <quotes@zipsea.com>',
+        // Try with custom domain first, fallback to onboarding@resend.dev if it fails
+        const fromEmail = 'ZipSea <quotes@zipsea.com>';
+        const fallbackEmail = 'ZipSea <onboarding@resend.dev>';
+        
+        console.log('📧 Sending email with parameters:', {
+          from: fromEmail,
+          to: userEmail,
+          subject: `Your Cruise Quote Request - ${cruiseData?.name || 'Cruise'} | ZipSea`
+        });
+
+        let { data, error } = await resend.emails.send({
+          from: fromEmail,
           to: [userEmail],
           subject: `Your Cruise Quote Request - ${cruiseData?.name || 'Cruise'} | ZipSea`,
           html: emailHtml,
         });
+        
+        // If domain not verified, try with Resend's domain
+        if (error && error.message && error.message.includes('domain')) {
+          console.log('🔄 Domain not verified, trying with Resend default domain...');
+          const fallbackResult = await resend.emails.send({
+            from: fallbackEmail,
+            to: [userEmail],
+            subject: `Your Cruise Quote Request - ${cruiseData?.name || 'Cruise'} | ZipSea`,
+            html: emailHtml,
+          });
+          data = fallbackResult.data;
+          error = fallbackResult.error;
+        }
 
         if (error) {
-          console.error('Resend API error:', error);
+          console.error('❌ Resend API error:', error);
           console.error('Error details:', {
             name: error.name,
-            message: error.message
+            message: error.message,
+            fullError: JSON.stringify(error, null, 2)
           });
         } else {
           emailSent = true;
-          console.log('Email sent successfully! Resend ID:', data?.id);
+          console.log('✅ Email sent successfully!', {
+            resendId: data?.id,
+            to: userEmail,
+            timestamp: new Date().toISOString()
+          });
         }
       } catch (error) {
         console.error('Error sending email via Resend:', error);
