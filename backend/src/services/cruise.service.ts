@@ -1161,11 +1161,11 @@ export class CruiseService {
           showCruise: cruise.showCruise,
           flyCruiseInfo: cruise.flyCruiseInfo,
           lastCached: cruise.lastCached,
-          cachedDate: cruise.cachedDate?.toISOString(),
+          cachedDate: cruise.cachedDate ? (typeof cruise.cachedDate === 'string' ? cruise.cachedDate : cruise.cachedDate.toISOString()) : null,
           traveltekFilePath: cruise.traveltekFilePath,
           isActive: cruise.isActive,
-          createdAt: cruise.createdAt.toISOString(),
-          updatedAt: cruise.updatedAt.toISOString(),
+          createdAt: cruise.createdAt ? (typeof cruise.createdAt === 'string' ? cruise.createdAt : cruise.createdAt.toISOString()) : null,
+          updatedAt: cruise.updatedAt ? (typeof cruise.updatedAt === 'string' ? cruise.updatedAt : cruise.updatedAt.toISOString()) : null,
           raw: cruise
         },
         cruiseLine: cruiseLine ? {
