@@ -436,10 +436,8 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
             showAlert('Successfully logged in! Now submitting your quote request...');
             // Use setTimeout to ensure login modal closes and user state updates
             setTimeout(() => {
-              // The user should now be signed in, so we can retry the submission
-              if (isSignedIn) {
-                handleGetFinalQuotes(); // Retry after successful login
-              }
+              // Directly call handleGetFinalQuotes - the user state should be updated by now
+              handleGetFinalQuotes();
             }, 500);
           }}
         />
