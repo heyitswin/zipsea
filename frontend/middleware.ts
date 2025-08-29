@@ -19,8 +19,8 @@ const isAdminRoute = createRouteMatcher([
   '/admin(.*)'
 ]);
 
-export default clerkMiddleware((auth, req) => {
-  const { userId, sessionClaims } = auth();
+export default clerkMiddleware(async (auth, req) => {
+  const { userId, sessionClaims } = await auth();
   
   // Check if user is trying to access admin routes
   if (isAdminRoute(req)) {
