@@ -14,6 +14,9 @@ export default function AuthCallbackPage() {
         // User is signed in, redirect to home or previous page
         const returnUrl = sessionStorage.getItem('returnUrl') || '/';
         sessionStorage.removeItem('returnUrl');
+        
+        // Note: The QuoteModalNative component will handle submitting 
+        // pending quotes when it detects the user is signed in
         router.push(returnUrl);
       } else {
         // Not signed in, redirect to sign-in page
