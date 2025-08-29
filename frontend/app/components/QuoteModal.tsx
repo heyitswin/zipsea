@@ -112,8 +112,11 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
 
   const handleGetFinalQuotes = async () => {
     if (!isSignedIn) {
+      // Use setTimeout to ensure quote modal closes before login modal opens
       onClose(); // Close the quote modal first
-      setShowLoginModal(true);
+      setTimeout(() => {
+        setShowLoginModal(true);
+      }, 100); // Small delay to prevent double modal issue
       return;
     }
 
@@ -412,7 +415,10 @@ export default function QuoteModal({ isOpen, onClose, cruiseData, cabinType, cab
           onClose={() => setShowLoginModal(false)}
           onSuccess={() => {
             setShowLoginModal(false);
-            handleGetFinalQuotes(); // Retry after successful login
+            // Use setTimeout to ensure login modal closes before proceeding
+            setTimeout(() => {
+              handleGetFinalQuotes(); // Retry after successful login
+            }, 200);
           }}
         />
       )}

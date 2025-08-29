@@ -93,9 +93,66 @@ export const redisConfig = {
   maxRetriesPerRequest: 3,
 };
 
-// CORS configuration
+// CORS configuration with dynamic origin handling
+const getAllowedOrigins = () => {
+  const origins = env.CORS_ORIGIN.split(',').map(origin => origin.trim());
+  
+  // Always include localhost for development
+  if (!origins.includes('http://localhost:3000')) {
+    origins.push('http://localhost:3000');
+  }
+  
+  // Add custom domain origins if in production
+  if (isProduction) {
+    const customDomainOrigins = [
+      'https://zipsea.com',
+      'https://www.zipsea.com',
+      'https://zipsea-frontend-production.onrender.com', // Keep Render URL as fallback
+      'https://zipsea-frontend-staging.onrender.com'
+    ];
+    
+    customDomainOrigins.forEach(origin => {
+      if (!origins.includes(origin)) {
+        origins.push(origin);
+      }
+    });
+  }
+  
+  // Add staging origins if in staging
+  if (isStaging) {
+    const stagingOrigins = [
+      'https://zipsea-frontend-staging.onrender.com',
+      'http://localhost:3000',
+      'http://localhost:3001'
+    ];
+    
+    stagingOrigins.forEach(origin => {
+      if (!origins.includes(origin)) {
+        origins.push(origin);
+      }
+    });
+  }
+  
+  return origins;
+};
+
 export const corsConfig = {
-  origin: env.CORS_ORIGIN.split(',').map(origin => origin.trim()),
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean | string | string[]) => void) => {
+    const allowedOrigins = getAllowedOrigins();
+    
+    // Allow requests with no origin (e.g., mobile apps, Postman)
+    if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Check if the origin is allowed
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS: Blocked request from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
@@ -107,6 +164,7 @@ export const corsConfig = {
     'Cache-Control',
     'X-API-Key',
   ],
+  maxAge: 86400, // Cache preflight requests for 24 hours
 };
 
 // Rate limiting configuration

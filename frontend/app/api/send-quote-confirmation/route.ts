@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { sendSlackQuoteNotification } from '../../../lib/slack';
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey && resendApiKey !== 'your_resend_api_key_here' 
@@ -46,6 +47,26 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('Error saving quote to database:', error);
       // Continue with email sending even if database save fails
+    }
+
+    // Send Slack notification
+    try {
+      const slackResult = await sendSlackQuoteNotification({
+        userEmail,
+        cruiseData,
+        passengers,
+        discounts: {
+          ...discounts,
+          travelInsurance: travelInsurance || false
+        },
+        cabinType,
+        cabinPrice
+      });
+      
+      console.log('Slack notification result:', slackResult);
+    } catch (error) {
+      console.error('Error sending Slack notification:', error);
+      // Continue with email sending even if Slack notification fails
     }
 
     // Format passenger information
