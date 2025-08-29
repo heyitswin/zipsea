@@ -787,7 +787,7 @@ export default function Navigation({
                   date.getMonth() === currentSelectedDate.getMonth() &&
                   date.getFullYear() === currentSelectedDate.getFullYear();
                 
-                const isDisabled = isPast || (getCurrentSelectedShip() && !hasAvailable);
+                const isDisabled = isPast || (!!getCurrentSelectedShip() && !hasAvailable);
 
                 return (
                   <button
