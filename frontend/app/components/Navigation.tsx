@@ -4,6 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { fetchShips, Ship } from "../../lib/api";
 import { useAlert } from "../../components/GlobalAlertProvider";
+import { useUser } from "../hooks/useClerkHooks";
+import { SignOutButton } from '@clerk/nextjs';
+import LoginSignupModal from "./LoginSignupModal";
 
 interface NavigationProps {
   showMinimizedSearch?: boolean;
@@ -49,6 +52,18 @@ export default function Navigation({
   const [isDateDropdownClosing, setIsDateDropdownClosing] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   
+  // User authentication states
+  const { isSignedIn, user, isLoaded } = useUser();
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Internal states for when no callbacks are provided
+  const [internalSearchValue, setInternalSearchValue] = useState("");
+  const [internalSelectedShip, setInternalSelectedShip] = useState<Ship | null>(null);
+  const [internalDateValue, setInternalDateValue] = useState("");
+  const [internalSelectedDate, setInternalSelectedDate] = useState<Date | null>(null);
+  
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -88,13 +103,14 @@ export default function Navigation({
 
   // Filter ships based on search input
   useEffect(() => {
-    if (!searchValue.trim()) {
+    const currentSearchValue = getCurrentSearchValue();
+    if (!currentSearchValue.trim()) {
       setFilteredShips(ships);
       setHighlightedIndex(-1);
       return;
     }
 
-    const searchLower = searchValue.toLowerCase();
+    const searchLower = currentSearchValue.toLowerCase();
     const filtered = ships.filter(ship => {
       const shipName = ship.name.toLowerCase();
       const cruiseLineName = ship.cruiseLineName.toLowerCase();
@@ -122,7 +138,36 @@ export default function Navigation({
     
     setFilteredShips(filtered);
     setHighlightedIndex(-1);
-  }, [searchValue, ships]);
+  }, [searchValue, internalSearchValue, ships]);
+
+  // Helper functions to get current values (props or internal state)
+  const getCurrentSearchValue = () => searchValue || internalSearchValue;
+  const getCurrentSelectedShip = () => selectedShip || internalSelectedShip;
+  const getCurrentDateValue = () => dateValue || internalDateValue;
+  const getCurrentSelectedDate = () => selectedDate || internalSelectedDate;
+
+  // Helper function to format user display name
+  const getUserDisplayName = () => {
+    if (!user) return '';
+    
+    const firstName = user.firstName || '';
+    const lastName = user.lastName || '';
+    
+    if (firstName && lastName) {
+      return `${firstName} ${lastName.charAt(0)}.`;
+    } else if (firstName) {
+      return firstName;
+    } else if (user.primaryEmailAddress?.emailAddress) {
+      return user.primaryEmailAddress.emailAddress.split('@')[0];
+    }
+    
+    return 'User';
+  };
+
+  // Helper function to get user avatar
+  const getUserAvatarSrc = () => {
+    return user?.imageUrl || user?.profileImageUrl || null;
+  };
 
   // Handle click outside to close dropdowns
   useEffect(() => {
@@ -158,11 +203,20 @@ export default function Navigation({
           setIsDateDropdownClosing(false);
         }, 150);
       }
+      
+      // Handle user dropdown
+      if (
+        userDropdownRef.current &&
+        !userDropdownRef.current.contains(event.target as Node) &&
+        isUserDropdownOpen
+      ) {
+        setIsUserDropdownOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isDropdownOpen, isDropdownClosing, isDateDropdownOpen, isDateDropdownClosing]);
+  }, [isDropdownOpen, isDropdownClosing, isDateDropdownOpen, isDateDropdownClosing, isUserDropdownOpen]);
 
   // Search input handlers
   const handleInputFocus = () => {
@@ -170,7 +224,13 @@ export default function Navigation({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onSearchValueChange?.(e.target.value);
+    const value = e.target.value;
+    if (onSearchValueChange) {
+      onSearchValueChange(value);
+    } else {
+      // If no callback provided, update internal state
+      setInternalSearchValue(value);
+    }
     setIsDropdownOpen(true);
     setHighlightedIndex(-1);
   };
@@ -209,7 +269,13 @@ export default function Navigation({
   };
 
   const handleShipSelect = (ship: Ship) => {
-    onShipSelect?.(ship);
+    if (onShipSelect) {
+      onShipSelect(ship);
+    } else {
+      // If no callback provided, update internal state
+      setInternalSearchValue(ship.name);
+      setInternalSelectedShip(ship);
+    }
     setIsDropdownClosing(true);
     setTimeout(() => {
       setIsDropdownOpen(false);
@@ -225,7 +291,19 @@ export default function Navigation({
   };
 
   const handleDateSelect = (date: Date) => {
-    onDateSelect?.(date);
+    if (onDateSelect) {
+      onDateSelect(date);
+    } else {
+      // If no callback provided, update internal state
+      setInternalSelectedDate(date);
+      const formattedDate = date.toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+      setInternalDateValue(formattedDate);
+    }
     setIsDateDropdownClosing(true);
     setTimeout(() => {
       setIsDateDropdownOpen(false);
@@ -303,6 +381,36 @@ export default function Navigation({
     return days;
   };
 
+  // Default search handler when no callback is provided
+  const handleSearch = () => {
+    if (onSearchClick) {
+      onSearchClick();
+    } else {
+      // Default behavior - could navigate to homepage with search params
+      const currentShip = getCurrentSelectedShip();
+      const currentDate = getCurrentSelectedDate();
+      
+      if (!currentShip) {
+        showAlert('Please select a ship');
+        return;
+      }
+      
+      if (!currentDate) {
+        showAlert('Please select a departure date');
+        return;
+      }
+      
+      // Navigate to homepage with search parameters
+      const searchParams = new URLSearchParams({
+        ship: currentShip.name,
+        shipId: currentShip.id.toString(),
+        date: currentDate.toISOString().split('T')[0]
+      });
+      
+      window.location.href = `/?${searchParams.toString()}`;
+    }
+  };
+
   return (
     <>
       <nav 
@@ -343,7 +451,7 @@ export default function Navigation({
                       ref={inputRef}
                       type="text"
                       placeholder="Select Ship"
-                      value={searchValue}
+                      value={getCurrentSearchValue()}
                       onChange={handleInputChange}
                       onFocus={handleInputFocus}
                       onKeyDown={handleKeyDown}
@@ -367,7 +475,7 @@ export default function Navigation({
                       ref={dateInputRef}
                       type="text"
                       placeholder="Departure Date"
-                      value={dateValue}
+                      value={getCurrentDateValue()}
                       onFocus={handleDateInputFocus}
                       readOnly
                       className="flex-1 text-[18px] font-geograph text-dark-blue placeholder-dark-blue tracking-tight outline-none bg-transparent cursor-pointer"
@@ -377,7 +485,7 @@ export default function Navigation({
 
                   {/* Search Button */}
                   <button 
-                    onClick={onSearchClick}
+                    onClick={handleSearch}
                     className="absolute right-1.5 w-[40px] h-[40px] bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors"
                   >
                     <svg width="20" height="20" viewBox="0 0 33 33" fill="none" style={{ shapeRendering: 'geometricPrecision' }}>
@@ -446,16 +554,76 @@ export default function Navigation({
               Chat with us
             </a>
             
-            {/* Sign up/Log in Button - Updated padding */}
-            <button 
-              className={`px-4 py-1.5 border rounded-full text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                isScrolled || (isCruiseDetailPage && !isScrolled)
-                  ? 'border-[#0E1B4D] text-[#0E1B4D] bg-transparent' 
-                  : 'border-white text-white bg-transparent'
-              }`}
-            >
-              Sign up/Log in
-            </button>
+            {/* User Authentication Area */}
+            {isLoaded && (
+              <>
+                {isSignedIn && user ? (
+                  // User Menu
+                  <div className="relative" ref={userDropdownRef}>
+                    <button
+                      onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                      className="flex items-center gap-3 hover:opacity-80 transition-all duration-300"
+                    >
+                      {/* User Avatar */}
+                      <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                        {getUserAvatarSrc() ? (
+                          <img
+                            src={getUserAvatarSrc()!}
+                            alt={getUserDisplayName()}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className={`w-full h-full flex items-center justify-center text-[12px] font-medium ${
+                            isScrolled || (isCruiseDetailPage && !isScrolled) ? 'text-[#0E1B4D]' : 'text-white'
+                          }`}>
+                            {getUserDisplayName().charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* User Display Name */}
+                      <span className={`text-[16px] font-medium font-geograph ${
+                        isScrolled || (isCruiseDetailPage && !isScrolled) ? 'text-[#0E1B4D]' : 'text-white'
+                      }`}>
+                        {getUserDisplayName()}
+                      </span>
+                    </button>
+
+                    {/* User Dropdown Menu */}
+                    {isUserDropdownOpen && (
+                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[10000]">
+                        <button
+                          onClick={() => {
+                            setIsUserDropdownOpen(false);
+                            // Add settings navigation here if needed
+                          }}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-geograph"
+                        >
+                          Settings
+                        </button>
+                        <SignOutButton redirectUrl="/">
+                          <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-geograph">
+                            Log out
+                          </button>
+                        </SignOutButton>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // Sign up/Log in Button
+                  <button 
+                    onClick={() => setIsLoginModalOpen(true)}
+                    className={`px-4 py-1.5 border rounded-full text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
+                      isScrolled || (isCruiseDetailPage && !isScrolled)
+                        ? 'border-[#0E1B4D] text-[#0E1B4D] bg-transparent' 
+                        : 'border-white text-white bg-transparent'
+                    }`}
+                  >
+                    Sign up/Log in
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -573,10 +741,11 @@ export default function Navigation({
 
                 const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
                 const isPast = isDateInPast(date);
-                const isSelected = selectedDate && 
-                  date.getDate() === selectedDate.getDate() &&
-                  date.getMonth() === selectedDate.getMonth() &&
-                  date.getFullYear() === selectedDate.getFullYear();
+                const currentSelectedDate = getCurrentSelectedDate();
+                const isSelected = currentSelectedDate && 
+                  date.getDate() === currentSelectedDate.getDate() &&
+                  date.getMonth() === currentSelectedDate.getMonth() &&
+                  date.getFullYear() === currentSelectedDate.getFullYear();
 
                 return (
                   <button
@@ -657,17 +826,76 @@ export default function Navigation({
                 Chat with us
               </a>
               
-              {/* Sign up/Log in Button */}
-              <button 
-                className="mt-8 px-6 py-3 border border-gray-separator text-dark-blue bg-transparent rounded-full text-[18px] font-medium font-geograph hover:opacity-80 transition-opacity"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Sign up/Log in
-              </button>
+              {/* User Authentication Area - Mobile */}
+              {isLoaded && (
+                <>
+                  {isSignedIn && user ? (
+                    <div className="mt-8 space-y-4">
+                      {/* User Info */}
+                      <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                          {getUserAvatarSrc() ? (
+                            <img
+                              src={getUserAvatarSrc()!}
+                              alt={getUserDisplayName()}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[14px] font-medium text-dark-blue">
+                              {getUserDisplayName().charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-dark-blue text-[16px] font-medium font-geograph">
+                          {getUserDisplayName()}
+                        </span>
+                      </div>
+                      
+                      {/* Settings Button */}
+                      <button 
+                        className="w-full px-6 py-3 border border-gray-separator text-dark-blue bg-transparent rounded-full text-[18px] font-medium font-geograph hover:opacity-80 transition-opacity"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Settings
+                      </button>
+                      
+                      {/* Logout Button */}
+                      <SignOutButton redirectUrl="/">
+                        <button 
+                          className="w-full px-6 py-3 border border-gray-separator text-dark-blue bg-transparent rounded-full text-[18px] font-medium font-geograph hover:opacity-80 transition-opacity"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          Log out
+                        </button>
+                      </SignOutButton>
+                    </div>
+                  ) : (
+                    <button 
+                      className="mt-8 px-6 py-3 border border-gray-separator text-dark-blue bg-transparent rounded-full text-[18px] font-medium font-geograph hover:opacity-80 transition-opacity"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setIsLoginModalOpen(true);
+                      }}
+                    >
+                      Sign up/Log in
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
       )}
+
+      {/* Login/Signup Modal */}
+      <LoginSignupModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onSuccess={() => {
+          setIsLoginModalOpen(false);
+          // Optionally refresh or handle success
+        }}
+      />
     </>
   );
 }

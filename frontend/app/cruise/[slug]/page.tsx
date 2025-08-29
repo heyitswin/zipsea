@@ -393,7 +393,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             {/* Left Side Content */}
             <div>
               {/* Cruise Name */}
-              <h1 className="font-whitney text-[32px] md:text-[52px] text-dark-blue mb-4 uppercase" style={{ letterSpacing: '-0.02em', lineHeight: '1.1' }}>
+              <h1 className="font-whitney text-[42px] md:text-[52px] text-dark-blue mb-4 uppercase" style={{ letterSpacing: '-0.02em', lineHeight: '1.1' }}>
                 {cruise.name || `${ship?.name || 'Unknown Ship'} Cruise`}
               </h1>
               
@@ -457,7 +457,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 <img 
                   src={ship.defaultShipImage2k || ship.defaultShipImage}
                   alt={`${ship.name} - Ship`}
-                  className="w-full max-w-md rounded-[10px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                  className="w-full rounded-[10px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
                   style={{ height: '400px', aspectRatio: '3/2' }}
                   onClick={() => {
                     const imageUrl = ship.defaultShipImage2k || ship.defaultShipImage;
@@ -465,7 +465,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   }}
                 />
               ) : (
-                <div className="w-full max-w-md bg-gray-200 rounded-[10px] flex items-center justify-center text-gray-500"
+                <div className="w-full bg-gray-200 rounded-[10px] flex items-center justify-center text-gray-500"
                      style={{ height: '400px', aspectRatio: '3/2' }}>
                   No Ship Image Available
                 </div>
