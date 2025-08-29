@@ -76,11 +76,12 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
             identifier: email,
           });
           
-          if (signInResult?.status === 'needs_identifier') {
+          if (signInResult?.status === 'needs_identifier' && signInResult.supportedFirstFactors?.[0]) {
             // Send magic link for sign in
-            const magicLinkResult = await signIn.prepareFirstFactor({
+            const firstFactor = signInResult.supportedFirstFactors[0] as any;
+            const magicLinkResult = await signIn?.prepareFirstFactor({
               strategy: 'email_link',
-              emailAddressId: signInResult.supportedFirstFactors[0].emailAddressId,
+              emailAddressId: firstFactor.emailAddressId,
               redirectUrl: window.location.href
             });
             
@@ -89,7 +90,7 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
             }
           } else if (signInResult?.status === 'complete') {
             setMessage('Sign in successful!');
-            trackAuthEvent('signin_completed', 'email');
+            trackAuthEvent('login', 'email');
             setTimeout(() => onSuccess(), 1000);
           }
         } catch (signInError: any) {
