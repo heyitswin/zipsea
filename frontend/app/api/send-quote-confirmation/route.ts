@@ -350,7 +350,7 @@ export async function POST(request: NextRequest) {
         `;
 
         // Try with custom domain first, fallback to onboarding@resend.dev if it fails
-        const fromEmail = 'ZipSea <quotes@zipsea.com>';
+        const fromEmail = 'ZipSea <zippy@zipsea.com>';
         const fallbackEmail = 'ZipSea <onboarding@resend.dev>';
         
         console.log('📧 Sending email with parameters:', {
