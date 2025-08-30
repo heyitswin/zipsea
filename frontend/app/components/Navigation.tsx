@@ -1,7 +1,7 @@
 'use client';
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { fetchShips, Ship, fetchAvailableSailingDates, AvailableSailingDate } from "../../lib/api";
 import { useAlert } from "../../components/GlobalAlertProvider";
 import { useUser } from "../hooks/useClerkHooks";
@@ -34,6 +34,7 @@ export default function Navigation({
 }: NavigationProps) {
   const { showAlert } = useAlert();
   const pathname = usePathname();
+  const router = useRouter();
   const isCruiseDetailPage = pathname?.startsWith('/cruise/') || false;
   const [ships, setShips] = useState<Ship[]>([]);
   const [filteredShips, setFilteredShips] = useState<Ship[]>([]);
@@ -442,14 +443,14 @@ export default function Navigation({
         return;
       }
       
-      // Navigate to homepage with search parameters
+      // Navigate to homepage with search parameters using Next.js router
       const searchParams = new URLSearchParams({
         ship: currentShip.name,
         shipId: currentShip.id.toString(),
         date: currentDate.toISOString().split('T')[0]
       });
       
-      window.location.href = `/?${searchParams.toString()}`;
+      router.push(`/?${searchParams.toString()}`);
     }
   };
 

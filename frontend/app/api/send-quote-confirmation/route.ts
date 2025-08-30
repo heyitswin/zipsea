@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
     let backendSaved = false;
     let slackSent = false;
     let emailSent = false;
+    let notificationSent = false;
 
     // Save quote request to backend database (optional - don't fail if backend is down)
     try {
@@ -190,28 +191,21 @@ export async function POST(request: NextRequest) {
                     <!-- Hero Section -->
                     <tr>
                       <td style="padding: 0;">
-                        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #0E1B4D; border-radius: 10px 10px 0 0;">
+                        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #0E1B4D; border-radius: 10px;">
                           <tr>
-                            <td style="padding: 36px;">
-                              <table cellpadding="0" cellspacing="0" border="0" width="100%">
-                                <tr>
-                                  <!-- Logo -->
-                                  <td valign="top" style="width: 130px; padding-bottom: 20px;">
-                                    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAxMTAgMzEiPjxwYXRoIGZpbGw9IiNFOUI0RUIiIGQ9Ik0yNC42NSAyOS41YS41NS41NSAwIDAgMS0uNDg4LS41MzVsLS4yNi0xOC4wNDdhLjU0Ny41NDcgMCAwIDEgLjU4Mi0uNTUzbDUuNzMyLjM4MWEuNTQ3LjU0NyAwIDAgMSAuNTEuNTM4bC4yNiAxOC4yNzhhLjU0Ny41NDcgMCAwIDEtLjYwNC41NTF6Ii8+PHBhdGggZmlsbD0iI0U5QjRFQiIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJtMzQuNTk2IDMuODQ1IDQuOTE2LS43OTZjLjI0NC4wMDEuNDUuMTguNDg3LjQyMmwuMTI2LjgzNWMuMDYyLjQxLjU3NS41NzIuODgyLjI5MiAxLjM3OC0xLjI1OCAyLjc4Mi0xLjYyMyA0LjIxMy0xLjYxNSAxLjg5Ny4wMSAzLjI3NS43NyA0LjM5MyAyLjI3OCAxLjExOCAxLjQ5NyAxLjY2OSAzLjQ2NSAxLjY1MiA2LjQyMnEtLjAxNSAyLjU0LS42MyA0LjQ2OGMtLjQxIDEuMjczLS44NDQgMi4yODMtMS41NiAzLjAzLS43MDMuNzM2LTEuNDgzIDEuMTU2LTIuMzM4IDEuNTIxYTcuMSA3LjEgMCAwIDEtMi43Ni41MjFjLS44NzctLjAwNS0xLjgyNi0uMDA4LTIuODQ4LS4yNjlhLjUxLjUxIDAgMCAwLS42MzkuNDg1bC0uMDI5IDUuMTIxYS40OTYuNDk2IDAgMCAxLS40Mi40ODhsLTUuNTA4LjgzM2EuNDk1LjQ5NSAwIDAgMS0uNTY4LS40OTNsLjEzNC0yMy4wNWEuNDk1LjQ5NSAwIDAgMSAuNDk3LS40OTNtOC4yMjYgNC41MTJjLS42MjgtLjAwMy0xLjMzNi41MTYtMi4xMjcgMS4yOTlhLjQ4LjQ4IDAgMCAwLS4xNC4zNGwtLjAzMiA1LjYxNWEuNDcuNDcgMCAwIDAgLjMxNS40NTZjLjUyLjE3NiAxLjAwNS4zOTUgMS40Ni4zOTguNzgyLjAwNSAxLjQwNy0uNDU2IDEuODczLTEuMTIuNDc4LS42NzguODUtMS43NS44NTktMy4yMTYuMDEzLTIuNDItLjgxLTMuNzY0LTIuMjA4LTMuNzcyIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiLz48cGF0aCBmaWxsPSIjRTlCNEVCIiBkPSJNMzAuODk2IDQuNjdhMy41MDIgMy41MDIgMCAxIDEtNy4wMDMgMCAzLjUwMiAzLjUwMiAwIDAgMSA3LjAwMyAwbTIxLjU1NyAxNy4yNzhhLjQxLjQxIDAgMCAxLS4yMDgtLjQ5MWwxLjI0My0zLjkwMWEuNDE1LjQxNSAwIDAgMSAuNjAzLS4yMzJjMS4wODIuNjI1IDIuMDY5IDEuMTMxIDMuMzM2IDEuNTE5cTIuMTc5LjY0IDMuODE4LjY0cTEuOTU5IDAgMS45NTktMS4wOHEwLS41Mi0uNTYtLjg2cS0uNTQtLjM0LTIuMzU5LS44MTlxLTIuMDc4LS41NC0zLjM3Ny0xLjA2YTkuOCA5LjggMCAwIDEtMi4yNzktMS4yNThxLS45Ni0uNzYtMS4zNzktMS43OHEtLjQtMS4wMTgtLjQtMi40NzhxMC0zLjAzNyAyLjA5OS00LjgxNnEyLjExOC0xLjc4IDUuOTU2LTEuNzhxNC4xMiAwIDcuNDg3IDEuNDM0Yy4xNy4wNzMuMjY4LjI1My4yNC40MzZsLS42ODMgNC4zOThhLjQyLjQyIDAgMCAxLS42MDIuMzEgMTguNiAxOC42IDAgMCAwLTMuMDg0LTEuMThxLTEuODQtLjUyLTMuMjc4LS41MnEtMS41OTkgMC0xLjU5OS44OTlxMCAuNS41Ni44MnEuNTguMzIgMi41MTguODU5cTQuMjU3IDEuMTYgNS43OTYgMi40OThxMS41NCAxLjM0IDEuNTQgNC4wNzhxMCAzLjMzOC0yLjE4IDUuMDc2cS0yLjE3OCAxLjcyLTYuMjk1IDEuNzJjLTMuMDM3IDAtNi4yMzgtMS4xMzctOC44NzMtMi40MzJtMTguMjQ1LTExLjI3NXEwLTQuOTE3IDIuNzE4LTcuNzk1UTc2LjE1NSAwIDgwLjQ5MSAwcTIuMzE5IDAgNC4wOTcuODJxMS43OC43OTggMi44NTggMi4yNThxMS4wOCAxLjQ2IDEuNjIgMy4zNTh0LjUzOSA0LjE5N3EwIDEuMDQ4LS4wNyAxLjY0NWEuMzg0LjM4NCAwIDAgMS0uMzg4LjMzNEg3OC40MzVjLS4yNTMgMC0uNDQ4LjIyNy0uMzg2LjQ3M3EuNzM1IDIuOTI1IDQuNDggMi45MjVxMi41MSAwIDUuODEtMS41NjNhLjQyLjQyIDAgMCAxIC42MDMuMzc4bC0uMDIyIDQuMDYyYS40MS40MSAwIDAgMS0uMjEuMzU1Yy0yLjM0NSAxLjMtNC4zMTIgMS44MjQtNy4xNiAxLjgyNHEtMi40MzggMC00LjQxNy0uNjJxLTEuOTc5LS42NC0zLjQxOC0xLjg5OHEtMS40NC0xLjI2LTIuMjM4LTMuMjU4cS0uNzgtMS45OTgtLjc4LTQuNjE3bTcuMTI2LTIuMjE1YS40MDMuNDAzIDAgMCAwIC40MDUuNDE2aDQuMTE4YS40MDMuNDAzIDAgMCAwIC40MDUtLjQyM3EtLjEwNy0xLjg2Ny0uNzAxLTIuODc1cS0uNjYtMS4xMTktMS43NzktMS4xMTlxLTEuMTQgMC0xLjc5OSAxLjE0cS0uNTc2IDEuMDA4LS42NSAyLjg2MW0xMi45MzIgMTAuODU2cTAtMy40NTcgMi42NTgtNS4yNzdxMi42MjItMS44MTMgOC4yNzUtMi4zMjRhLjE3Ni4xNzYgMCAwIDAgLjE2LS4xNzRxMC0xLjE0LS42Ni0xLjY3OXEtLjY0LS41NC0yLjA3OC0uNTRxLTIuNzQ1IDAtNS44NjcgMS4yMzlhLjQyLjQyIDAgMCAxLS41Ny0uMzIybC0uNjg5LTQuNDdhLjQwNi40MDYgMCAwIDEgLjI1Ni0uNDQzcTMuNjk0LTEuNCA4LjA4OS0xLjRxNC41MzcgMCA2LjY3NSAxLjYzOXEyLjEzOSAxLjYzOCAyLjEzOSA1LjU5NlYyNC4xYS40MS40MSAwIDAgMS0uNDEyLjQxMWgtNS43OTZhLjQxLjQxIDAgMCAxLS40MDYtLjM0MmwtLjIyNi0xLjMyNGMtLjA1Ny0uMzMtLjQ2Ny0uNDYtLjcxNi0uMjM2cS0xLjEwNC45OTgtMi4yNTggMS41ODNxLTEuNDQuNzItMy4yMTguNzJxLTIuMzk4IDAtMy44NzctMS40NHEtMS40OC0xLjQ0LTEuNDgtNC4xNTdtNy4xNTUtMS4xcTAgLjgyLjQyIDEuMjhxLjQ0LjQ0IDEuMTQuNDRxMS4wMTMgMCAyLjI1Ny0uOTE4YS40LjQgMCAwIDAgLjE2MS0uMzI0di0zLjRhLjQuNCAwIDAgMC0uNS0uMzk0cS0xLjc1LjQ2LTIuNTU4IDEuMTk4cS0uOTIuODQtLjkyIDIuMTE5TTE2IDI5LjUgMjQuNjUgMjkuNWEuNTUuNTUgMCAwIDEtLjQ4OC0uNTM1bC0uMjYtMTguMDQ3YS41NDcuNTQ3IDAgMCAxIC41ODItLjU1M2w1LjczMi4zODFhLjU0Ny41NDcgMCAwIDEgLjUxLjUzOGwuMjYgMTguMjc4YS41NDcuNTQ3IDAgMCAxLS42MDQuNTUxeiIvPjxwYXRoIGZpbGw9IiNFOUI0RUIiIGZpbGwtcnVsZT0iZXZlbm9kZCIgZD0ibTM0LjU5NiAzLjg0NSA0LjkxNi0uNzk2Yy4yNDQuMDAxLjQ1LjE4LjQ4Ny40MjJsLjEyNi44MzVjLjA2Mi40MS41NzUuNTcyLjg4Mi4yOTIgMS4zNzgtMS4yNTggMi43ODItMS42MjMgNC4yMTMtMS42MTUgMS44OTcuMDEgMy4yNzUuNzcgNC4zOTMgMi4yNzggMS4xMTggMS40OTcgMS42NjkgMy40NjUgMS42NTIgNi40MjJxLS4wMTUgMi41NC0uNjMgNC40NjhjLS40MSAxLjI3My0uODQ0IDIuMjgzLTEuNTYgMy4wMy0uNzAzLjczNi0xLjQ4MyAxLjE1Ni0yLjMzOCAxLjUyMWE3LjEgNy4xIDAgMCAxLTIuNzYuNTIxYy0uODc3LS4wMDUtMS44MjYtLjAwOC0yLjg0OC0uMjY5YS41MS41MSAwIDAgMC0uNjM5LjQ4NWwtLjAyOSA1LjEyMWEuNDk2LjQ5NiAwIDAgMS0uNDIuNDg4bC01LjUwOC44MzNhLjQ5NS40OTUgMCAwIDEtLjU2OC0uNDkzbC4xMzQtMjMuMDVhLjQ5NS40OTUgMCAwIDEgLjQ5Ny0uNDkzbTguMjI2IDQuNTEyYy0uNjI4LS4wMDMtMS4zMzYuNTE2LTIuMTI3IDEuMjk5YS40OC40OCAwIDAgMC0uMTQuMzRsLS4wMzIgNS42MTVhLjQ3LjQ3IDAgMCAwIC4zMTUuNDU2Yy41Mi4xNzYgMS4wMDUuMzk1IDEuNDYuMzk4Ljc4Mi4wMDUgMS40MDctLjQ1NiAxLjg3My0xLjEyLjQ3OC0uNjc4Ljg1LTEuNzUuODU5LTMuMjE2LjAxMy0yLjQyLS44MS0zLjc2NC0yLjIwOC0zLjc3MiIgY2xpcC1ydWxlPSJldmVub2RkIi8+PHBhdGggZmlsbD0iI0U5QjRFQiIgZD0iTTMwLjg5NiA0LjY3YTMuNTAyIDMuNTAyIDAgMSAxLTcuMDAzIDAgMy41MDIgMy41MDIgMCAwIDEgNy4wMDMgMG0yMS41NTcgMTcuMjc4YS40MS40MSAwIDAgMS0uMjA4LS40OTFsMS4yNDMtMy45MDFhLjQxNS40MTUgMCAwIDEgLjYwMy0uMjMyYzEuMDgyLjYyNSAyLjA2OSAxLjEzMSAzLjMzNiAxLjUxOXEyLjE3OS42NCAzLjgxOC42NHExLjk1OSAwIDEuOTU5LTEuMDhxMC0uNTItLjU2LS44NnEtLjU0LS4zNC0yLjM1OS0uODE5cS0yLjA3OC0uNTQtMy4zNzctMS4wNmE5LjggOS44IDAgMCAxLTIuMjc5LTEuMjU4cS0uOTYtLjc2LTEuMzc5LTEuNzhxLS40LTEuMDE4LS40LTIuNDc4cTAtMy4wMzcgMi4wOTktNC44MTZxMi4xMTgtMS43OCA1Ljk1Ni0xLjc4cTQuMTIgMCA3LjQ4NyAxLjQzNGMuMTcuMDczLjI2OC4yNTMuMjQuNDM2bC0uNjgzIDQuMzk4YS40Mi40MiAwIDAgMS0uNjAyLjMxIDE4LjYgMTguNiAwIDAgMC0zLjA4NC0xLjE4cS0xLjg0LS41Mi0zLjI3OC0uNTJxLTEuNTk5IDAtMS41OTkuODk5cTAgLjUuNTYuODJxLjU4LjMyIDIuNTE4Ljg1OXE0LjI1NyAxLjE2IDUuNzk2IDIuNDk4cTEuNTQgMS4zNCAxLjU0IDQuMDc4cTAgMy4zMzgtMi4xOCA1LjA3NnEtMi4xNzggMS43Mi02LjI9NSAxLjcyYy0zLjAzNyAwLTYuMjM4LTEuMTM3LTguODczLTIuNDMybTE4LjI0NS0xMS4yNzVxMC00LjkxNyAyLjcxOC03Ljc5NVE3Ni4xNTUgMCA4MC40OTEgMHEyLjMxOSAwIDQuMDk3LjgycTEuNzguNzk4IDIuODU4IDIuMjU4cTEuMDggMS40NiAxLjYyIDMuMzU4dC41MzkgNC4xOTdxMCAxLjA0OC0uMDcgMS42NDVhLjM4NC4zODQgMCAwIDEtLjM4OC4zMzRINzguNDM1Yy0uMjUzIDAtLjQ0OC4yMjctLjM4Ni40NzNxLjczNSAyLjkyNSA0LjQ4IDIuOTI1cTIuNTEgMCA1LjgxLTEuNTYzYS40Mi40MiAwIDAgMSAuNjAzLjM3OGwtLjAyMiA0LjA2MmEuNDEuNDEgMCAwIDEtLjIxLjM1NWMtMi4zNDUgMS4zLTQuMzEyIDEuODI0LTcuMTYgMS44MjRxLTIuNDM4IDAtNC40MTctLjYycS0xLjk3OS0uNjQtMy40MTgtMS44OThxLTEuNDQtMS4yNi0yLjIzOC0zLjI1OHEtLjc4LTEuOTk4LS43OC00LjYxN203LjEyNi0yLjIxNWEuNDAzLjQwMyAwIDAgMCAuNDA1LjQxNmg0LjExOGEuNDAzLjQwMyAwIDAgMCAuNDA1LS40MjNxLS4xMDctMS44NjctLjcwMS0yLjg3NXEtLjY2LTEuMTE5LTEuNzc5LTEuMTE5cS0xLjE0IDAtMS43OTkgMS4xNHEtLjU3NiAxLjAwOC0uNjUgMi44NjFtMTIuOTMyIDEwLjg1NnEwLTMuNDU3IDIuNjU4LTUuMjc3cTIuNjIyLTEuODEzIDguMjc1LTIuMzI0YS4xNzYuMTc2IDAgMCAwIC4xNi0uMTc0cTAtMS4xNC0uNjYtMS42NzlxLS42NC0uNTQtMi4wNzgtLjU0cS0yLjc0NSAwLTUuODY3IDEuMjM5YS40Mi40MiAwIDAgMS0uNTctLjMyMmwtLjY4OS00LjQ3YS40MDYuNDA2IDAgMCAxIC4yNTYtLjQ0M3EzLjY5NC0xLjQgOC4wODktMS40cTQuNTM3IDAgNi42NzUgMS42MzlxMi4xMzkgMS42MzggMi4xMzkgNS41OTZWMjQuMWEuNDEuNDEgMCAwIDEtLjQxMi40MTFoLTUuNzk2YS40MS40MSAwIDAgMS0uNDA2LS4zNDJsLS4yMjYtMS4zMjRjLS4wNTctLjMzLS40NjctLjQ2LS43MTYtLjIzNnEtMS4xMDQuOTk4LTIuMjU4IDEuNTgzcS0xLjQ0LjcyLTMuMjE4LjcycS0yLjM5OCAwLTMuODc3LTEuNDRxLTEuNDgtMS40NC0xLjQ4LTQuMTU3bTcuMTU1LTEuMXEwIC44Mi40MiAxLjI4cS40NC40NCAxLjE0LjQ0cTEuMDEzIDAgMi4yNTctLjkxOGEuNC40IDAgMCAwIC4xNjEtLjMyNHYtMy40YS40LjQgMCAwIDAtLjUtLjM5NHEtMS43NS40Ni0yLjU1OCAxLjE5OHEtLjkyLjg0LS45MiAyLjExOXoiLz48L3N2Zz4=" 
-                                         alt="ZipSea" 
-                                         width="130" 
-                                         height="37" 
-                                         style="display: block; width: 130px; height: 37px;" />
-                                  </td>
-                                  <!-- Spacing -->
-                                  <td style="width: 140px;">&nbsp;</td>
-                                  <!-- Content -->
-                                  <td valign="top">
-                                    <h1 style="margin: 0 0 10px 0; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 54px; font-weight: bold; letter-spacing: -0.02em; line-height: 1.1;">Quote request received</h1>
-                                    <p style="margin: 0; color: #E9B4EB; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.3;">We're working on getting you the best possible price + perks</p>
-                                  </td>
-                                </tr>
-                              </table>
+                            <td style="padding: 36px; text-align: center;">
+                              <!-- Logo -->
+                              <div style="margin-bottom: 20px;">
+                                <img src="https://zipsea.com/images/zipsea-pink.png" 
+                                     alt="ZipSea" 
+                                     width="130" 
+                                     style="display: inline-block; width: 130px; height: auto;" />
+                              </div>
+                              <!-- Content -->
+                              <div>
+                                <h1 style="margin: 0 0 10px 0; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 54px; font-weight: bold; letter-spacing: -0.02em; line-height: 1.1;">Quote request received</h1>
+                                <p style="margin: 0; color: #E9B4EB; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.3;">We're working on getting you the best possible price + perks</p>
+                              </div>
                             </td>
                           </tr>
                         </table>
@@ -235,10 +229,10 @@ export async function POST(request: NextRequest) {
                                     <!-- Cruise -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
-                                        <td style="color: #999999; font-family: Arial, sans-serif; font-size: 12px; font-weight: normal; letter-spacing: 0.5px; text-transform: uppercase; padding-bottom: 5px;">CRUISE</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">CRUISE</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal; line-height: 1.4;">${cruiseData.name}</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.name}</td>
                                       </tr>
                                     </table>
                                     ` : ''}
@@ -247,10 +241,10 @@ export async function POST(request: NextRequest) {
                                     <!-- Ship -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
-                                        <td style="color: #999999; font-family: Arial, sans-serif; font-size: 12px; font-weight: normal; letter-spacing: 0.5px; text-transform: uppercase; padding-bottom: 5px;">SHIP</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">SHIP</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal; line-height: 1.4;">${cruiseData.shipName}</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.shipName}</td>
                                       </tr>
                                     </table>
                                     ` : ''}
@@ -259,10 +253,10 @@ export async function POST(request: NextRequest) {
                                     <!-- Nights -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
-                                        <td style="color: #999999; font-family: Arial, sans-serif; font-size: 12px; font-weight: normal; letter-spacing: 0.5px; text-transform: uppercase; padding-bottom: 5px;">NIGHTS</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">NIGHTS</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal; line-height: 1.4;">${cruiseData.nights} nights</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.nights} nights</td>
                                       </tr>
                                     </table>
                                     ` : ''}
@@ -270,10 +264,10 @@ export async function POST(request: NextRequest) {
                                     <!-- Passengers -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
-                                        <td style="color: #999999; font-family: Arial, sans-serif; font-size: 12px; font-weight: normal; letter-spacing: 0.5px; text-transform: uppercase; padding-bottom: 5px;">PASSENGERS</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">PASSENGERS</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal; line-height: 1.4;">${passengerInfo}</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${passengerInfo}</td>
                                       </tr>
                                     </table>
                                     
@@ -284,10 +278,10 @@ export async function POST(request: NextRequest) {
                                     <!-- Cruise Line -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
-                                        <td style="color: #999999; font-family: Arial, sans-serif; font-size: 12px; font-weight: normal; letter-spacing: 0.5px; text-transform: uppercase; padding-bottom: 5px;">CRUISE LINE</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">CRUISE LINE</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal; line-height: 1.4;">${cruiseData.cruiseLineName}</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.cruiseLineName}</td>
                                       </tr>
                                     </table>
                                     ` : ''}
@@ -296,10 +290,10 @@ export async function POST(request: NextRequest) {
                                     <!-- Departure -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
-                                        <td style="color: #999999; font-family: Arial, sans-serif; font-size: 12px; font-weight: normal; letter-spacing: 0.5px; text-transform: uppercase; padding-bottom: 5px;">DEPARTURE</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">DEPARTURE</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal; line-height: 1.4;">${formatDate(cruiseData.sailingDate)}</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${formatDate(cruiseData.sailingDate)}</td>
                                       </tr>
                                     </table>
                                     ` : ''}
@@ -308,10 +302,10 @@ export async function POST(request: NextRequest) {
                                     <!-- Cabin Type -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
-                                        <td style="color: #999999; font-family: Arial, sans-serif; font-size: 12px; font-weight: normal; letter-spacing: 0.5px; text-transform: uppercase; padding-bottom: 5px;">CABIN TYPE</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">CABIN TYPE</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal; line-height: 1.4;">${cabinType}</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cabinType}</td>
                                       </tr>
                                     </table>
                                     ` : ''}
@@ -320,10 +314,10 @@ export async function POST(request: NextRequest) {
                                     <!-- Starting Price -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
-                                        <td style="color: #999999; font-family: Arial, sans-serif; font-size: 12px; font-weight: normal; letter-spacing: 0.5px; text-transform: uppercase; padding-bottom: 5px;">STARTING PRICE</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">STARTING PRICE</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal; line-height: 1.4;">${formatPrice(cabinPrice)} (excl. taxes/fees)</td>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${formatPrice(cabinPrice)} (excl. taxes/fees)</td>
                                       </tr>
                                     </table>
                                     ` : ''}
@@ -442,6 +436,51 @@ export async function POST(request: NextRequest) {
             to: userEmail,
             timestamp: new Date().toISOString()
           });
+
+          // Send notification email to zipsea@manus.bot
+          try {
+            console.log('📧 Sending task notification to zipsea@manus.bot...');
+            
+            // Create cruise details text for the notification
+            const cruiseDetails = `
+Customer Email: ${userEmail}
+Cruise: ${cruiseData?.name || 'N/A'}
+Ship: ${cruiseData?.shipName || 'N/A'}
+Cruise Line: ${cruiseData?.cruiseLineName || 'N/A'}
+Departure Date: ${formatDate(cruiseData?.sailingDate) || 'N/A'}
+Nights: ${cruiseData?.nights || 'N/A'} nights
+Departure Port: ${cruiseData?.embarkPortName || 'N/A'}
+Passengers: ${passengerInfo}
+Cabin Type Requested: ${cabinType || 'N/A'}
+Starting Price: ${formatPrice(cabinPrice) || 'N/A'} (excl. taxes/fees)
+Discounts: ${activeDiscounts.length > 0 ? activeDiscounts.join(', ') : 'None'}
+Travel Insurance: ${travelInsurance ? 'Yes' : 'No'}
+            `.trim();
+
+            const notificationText = `Visit https://secure.cruisingpower.com/login and login with username winlin430 password Zippysea123, then using the cruise details below, locate the exact cruise and send me the actual costs of each AVAILABLE category of the room type.
+
+${cruiseDetails}`;
+
+            const notificationResult = await resend.emails.send({
+              from: fromEmail,
+              to: ['zipsea@manus.bot'],
+              subject: 'New quote request task',
+              text: notificationText,
+            });
+
+            if (notificationResult.error) {
+              console.error('❌ Notification email error:', notificationResult.error);
+            } else {
+              notificationSent = true;
+              console.log('✅ Notification email sent to zipsea@manus.bot', {
+                resendId: notificationResult.data?.id,
+                timestamp: new Date().toISOString()
+              });
+            }
+          } catch (notificationError) {
+            console.error('Error sending notification email:', notificationError);
+            // Continue - notification is optional
+          }
         }
       } catch (error) {
         console.error('Error sending email via Resend:', error);
@@ -456,6 +495,7 @@ export async function POST(request: NextRequest) {
       backendSaved,
       slackSent,
       emailSent,
+      notificationSent,
       userEmail,
       cruiseId: cruiseData?.id
     });
@@ -465,7 +505,8 @@ export async function POST(request: NextRequest) {
       details: {
         backendSaved,
         slackSent,
-        emailSent
+        emailSent,
+        notificationSent
       }
     });
 
