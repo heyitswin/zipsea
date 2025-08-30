@@ -1,15 +1,17 @@
 'use client';
 import OptimizedImage from "../lib/OptimizedImage";
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from 'next/navigation';
+import { useState, useRef, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchShips, Ship, searchCruises, Cruise, fetchLastMinuteDeals, LastMinuteDeals, fetchAvailableSailingDates, AvailableSailingDate } from "../lib/api";
 import { createSlugFromCruise } from "../lib/slug";
 import { useAlert } from "../components/GlobalAlertProvider";
 import Navigation from "./components/Navigation";
 import { trackSearch, trackEngagement } from "../lib/analytics";
 
-export default function Home() {
+// Separate component to handle URL params (needs to be wrapped in Suspense)
+function HomeWithParams() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showAlert } = useAlert();
   const [searchValue, setSearchValue] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -69,6 +71,93 @@ export default function Home() {
       }
     }
   }, [router]);
+
+  // Handle URL parameters on initial load (e.g., from navigation searches)
+  useEffect(() => {
+    if (!searchParams || !ships.length) return;
+    
+    const shipParam = searchParams.get('ship');
+    const shipIdParam = searchParams.get('shipId');
+    const dateParam = searchParams.get('date');
+    
+    if (shipParam && shipIdParam && dateParam) {
+      try {
+        // Find the ship by ID
+        const foundShip = ships.find(ship => ship.id === parseInt(shipIdParam));
+        
+        if (foundShip) {
+          // Set ship selection
+          setSearchValue(foundShip.name);
+          setSelectedShip(foundShip);
+          
+          // Set date selection
+          const date = new Date(dateParam);
+          if (!isNaN(date.getTime())) {
+            setSelectedDate(date);
+            const formattedDate = date.toLocaleDateString('en-US', { 
+              weekday: 'short', 
+              month: 'short', 
+              day: 'numeric', 
+              year: 'numeric' 
+            });
+            setDateValue(formattedDate);
+            
+            // Load available sailing dates for the ship
+            loadAvailableSailingDates(foundShip.id);
+            
+            // Trigger search automatically after a short delay to ensure state is set
+            setTimeout(async () => {
+              // Inline search logic to avoid dependency issues
+              try {
+                const searchParamsForApi = {
+                  shipId: foundShip.id,
+                  shipName: foundShip.name,
+                  departureDate: date.toISOString().split('T')[0]
+                };
+
+                const results = await searchCruises(searchParamsForApi);
+                
+                // Track search event
+                trackSearch({
+                  destination: foundShip.name,
+                  departurePort: undefined,
+                  cruiseLine: foundShip.cruiseLineName,
+                  dateRange: date.toISOString().split('T')[0],
+                  resultsCount: results.length
+                });
+                
+                if (results.length === 1) {
+                  // Navigate directly to the cruise
+                  const cruise = results[0];
+                  try {
+                    const slug = createSlugFromCruise({
+                      id: cruise.id,
+                      shipName: cruise.shipName || cruise.ship_name || foundShip.name || 'unknown-ship',
+                      sailingDate: cruise.departureDate || cruise.departure_date || cruise.sailing_date,
+                    });
+                    router.push(`/cruise/${slug}`);
+                  } catch (error) {
+                    console.error('Failed to create slug for cruise:', cruise, error);
+                    router.push(`/cruise-details?id=${cruise.id}`);
+                  }
+                } else if (results.length === 0) {
+                  showAlert('No cruises found for your search criteria');
+                } else {
+                  showAlert(`Found ${results.length} cruises. Please refine your search.`);
+                }
+              } catch (err) {
+                console.error('Error searching cruises:', err);
+                showAlert('Failed to search cruises. Please try again.');
+              }
+            }, 500);
+          }
+        }
+      } catch (error) {
+        console.error('Error processing URL parameters:', error);
+        // Continue normal operation if URL parsing fails
+      }
+    }
+  }, [searchParams, ships, showAlert, router]); // Dependencies on searchParams, ships, and functions being used
 
   // Load ships on component mount
   useEffect(() => {
@@ -1117,5 +1206,14 @@ export default function Home() {
       />
 
     </>
+  );
+}
+
+// Main export component with Suspense boundary
+export default function Home() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomeWithParams />
+    </Suspense>
   );
 }
