@@ -485,12 +485,15 @@ STEP 2: Search for Cruise
 - Click "search" in the same section
 
 STEP 3: Filter and Extract Data Systematically
-- Click the dropdown under "Category type" and select "${cabinType || 'N/A'}" (not "All Categories")
+- Click on the dropdown field that shows 'All Categories' text (not just the label 'Category Type') and select ${cabinType || 'N/A'}
 - Click the dropdown under "Status" and select "Available"
 - CRITICAL: You must extract pricing data for EVERY row in the table, starting from the FIRST row and going through each subsequent row
 
-STEP 4: Data Extraction Process (repeat for EACH row)
-For each available ${cabinType || 'cabin'} category in the table:
+STEP 4: FIRST apply the Category Type and Status filters as specified, THEN extract data only from the filtered results. If filtering for 'Available' status shows no results, immediately report that no cabins are available and end the task
+
+STEP 4.5
+Data Extraction Process (repeat for EACH row)
+For each available ${cabinType || 'Interior cabin'} category in the table:
 a) Click the circle/radio button next to "AVL" for that specific row
 b) Scroll down and click "Price Quote" to open the pricing modal
 c) In the modal, scroll down and click "View Agency Commission"
@@ -499,7 +502,7 @@ e) Close the modal by clicking the "X" or clicking outside the modal
 f) Move to the NEXT row and repeat steps a-e
 
 STEP 5: Verification
-- Ensure you have extracted data for ALL available ${cabinType || 'cabin'} categories
+- Ensure you have extracted data for ALL available ${cabinType || 'N/A'} categories
 - Compile all information into a comprehensive table
 - Send the complete table with all pricing and commission data
 
