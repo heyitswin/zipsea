@@ -8,6 +8,7 @@ import { useUser } from "../hooks/useClerkHooks";
 import { useAdmin } from "../hooks/useAdmin";
 import { SignOutButton } from '@clerk/nextjs';
 import LoginSignupModal from "./LoginSignupModal";
+import SearchResultsModal from "./SearchResultsModal";
 
 interface NavigationProps {
   showMinimizedSearch?: boolean;
@@ -43,6 +44,15 @@ export default function Navigation({
   
   // Mobile menu states
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  // Search results modal state
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [searchModalParams, setSearchModalParams] = useState<{
+    shipId: number;
+    shipName: string;
+    cruiseLineName: string;
+    date: Date;
+  } | null>(null);
   
   // Dropdown states
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -429,7 +439,7 @@ export default function Navigation({
     if (onSearchClick) {
       onSearchClick();
     } else {
-      // Default behavior - could navigate to homepage with search params
+      // Use modal instead of redirecting
       const currentShip = getCurrentSelectedShip();
       const currentDate = getCurrentSelectedDate();
       
@@ -443,14 +453,14 @@ export default function Navigation({
         return;
       }
       
-      // Navigate to homepage with search parameters using Next.js router
-      const searchParams = new URLSearchParams({
-        ship: currentShip.name,
-        shipId: currentShip.id.toString(),
-        date: currentDate.toISOString().split('T')[0]
+      // Open search results modal with parameters
+      setSearchModalParams({
+        shipId: currentShip.id,
+        shipName: currentShip.name,
+        cruiseLineName: currentShip.cruiseLineName,
+        date: currentDate
       });
-      
-      router.push(`/?${searchParams.toString()}`);
+      setIsSearchModalOpen(true);
     }
   };
 
@@ -933,6 +943,16 @@ export default function Navigation({
           setIsLoginModalOpen(false);
           // Optionally refresh or handle success
         }}
+      />
+      
+      {/* Search Results Modal */}
+      <SearchResultsModal
+        isOpen={isSearchModalOpen}
+        onClose={() => {
+          setIsSearchModalOpen(false);
+          setSearchModalParams(null);
+        }}
+        searchParams={searchModalParams}
       />
     </>
   );
