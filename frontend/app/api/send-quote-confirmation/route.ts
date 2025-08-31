@@ -485,7 +485,7 @@ STEP 2: Search for Cruise
 - Click "search" in the same section
 
 STEP 3: Filter and Extract Data Systematically
-- Click on the dropdown field that shows 'All Categories' text (not just the label 'Category Type') and select ${cabinType || 'N/A'}
+- Click on the dropdown field that shows 'All Categories' text (not just the label 'Category Type') and select ${cabinType || 'N/A'}, ensure the category selected matches the room type you want to filter for.
 - Click the dropdown under "Status" and select "Available"
 - CRITICAL: You must extract pricing data for EVERY row in the table, starting from the FIRST row and going through each subsequent row
 
