@@ -451,13 +451,12 @@ export async function POST(request: NextRequest) {
             
             // Create cruise details text for the notification
             const cruiseDetails = `
-Customer Email: ${userEmail}
+Email: ${userEmail}
 Cruise: ${cruiseData?.name || 'N/A'}
 Ship: ${cruiseData?.shipName || 'N/A'}
 Cruise Line: ${cruiseData?.cruiseLineName || 'N/A'}
 Departure Date: ${formatDate(cruiseData?.sailingDate) || 'N/A'}
 Nights: ${cruiseData?.nights || 'N/A'} nights
-Departure Port: ${cruiseData?.embarkPortName || 'N/A'}
 Passengers: ${passengerInfo}
 Cabin Type Requested: ${cabinType || 'N/A'}
 Starting Price: ${formatPrice(cabinPrice) || 'N/A'} (excl. taxes/fees)
@@ -465,30 +464,46 @@ Discounts: ${activeDiscounts.length > 0 ? activeDiscounts.join(', ') : 'None'}
 Travel Insurance: ${travelInsurance ? 'Yes' : 'No'}
             `.trim();
 
-            const notificationText = `step 1
-visit https://secure.cruisingpower.com/login and login with username winlin430 password Zippysea123
+            const notificationText = `You've received an email from the user with the subject of New quote request task
 
-step 2
-once logged in, scroll to the section below "book with espresso" and input the following information:
-- ${cruiseData?.shipName || 'N/A'}
-- ${formatDate(cruiseData?.sailingDate) || 'N/A'}
-- ${passengerInfo}
-and also input any additional discount qualifiers below:
-${activeDiscounts.length > 0 ? activeDiscounts.join('\n') : 'None'}
-click "search" in the same section
+Make sure to read the email using your browser first, repeat the subject of the email and then make sure to understand what the content of the email before starting to respond to the user's query. Do not begin with reading the raw HTML first.
 
-step 3
-- click the dropdown under "Category type" and select ${cabinType || 'N/A'}
-- click the dropdown under "Status" and select "Available"
-- start with the first row in the table and click the circle next to the letters "AVL"
-- scroll down and click "Price Quote", this launched a modal with pricing information
-- scroll down and click "View Agency Commission"
-- copy all the information as a table, copying the exact information seen
-- close the modal by clicking the "x" or clicking anywhere on the black area outside the modal
-- repeat the steps for each row, clicking the circle next to "AVL", clicking price quote, clicking view agency commission, copying all the information as a table, closing, and repeat
+Once you've read the documents, understood the contents and the user's message to you, make sure to come up with a plan of how you're going to tackle this issue before proceeding.
 
-once you are done with all the rows shown you are done with the task and send the table to me here
+Make sure to respond in en throughout the entire conversation.
 
+STEP 1: Login and Setup
+- Visit https://secure.cruisingpower.com/login and login with username winlin430 password Zippysea123
+- IMPORTANT: Close any browser password save modals by clicking "Never" or "X" to ensure clear visibility
+
+STEP 2: Search for Cruise
+- Once logged in, scroll to the section below "book with espresso" and input:
+  * ${cruiseData?.shipName || 'N/A'}
+  * ${formatDate(cruiseData?.sailingDate) || 'N/A'}
+  * ${passengerInfo}
+  * Additional discount qualifiers: ${activeDiscounts.length > 0 ? activeDiscounts.join(', ') : 'None'}
+- Click "search" in the same section
+
+STEP 3: Filter and Extract Data Systematically
+- Click the dropdown under "Category type" and select "${cabinType || 'N/A'}" (not "All Categories")
+- Click the dropdown under "Status" and select "Available"
+- CRITICAL: You must extract pricing data for EVERY row in the table, starting from the FIRST row and going through each subsequent row
+
+STEP 4: Data Extraction Process (repeat for EACH row)
+For each available ${cabinType || 'cabin'} category in the table:
+a) Click the circle/radio button next to "AVL" for that specific row
+b) Scroll down and click "Price Quote" to open the pricing modal
+c) In the modal, scroll down and click "View Agency Commission"
+d) Copy ALL the pricing information including vacation charges, taxes, fees, commission details, and totals
+e) Close the modal by clicking the "X" or clicking outside the modal
+f) Move to the NEXT row and repeat steps a-e
+
+STEP 5: Verification
+- Ensure you have extracted data for ALL available ${cabinType || 'cabin'} categories
+- Compile all information into a comprehensive table
+- Send the complete table with all pricing and commission data
+
+Customer Details:
 ${cruiseDetails}`;
 
             const notificationResult = await resend.emails.send({
