@@ -501,10 +501,13 @@ d) Copy ALL the pricing information including vacation charges, taxes, fees, com
 e) Close the modal by clicking the "X" or clicking outside the modal
 f) Move to the NEXT row and repeat steps a-e
 
-STEP 5: Verification
-- Ensure you have extracted data for ALL available ${cabinType || 'N/A'} categories
-- Compile all information into a comprehensive table
-- Send the complete table with all pricing and commission data
+STEP 5: Raw Data Extraction with OBC Suggestions
+- Ensure you have extracted data for ALL available ${cabinType || 'Interior Cabin'} categories
+- Copy the exact pricing information from each modal as displayed
+- For each cabin category, add an "OBC suggestion" row immediately after the "Vacation Subtotal" row
+- Calculate the OBC suggestion by multiplying the vacation subtotal (total column) by 0.16
+- Format the OBC suggestion as: OBC suggestion | | | $XXX.XX
+- Send the raw pricing data with OBC suggestions without additional formatting or analysis
 
 Customer Details:
 ${cruiseDetails}`;
