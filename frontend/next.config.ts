@@ -37,6 +37,17 @@ const nextConfig: NextConfig = {
     compress: true,
     poweredByHeader: false,
   }),
+  // Webpack configuration for better chunk handling
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Improve chunk loading reliability
+      config.output.crossOriginLoading = 'anonymous';
+      
+      // Better chunk naming for cache busting
+      config.output.chunkFilename = 'static/chunks/[name].[contenthash].js';
+    }
+    return config;
+  },
   // Proxy API requests to backend to avoid CORS and SSL issues
   async rewrites() {
     return [
