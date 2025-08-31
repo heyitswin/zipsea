@@ -2,13 +2,14 @@
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { fetchShips, Ship, fetchAvailableSailingDates, AvailableSailingDate } from "../../lib/api";
+import { fetchShips, Ship, fetchAvailableSailingDates, AvailableSailingDate, searchCruises } from "../../lib/api";
 import { useAlert } from "../../components/GlobalAlertProvider";
 import { useUser } from "../hooks/useClerkHooks";
 import { useAdmin } from "../hooks/useAdmin";
 import { SignOutButton } from '@clerk/nextjs';
 import LoginSignupModal from "./LoginSignupModal";
-import SearchResultsModal from "./SearchResultsModal";
+import { createSlugFromCruise } from "../../lib/slug";
+import { trackSearch } from "../../lib/analytics";
 
 interface NavigationProps {
   showMinimizedSearch?: boolean;
@@ -45,14 +46,8 @@ export default function Navigation({
   // Mobile menu states
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  // Search results modal state
-  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-  const [searchModalParams, setSearchModalParams] = useState<{
-    shipId: number;
-    shipName: string;
-    cruiseLineName: string;
-    date: Date;
-  } | null>(null);
+  // Search state
+  const [isSearching, setIsSearching] = useState(false);
   
   // Dropdown states
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -435,11 +430,10 @@ export default function Navigation({
   };
 
   // Default search handler when no callback is provided
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (onSearchClick) {
       onSearchClick();
     } else {
-      // Use modal instead of redirecting
       const currentShip = getCurrentSelectedShip();
       const currentDate = getCurrentSelectedDate();
       
@@ -453,14 +447,51 @@ export default function Navigation({
         return;
       }
       
-      // Open search results modal with parameters
-      setSearchModalParams({
-        shipId: currentShip.id,
-        shipName: currentShip.name,
-        cruiseLineName: currentShip.cruiseLineName,
-        date: currentDate
-      });
-      setIsSearchModalOpen(true);
+      // Start searching
+      setIsSearching(true);
+      
+      try {
+        const searchParams = {
+          shipId: currentShip.id,
+          shipName: currentShip.name,
+          departureDate: currentDate.toISOString().split('T')[0]
+        };
+        
+        const results = await searchCruises(searchParams);
+        
+        // Track search event
+        trackSearch({
+          destination: currentShip.name,
+          departurePort: undefined,
+          cruiseLine: currentShip.cruiseLineName,
+          dateRange: currentDate.toISOString().split('T')[0],
+          resultsCount: results.length
+        });
+        
+        // Handle results
+        if (results.length === 0) {
+          showAlert('No cruises found for the selected ship and date. Try different dates or ships.');
+        } else if (results.length === 1) {
+          // Navigate directly to the cruise detail page
+          const cruise = results[0];
+          const slug = createSlugFromCruise(cruise);
+          router.push(`/cruise/${slug}`);
+        } else {
+          // Navigate to homepage with search results
+          // Store results in sessionStorage for the homepage to pick up
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('searchResults', JSON.stringify(results));
+            sessionStorage.setItem('searchShip', currentShip.name);
+            sessionStorage.setItem('searchDate', currentDate.toISOString());
+          }
+          router.push('/');
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+        showAlert('Failed to search cruises. Please try again.');
+      } finally {
+        setIsSearching(false);
+      }
     }
   };
 
@@ -539,12 +570,17 @@ export default function Navigation({
                   {/* Search Button */}
                   <button 
                     onClick={handleSearch}
-                    className="absolute right-1.5 w-[40px] h-[40px] bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors"
+                    disabled={isSearching}
+                    className="absolute right-1.5 w-[40px] h-[40px] bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors disabled:opacity-80"
                   >
-                    <svg width="20" height="20" viewBox="0 0 33 33" fill="none" style={{ shapeRendering: 'geometricPrecision' }}>
-                      <path d="M19.4999 25.5644C25.3213 23.0904 28.0349 16.3656 25.5608 10.5442C23.0868 4.72278 16.362 2.0092 10.5406 4.48324C4.71919 6.95728 2.00561 13.6821 4.47965 19.5035C6.95369 25.3249 13.6785 28.0385 19.4999 25.5644Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                      <path d="M23.1172 23.123L31.9998 32.0069" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
-                    </svg>
+                    {isSearching ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    ) : (
+                      <svg width="20" height="20" viewBox="0 0 33 33" fill="none" style={{ shapeRendering: 'geometricPrecision' }}>
+                        <path d="M19.4999 25.5644C25.3213 23.0904 28.0349 16.3656 25.5608 10.5442C23.0868 4.72278 16.362 2.0092 10.5406 4.48324C4.71919 6.95728 2.00561 13.6821 4.47965 19.5035C6.95369 25.3249 13.6785 28.0385 19.4999 25.5644Z" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                        <path d="M23.1172 23.123L31.9998 32.0069" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                      </svg>
+                    )}
                   </button>
                 </div>
               </div>
@@ -794,7 +830,7 @@ export default function Navigation({
                   date.getMonth() === currentSelectedDate.getMonth() &&
                   date.getFullYear() === currentSelectedDate.getFullYear();
                 
-                const isDisabled = isPast || (!!getCurrentSelectedShip() && !hasAvailable);
+                const isDisabled = isPast || (!!getCurrentSelectedShip() && availableSailingDates.length > 0 && !hasAvailable);
 
                 return (
                   <button
@@ -807,7 +843,7 @@ export default function Navigation({
                     } ${
                       isSelected ? 'bg-light-blue text-white' : ''
                     } ${
-                      isHighlighted && !isSelected ? 'bg-green-100 border-2 border-green-500' : ''
+                      isHighlighted && !isSelected && !isDisabled ? 'ring-2 ring-green-500 ring-offset-1' : ''
                     }`}
                     disabled={isDisabled}
                     title={getCurrentSelectedShip() && !hasAvailable && !isPast ? 'No sailings available on this date' : ''}
@@ -943,16 +979,6 @@ export default function Navigation({
           setIsLoginModalOpen(false);
           // Optionally refresh or handle success
         }}
-      />
-      
-      {/* Search Results Modal */}
-      <SearchResultsModal
-        isOpen={isSearchModalOpen}
-        onClose={() => {
-          setIsSearchModalOpen(false);
-          setSearchModalParams(null);
-        }}
-        searchParams={searchModalParams}
       />
     </>
   );

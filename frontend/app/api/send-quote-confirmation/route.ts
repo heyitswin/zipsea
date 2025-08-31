@@ -169,6 +169,14 @@ export async function POST(request: NextRequest) {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Your Cruise Quote Request</title>
+            <style>
+              /* Mobile styles */
+              @media only screen and (max-width: 600px) {
+                .hero-headline { font-size: 32px !important; }
+                .hero-subheading { font-size: 18px !important; }
+                .cruise-details-text { font-size: 18px !important; }
+              }
+            </style>
             <!--[if mso]>
             <noscript>
               <xml>
@@ -185,8 +193,8 @@ export async function POST(request: NextRequest) {
               <tr>
                 <td align="center" valign="top" style="padding: 20px 0;">
                   
-                  <!-- Main container -->
-                  <table cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; width: 100%; background-color: #F6F3ED;">
+                  <!-- Main container with 10px padding -->
+                  <table cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; width: 100%; background-color: #F6F3ED; padding: 0 10px;">
                     
                     <!-- Hero Section -->
                     <tr>
@@ -203,8 +211,8 @@ export async function POST(request: NextRequest) {
                               </div>
                               <!-- Content -->
                               <div>
-                                <h1 style="margin: 0 0 10px 0; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 54px; font-weight: bold; letter-spacing: -0.02em; line-height: 1.1;">Quote request received</h1>
-                                <p style="margin: 0; color: #E9B4EB; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.3;">We're working on getting you the best possible price + perks</p>
+                                <h1 class="hero-headline" style="margin: 0 0 10px 0; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 42px; font-weight: bold; letter-spacing: -0.02em; line-height: 1.1;">Quote request received</h1>
+                                <p class="hero-subheading" style="margin: 0; color: #E9B4EB; font-family: Arial, sans-serif; font-size: 20px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.3;">We're working on getting you the best possible price + perks</p>
                               </div>
                             </td>
                           </tr>
@@ -215,7 +223,7 @@ export async function POST(request: NextRequest) {
                     <!-- Cruise Details Section -->
                     <tr>
                       <td style="padding: 0;">
-                        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #FFFFFF; border-radius: 10px; margin: 10px 0;">
+                        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #FFFFFF; border-radius: 10px; margin: 20px 0;">
                           <tr>
                             <td style="padding: 36px;">
                               <h2 style="margin: 0 0 20px 0; color: #2F2F2F; font-family: Arial, sans-serif; font-size: 32px; font-weight: bold; letter-spacing: -0.02em;">Cruise details</h2>
@@ -232,7 +240,7 @@ export async function POST(request: NextRequest) {
                                         <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">CRUISE</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.name}</td>
+                                        <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.name}</td>
                                       </tr>
                                     </table>
                                     ` : ''}
@@ -244,7 +252,7 @@ export async function POST(request: NextRequest) {
                                         <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">SHIP</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.shipName}</td>
+                                        <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.shipName}</td>
                                       </tr>
                                     </table>
                                     ` : ''}
@@ -256,7 +264,7 @@ export async function POST(request: NextRequest) {
                                         <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">NIGHTS</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.nights} nights</td>
+                                        <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.nights} nights</td>
                                       </tr>
                                     </table>
                                     ` : ''}
@@ -267,7 +275,7 @@ export async function POST(request: NextRequest) {
                                         <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">PASSENGERS</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${passengerInfo}</td>
+                                        <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${passengerInfo}</td>
                                       </tr>
                                     </table>
                                     
@@ -281,7 +289,7 @@ export async function POST(request: NextRequest) {
                                         <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">CRUISE LINE</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.cruiseLineName}</td>
+                                        <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.cruiseLineName}</td>
                                       </tr>
                                     </table>
                                     ` : ''}
@@ -293,7 +301,7 @@ export async function POST(request: NextRequest) {
                                         <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">DEPARTURE</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${formatDate(cruiseData.sailingDate)}</td>
+                                        <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${formatDate(cruiseData.sailingDate)}</td>
                                       </tr>
                                     </table>
                                     ` : ''}
@@ -305,7 +313,7 @@ export async function POST(request: NextRequest) {
                                         <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">CABIN TYPE</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cabinType}</td>
+                                        <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cabinType}</td>
                                       </tr>
                                     </table>
                                     ` : ''}
@@ -317,7 +325,7 @@ export async function POST(request: NextRequest) {
                                         <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">STARTING PRICE</td>
                                       </tr>
                                       <tr>
-                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${formatPrice(cabinPrice)} (excl. taxes/fees)</td>
+                                        <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${formatPrice(cabinPrice)} (excl. taxes/fees)</td>
                                       </tr>
                                     </table>
                                     ` : ''}
@@ -334,7 +342,7 @@ export async function POST(request: NextRequest) {
                     <!-- What Happens Next Section -->
                     <tr>
                       <td style="padding: 0;">
-                        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #E9B4EB; border-radius: 10px; margin: 10px 0;">
+                        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #E9B4EB; border-radius: 10px; margin: 20px 0;">
                           <tr>
                             <td style="padding: 36px;">
                               <h2 style="margin: 0 0 20px 0; color: #0E1B4D; font-family: Arial, sans-serif; font-size: 32px; font-weight: bold; letter-spacing: -0.02em;">What happens next?</h2>
@@ -365,7 +373,7 @@ export async function POST(request: NextRequest) {
                     <!-- Questions Section -->
                     <tr>
                       <td style="padding: 0;">
-                        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #F7F170; border-radius: 10px; margin: 10px 0;">
+                        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #F7F170; border-radius: 10px; margin: 20px 0;">
                           <tr>
                             <td style="padding: 36px; text-align: left;">
                               <h2 style="margin: 0 0 15px 0; color: #0E1B4D; font-family: Arial, sans-serif; font-size: 32px; font-weight: bold; letter-spacing: -0.02em;">Questions?</h2>
@@ -457,7 +465,29 @@ Discounts: ${activeDiscounts.length > 0 ? activeDiscounts.join(', ') : 'None'}
 Travel Insurance: ${travelInsurance ? 'Yes' : 'No'}
             `.trim();
 
-            const notificationText = `Visit https://secure.cruisingpower.com/login and login with username winlin430 password Zippysea123, then using the cruise details below, locate the exact cruise and send me the actual costs of each AVAILABLE category of the room type.
+            const notificationText = `step 1
+visit https://secure.cruisingpower.com/login and login with username winlin430 password Zippysea123
+
+step 2
+once logged in, scroll to the section below "book with espresso" and input the following information:
+- ${cruiseData?.shipName || 'N/A'}
+- ${formatDate(cruiseData?.sailingDate) || 'N/A'}
+- ${passengerInfo}
+and also input any additional discount qualifiers below:
+${activeDiscounts.length > 0 ? activeDiscounts.join('\n') : 'None'}
+click "search" in the same section
+
+step 3
+- click the dropdown under "Category type" and select ${cabinType || 'N/A'}
+- click the dropdown under "Status" and select "Available"
+- start with the first row in the table and click the circle next to the letters "AVL"
+- scroll down and click "Price Quote", this launched a modal with pricing information
+- scroll down and click "View Agency Commission"
+- copy all the information as a table, copying the exact information seen
+- close the modal by clicking the "x" or clicking anywhere on the black area outside the modal
+- repeat the steps for each row, clicking the circle next to "AVL", clicking price quote, clicking view agency commission, copying all the information as a table, closing, and repeat
+
+once you are done with all the rows shown you are done with the task and send the table to me here
 
 ${cruiseDetails}`;
 

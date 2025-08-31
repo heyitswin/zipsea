@@ -631,7 +631,7 @@ function HomeWithParams() {
 
           {/* Subheading - Responsive */}
           <p className="text-white text-[18px] md:text-[18px] font-medium font-geograph tracking-tight text-center w-full max-w-[900px] mb-8 md:mb-5" style={{ lineHeight: '1.75' }}>
-            We pass on the absolute maximum onboard credit allowed by the cruise lines - every single booking
+            We pass on the most onboard credit - every single booking
           </p>
 
           {/* Search Input Container - Responsive Layout */}
