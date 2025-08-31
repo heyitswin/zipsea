@@ -499,7 +499,7 @@ b) Scroll down and click "Price Quote" to open the pricing modal
 c) In the modal, scroll down and click "View Agency Commission"
 d) Copy ALL the pricing information including vacation charges, taxes, fees, commission details, and totals
 e) Close the modal by clicking the "X" or clicking outside the modal
-f) Move to the NEXT row and repeat steps a-e
+f) Move to the NEXT row and repeat steps a-e, do not skip any rows and do not only provide high level information for any category, ensure you extract all pricing breakdown for each cabin category
 
 STEP 5: Raw Data Extraction with OBC Suggestions
 - Ensure you have extracted data for ALL available ${cabinType || 'Interior Cabin'} categories
