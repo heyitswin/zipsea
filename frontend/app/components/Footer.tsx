@@ -162,39 +162,40 @@ export default function Footer() {
             </a>
           </div>
           
-          {/* Right side - Navigation links and social icons */}
-          <div className="flex items-center gap-8">
-            {/* Navigation Links */}
-            <div className="flex items-center gap-8">
-              {/* Why Zipsea */}
-              <a 
-                href="/why-zipsea" 
-                className="font-geograph font-medium hover:opacity-80 transition-opacity"
-                style={{
-                  fontSize: '16px',
-                  color: '#2f2f2f',
-                  letterSpacing: '-0.02em'
-                }}
-              >
-                Why Zipsea
-              </a>
+          {/* Right side - Navigation links, social icons, and CLIA */}
+          <div className="flex flex-col items-end">
+            <div className="flex items-center gap-8 mb-6">
+              {/* Navigation Links */}
+              <div className="flex items-center gap-8">
+                {/* Why Zipsea */}
+                <a 
+                  href="/why-zipsea" 
+                  className="font-geograph font-medium hover:opacity-80 transition-opacity"
+                  style={{
+                    fontSize: '16px',
+                    color: '#2f2f2f',
+                    letterSpacing: '-0.02em'
+                  }}
+                >
+                  Why Zipsea
+                </a>
+                
+                {/* FAQs */}
+                <a 
+                  href="/faqs" 
+                  className="font-geograph font-medium hover:opacity-80 transition-opacity"
+                  style={{
+                    fontSize: '16px',
+                    color: '#2f2f2f',
+                    letterSpacing: '-0.02em'
+                  }}
+                >
+                  FAQs
+                </a>
+              </div>
               
-              {/* FAQs */}
-              <a 
-                href="/faqs" 
-                className="font-geograph font-medium hover:opacity-80 transition-opacity"
-                style={{
-                  fontSize: '16px',
-                  color: '#2f2f2f',
-                  letterSpacing: '-0.02em'
-                }}
-              >
-                FAQs
-              </a>
-            </div>
-            
-            {/* Social Icons with reduced spacing */}
-            <div className="flex items-center gap-4">
+              {/* Social Icons with reduced spacing */}
+              <div className="flex items-center gap-4">
               {/* TikTok Icon */}
               <a 
                 href="https://www.tiktok.com/@zipseacruises"
@@ -229,6 +230,57 @@ export default function Footer() {
               </a>
             </div>
           </div>
+          
+          {/* CLIA Certification - Below social icons on desktop */}
+          <div className="flex flex-col items-end mt-4">
+            <Image
+              src="/images/clia-logo.png"
+              alt="CLIA Certified"
+              width={50}
+              height={50}
+              style={{ height: 'auto' }}
+            />
+            <p className="font-geograph mt-2" style={{
+              fontSize: '10px',
+              color: '#2f2f2f',
+              letterSpacing: '-0.02em'
+            }}>
+              CLIA certified travel agency #00049613
+            </p>
+          </div>
+        </div>
+      </div>
+
+        {/* Legalese text - Full width below everything */}
+        <div className="mt-8 pt-8 border-t border-gray-200">
+          <p className="font-geograph text-center" style={{
+            fontSize: '10px',
+            color: '#2f2f2f',
+            letterSpacing: '-0.02em',
+            lineHeight: '1.5'
+          }}>
+            © 2024 Zipsea. All rights reserved. Zipsea is a registered trademark. Prices are per person, based on double occupancy and subject to availability. 
+            Government taxes, fees, and port expenses are additional. Ships' registry: Bahamas, Panama, Malta, Netherlands, and USA. 
+            We are not responsible for errors or omissions. Please verify all information with the cruise line directly.
+          </p>
+        </div>
+
+        {/* CLIA Certification - Mobile, below legalese */}
+        <div className="md:hidden mt-6 flex flex-col items-center">
+          <Image
+            src="/images/clia-logo.png"
+            alt="CLIA Certified"
+            width={50}
+            height={50}
+            style={{ height: 'auto' }}
+          />
+          <p className="font-geograph mt-2 text-center" style={{
+            fontSize: '10px',
+            color: '#2f2f2f',
+            letterSpacing: '-0.02em'
+          }}>
+            CLIA certified travel agency #00049613
+          </p>
         </div>
       </div>
     </footer>
