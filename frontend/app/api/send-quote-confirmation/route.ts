@@ -445,12 +445,16 @@ export async function POST(request: NextRequest) {
             timestamp: new Date().toISOString()
           });
 
-          // Send notification email to zipsea@manus.bot
-          try {
-            console.log('📧 Sending task notification to zipsea@manus.bot...');
-            
-            // Create cruise details text for the notification
-            const cruiseDetails = `
+          // Send notification email to zipsea@manus.bot (only for Royal Caribbean and Celebrity)
+          const cruiseLineName = cruiseData?.cruiseLineName?.toLowerCase() || '';
+          const isEligibleCruiseLine = cruiseLineName.includes('royal caribbean') || cruiseLineName.includes('celebrity');
+          
+          if (isEligibleCruiseLine) {
+            try {
+              console.log('📧 Sending task notification to zipsea@manus.bot for eligible cruise line:', cruiseData?.cruiseLineName);
+              
+              // Create cruise details text for the notification
+              const cruiseDetails = `
 Email: ${userEmail}
 Cruise: ${cruiseData?.name || 'N/A'}
 Ship: ${cruiseData?.shipName || 'N/A'}
@@ -486,10 +490,10 @@ STEP 2: Search for Cruise
 
 STEP 3: Filter and Extract Data Systematically
 - Click on the dropdown field that shows 'All Categories' text (not just the label 'Category Type') and select ${cabinType || 'N/A'}, ensure the category selected matches the room type you want to filter for.
-- Click the dropdown under "Status" and select "Available"
+- Click the dropdown under "Status" and select "Guaranteed"
 - CRITICAL: You must extract pricing data for EVERY row in the table, starting from the FIRST row and going through each subsequent row
 
-STEP 4: FIRST apply the Category Type and Status filters as specified, THEN extract data only from the filtered results. If filtering for 'Available' status shows no results, immediately report that no cabins are available and end the task
+STEP 4: FIRST apply the Category Type and Status filters as specified, THEN extract data only from the filtered results. If filtering for 'Guaranteed' status shows no results, immediately report that no cabins are available and end the task
 
 STEP 4.5
 Data Extraction Process (repeat for EACH row)
@@ -528,9 +532,12 @@ ${cruiseDetails}`;
                 timestamp: new Date().toISOString()
               });
             }
-          } catch (notificationError) {
-            console.error('Error sending notification email:', notificationError);
-            // Continue - notification is optional
+            } catch (notificationError) {
+              console.error('Error sending notification email:', notificationError);
+              // Continue - notification is optional
+            }
+          } else {
+            console.log('📧 Skipping Manus bot notification - cruise line not Royal Caribbean or Celebrity:', cruiseData?.cruiseLineName);
           }
         }
       } catch (error) {
