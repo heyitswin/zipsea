@@ -27,6 +27,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const [selectedCabinPrice, setSelectedCabinPrice] = useState<string | number>(0);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string>('');
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   
   // Time tracking
   const pageLoadTime = useRef<number>(Date.now());
@@ -495,7 +496,34 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           {ship?.shortDescription && (
             <div>
               <p className="font-geograph text-[20px] md:text-[24px] leading-[1.5] text-dark-blue" style={{ letterSpacing: '-0.02em' }}>
-                {ship.shortDescription}
+                {ship.shortDescription.length > 1200 && !isDescriptionExpanded ? (
+                  <>
+                    {ship.shortDescription.substring(0, 1200)}...{' '}
+                    <button
+                      onClick={() => setIsDescriptionExpanded(true)}
+                      className="text-pink-500 hover:text-pink-600 underline font-medium transition-colors"
+                      style={{ letterSpacing: '-0.02em' }}
+                    >
+                      Read more
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {ship.shortDescription}
+                    {ship.shortDescription.length > 1200 && (
+                      <>
+                        {' '}
+                        <button
+                          onClick={() => setIsDescriptionExpanded(false)}
+                          className="text-pink-500 hover:text-pink-600 underline font-medium transition-colors"
+                          style={{ letterSpacing: '-0.02em' }}
+                        >
+                          Read less
+                        </button>
+                      </>
+                    )}
+                  </>
+                )}
               </p>
             </div>
           )}
