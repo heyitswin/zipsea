@@ -904,7 +904,7 @@ function HomeWithParams() {
 
       {/* Separator Image */}
       <div 
-        className="w-full h-[21px] -mt-[10px] md:mt-0"
+        className="w-full h-[21px] block mt-0"
         style={{
           backgroundImage: 'url("/images/separator-1.png")',
           backgroundRepeat: 'repeat-x',
