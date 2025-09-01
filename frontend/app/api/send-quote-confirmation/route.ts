@@ -469,49 +469,60 @@ Travel Insurance: ${travelInsurance ? 'Yes' : 'No'}
             `.trim();
 
             const notificationText = `You've received an email from the user with the subject of New quote request task
-
 Make sure to read the email using your browser first, repeat the subject of the email and then make sure to understand what the content of the email before starting to respond to the user's query. Do not begin with reading the raw HTML first.
-
 Once you've read the documents, understood the contents and the user's message to you, make sure to come up with a plan of how you're going to tackle this issue before proceeding.
-
 Make sure to respond in en throughout the entire conversation.
-
 STEP 1: Login and Setup
-- Visit https://secure.cruisingpower.com/login and login with username winlin430 password Zippysea123
-- IMPORTANT: Close any browser password save modals by clicking "Never" or "X" to ensure clear visibility
-
+Visit https://secure.cruisingpower.com/login and login with username winlin430 password Zippysea123
+IMPORTANT: Close any browser password save modals by clicking "Never" or "X" to ensure clear visibility
 STEP 2: Search for Cruise
-- Once logged in, scroll to the section below "book with espresso" and input:
-  * ${cruiseData?.shipName || 'N/A'}
-  * ${formatDate(cruiseData?.sailingDate) || 'N/A'}
-  * ${passengerInfo}
-  * Additional discount qualifiers: ${activeDiscounts.length > 0 ? activeDiscounts.join(', ') : 'None'}
-- Click "search" in the same section
-
-STEP 3: Filter and Extract Data Systematically
-- Click on the dropdown field that shows 'All Categories' text (not just the label 'Category Type') and select ${cabinType || 'N/A'}, ensure the category selected matches the room type you want to filter for.
-- Click the dropdown under "Status" and select "Guaranteed"
-- CRITICAL: You must extract pricing data for EVERY row in the table, starting from the FIRST row and going through each subsequent row
-
-STEP 4: FIRST apply the Category Type and Status filters as specified, THEN extract data only from the filtered results. If filtering for 'Guaranteed' status shows no results, immediately report that no cabins are available and end the task
-
-STEP 4.5
-Data Extraction Process (repeat for EACH row)
-For each available ${cabinType || 'Interior cabin'} category in the table:
-a) Click the circle/radio button next to "AVL" for that specific row
-b) Scroll down and click "Price Quote" to open the pricing modal
-c) In the modal, scroll down and click "View Agency Commission"
-d) Copy ALL the pricing information including vacation charges, taxes, fees, commission details, and totals
-e) Close the modal by clicking the "X" or clicking outside the modal
-f) Move to the NEXT row and repeat steps a-e. CRITICAL: You MUST extract data for EVERY SINGLE available ${cabinType || 'Interior Cabin'} category shown in the table. Do NOT stop until you have completed the full extraction process for ALL categories, regardless of how time-consuming it may seem. If there are 5 categories, extract all 5. If there are 10 categories, extract all 10. Complete extraction of ALL categories is mandatory.
-
-STEP 5: Raw Data Extraction with OBC Suggestions
-- Ensure you have extracted data for ALL available ${cabinType || 'Interior Cabin'} categories
-- Copy the exact pricing information from each modal as displayed
-- For each cabin category, add an "OBC suggestion" row immediately after the "Vacation Subtotal" row
-- Calculate the OBC suggestion by multiplying the vacation subtotal (total column) by 0.16
-- Format the OBC suggestion as: OBC suggestion | | | $XXX.XX
-- Send the raw pricing data with OBC suggestions without additional formatting or analysis
+Once logged in, scroll to the section below "book with espresso" and input:
+${cruiseData?.shipName || 'N/A'}
+${formatDate(cruiseData?.sailingDate) || 'N/A'}
+${passengerInfo}
+Additional discount qualifiers: ${activeDiscounts.length > 0 ? activeDiscounts.join(', ') : 'None'}
+Click "search" in the same section
+STEP 3: Document All Available Categories BEFORE Filtering
+MANDATORY: Take a screenshot and document ALL visible cabin categories in the unfiltered results
+Create a complete list of all ${cabinType || 'Interior cabin'} categories visible before applying any filters
+Note the status (AVL, GTY, WLT, CLS) for each ${cabinType || 'Interior'} category
+STEP 4: Apply Filters Systematically and Verify Results
+Click on the dropdown field that shows 'All Categories' text (not just the label 'Category Type') and select ${cabinType || 'Interior Cabin'}
+VERIFICATION STEP: Confirm that "${cabinType || 'Interior'}" is selected in the Category Type dropdown
+Click the dropdown under "Status" and select "Guaranteed"
+VERIFICATION STEP: Confirm that "Guaranteed" is selected in the Status dropdown
+CRITICAL VERIFICATION: Take a screenshot of the filtered results and compare with your pre-filter documentation
+If the Status dropdown shows "Waitlisted" instead of "Guaranteed" after filtering, reset filters and try again
+If filtering for 'Guaranteed' status shows no results, document this clearly and report that no guaranteed cabins are available
+STEP 5: Count and Document All Matching Categories
+MANDATORY: Before starting any extractions, scroll through the ENTIRE filtered results table
+Count the total number of ${cabinType || 'Interior cabin'} categories that show "GTY" (Guaranteed) or "AVL" (Available) status
+Create a checklist with category codes (e.g., ZI, 1R, 2S) that need pricing extraction
+Do NOT proceed until you have a complete inventory of categories to process
+STEP 6: Systematic Data Extraction Process (repeat for EACH category on your checklist)
+For each ${cabinType || 'Interior Cabin'} category identified in Step 5:
+a) BEFORE CLICKING: Verify the category code and status match your checklist
+b) Click the circle/radio button next to "AVL" or "GTY" for that specific row
+c) Scroll down and click "Price Quote" to open the pricing modal
+d) In the modal, scroll down and click "View Agency Commission" (if available)
+e) MANDATORY: Copy ALL the pricing information including vacation charges, taxes, fees, commission details, and totals
+f) VERIFICATION: Confirm you have captured complete pricing data before proceeding
+g) Close the modal by clicking the "X" or clicking outside the modal
+h) CHECKLIST UPDATE: Mark this category as completed on your checklist
+i) Move to the NEXT category and repeat steps a-h
+j) CRITICAL: You MUST extract data for EVERY SINGLE category on your checklist. Do NOT stop until you have completed the full extraction process for ALL categories, regardless of how time-consuming it may seem.
+STEP 7: Final Verification Before Completing
+MANDATORY: Return to the filtered results table after all extractions
+Verify that you have extracted data for every category that shows guaranteed or available status
+Cross-reference your completed extractions with your original checklist
+If any categories remain unprocessed, complete their extraction before proceeding
+STEP 8: Raw Data Extraction with OBC Suggestions
+Ensure you have extracted data for ALL available ${cabinType || 'Interior Cabin'} categories from your verified checklist
+Copy the exact pricing information from each modal as displayed
+For each cabin category, add an "OBC suggestion" row immediately after the "Vacation Subtotal" row
+Calculate the OBC suggestion by multiplying the vacation subtotal (total column) by 0.16
+Format the OBC suggestion as: OBC suggestion | | | $XXX.XX
+Send the raw pricing data with OBC suggestions without additional formatting or analysis
 
 Customer Details:
 ${cruiseDetails}`;
