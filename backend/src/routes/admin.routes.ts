@@ -524,13 +524,19 @@ router.get('/quotes', async (req: Request, res: Response) => {
     const result = await quoteService.getQuotesForAdmin(limit, offset, status);
     
     // Get total count for pagination
-    let countQuery = db.execute(sql`
-      SELECT COUNT(*) as total
-      FROM quote_requests
-      ${status ? sql`WHERE status = ${status}` : sql``}
-    `);
-    
-    const countResult = await countQuery;
+    let countResult;
+    if (status) {
+      countResult = await db.execute(sql`
+        SELECT COUNT(*) as total
+        FROM quote_requests
+        WHERE status = ${status}
+      `);
+    } else {
+      countResult = await db.execute(sql`
+        SELECT COUNT(*) as total
+        FROM quote_requests
+      `);
+    }
     const total = Number(countResult[0]?.total || 0);
     
     res.json({
