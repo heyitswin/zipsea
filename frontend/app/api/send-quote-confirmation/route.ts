@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
     let slackSent = false;
     let emailSent = false;
     let notificationSent = false;
+    let referenceNumber = '';
 
     // Save quote request to backend database (optional - don't fail if backend is down)
     try {
@@ -77,8 +78,10 @@ export async function POST(request: NextRequest) {
       });
 
       if (quoteResponse.ok) {
+        const quoteData = await quoteResponse.json();
+        referenceNumber = quoteData.referenceNumber || '';
         backendSaved = true;
-        console.log('Quote saved to backend successfully');
+        console.log('Quote saved to backend successfully with reference:', referenceNumber);
       } else {
         console.error('Backend response not OK:', quoteResponse.status, quoteResponse.statusText);
       }
@@ -213,6 +216,7 @@ export async function POST(request: NextRequest) {
                               <div>
                                 <h1 class="hero-headline" style="margin: 0 0 10px 0; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 42px; font-weight: bold; letter-spacing: -0.02em; line-height: 1.1;">Quote request received</h1>
                                 <p class="hero-subheading" style="margin: 0; color: #E9B4EB; font-family: Arial, sans-serif; font-size: 20px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.3;">We're working on getting you the best possible price + perks</p>
+                                ${referenceNumber ? `<p style="margin: 10px 0 0 0; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal;">Reference #${referenceNumber}</p>` : ''}
                               </div>
                             </td>
                           </tr>
@@ -407,13 +411,13 @@ export async function POST(request: NextRequest) {
         console.log('📧 Sending email with parameters:', {
           from: fromEmail,
           to: userEmail,
-          subject: `Your Cruise Quote Request - ${cruiseData?.name || 'Cruise'} | ZipSea`
+          subject: `Your Cruise Quote Request${referenceNumber ? ` #${referenceNumber}` : ''} - ${cruiseData?.name || 'Cruise'} | ZipSea`
         });
 
         let { data, error } = await resend.emails.send({
           from: fromEmail,
           to: [userEmail],
-          subject: `Your Cruise Quote Request - ${cruiseData?.name || 'Cruise'} | ZipSea`,
+          subject: `Your Cruise Quote Request${referenceNumber ? ` #${referenceNumber}` : ''} - ${cruiseData?.name || 'Cruise'} | ZipSea`,
           html: emailHtml,
         });
         
@@ -423,7 +427,7 @@ export async function POST(request: NextRequest) {
           const fallbackResult = await resend.emails.send({
             from: fallbackEmail,
             to: [userEmail],
-            subject: `Your Cruise Quote Request - ${cruiseData?.name || 'Cruise'} | ZipSea`,
+            subject: `Your Cruise Quote Request${referenceNumber ? ` #${referenceNumber}` : ''} - ${cruiseData?.name || 'Cruise'} | ZipSea`,
             html: emailHtml,
           });
           data = fallbackResult.data;
@@ -455,6 +459,7 @@ export async function POST(request: NextRequest) {
               
               // Create cruise details text for the notification
               const cruiseDetails = `
+Reference #: ${referenceNumber || 'Pending'}
 Email: ${userEmail}
 Cruise: ${cruiseData?.name || 'N/A'}
 Ship: ${cruiseData?.shipName || 'N/A'}

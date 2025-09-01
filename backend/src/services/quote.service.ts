@@ -23,6 +23,15 @@ interface CreateQuoteData {
 
 class QuoteService {
   /**
+   * Generate a unique quote reference number
+   */
+  private generateReferenceNumber(): string {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    return `ZQ-${timestamp.toString().slice(-6)}${random.toString().padStart(3, '0')}`;
+  }
+
+  /**
    * Create a new quote request
    */
   async createQuoteRequest(data: CreateQuoteData): Promise<QuoteRequest> {
@@ -46,6 +55,7 @@ class QuoteService {
       const obcAmount = this.calculateOnboardCredit(data.cabinType);
 
       const quoteData: NewQuoteRequest = {
+        referenceNumber: this.generateReferenceNumber(),
         userId: data.userId || null,
         cruiseId: parseInt(data.cruiseId),
         cabinType: data.cabinType,
@@ -54,7 +64,7 @@ class QuoteService {
         preferences,
         contactInfo,
         obcAmount: String(obcAmount),
-        status: 'submitted',
+        status: 'waiting',
         source: 'website',
         quoteExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
       };
@@ -274,6 +284,75 @@ class QuoteService {
       return result[0] || null;
     } catch (error) {
       logger.error('Error getting quote with details:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Submit quote response with pricing details
+   */
+  async submitQuoteResponse(
+    quoteId: string,
+    response: {
+      categories: Array<{
+        category: string;
+        roomName?: string;
+        finalPrice: number;
+        obcAmount: number;
+      }>;
+      notes?: string;
+    }
+  ): Promise<QuoteRequest> {
+    try {
+      const result = await db
+        .update(quoteRequests)
+        .set({
+          quoteResponse: response,
+          status: 'responded',
+          quotedAt: new Date(),
+          updatedAt: new Date(),
+          notes: response.notes,
+        })
+        .where(eq(quoteRequests.id, quoteId))
+        .returning();
+
+      if (!result[0]) {
+        throw new Error('Quote not found');
+      }
+
+      logger.info('Quote response submitted', { quoteId });
+      return result[0];
+    } catch (error) {
+      logger.error('Error submitting quote response:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get quotes for admin view with cruise details
+   */
+  async getQuotesForAdmin(limit = 100, offset = 0, status?: string): Promise<any[]> {
+    try {
+      let query = db
+        .select({
+          quote: quoteRequests,
+          cruise: cruises,
+        })
+        .from(quoteRequests)
+        .leftJoin(cruises, eq(quoteRequests.cruiseId, cruises.id));
+
+      if (status) {
+        query = query.where(eq(quoteRequests.status, status));
+      }
+
+      const result = await query
+        .orderBy(desc(quoteRequests.createdAt))
+        .limit(limit)
+        .offset(offset);
+
+      return result;
+    } catch (error) {
+      logger.error('Error getting quotes for admin:', error);
       throw error;
     }
   }

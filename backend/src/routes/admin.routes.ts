@@ -4,6 +4,8 @@ import { logger } from '../config/logger';
 import { slackService } from '../services/slack.service';
 import { db } from '../db/connection';
 import { sql } from 'drizzle-orm';
+import { quoteService } from '../services/quote.service';
+import { emailService } from '../services/email.service';
 
 const router = Router();
 
@@ -506,6 +508,104 @@ router.post('/trigger-batch-sync', async (req: Request, res: Response) => {
     res.status(500).json({
       error: 'Failed to trigger sync',
       message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * Get quotes for admin view with pagination
+ */
+router.get('/quotes', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 100;
+    const offset = parseInt(req.query.offset as string) || 0;
+    const status = req.query.status as string;
+    
+    const result = await quoteService.getQuotesForAdmin(limit, offset, status);
+    
+    // Get total count for pagination
+    let countQuery = db.execute(sql`
+      SELECT COUNT(*) as total
+      FROM quote_requests
+      ${status ? sql`WHERE status = ${status}` : sql``}
+    `);
+    
+    const countResult = await countQuery;
+    const total = Number(countResult[0]?.total || 0);
+    
+    res.json({
+      success: true,
+      quotes: result,
+      total,
+      limit,
+      offset,
+    });
+  } catch (error) {
+    logger.error('Error fetching admin quotes:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to fetch quotes',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+    });
+  }
+});
+
+/**
+ * Respond to a quote request
+ */
+router.post('/quotes/:quoteId/respond', async (req: Request, res: Response) => {
+  try {
+    const { quoteId } = req.params;
+    const { categories, notes } = req.body;
+    
+    if (!categories || !Array.isArray(categories) || categories.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          message: 'Invalid request',
+          details: 'Categories must be provided as a non-empty array',
+        },
+      });
+    }
+    
+    // Update quote with response
+    const updatedQuote = await quoteService.submitQuoteResponse(quoteId, {
+      categories,
+      notes,
+    });
+    
+    // Get quote with full details for email
+    const quoteDetails = await quoteService.getQuoteWithDetails(quoteId);
+    
+    if (quoteDetails && quoteDetails.quote.contactInfo?.email) {
+      // Send quote ready email
+      await emailService.sendQuoteReadyEmail({
+        email: quoteDetails.quote.contactInfo.email,
+        referenceNumber: quoteDetails.quote.referenceNumber,
+        cruiseName: quoteDetails.cruise?.cruiseName || 'Your Selected Cruise',
+        shipName: quoteDetails.cruise?.shipName || '',
+        departureDate: quoteDetails.cruise?.departureDate,
+        returnDate: quoteDetails.cruise?.returnDate,
+        categories,
+        notes,
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Quote response sent successfully',
+      quote: updatedQuote,
+    });
+  } catch (error) {
+    logger.error('Error responding to quote:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to respond to quote',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
     });
   }
 });

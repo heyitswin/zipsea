@@ -1,0 +1,44 @@
+To run this migration on Render:
+
+1. Go to your Render dashboard
+2. Navigate to your backend service (zipsea-production)
+3. Click on "Shell" tab
+4. Copy and paste the following command:
+
+psql "$DATABASE_URL" << 'EOF'
+-- Add reference number and quote response to quote_requests table
+ALTER TABLE quote_requests 
+ADD COLUMN IF NOT EXISTS reference_number VARCHAR(20) UNIQUE,
+ADD COLUMN IF NOT EXISTS quote_response JSONB;
+
+-- Update existing status values to use new terminology
+UPDATE quote_requests 
+SET status = 'waiting' 
+WHERE status = 'submitted' OR status = 'in_review';
+
+UPDATE quote_requests 
+SET status = 'responded' 
+WHERE status = 'quoted';
+
+-- Generate reference numbers for existing quotes
+UPDATE quote_requests 
+SET reference_number = 'ZQ-' || LPAD(CAST(EXTRACT(EPOCH FROM created_at) * 1000 % 100000000 AS TEXT), 8, '0')
+WHERE reference_number IS NULL;
+
+-- Ensure uniqueness by adding row number for any duplicates
+WITH numbered_quotes AS (
+  SELECT id, 
+         reference_number,
+         ROW_NUMBER() OVER (PARTITION BY reference_number ORDER BY created_at) as rn
+  FROM quote_requests
+  WHERE reference_number IS NOT NULL
+)
+UPDATE quote_requests q
+SET reference_number = q.reference_number || '-' || n.rn
+FROM numbered_quotes n
+WHERE q.id = n.id AND n.rn > 1;
+
+EOF
+
+5. Press Enter to execute
+6. You should see "ALTER TABLE" and "UPDATE" messages confirming the migration ran successfully

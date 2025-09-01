@@ -38,6 +38,10 @@ class QuoteController {
       });
 
       res.json({
+        id: quote.id,
+        referenceNumber: quote.referenceNumber,
+        status: quote.status,
+        createdAt: quote.createdAt,
         success: true,
         data: quote,
       });
@@ -127,14 +131,8 @@ class QuoteController {
   }
 
   async createQuote(req: Request, res: Response): Promise<void> {
-    res.json({
-      success: true,
-      data: {
-        id: 'temp-quote-id',
-        status: 'pending',
-        message: 'Quote created - implementation pending'
-      }
-    });
+    // Use the same logic as createQuoteRequest
+    return this.createQuoteRequest(req, res);
   }
 
   async listUserQuotes(req: Request, res: Response): Promise<void> {
