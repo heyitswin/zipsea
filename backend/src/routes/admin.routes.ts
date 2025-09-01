@@ -513,6 +513,75 @@ router.post('/trigger-batch-sync', async (req: Request, res: Response) => {
 });
 
 /**
+ * Get cruise lines statistics for admin view
+ */
+router.get('/cruise-lines/stats', async (req: Request, res: Response) => {
+  try {
+    // Get all cruise lines with stats
+    const cruiseLines = await db.execute(sql`
+      SELECT 
+        cl.id,
+        cl.name,
+        cl.code,
+        COUNT(DISTINCT c.id) as total_cruises,
+        COUNT(DISTINCT CASE WHEN c.departure_date > NOW() THEN c.id END) as active_cruises,
+        MAX(c.updated_at) as last_updated,
+        COUNT(DISTINCT CASE WHEN c.updated_at > NOW() - INTERVAL '24 hours' THEN c.id END) as recently_updated
+      FROM cruise_lines cl
+      LEFT JOIN cruises c ON c.cruise_line_id = cl.id
+      GROUP BY cl.id, cl.name, cl.code
+      ORDER BY cl.name
+    `);
+
+    // Get overall stats
+    const statsResult = await db.execute(sql`
+      SELECT 
+        COUNT(DISTINCT cl.id) as total_lines,
+        COUNT(DISTINCT c.id) as total_cruises,
+        COUNT(DISTINCT CASE WHEN c.updated_at > NOW() - INTERVAL '24 hours' THEN c.id END) as updated_today,
+        COUNT(DISTINCT CASE WHEN c.updated_at > NOW() - INTERVAL '7 days' THEN c.id END) as updated_this_week
+      FROM cruise_lines cl
+      LEFT JOIN cruises c ON c.cruise_line_id = cl.id
+    `);
+
+    const stats = statsResult[0] || {
+      total_lines: 0,
+      total_cruises: 0,
+      updated_today: 0,
+      updated_this_week: 0
+    };
+
+    res.json({
+      success: true,
+      cruiseLines: cruiseLines.map(line => ({
+        id: line.id,
+        name: line.name,
+        code: line.code,
+        totalCruises: Number(line.total_cruises || 0),
+        activeCruises: Number(line.active_cruises || 0),
+        lastUpdated: line.last_updated,
+        recentlyUpdated: Number(line.recently_updated || 0),
+      })),
+      stats: {
+        totalLines: Number(stats.total_lines || 0),
+        totalCruises: Number(stats.total_cruises || 0),
+        updatedToday: Number(stats.updated_today || 0),
+        updatedThisWeek: Number(stats.updated_this_week || 0),
+      }
+    });
+  } catch (error) {
+    logger.error('Error fetching cruise lines stats:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to fetch cruise lines statistics',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+    });
+  }
+});
+
+/**
  * Get quotes for admin view with pagination
  */
 router.get('/quotes', async (req: Request, res: Response) => {

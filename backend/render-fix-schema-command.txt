@@ -1,0 +1,73 @@
+To fix the quote_requests table schema on Render:
+
+1. Go to your Render dashboard
+2. Navigate to your backend service (zipsea-production)
+3. Click on "Shell" tab
+4. Copy and paste the following command:
+
+psql "$DATABASE_URL" << 'EOF'
+-- First, let's add the missing columns to match our schema
+ALTER TABLE quote_requests 
+ADD COLUMN IF NOT EXISTS reference_number VARCHAR(20) UNIQUE,
+ADD COLUMN IF NOT EXISTS quote_response JSONB,
+ADD COLUMN IF NOT EXISTS cabin_type VARCHAR(50),
+ADD COLUMN IF NOT EXISTS passenger_details JSONB DEFAULT '[]',
+ADD COLUMN IF NOT EXISTS contact_info JSONB,
+ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT '{}',
+ADD COLUMN IF NOT EXISTS total_price DECIMAL(10, 2),
+ADD COLUMN IF NOT EXISTS obc_amount DECIMAL(10, 2),
+ADD COLUMN IF NOT EXISTS commission DECIMAL(10, 2),
+ADD COLUMN IF NOT EXISTS quote_expires_at TIMESTAMP,
+ADD COLUMN IF NOT EXISTS quoted_at TIMESTAMP,
+ADD COLUMN IF NOT EXISTS booked_at TIMESTAMP,
+ADD COLUMN IF NOT EXISTS is_urgent BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS special_requirements TEXT,
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW(),
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW();
+
+-- Update existing status values to use new terminology
+UPDATE quote_requests 
+SET status = 'waiting' 
+WHERE status = 'pending' OR status = 'submitted' OR status = 'in_review';
+
+UPDATE quote_requests 
+SET status = 'responded' 
+WHERE status = 'quoted';
+
+-- Generate reference numbers for existing quotes
+UPDATE quote_requests 
+SET reference_number = 'ZQ-' || LPAD(CAST(EXTRACT(EPOCH FROM COALESCE(created_at, NOW())) * 1000 % 100000000 AS TEXT), 8, '0')
+WHERE reference_number IS NULL;
+
+-- Copy existing data to new columns
+UPDATE quote_requests
+SET cabin_type = preferred_cabin_type
+WHERE cabin_type IS NULL AND preferred_cabin_type IS NOT NULL;
+
+UPDATE quote_requests
+SET contact_info = jsonb_build_object(
+    'email', email,
+    'phone', phone,
+    'firstName', first_name,
+    'lastName', last_name
+)
+WHERE contact_info IS NULL;
+
+UPDATE quote_requests
+SET passenger_details = jsonb_build_array(
+    jsonb_build_object(
+        'firstName', first_name,
+        'lastName', last_name,
+        'type', 'adult'
+    )
+)
+WHERE passenger_details = '[]';
+
+UPDATE quote_requests
+SET special_requirements = special_requests
+WHERE special_requirements IS NULL AND special_requests IS NOT NULL;
+
+EOF
+
+5. Press Enter to execute
+6. You should see multiple "ALTER TABLE" and "UPDATE" messages confirming the migration ran successfully

@@ -248,14 +248,33 @@ export default function AdminDashboard() {
             </div>
           </div>
           
-          {/* Tabs - Only show tabs for sections with real data */}
+          {/* Tabs - Now includes Quotes and Cruise Lines as main navigation */}
           <div className="flex space-x-8 border-b border-gray-200 -mb-px">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors ${
+                activeTab === 'overview'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => router.push('/admin/quotes')}
+              className="py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            >
+              Quote Requests
+            </button>
+            <button
+              onClick={() => router.push('/admin/cruise-lines')}
+              className="py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+            >
+              Cruise Lines
+            </button>
             {[
-              { key: 'overview', label: 'Overview', condition: true }, // Always show overview
-              { key: 'quotes', label: 'Quotes', condition: quoteAnalytics !== null },
-              { key: 'cruises', label: 'Cruises', condition: cruiseAnalytics !== null },
+              { key: 'analytics', label: 'Analytics', condition: quoteAnalytics !== null || revenueAnalytics !== null },
               { key: 'users', label: 'Users', condition: userAnalytics !== null },
-              { key: 'revenue', label: 'Revenue', condition: revenueAnalytics !== null }
             ].filter(tab => tab.condition).map((tab) => (
               <button
                 key={tab.key}
@@ -284,7 +303,52 @@ export default function AdminDashboard() {
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* Show message if no data is available */}
+            {/* Quick Links */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <button
+                onClick={() => router.push('/admin/quotes')}
+                className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow text-left"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-blue-100 rounded-full">
+                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Quote Requests</h3>
+                <p className="text-sm text-gray-600">Manage and respond to customer quote requests</p>
+              </button>
+
+              <button
+                onClick={() => router.push('/admin/cruise-lines')}
+                className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow text-left"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-green-100 rounded-full">
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Cruise Lines</h3>
+                <p className="text-sm text-gray-600">Monitor cruise inventory and sync status</p>
+              </button>
+
+              <div className="bg-white rounded-lg shadow p-6 opacity-50">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-purple-100 rounded-full">
+                    <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Revenue Analytics</h3>
+                <p className="text-sm text-gray-600">Coming soon - Track revenue and commissions</p>
+              </div>
+            </div>
+
+            {/* Show message if no analytics data is available */}
             {!revenueAnalytics && !quoteAnalytics && !userAnalytics && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
                 <div className="mb-2">
@@ -292,9 +356,9 @@ export default function AdminDashboard() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-semibold text-blue-900 mb-2">Admin Analytics Not Available</h3>
-                <p className="text-blue-700 mb-4">The admin analytics endpoints are not yet implemented in the backend API.</p>
-                <p className="text-sm text-blue-600">Once the backend analytics endpoints are ready, real data will appear here.</p>
+                <h3 className="text-lg font-semibold text-blue-900 mb-2">Analytics Coming Soon</h3>
+                <p className="text-blue-700 mb-4">Advanced analytics and reporting features are being developed.</p>
+                <p className="text-sm text-blue-600">Use the tabs above to access Quote Requests and Cruise Lines management.</p>
               </div>
             )}
             
