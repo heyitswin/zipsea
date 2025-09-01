@@ -342,7 +342,7 @@ export async function POST(request: NextRequest) {
                     <!-- What Happens Next Section -->
                     <tr>
                       <td style="padding: 0;">
-                        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #E9B4EB; border-radius: 10px; margin: 20px 0;">
+                        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #E9B4EB; border-radius: 10px; margin: 10px 0;">
                           <tr>
                             <td style="padding: 36px;">
                               <h2 style="margin: 0 0 20px 0; color: #0E1B4D; font-family: Arial, sans-serif; font-size: 32px; font-weight: bold; letter-spacing: -0.02em;">What happens next?</h2>
@@ -373,7 +373,7 @@ export async function POST(request: NextRequest) {
                     <!-- Questions Section -->
                     <tr>
                       <td style="padding: 0;">
-                        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #F7F170; border-radius: 10px; margin: 20px 0;">
+                        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #F7F170; border-radius: 10px; margin: 10px 0;">
                           <tr>
                             <td style="padding: 36px; text-align: left;">
                               <h2 style="margin: 0 0 15px 0; color: #0E1B4D; font-family: Arial, sans-serif; font-size: 32px; font-weight: bold; letter-spacing: -0.02em;">Questions?</h2>

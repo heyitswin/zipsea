@@ -259,9 +259,11 @@ export default function Footer() {
             letterSpacing: '-0.02em',
             lineHeight: '1.5'
           }}>
-            © 2024 Zipsea. All rights reserved. Zipsea is a registered trademark. Prices are per person, based on double occupancy and subject to availability. 
-            Government taxes, fees, and port expenses are additional. Ships' registry: Bahamas, Panama, Malta, Netherlands, and USA. 
-            We are not responsible for errors or omissions. Please verify all information with the cruise line directly.
+            Disclaimer: All prices, offers, onboard credits, and availability are subject to change without notice and may vary by cruise line, sailing, or cabin type. Zipsea, Inc. acts solely as an independent travel agency and is not responsible for errors, omissions, or changes in cruise line policies, schedules, or services. Final terms, conditions, and cancellation policies are set by the cruise lines and travel suppliers. Zipsea, Inc. makes every effort to ensure accuracy but does not guarantee that all information on this website is current or error-free.
+
+            Liability Notice: Zipsea, Inc. is not liable for any losses, damages, or expenses arising from unforeseen circumstances, including but not limited to schedule changes, cancellations, weather, health events, or supplier defaults.
+
+            Trademarks: All cruise line names, logos, and images are the property of their respective owners and are used for informational purposes only.
           </p>
         </div>
 
