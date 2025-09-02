@@ -68,12 +68,9 @@ export async function POST(request: NextRequest) {
           <!-- Main Content -->
           <div style="padding: 32px 24px;">
             <!-- Title -->
-            <h1 style="color: #111827; font-size: 28px; font-weight: bold; margin: 0 0 8px 0; text-align: center;">
+            <h1 style="color: #111827; font-size: 28px; font-weight: bold; margin: 0 0 32px 0; text-align: center;">
               Your Quote is Ready!
             </h1>
-            <p style="color: #6b7280; font-size: 16px; text-align: center; margin: 0 0 32px 0;">
-              Reference #${referenceNumber}
-            </p>
             
             <!-- Cruise Details Box -->
             <div style="background-color: #f9fafb; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
@@ -81,6 +78,10 @@ export async function POST(request: NextRequest) {
                 ${cruiseName}
               </h2>
               <table style="width: 100%;">
+                <tr>
+                  <td style="color: #6b7280; font-size: 14px; padding: 4px 0;">Reference Number:</td>
+                  <td style="color: #374151; font-size: 14px; padding: 4px 0; font-weight: 600;">#${referenceNumber}</td>
+                </tr>
                 <tr>
                   <td style="color: #6b7280; font-size: 14px; padding: 4px 0;">Ship:</td>
                   <td style="color: #374151; font-size: 14px; padding: 4px 0; font-weight: 600;">${shipName}</td>
@@ -171,7 +172,7 @@ export async function POST(request: NextRequest) {
     const emailResponse = await resend.emails.send({
       from: 'Zipsea Cruises <quotes@zipsea.com>',
       to: email,
-      subject: `Your Cruise Quote is Ready! - Reference #${referenceNumber}`,
+      subject: `Your Cruise Quote is Ready! - ${cruiseName}`,
       html: emailHtml,
     });
 

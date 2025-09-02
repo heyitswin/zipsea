@@ -216,7 +216,6 @@ export async function POST(request: NextRequest) {
                               <div>
                                 <h1 class="hero-headline" style="margin: 0 0 10px 0; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 42px; font-weight: bold; letter-spacing: -0.02em; line-height: 1.1;">Quote request received</h1>
                                 <p class="hero-subheading" style="margin: 0; color: #E9B4EB; font-family: Arial, sans-serif; font-size: 20px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.3;">We're working on getting you the best possible price + perks</p>
-                                ${referenceNumber ? `<p style="margin: 10px 0 0 0; color: #FFFFFF; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal;">Reference #${referenceNumber}</p>` : ''}
                               </div>
                             </td>
                           </tr>
@@ -236,6 +235,18 @@ export async function POST(request: NextRequest) {
                               <table cellpadding="0" cellspacing="0" border="0" width="100%">
                                 <tr>
                                   <td valign="top" style="width: 50%; padding-right: 20px;">
+                                    
+                                    ${referenceNumber ? `
+                                    <!-- Reference Number -->
+                                    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
+                                      <tr>
+                                        <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">REFERENCE NUMBER</td>
+                                      </tr>
+                                      <tr>
+                                        <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">#${referenceNumber}</td>
+                                      </tr>
+                                    </table>
+                                    ` : ''}
                                     
                                     ${cruiseData?.name ? `
                                     <!-- Cruise -->
@@ -411,13 +422,13 @@ export async function POST(request: NextRequest) {
         console.log('📧 Sending email with parameters:', {
           from: fromEmail,
           to: userEmail,
-          subject: `Your Cruise Quote Request${referenceNumber ? ` #${referenceNumber}` : ''} - ${cruiseData?.name || 'Cruise'} | ZipSea`
+          subject: `Your Cruise Quote Request - ${cruiseData?.name || 'Cruise'} | ZipSea`
         });
 
         let { data, error } = await resend.emails.send({
           from: fromEmail,
           to: [userEmail],
-          subject: `Your Cruise Quote Request${referenceNumber ? ` #${referenceNumber}` : ''} - ${cruiseData?.name || 'Cruise'} | ZipSea`,
+          subject: `Your Cruise Quote Request - ${cruiseData?.name || 'Cruise'} | ZipSea`,
           html: emailHtml,
         });
         
@@ -427,7 +438,7 @@ export async function POST(request: NextRequest) {
           const fallbackResult = await resend.emails.send({
             from: fallbackEmail,
             to: [userEmail],
-            subject: `Your Cruise Quote Request${referenceNumber ? ` #${referenceNumber}` : ''} - ${cruiseData?.name || 'Cruise'} | ZipSea`,
+            subject: `Your Cruise Quote Request - ${cruiseData?.name || 'Cruise'} | ZipSea`,
             html: emailHtml,
           });
           data = fallbackResult.data;
