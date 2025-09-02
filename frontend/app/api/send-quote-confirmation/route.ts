@@ -490,7 +490,7 @@ Click "search" in the same section
 STEP 3: Document All Available Categories BEFORE Filtering
 MANDATORY: Take a screenshot and document ALL visible cabin categories in the unfiltered results
 Create a complete list of all ${cabinType || 'Interior cabin'} categories visible before applying any filters
-Note the status (AVL, GTY, WLT, CLS) for each ${cabinType || 'Interior'} category
+Note the status (GTY, WLT, CLS) for each ${cabinType || 'Interior'} category
 STEP 4: Apply Filters Systematically and Verify Results
 Click on the dropdown field that shows 'All Categories' text (not just the label 'Category Type') and select ${cabinType || 'Interior Cabin'}
 VERIFICATION STEP: Confirm that "${cabinType || 'Interior'}" is selected in the Category Type dropdown
@@ -501,13 +501,13 @@ If the Status dropdown shows "Waitlisted" instead of "Guaranteed" after filterin
 If filtering for 'Guaranteed' status shows no results, document this clearly and report that no guaranteed cabins are available
 STEP 5: Count and Document All Matching Categories
 MANDATORY: Before starting any extractions, scroll through the ENTIRE filtered results table
-Count the total number of ${cabinType || 'Interior cabin'} categories that show "GTY" (Guaranteed) or "AVL" (Available) status
+Count the total number of ${cabinType || 'Interior cabin'} categories that show "GTY" (Guaranteed) status
 Create a checklist with category codes (e.g., ZI, 1R, 2S) that need pricing extraction
 Do NOT proceed until you have a complete inventory of categories to process
 STEP 6: Systematic Data Extraction Process (repeat for EACH category on your checklist)
 For each ${cabinType || 'Interior Cabin'} category identified in Step 5:
 a) BEFORE CLICKING: Verify the category code and status match your checklist
-b) Click the circle/radio button next to "AVL" or "GTY" for that specific row
+b) Click the circle/radio button next to "GTY" for that specific row
 c) Scroll down and click "Price Quote" to open the pricing modal
 d) In the modal, scroll down and click "View Agency Commission" (if available)
 e) MANDATORY: Copy ALL the pricing information including vacation charges, taxes, fees, commission details, and totals
@@ -518,7 +518,7 @@ i) Move to the NEXT category and repeat steps a-h
 j) CRITICAL: You MUST extract data for EVERY SINGLE category on your checklist. Do NOT stop until you have completed the full extraction process for ALL categories, regardless of how time-consuming it may seem.
 STEP 7: Final Verification Before Completing
 MANDATORY: Return to the filtered results table after all extractions
-Verify that you have extracted data for every category that shows guaranteed or available status
+Verify that you have extracted data for every category that shows guaranteed status
 Cross-reference your completed extractions with your original checklist
 If any categories remain unprocessed, complete their extraction before proceeding
 STEP 8: Raw Data Extraction with OBC Suggestions
@@ -528,6 +528,61 @@ For each cabin category, add an "OBC suggestion" row immediately after the "Vaca
 Calculate the OBC suggestion by multiplying the vacation subtotal (total column) by 0.16
 Format the OBC suggestion as: OBC suggestion | | | $XXX.XX
 Send the raw pricing data with OBC suggestions without additional formatting or analysis
+
+STEP 9: Send Raw Data to Slack
+After extracting all pricing data, create a Python script to send the raw data to our Slack channel:
+1. Create a new file called send_to_slack.py with the following content:
+
+import json
+import requests
+
+# Webhook URL for #updates-quote-requests channel
+webhook_url = "https://hooks.slack.com/services/YOUR_WEBHOOK_URL_HERE"
+
+# Raw pricing data (paste your extracted data here)
+raw_data = """
+Reference #: ${referenceNumber || 'Pending'}
+Customer: ${userEmail}
+Cruise: ${cruiseData?.name || 'N/A'}
+Ship: ${cruiseData?.shipName || 'N/A'}
+Departure: ${formatDate(cruiseData?.sailingDate) || 'N/A'}
+Cabin Type: ${cabinType || 'N/A'}
+
+[PASTE ALL EXTRACTED PRICING DATA HERE]
+"""
+
+# Create the message payload
+payload = {
+    "text": f"New Quote Pricing Data - Ref #{referenceNumber || 'Pending'}",
+    "blocks": [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*New Quote Pricing Data*\nReference: #{referenceNumber || 'Pending'}\nCustomer: ${userEmail}"
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"```{raw_data}```"
+            }
+        }
+    ]
+}
+
+# Send to Slack
+response = requests.post(webhook_url, json=payload)
+if response.status_code == 200:
+    print("Successfully sent to Slack #updates-quote-requests channel")
+else:
+    print(f"Failed to send to Slack: {response.status_code}")
+
+2. Replace [PASTE ALL EXTRACTED PRICING DATA HERE] with the actual pricing data you extracted
+3. Ask the Zipsea team for the actual webhook URL and replace YOUR_WEBHOOK_URL_HERE
+4. Run the script: python send_to_slack.py
+5. Confirm the message appears in the #updates-quote-requests channel
 
 Customer Details:
 ${cruiseDetails}`;
