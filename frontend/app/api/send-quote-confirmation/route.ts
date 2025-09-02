@@ -537,7 +537,7 @@ import json
 import requests
 
 # Webhook URL for #updates-quote-requests channel
-webhook_url = "https://hooks.slack.com/services/YOUR_WEBHOOK_URL_HERE"
+webhook_url = "https://hooks.slack.com/services/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"
 
 # Raw pricing data (paste your extracted data here)
 raw_data = """
@@ -580,9 +580,8 @@ else:
     print(f"Failed to send to Slack: {response.status_code}")
 
 2. Replace [PASTE ALL EXTRACTED PRICING DATA HERE] with the actual pricing data you extracted
-3. Ask the Zipsea team for the actual webhook URL and replace YOUR_WEBHOOK_URL_HERE
-4. Run the script: python send_to_slack.py
-5. Confirm the message appears in the #updates-quote-requests channel
+3. Run the script: python send_to_slack.py
+4. Confirm the message appears in the #updates-quote-requests channel
 
 Customer Details:
 ${cruiseDetails}`;

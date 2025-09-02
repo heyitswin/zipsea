@@ -10,7 +10,7 @@ import sys
 from datetime import datetime
 
 # Configuration
-WEBHOOK_URL = "https://hooks.slack.com/services/YOUR_WEBHOOK_URL_HERE"  # Replace with actual webhook URL
+WEBHOOK_URL = "https://hooks.slack.com/services/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"  # Zipsea #updates-quote-requests channel
 
 def send_to_slack(reference_number, customer_email, cruise_name, ship_name, departure_date, cabin_type, raw_pricing_data):
     """
@@ -150,10 +150,4 @@ Total: $1,549.00 | $1,549.00 | $3,098.00
         sys.exit(1)
 
 if __name__ == "__main__":
-    # Check if webhook URL is configured
-    if WEBHOOK_URL == "https://hooks.slack.com/services/YOUR_WEBHOOK_URL_HERE":
-        print("⚠️  WARNING: Please update WEBHOOK_URL with your actual Slack webhook URL")
-        print("   Contact the Zipsea team for the webhook URL for #updates-quote-requests channel")
-        sys.exit(1)
-    
     main()
