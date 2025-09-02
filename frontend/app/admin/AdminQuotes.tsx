@@ -43,9 +43,15 @@ function ResponseModal({ quote, onClose, onSubmit }: ResponseModalProps) {
   const handleSubmit = async () => {
     setLoading(true);
     const validPrices = prices.filter(p => p.cabinCategory && p.price);
+    // Convert to the format expected by backend
+    const categories = validPrices.map(p => ({
+      category: p.cabinCategory,
+      price: parseFloat(p.price || '0'),
+      description: p.description || ''
+    }));
     await onSubmit(quote.id, {
-      prices: validPrices,
-      totalPrice: validPrices.reduce((sum, p) => sum + parseFloat(p.price || '0'), 0)
+      categories,
+      notes: `Total options: ${validPrices.length}`
     });
     setLoading(false);
     onClose();
@@ -93,7 +99,7 @@ function ResponseModal({ quote, onClose, onSubmit }: ResponseModalProps) {
             </div>
             <div>
               <p className="text-gray-600">Sailing Date:</p>
-              <p className="font-medium">{new Date(quote.sailing_date).toLocaleDateString()}</p>
+              <p className="font-medium">{formatDate(quote.sailing_date)}</p>
             </div>
             <div>
               <p className="text-gray-600">Requested Cabin:</p>
@@ -186,6 +192,26 @@ export default function AdminQuotes() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 20;
+
+  // Format date properly handling UTC
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
+    try {
+      // Parse the UTC date and format it properly
+      const date = new Date(dateString);
+      const formatted = date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        timeZone: 'UTC'
+      });
+      return formatted;
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return 'Invalid date';
+    }
+  };
 
   useEffect(() => {
     fetchQuotes();
@@ -343,7 +369,7 @@ export default function AdminQuotes() {
                     {quote.ship_name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {new Date(quote.sailing_date).toLocaleDateString()}
+                    {formatDate(quote.sailing_date)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     <div>{quote.first_name} {quote.last_name}</div>
