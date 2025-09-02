@@ -9,11 +9,15 @@ class QuoteController {
       const {
         cruiseId,
         cabinType,
-        adults,
-        children,
-        travelInsurance,
-        discountQualifiers,
+        adults = 2,
+        children = 0,
+        travelInsurance = false,
+        discountQualifiers = {},
         email,
+        firstName,
+        lastName,
+        phone,
+        specialRequests,
       } = req.body;
 
       // Get user ID if authenticated
@@ -29,11 +33,15 @@ class QuoteController {
       const quote = await quoteService.createQuoteRequest({
         userId,
         email: email || req.body.userEmail,
+        firstName,
+        lastName,
+        phone,
         cruiseId,
         cabinType,
         adults,
         children,
         travelInsurance,
+        specialRequests,
         discountQualifiers,
       });
 

@@ -7,11 +7,15 @@ import type { QuoteRequest, NewQuoteRequest } from '../db/schema/quote-requests'
 interface CreateQuoteData {
   userId?: string;
   email?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
   cruiseId: string;
   cabinType: string;
   adults: number;
   children: number;
   travelInsurance: boolean;
+  specialRequests?: string;
   discountQualifiers: {
     payInFull?: boolean;
     seniorCitizen?: boolean;
@@ -54,10 +58,10 @@ class QuoteService {
       // Calculate OBC amount (2.5% of typical cruise price, will be refined later)
       const obcAmount = this.calculateOnboardCredit(data.cabinType);
 
-      const quoteData: NewQuoteRequest = {
+      const quoteData: any = {
         referenceNumber: this.generateReferenceNumber(),
         userId: data.userId || null,
-        cruiseId: parseInt(data.cruiseId),
+        cruiseId: data.cruiseId, // Keep as string - cruises.id is VARCHAR
         cabinType: data.cabinType,
         passengerCount: data.adults + data.children,
         passengerDetails,
@@ -67,6 +71,13 @@ class QuoteService {
         status: 'waiting',
         source: 'website',
         quoteExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        // Add the individual fields that the admin interface expects
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
+        email: data.email || '',
+        phone: data.phone || '',
+        preferredCabinType: data.cabinType,
+        specialRequests: data.specialRequests,
       };
 
       const result = await db
