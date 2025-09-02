@@ -553,20 +553,20 @@ Cabin Type: ${cabinType || 'N/A'}
 
 # Create the message payload
 payload = {
-    "text": f"New Quote Pricing Data - Ref #{referenceNumber || 'Pending'}",
+    "text": "New Quote Pricing Data - Ref #${referenceNumber || 'Pending'}",
     "blocks": [
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"*New Quote Pricing Data*\nReference: #{referenceNumber || 'Pending'}\nCustomer: ${userEmail}"
+                "text": "*New Quote Pricing Data*\\nReference: #${referenceNumber || 'Pending'}\\nCustomer: ${userEmail}"
             }
         },
         {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": f"```{raw_data}```"
+                "text": "```" + raw_data + "```"
             }
         }
     ]
@@ -577,7 +577,7 @@ response = requests.post(webhook_url, json=payload)
 if response.status_code == 200:
     print("Successfully sent to Slack #updates-quote-requests channel")
 else:
-    print(f"Failed to send to Slack: {response.status_code}")
+    print("Failed to send to Slack: " + str(response.status_code))
 
 2. Replace [PASTE ALL EXTRACTED PRICING DATA HERE] with the actual pricing data you extracted
 3. Run the script: python send_to_slack.py
