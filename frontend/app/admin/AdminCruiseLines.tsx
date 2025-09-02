@@ -143,7 +143,7 @@ export default function AdminCruiseLines() {
                   Cruise Line
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Code
+                  ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Total Cruises
@@ -169,7 +169,7 @@ export default function AdminCruiseLines() {
                     <div className="text-sm font-medium text-gray-900">{line.name}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{line.code || 'N/A'}</div>
+                    <div className="text-sm text-gray-500">{line.id}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">{line.totalCruises.toLocaleString()}</div>

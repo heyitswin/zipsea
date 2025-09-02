@@ -24,7 +24,7 @@ const formatDate = (dateString: string | undefined) => {
 };
 
 interface QuoteRequest {
-  id: number;
+  id: string;
   reference_number: string;
   created_at: string;
   cruise_line_name: string;
@@ -45,7 +45,7 @@ interface QuoteRequest {
 interface ResponseModalProps {
   quote: QuoteRequest;
   onClose: () => void;
-  onSubmit: (quoteId: number, response: any) => Promise<void>;
+  onSubmit: (quoteId: string, response: any) => Promise<void>;
 }
 
 function ResponseModal({ quote, onClose, onSubmit }: ResponseModalProps) {
@@ -263,7 +263,7 @@ export default function AdminQuotes() {
     }
   };
 
-  const handleRespond = async (quoteId: number, response: any) => {
+  const handleRespond = async (quoteId: string, response: any) => {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://zipsea-production.onrender.com';
       const res = await fetch(`${backendUrl}/api/v1/admin/quotes/${quoteId}/respond`, {
