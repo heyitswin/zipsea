@@ -13,6 +13,15 @@ import { userRoutes } from './user.routes';
 
 const router = Router();
 
+// Root path handler (for health checks from load balancers)
+router.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'zipsea-backend',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Health check routes (outside API versioning)
 router.use('/health', healthRoutes);
 
