@@ -28,7 +28,13 @@ class UserController {
       let evt: any;
       
       try {
-        evt = svix.verify(JSON.stringify(req.body), headers);
+        // req.body is now a Buffer from express.raw()
+        const payload = req.body instanceof Buffer ? req.body.toString('utf8') : JSON.stringify(req.body);
+        evt = svix.verify(payload, headers);
+        // Parse the event data if it's a string
+        if (typeof evt === 'string') {
+          evt = JSON.parse(evt);
+        }
       } catch (err) {
         logger.error('Webhook verification failed:', err);
         res.status(400).json({ error: 'Invalid webhook signature' });
