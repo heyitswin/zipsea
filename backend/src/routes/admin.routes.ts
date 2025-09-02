@@ -517,6 +517,21 @@ router.post('/trigger-batch-sync', async (req: Request, res: Response) => {
  */
 router.get('/cruise-lines/stats', async (req: Request, res: Response) => {
   try {
+    // Get pricing sync dates per cruise line
+    const pricingSyncDates = await db.execute(sql`
+      SELECT 
+        cl.id as cruise_line_id,
+        MAX(cp.last_updated) as last_pricing_sync
+      FROM cruise_lines cl
+      LEFT JOIN cruises c ON c.cruise_line_id = cl.id
+      LEFT JOIN cheapest_pricing cp ON cp.cruise_id = c.id
+      GROUP BY cl.id
+    `);
+    
+    const pricingSyncMap = new Map(
+      pricingSyncDates.map((row: any) => [row.cruise_line_id, row.last_pricing_sync])
+    );
+    
     // Get all cruise lines with stats
     const cruiseLines = await db.execute(sql`
       SELECT 
@@ -525,10 +540,15 @@ router.get('/cruise-lines/stats', async (req: Request, res: Response) => {
         cl.code,
         COUNT(DISTINCT c.id) as total_cruises,
         COUNT(DISTINCT CASE WHEN c.sailing_date > CURRENT_DATE THEN c.id END) as active_cruises,
-        MAX(c.updated_at) as last_updated,
+        GREATEST(
+          MAX(c.updated_at),
+          MAX(cp.last_updated)
+        ) as last_updated,
         COUNT(DISTINCT CASE WHEN c.updated_at > CURRENT_TIMESTAMP - INTERVAL '24 hours' THEN c.id END) as recently_updated
       FROM cruise_lines cl
       LEFT JOIN cruises c ON c.cruise_line_id = cl.id
+      LEFT JOIN ships s ON c.ship_id = s.id
+      LEFT JOIN cheapest_pricing cp ON cp.cruise_id = c.id
       GROUP BY cl.id, cl.name, cl.code
       ORDER BY cl.name
     `);
@@ -553,15 +573,19 @@ router.get('/cruise-lines/stats', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      cruiseLines: cruiseLines.map(line => ({
-        id: line.id,
-        name: line.name,
-        code: line.code,
-        totalCruises: Number(line.total_cruises || 0),
-        activeCruises: Number(line.active_cruises || 0),
-        lastUpdated: line.last_updated,
-        recentlyUpdated: Number(line.recently_updated || 0),
-      })),
+      cruiseLines: cruiseLines.map(line => {
+        const pricingSync = pricingSyncMap.get(line.id);
+        return {
+          id: line.id,
+          name: line.name,
+          code: line.code,
+          totalCruises: Number(line.total_cruises || 0),
+          activeCruises: Number(line.active_cruises || 0),
+          lastUpdated: pricingSync || line.last_updated, // Use pricing sync date if available
+          recentlyUpdated: Number(line.recently_updated || 0),
+          lastSyncDate: pricingSync || line.last_updated, // This reflects the actual FTP data sync
+        };
+      }),
       stats: {
         totalLines: Number(stats.total_lines || 0),
         totalCruises: Number(stats.total_cruises || 0),
