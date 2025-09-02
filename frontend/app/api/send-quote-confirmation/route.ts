@@ -566,7 +566,7 @@ payload = {
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "```" + raw_data + "```"
+                "text": \`\\\`\\\`\\\`\${raw_data}\\\`\\\`\\\`\`
             }
         }
     ]
