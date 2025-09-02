@@ -586,34 +586,98 @@ router.get('/cruise-lines/stats', async (req: Request, res: Response) => {
  */
 router.get('/quotes', async (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 100;
-    const offset = parseInt(req.query.offset as string) || 0;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = (page - 1) * limit;
     const status = req.query.status as string;
     
-    const result = await quoteService.getQuotesForAdmin(limit, offset, status);
+    // Get quotes with cruise info using raw SQL for better control
+    let quotesQuery;
+    let countQuery;
     
-    // Get total count for pagination
-    let countResult;
-    if (status) {
-      countResult = await db.execute(sql`
+    if (status && status !== 'all') {
+      quotesQuery = sql`
+        SELECT 
+          qr.id,
+          qr.reference_number,
+          qr.created_at,
+          qr.status,
+          qr.cruise_id,
+          qr.first_name,
+          qr.last_name,
+          qr.email,
+          qr.phone,
+          qr.passenger_count,
+          qr.preferred_cabin_type as cabin_type,
+          qr.special_requests as special_requirements,
+          qr.total_price,
+          qr.quote_response,
+          c.sailing_date,
+          cl.name as cruise_line_name,
+          s.name as ship_name
+        FROM quote_requests qr
+        LEFT JOIN cruises c ON qr.cruise_id::text = c.id
+        LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
+        LEFT JOIN ships s ON c.ship_id = s.id
+        WHERE qr.status = ${status}
+        ORDER BY qr.created_at DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+      
+      countQuery = sql`
         SELECT COUNT(*) as total
         FROM quote_requests
         WHERE status = ${status}
-      `);
+      `;
     } else {
-      countResult = await db.execute(sql`
+      quotesQuery = sql`
+        SELECT 
+          qr.id,
+          qr.reference_number,
+          qr.created_at,
+          qr.status,
+          qr.cruise_id,
+          qr.first_name,
+          qr.last_name,
+          qr.email,
+          qr.phone,
+          qr.passenger_count,
+          qr.preferred_cabin_type as cabin_type,
+          qr.special_requests as special_requirements,
+          qr.total_price,
+          qr.quote_response,
+          c.sailing_date,
+          cl.name as cruise_line_name,
+          s.name as ship_name
+        FROM quote_requests qr
+        LEFT JOIN cruises c ON qr.cruise_id::text = c.id
+        LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
+        LEFT JOIN ships s ON c.ship_id = s.id
+        ORDER BY qr.created_at DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `;
+      
+      countQuery = sql`
         SELECT COUNT(*) as total
         FROM quote_requests
-      `);
+      `;
     }
+    
+    const [quotesResult, countResult] = await Promise.all([
+      db.execute(quotesQuery),
+      db.execute(countQuery)
+    ]);
+    
     const total = Number(countResult[0]?.total || 0);
+    const totalPages = Math.ceil(total / limit);
     
     res.json({
       success: true,
-      quotes: result,
+      quotes: quotesResult || [],
       total,
+      totalPages,
+      currentPage: page,
       limit,
-      offset,
     });
   } catch (error) {
     logger.error('Error fetching admin quotes:', error);
