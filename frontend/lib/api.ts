@@ -362,6 +362,7 @@ export async function getCruiseBySlug(slug: string): Promise<ComprehensiveCruise
       headers: {
         'Content-Type': 'application/json',
       },
+      cache: 'no-store', // Disable caching to always get fresh data
     });
     
     if (response.status === 404) {
@@ -393,6 +394,7 @@ export async function getComprehensiveCruiseData(cruiseId: number): Promise<Comp
       headers: {
         'Content-Type': 'application/json',
       },
+      cache: 'no-store', // Disable caching to always get fresh data
     });
     
     if (response.status === 404) {

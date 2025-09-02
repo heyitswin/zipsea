@@ -234,10 +234,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     if (!isPriceAvailable(price)) return 0;
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
     if (!numPrice || isNaN(numPrice)) return 0;
-    // Calculate 8% of the price as onboard credit, rounded to nearest $25
+    // Calculate 8% of the price as onboard credit, rounded down to nearest $10
     const creditPercent = 0.08; // 8%
     const rawCredit = numPrice * creditPercent;
-    return Math.round(rawCredit / 25) * 25; // Round to nearest $25
+    return Math.floor(rawCredit / 10) * 10; // Round down to nearest $10
   };
 
   // Helper function to get cabin image based on cabin type
