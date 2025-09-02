@@ -10,7 +10,13 @@ import sys
 from datetime import datetime
 
 # Configuration
-WEBHOOK_URL = "https://hooks.slack.com/services/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"  # Zipsea #updates-quote-requests channel
+# NOTE: This webhook URL needs to be updated with a valid one from your Slack workspace
+# To create a new webhook:
+# 1. Go to https://api.slack.com/apps
+# 2. Select your app or create a new one
+# 3. Go to "Incoming Webhooks" and activate it
+# 4. Add a new webhook to workspace and select #updates-quote-requests channel
+WEBHOOK_URL = "YOUR_SLACK_WEBHOOK_URL_HERE"  # Replace with valid webhook URL for #updates-quote-requests channel
 
 def send_to_slack(reference_number, customer_email, cruise_name, ship_name, departure_date, cabin_type, raw_pricing_data):
     """

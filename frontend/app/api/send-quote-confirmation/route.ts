@@ -536,8 +536,15 @@ After extracting all pricing data, create a Python script to send the raw data t
 import json
 import requests
 
-# Webhook URL for #updates-quote-requests channel
-webhook_url = "https://hooks.slack.com/services/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"
+# IMPORTANT: The webhook URL needs to be updated with a valid one
+# The previous webhook (ending in 6kuiXARC3s98H0H0Avu6VZrs) returns 404
+# To create a new webhook:
+# 1. Go to https://api.slack.com/apps
+# 2. Select your app or create a new one  
+# 3. Go to "Incoming Webhooks" and activate it
+# 4. Add a new webhook to workspace and select #updates-quote-requests channel
+# 5. Copy the new webhook URL and replace below
+webhook_url = "YOUR_SLACK_WEBHOOK_URL_HERE"  # Replace with valid webhook URL
 
 # Raw pricing data (paste your extracted data here)
 raw_data = """
