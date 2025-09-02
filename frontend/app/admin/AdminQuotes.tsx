@@ -33,10 +33,12 @@ function ResponseModal({ quote, onClose, onSubmit }: ResponseModalProps) {
   const [prices, setPrices] = useState<Array<{
     cabinCategory: string;
     price: string;
+    obc: string;
     description: string;
   }>>(Array(10).fill(null).map(() => ({
     cabinCategory: '',
     price: '',
+    obc: '',
     description: ''
   })));
 
@@ -44,11 +46,17 @@ function ResponseModal({ quote, onClose, onSubmit }: ResponseModalProps) {
     setLoading(true);
     const validPrices = prices.filter(p => p.cabinCategory && p.price);
     // Convert to the format expected by backend
-    const categories = validPrices.map(p => ({
-      category: p.cabinCategory,
-      price: parseFloat(p.price || '0'),
-      description: p.description || ''
-    }));
+    const categories = validPrices.map(p => {
+      const price = parseFloat(p.price || '0');
+      // Use provided OBC or calculate as 5% of price
+      const obcAmount = p.obc ? parseFloat(p.obc) : Math.round(price * 0.05);
+      return {
+        category: p.cabinCategory,
+        roomName: p.description || '',
+        finalPrice: price,
+        obcAmount: obcAmount
+      };
+    });
     await onSubmit(quote.id, {
       categories,
       notes: `Total options: ${validPrices.length}`
@@ -123,7 +131,7 @@ function ResponseModal({ quote, onClose, onSubmit }: ResponseModalProps) {
           <h3 className="text-lg font-medium text-gray-900 mb-4">Cabin Pricing Options</h3>
           <div className="space-y-3">
             {prices.map((price, index) => (
-              <div key={index} className="grid grid-cols-3 gap-3">
+              <div key={index} className="grid grid-cols-4 gap-3">
                 <input
                   type="text"
                   placeholder="Cabin Category"
@@ -142,6 +150,17 @@ function ResponseModal({ quote, onClose, onSubmit }: ResponseModalProps) {
                   onChange={(e) => {
                     const newPrices = [...prices];
                     newPrices[index].price = e.target.value;
+                    setPrices(newPrices);
+                  }}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="number"
+                  placeholder="OBC Amount"
+                  value={price.obc}
+                  onChange={(e) => {
+                    const newPrices = [...prices];
+                    newPrices[index].obc = e.target.value;
                     setPrices(newPrices);
                   }}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
