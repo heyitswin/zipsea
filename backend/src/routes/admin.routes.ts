@@ -524,9 +524,9 @@ router.get('/cruise-lines/stats', async (req: Request, res: Response) => {
         cl.name,
         cl.code,
         COUNT(DISTINCT c.id) as total_cruises,
-        COUNT(DISTINCT CASE WHEN c.departure_date > NOW() THEN c.id END) as active_cruises,
+        COUNT(DISTINCT CASE WHEN c.sailing_date > CURRENT_DATE THEN c.id END) as active_cruises,
         MAX(c.updated_at) as last_updated,
-        COUNT(DISTINCT CASE WHEN c.updated_at > NOW() - INTERVAL '24 hours' THEN c.id END) as recently_updated
+        COUNT(DISTINCT CASE WHEN c.updated_at > CURRENT_TIMESTAMP - INTERVAL '24 hours' THEN c.id END) as recently_updated
       FROM cruise_lines cl
       LEFT JOIN cruises c ON c.cruise_line_id = cl.id
       GROUP BY cl.id, cl.name, cl.code
@@ -538,8 +538,8 @@ router.get('/cruise-lines/stats', async (req: Request, res: Response) => {
       SELECT 
         COUNT(DISTINCT cl.id) as total_lines,
         COUNT(DISTINCT c.id) as total_cruises,
-        COUNT(DISTINCT CASE WHEN c.updated_at > NOW() - INTERVAL '24 hours' THEN c.id END) as updated_today,
-        COUNT(DISTINCT CASE WHEN c.updated_at > NOW() - INTERVAL '7 days' THEN c.id END) as updated_this_week
+        COUNT(DISTINCT CASE WHEN c.updated_at > CURRENT_TIMESTAMP - INTERVAL '24 hours' THEN c.id END) as updated_today,
+        COUNT(DISTINCT CASE WHEN c.updated_at > CURRENT_TIMESTAMP - INTERVAL '7 days' THEN c.id END) as updated_this_week
       FROM cruise_lines cl
       LEFT JOIN cruises c ON c.cruise_line_id = cl.id
     `);
