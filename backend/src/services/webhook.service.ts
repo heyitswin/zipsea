@@ -185,7 +185,7 @@ export class WebhookService {
             updatedAt: new Date(),
           })
           .where(and(
-            eq(pricing.cruiseId, data.cruiseId),
+            eq(pricing.cruiseId, String(data.cruiseId)),
             eq(pricing.cabinCode, data.cabinCode)
           ));
       } else {
@@ -196,7 +196,7 @@ export class WebhookService {
             isAvailable: data.availabilityData?.available ?? true,
             updatedAt: new Date(),
           })
-          .where(eq(pricing.cruiseId, data.cruiseId));
+          .where(eq(pricing.cruiseId, String(data.cruiseId)));
       }
 
       // Clear cache

@@ -256,7 +256,7 @@ export class CronService {
             const [cabinCode, rateCode] = combination.split('-');
             
             const analysis = await priceHistoryService.generateTrendAnalysis(
-              cruiseId,
+              String(cruiseId),
               cabinCode,
               rateCode,
               'daily',

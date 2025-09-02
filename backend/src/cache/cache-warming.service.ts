@@ -249,7 +249,7 @@ export class CacheWarmingService {
     const pricing = await db
       .select()
       .from(cheapestPricing)
-      .where(eq(cheapestPricing.cruiseId, cruiseId))
+      .where(eq(cheapestPricing.cruiseId, String(cruiseId)))
       .limit(1);
     
     return pricing[0] || null;

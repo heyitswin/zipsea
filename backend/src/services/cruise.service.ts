@@ -597,8 +597,8 @@ export class CruiseService {
   /**
    * Get cruise pricing with filters
    */
-  async getCruisePricing(cruiseId: number, cabinType?: string, rateCode?: string): Promise<CruisePricing> {
-    const cacheKey = CacheKeys.pricing(cruiseId.toString(), cabinType || 'all');
+  async getCruisePricing(cruiseId: number | string, cabinType?: string, rateCode?: string): Promise<CruisePricing> {
+    const cacheKey = CacheKeys.pricing(String(cruiseId), cabinType || 'all');
 
     try {
       const cached = await cacheManager.get<CruisePricing>(cacheKey);
@@ -609,7 +609,7 @@ export class CruiseService {
       let query = db
         .select()
         .from(pricing)
-        .where(eq(pricing.cruiseId, cruiseId));
+        .where(eq(pricing.cruiseId, String(cruiseId)));
 
       if (cabinType) {
         query = query.where(eq(pricing.cabinType, cabinType));
@@ -684,12 +684,12 @@ export class CruiseService {
   /**
    * Get cheapest pricing for cruise
    */
-  async getCheapestPricing(cruiseId: number): Promise<CheapestPricing> {
+  async getCheapestPricing(cruiseId: number | string): Promise<CheapestPricing> {
     try {
       const result = await db
         .select()
         .from(cheapestPricing)
-        .where(eq(cheapestPricing.cruiseId, cruiseId))
+        .where(eq(cheapestPricing.cruiseId, String(cruiseId)))
         .limit(1);
 
       if (result.length === 0) {
@@ -760,7 +760,7 @@ export class CruiseService {
   /**
    * Get cruise itinerary
    */
-  async getCruiseItinerary(cruiseId: number): Promise<ItineraryDay[]> {
+  async getCruiseItinerary(cruiseId: number | string): Promise<ItineraryDay[]> {
     try {
       const results = await db
         .select({
@@ -769,7 +769,7 @@ export class CruiseService {
         })
         .from(itineraries)
         .leftJoin(ports, eq(itineraries.portId, ports.id))
-        .where(eq(itineraries.cruiseId, cruiseId.toString()))
+        .where(eq(itineraries.cruiseId, String(cruiseId)))
         .orderBy(asc(itineraries.dayNumber));
 
       return results.map(row => ({
@@ -796,7 +796,7 @@ export class CruiseService {
   /**
    * Get alternative sailings
    */
-  async getAlternativeSailings(cruiseId: number): Promise<AlternativeSailing[]> {
+  async getAlternativeSailings(cruiseId: number | string): Promise<AlternativeSailing[]> {
     try {
       // Temporarily return empty array to avoid schema issues
       logger.warn(`Alternative sailings disabled temporarily for cruise ${cruiseId} - schema mismatch`);
@@ -993,7 +993,7 @@ export class CruiseService {
           waitlist: pricing.waitlist,
         })
         .from(pricing)
-        .where(eq(pricing.cruiseId, cruiseId));
+        .where(eq(pricing.cruiseId, String(cruiseId)));
 
       const cabinAvailability: Record<string, { available: boolean; inventory?: number; waitlist: boolean }> = {};
       let hasAvailability = false;
@@ -1270,11 +1270,11 @@ export class CruiseService {
   /**
    * Get ALL pricing data with raw database fields
    */
-  private async getAllPricingData(cruiseId: number) {
+  private async getAllPricingData(cruiseId: number | string) {
     const results = await db
       .select()
       .from(pricing)
-      .where(eq(pricing.cruiseId, cruiseId))
+      .where(eq(pricing.cruiseId, String(cruiseId)))
       .orderBy(asc(pricing.basePrice));
 
     const options = results.map(row => ({
@@ -1330,11 +1330,11 @@ export class CruiseService {
   /**
    * Get raw cheapest pricing data
    */
-  private async getRawCheapestPricing(cruiseId: number) {
+  private async getRawCheapestPricing(cruiseId: number | string) {
     const results = await db
       .select()
       .from(cheapestPricing)
-      .where(eq(cheapestPricing.cruiseId, cruiseId))
+      .where(eq(cheapestPricing.cruiseId, String(cruiseId)))
       .limit(1);
 
     if (results.length === 0) {
@@ -1359,7 +1359,7 @@ export class CruiseService {
   /**
    * Get ALL itinerary data with raw fields
    */
-  private async getAllItineraryData(cruiseId: number) {
+  private async getAllItineraryData(cruiseId: number | string) {
     try {
       const results = await db
         .select({
@@ -1368,7 +1368,7 @@ export class CruiseService {
         })
         .from(itineraries)
         .leftJoin(ports, eq(itineraries.portId, ports.id))
-        .where(eq(itineraries.cruiseId, cruiseId.toString()))
+        .where(eq(itineraries.cruiseId, String(cruiseId)))
         .orderBy(asc(itineraries.dayNumber));
 
       return results.map(row => ({
@@ -1440,7 +1440,7 @@ export class CruiseService {
   /**
    * Get ALL alternative sailings with raw fields
    */
-  private async getAllAlternativeSailings(cruiseId: number) {
+  private async getAllAlternativeSailings(cruiseId: number | string) {
     // Temporarily return empty array to avoid schema issues
     logger.warn(`Alternative sailings disabled temporarily for cruise ${cruiseId} - schema mismatch`);
     return [];

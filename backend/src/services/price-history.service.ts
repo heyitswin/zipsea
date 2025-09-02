@@ -16,7 +16,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 
 export interface PriceSnapshot {
-  cruiseId: number;
+  cruiseId: number | string;
   rateCode: string;
   cabinCode: string;
   occupancyCode: string;
@@ -28,7 +28,7 @@ export interface PriceSnapshot {
 }
 
 export interface PriceTrendAnalysis {
-  cruiseId: number;
+  cruiseId: number | string;
   cabinCode: string;
   rateCode: string;
   period: 'daily' | 'weekly' | 'monthly';
@@ -42,8 +42,8 @@ export interface PriceTrendAnalysis {
 }
 
 export interface HistoricalPriceQuery {
-  cruiseId?: number;
-  cruiseIds?: number[];
+  cruiseId?: number | string;
+  cruiseIds?: (number | string)[];
   cabinCode?: string;
   cabinCodes?: string[];
   rateCode?: string;
@@ -61,7 +61,7 @@ export class PriceHistoryService {
    * Capture price snapshots before updating pricing data
    */
   async captureSnapshot(
-    cruiseId: number, 
+    cruiseId: number | string, 
     changeReason: string = 'data_sync',
     batchId?: string
   ): Promise<string> {
@@ -73,13 +73,13 @@ export class PriceHistoryService {
       const currentPricing = await db
         .select()
         .from(pricing)
-        .where(eq(pricing.cruiseId, cruiseId));
+        .where(eq(pricing.cruiseId, String(cruiseId)));
 
       // Get current cheapest pricing
       const currentCheapest = await db
         .select()
         .from(cheapestPricing)
-        .where(eq(cheapestPricing.cruiseId, cruiseId))
+        .where(eq(cheapestPricing.cruiseId, String(cruiseId)))
         .limit(1);
 
       logger.info(`Capturing price snapshot for cruise ${cruiseId}, found ${currentPricing.length} pricing records`);
@@ -87,7 +87,7 @@ export class PriceHistoryService {
       // Create snapshots for all current pricing records
       for (const priceRecord of currentPricing) {
         const snapshot: NewPriceHistory = {
-          cruiseId,
+          cruiseId: String(cruiseId),
           rateCode: priceRecord.rateCode,
           cabinCode: priceRecord.cabinCode,
           occupancyCode: priceRecord.occupancyCode,
@@ -235,11 +235,11 @@ export class PriceHistoryService {
       let whereConditions = [];
 
       if (query.cruiseId) {
-        whereConditions.push(eq(priceHistory.cruiseId, query.cruiseId));
+        whereConditions.push(eq(priceHistory.cruiseId, String(query.cruiseId)));
       }
 
       if (query.cruiseIds && query.cruiseIds.length > 0) {
-        whereConditions.push(inArray(priceHistory.cruiseId, query.cruiseIds));
+        whereConditions.push(inArray(priceHistory.cruiseId, query.cruiseIds.map(String)));
       }
 
       if (query.cabinCode) {
@@ -295,7 +295,7 @@ export class PriceHistoryService {
    * Generate price trend analysis
    */
   async generateTrendAnalysis(
-    cruiseId: number,
+    cruiseId: number | string,
     cabinCode: string,
     rateCode: string,
     period: 'daily' | 'weekly' | 'monthly' = 'daily',
@@ -379,7 +379,7 @@ export class PriceHistoryService {
   async storePriceTrends(analysis: PriceTrendAnalysis): Promise<void> {
     try {
       const trendRecord: NewPriceTrends = {
-        cruiseId: analysis.cruiseId,
+        cruiseId: String(analysis.cruiseId),
         cabinCode: analysis.cabinCode,
         rateCode: analysis.rateCode,
         trendPeriod: analysis.period,
@@ -430,7 +430,7 @@ export class PriceHistoryService {
   /**
    * Get price trend summary for a cruise
    */
-  async getPriceTrendSummary(cruiseId: number, days: number = 30) {
+  async getPriceTrendSummary(cruiseId: number | string, days: number = 30) {
     try {
       const endDate = new Date();
       const startDate = new Date();
@@ -441,7 +441,7 @@ export class PriceHistoryService {
         .from(priceTrends)
         .where(
           and(
-            eq(priceTrends.cruiseId, cruiseId),
+            eq(priceTrends.cruiseId, String(cruiseId)),
             gte(priceTrends.periodStart, startDate),
             lte(priceTrends.periodEnd, endDate)
           )

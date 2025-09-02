@@ -4,7 +4,7 @@ import { cruises } from './cruises';
 // Historical price tracking table
 export const priceHistory = pgTable('price_history', {
   id: uuid('id').primaryKey().defaultRandom(),
-  cruiseId: integer('cruise_id').references(() => cruises.id).notNull(),
+  cruiseId: varchar('cruise_id').references(() => cruises.id).notNull(),
   
   // Original pricing data fields (for comparison)
   rateCode: varchar('rate_code', { length: 50 }).notNull(),
@@ -75,7 +75,7 @@ export const priceHistory = pgTable('price_history', {
 // Aggregated price trends table for faster trend analysis
 export const priceTrends = pgTable('price_trends', {
   id: uuid('id').primaryKey().defaultRandom(),
-  cruiseId: integer('cruise_id').references(() => cruises.id).notNull(),
+  cruiseId: varchar('cruise_id').references(() => cruises.id).notNull(),
   cabinCode: varchar('cabin_code', { length: 10 }).notNull(),
   rateCode: varchar('rate_code', { length: 50 }).notNull(),
   
