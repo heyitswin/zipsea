@@ -3,6 +3,26 @@
 import { useState, useEffect } from 'react';
 import { useAlert } from '../../components/GlobalAlertProvider';
 
+// Format date properly handling UTC
+const formatDate = (dateString: string | undefined) => {
+  if (!dateString) return 'N/A';
+  try {
+    // Parse the UTC date and format it properly
+    const date = new Date(dateString);
+    const formatted = date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC'
+    });
+    return formatted;
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return 'Invalid date';
+  }
+};
+
 interface QuoteRequest {
   id: number;
   reference_number: string;
@@ -211,26 +231,6 @@ export default function AdminQuotes() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 20;
-
-  // Format date properly handling UTC
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return 'N/A';
-    try {
-      // Parse the UTC date and format it properly
-      const date = new Date(dateString);
-      const formatted = date.toLocaleDateString('en-US', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        timeZone: 'UTC'
-      });
-      return formatted;
-    } catch (error) {
-      console.error('Date formatting error:', error);
-      return 'Invalid date';
-    }
-  };
 
   useEffect(() => {
     fetchQuotes();
