@@ -765,18 +765,49 @@ router.post('/quotes/:quoteId/respond', async (req: Request, res: Response) => {
     // Get quote with full details for email
     const quoteDetails = await quoteService.getQuoteWithDetails(quoteId);
     
-    if (quoteDetails && quoteDetails.quote.contactInfo?.email) {
-      // Send quote ready email
-      await emailService.sendQuoteReadyEmail({
-        email: quoteDetails.quote.contactInfo.email,
-        referenceNumber: quoteDetails.quote.referenceNumber,
-        cruiseName: quoteDetails.cruise?.cruiseName || 'Your Selected Cruise',
-        shipName: quoteDetails.cruise?.shipName || '',
-        departureDate: quoteDetails.cruise?.departureDate,
-        returnDate: quoteDetails.cruise?.returnDate,
-        categories,
-        notes,
-      });
+    if (quoteDetails && quoteDetails.quote) {
+      // Get email from either contactInfo or the direct email field
+      const customerEmail = quoteDetails.quote.contactInfo?.email || quoteDetails.quote.email;
+      
+      if (customerEmail) {
+        logger.info('Sending quote ready email', {
+          quoteId,
+          customerEmail,
+          referenceNumber: quoteDetails.quote.referenceNumber,
+        });
+        
+        try {
+          // Send quote ready email
+          const emailSent = await emailService.sendQuoteReadyEmail({
+            email: customerEmail,
+            referenceNumber: quoteDetails.quote.referenceNumber,
+            cruiseName: quoteDetails.cruise?.name || 'Your Selected Cruise',
+            shipName: quoteDetails.cruise?.name || '',
+            departureDate: quoteDetails.cruise?.sailingDate,
+            returnDate: quoteDetails.cruise?.returnDate,
+            categories,
+            notes,
+          });
+          
+          if (!emailSent) {
+            logger.warn('Failed to send quote ready email, but quote was updated successfully', {
+              quoteId,
+              customerEmail,
+            });
+          }
+        } catch (emailError) {
+          logger.error('Error sending quote ready email:', emailError);
+          // Don't fail the entire request if email fails - quote update was successful
+        }
+      } else {
+        logger.warn('No customer email found for quote', {
+          quoteId,
+          contactInfo: quoteDetails.quote.contactInfo,
+          email: quoteDetails.quote.email,
+        });
+      }
+    } else {
+      logger.warn('Quote details not found for email', { quoteId });
     }
     
     res.json({

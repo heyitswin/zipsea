@@ -1,5 +1,5 @@
 import { db } from '../db/connection';
-import { quoteRequests, users, cruises } from '../db/schema';
+import { quoteRequests, cruises } from '../db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { logger } from '../config/logger';
 import type { QuoteRequest, NewQuoteRequest } from '../db/schema/quote-requests';
@@ -276,7 +276,7 @@ class QuoteService {
   }
 
   /**
-   * Get quote with full details (including cruise and user info)
+   * Get quote with full details (including cruise info)
    */
   async getQuoteWithDetails(quoteId: string): Promise<any> {
     try {
@@ -284,11 +284,9 @@ class QuoteService {
         .select({
           quote: quoteRequests,
           cruise: cruises,
-          user: users,
         })
         .from(quoteRequests)
         .leftJoin(cruises, eq(quoteRequests.cruiseId, cruises.id))
-        .leftJoin(users, eq(quoteRequests.userId, users.id))
         .where(eq(quoteRequests.id, quoteId))
         .limit(1);
 
