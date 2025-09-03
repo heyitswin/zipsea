@@ -107,7 +107,7 @@ export default function QuoteResponseModal({ quote, onClose, onSubmit }: QuoteRe
                 <div className="mb-6">
                   <h4 className="font-medium text-gray-900 mb-3">Cabin Categories & Pricing</h4>
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
+                    <table className="w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
