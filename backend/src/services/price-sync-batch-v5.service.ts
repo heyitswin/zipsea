@@ -28,7 +28,7 @@ interface SyncResult {
 export class PriceSyncBatchServiceV5 {
   private readonly MAX_LINES_PER_RUN = 10; // Doubled from 5 to 10
   private readonly MONTHS_TO_SYNC = 24; // Sync 2 years ahead for cruise bookings
-  private readonly MAX_FILES_PER_LINE = 2000; // Increased to handle more months
+  private readonly MAX_FILES_PER_LINE = 6000; // Increased to handle Line 63's 974+ cruises
   private readonly FILE_DOWNLOAD_TIMEOUT = 10000; // 10 seconds per file
   private readonly workerId: string;
 
@@ -228,8 +228,8 @@ export class PriceSyncBatchServiceV5 {
           
           if (directories.length === 0) continue;
 
-          // Process first 6 ships only (doubled from 3)
-          for (const shipDir of directories.slice(0, 6)) {
+          // Process first 35 ships to handle Line 63's 31 ships
+          for (const shipDir of directories.slice(0, 35)) {
             if (filesCollected >= this.MAX_FILES_PER_LINE) break;
 
             const shipPath = `${monthPath}/${shipDir.name}`;
@@ -243,7 +243,7 @@ export class PriceSyncBatchServiceV5 {
               ]);
 
               const jsonFiles = files.filter((f: any) => f.name.endsWith('.json'));
-              const filesToProcess = jsonFiles.slice(0, Math.min(100, this.MAX_FILES_PER_LINE - filesCollected)); // Doubled from 50 to 100
+              const filesToProcess = jsonFiles.slice(0, Math.min(200, this.MAX_FILES_PER_LINE - filesCollected)); // Increased to 200 files per ship
               
               result.filesFound += filesToProcess.length;
               filesCollected += filesToProcess.length;

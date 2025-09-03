@@ -74,8 +74,9 @@ async function checkBatchSyncStatus() {
     // 4. Check processing limits from V5 service
     console.log('🔧 Current V5 Service Configuration:');
     console.log('MAX_LINES_PER_RUN: 10 (doubled from 5)');
-    console.log('MAX_SHIPS_PER_LINE: 6 (doubled from 3)');
-    console.log('MAX_FILES_PER_SHIP: 100 (doubled from 50)');
+    console.log('MAX_SHIPS_PER_LINE: 35 (increased from 6 to handle Line 63)');
+    console.log('MAX_FILES_PER_SHIP: 200 (doubled from 100)');
+    console.log('MAX_FILES_PER_LINE: 6000 (increased from 2000)');
     console.log('MONTHS_TO_SYNC: 24 months');
     console.log('');
 
