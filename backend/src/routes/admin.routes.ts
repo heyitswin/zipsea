@@ -846,6 +846,16 @@ router.get('/quotes', async (req: Request, res: Response) => {
  * Respond to a quote request
  */
 router.post('/quotes/:quoteId/respond', async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  logger.info('🚀 Admin quote response endpoint called', {
+    quoteId: req.params.quoteId,
+    categoriesCount: Array.isArray(req.body.categories) ? req.body.categories.length : 0,
+    hasNotes: !!req.body.notes,
+    requestBody: req.body,
+    timestamp: new Date().toISOString(),
+    endpoint: 'POST /admin/quotes/:quoteId/respond'
+  });
+  
   try {
     const { quoteId } = req.params;
     const { categories, notes } = req.body;
@@ -874,14 +884,28 @@ router.post('/quotes/:quoteId/respond', async (req: Request, res: Response) => {
       const customerEmail = (quote.contactInfo as any)?.email || (quote as any).email;
       
       if (customerEmail) {
-        logger.info('Preparing to send quote ready email to customer', {
+        logger.info('🎯 Starting quote response email process', {
           quoteId,
           customerEmail,
           referenceNumber: (quote as any).referenceNumber,
-          emailType: 'quote_ready'
+          categoriesCount: categories.length,
+          hasNotes: !!notes,
+          emailType: 'quote_ready',
+          step: 'preparing_to_send'
         });
         
         try {
+          logger.info('📋 Email data prepared for sending', {
+            quoteId,
+            customerEmail,
+            referenceNumber: (quote as any).referenceNumber,
+            cruiseName: 'Your Selected Cruise',
+            categoriesData: categories,
+            notes: notes,
+            emailType: 'quote_ready',
+            step: 'calling_email_service'
+          });
+          
           // Send quote ready email (simplified without cruise details for now)
           const emailSent = await emailService.sendQuoteReadyEmail({
             email: customerEmail,
@@ -894,38 +918,65 @@ router.post('/quotes/:quoteId/respond', async (req: Request, res: Response) => {
             notes,
           });
           
+          logger.info('📬 Email service response received', {
+            quoteId,
+            customerEmail,
+            emailSent,
+            emailType: 'quote_ready',
+            step: 'email_service_completed'
+          });
+          
           if (!emailSent) {
-            logger.warn('❌ Failed to send quote ready email, but quote was updated successfully', {
+            logger.warn('⚠️  Quote ready email failed to send, but quote was updated successfully', {
               quoteId,
               customerEmail,
-              emailType: 'quote_ready'
+              referenceNumber: (quote as any).referenceNumber,
+              emailType: 'quote_ready',
+              step: 'email_failed_quote_updated'
             });
           } else {
-            logger.info('✅ Quote ready email sent successfully to customer', {
+            logger.info('🎉 Quote ready email sent successfully to customer', {
               quoteId,
               customerEmail,
-              emailType: 'quote_ready'
+              referenceNumber: (quote as any).referenceNumber,
+              emailType: 'quote_ready',
+              step: 'email_success'
             });
           }
         } catch (emailError) {
-          logger.error('❌ Error sending quote ready email to customer:', {
+          logger.error('💥 Exception caught while sending quote ready email:', {
             error: emailError instanceof Error ? emailError.message : 'Unknown error',
+            errorStack: emailError instanceof Error ? emailError.stack : undefined,
             quoteId,
             customerEmail,
-            emailType: 'quote_ready'
+            referenceNumber: (quote as any).referenceNumber,
+            emailType: 'quote_ready',
+            step: 'exception_caught'
           });
           // Don't fail the entire request if email fails - quote update was successful
         }
       } else {
-        logger.warn('No customer email found for quote', {
+        logger.warn('❌ No customer email found for quote - cannot send quote ready email', {
           quoteId,
           contactInfo: (quote as any).contactInfo,
-          email: (quote as any).email,
+          directEmail: (quote as any).email,
+          extractedEmail: customerEmail,
+          quoteDump: quote,
+          emailType: 'quote_ready',
+          step: 'no_email_found'
         });
       }
     } else {
       logger.warn('Quote not found', { quoteId });
     }
+    
+    const processingTime = Date.now() - startTime;
+    logger.info('🏁 Quote response endpoint completed successfully', {
+      quoteId,
+      processingTimeMs: processingTime,
+      endpoint: 'POST /admin/quotes/:quoteId/respond',
+      success: true
+    });
     
     res.json({
       success: true,
@@ -933,7 +984,16 @@ router.post('/quotes/:quoteId/respond', async (req: Request, res: Response) => {
       quote: updatedQuote,
     });
   } catch (error) {
-    logger.error('Error responding to quote:', error);
+    const processingTime = Date.now() - startTime;
+    logger.error('💥 Quote response endpoint failed:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      errorStack: error instanceof Error ? error.stack : undefined,
+      quoteId: req.params.quoteId,
+      processingTimeMs: processingTime,
+      endpoint: 'POST /admin/quotes/:quoteId/respond',
+      success: false
+    });
+    
     res.status(500).json({
       success: false,
       error: {

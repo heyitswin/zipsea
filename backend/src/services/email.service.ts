@@ -47,13 +47,23 @@ class EmailService {
    * Send quote ready email to customer
    */
   async sendQuoteReadyEmail(data: QuoteReadyEmailData): Promise<boolean> {
+    logger.info('🔄 Starting sendQuoteReadyEmail process', {
+      referenceNumber: data.referenceNumber,
+      email: data.email,
+      hasResendInstance: !!this.resend,
+      resendApiKeyConfigured: !!env.RESEND_API_KEY,
+      emailType: 'quote_ready'
+    });
+    
     try {
       if (!this.resend) {
-        logger.warn('Email service not configured - skipping email send', {
+        logger.warn('❌ Email service not configured - RESEND_API_KEY missing', {
           referenceNumber: data.referenceNumber,
           email: data.email,
+          resendApiKeyConfigured: !!env.RESEND_API_KEY,
+          emailType: 'quote_ready'
         });
-        return true; // Return true to not break the quote response flow
+        return false; // Changed to false to properly indicate failure
       }
 
       const formattedDepartureDate = data.departureDate 
@@ -126,15 +136,37 @@ class EmailService {
         </div>
       `;
 
+      logger.info('📧 Sending quote ready email via Resend API', {
+        referenceNumber: data.referenceNumber,
+        email: data.email,
+        fromAddress: 'Zipsea <zippy@zipsea.com>',
+        emailType: 'quote_ready'
+      });
+
       const result = await this.resend.emails.send({
-        from: 'Zipsea <quotes@zipsea.com>',
+        from: 'Zipsea <zippy@zipsea.com>',
         to: [data.email],
         subject: `Your Cruise Quote is Ready - ${data.referenceNumber}`,
         html: emailHtml,
       });
 
+      logger.info('📬 Resend API response received', {
+        referenceNumber: data.referenceNumber,
+        email: data.email,
+        hasError: !!result.error,
+        hasData: !!result.data,
+        messageId: result.data?.id,
+        errorDetails: result.error,
+        emailType: 'quote_ready'
+      });
+
       if (result.error) {
-        logger.error('Failed to send quote ready email via Resend:', result.error);
+        logger.error('❌ Failed to send quote ready email via Resend API:', {
+          error: result.error,
+          referenceNumber: data.referenceNumber,
+          email: data.email,
+          emailType: 'quote_ready'
+        });
         return false;
       }
 
@@ -147,11 +179,14 @@ class EmailService {
 
       return true;
     } catch (error) {
-      logger.error('❌ Error sending quote ready email to customer:', {
+      logger.error('💥 Exception caught in sendQuoteReadyEmail:', {
         error: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined,
         referenceNumber: data.referenceNumber,
         customerEmail: data.email,
-        emailType: 'quote_ready'
+        emailType: 'quote_ready',
+        resendInstanceExists: !!this.resend,
+        apiKeyConfigured: !!env.RESEND_API_KEY
       });
       return false;
     }
@@ -238,7 +273,7 @@ class EmailService {
       `;
 
       const result = await this.resend.emails.send({
-        from: 'Zipsea Cruises <quotes@zipsea.com>',
+        from: 'Zipsea <zippy@zipsea.com>',
         to: [data.email],
         subject: `Quote Request Confirmed - ${data.referenceNumber}`,
         html: emailHtml,
@@ -341,7 +376,7 @@ class EmailService {
       `;
 
       const result = await this.resend.emails.send({
-        from: 'Zipsea Notifications <notifications@zipsea.com>',
+        from: 'Zipsea <zippy@zipsea.com>',
         to: [env.TEAM_NOTIFICATION_EMAIL || 'win@zipsea.com'], // Team notification email from environment
         subject: `🚨 New Quote Request: ${data.referenceNumber}`,
         html: emailHtml,
