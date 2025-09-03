@@ -10,6 +10,8 @@ interface CruiseLineStats {
   totalCruises: number;
   activeCruises: number;
   lastUpdated: string;
+  lastPricingUpdate?: string;
+  lastFtpSync?: string;
   recentlyUpdated: number;
   lastSyncDate?: string;
 }
@@ -155,7 +157,7 @@ export default function AdminCruiseLines() {
                   Recently Updated
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Sync
+                  FTP Sync Date
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
@@ -189,8 +191,8 @@ export default function AdminCruiseLines() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className={`text-sm ${getUpdateStatusColor(line.lastUpdated)}`}>
-                      {formatDate(line.lastUpdated)}
+                    <div className={`text-sm ${getUpdateStatusColor(line.lastFtpSync || line.lastSyncDate || line.lastUpdated)}`}>
+                      {formatDate(line.lastFtpSync || line.lastSyncDate || line.lastUpdated)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

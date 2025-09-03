@@ -532,6 +532,28 @@ router.get('/cruise-lines/stats', async (req: Request, res: Response) => {
       pricingSyncDates.map((row: any) => [row.cruise_line_id, row.last_pricing_sync])
     );
     
+    // Get bulk FTP sync dates (when more than 50 cruises were updated on the same day)
+    const ftpSyncDates = await db.execute(sql`
+      SELECT 
+        cruise_line_id,
+        MAX(update_date) as last_ftp_sync
+      FROM (
+        SELECT 
+          cruise_line_id,
+          DATE(updated_at) as update_date,
+          COUNT(*) as daily_count
+        FROM cruises
+        WHERE updated_at > CURRENT_TIMESTAMP - INTERVAL '60 days'
+        GROUP BY cruise_line_id, DATE(updated_at)
+        HAVING COUNT(*) > 50
+      ) as bulk_updates
+      GROUP BY cruise_line_id
+    `);
+    
+    const ftpSyncMap = new Map(
+      ftpSyncDates.map((row: any) => [row.cruise_line_id, row.last_ftp_sync])
+    );
+    
     // Get all cruise lines with stats
     const cruiseLines = await db.execute(sql`
       SELECT 
@@ -540,10 +562,8 @@ router.get('/cruise-lines/stats', async (req: Request, res: Response) => {
         cl.code,
         COUNT(DISTINCT c.id) as total_cruises,
         COUNT(DISTINCT CASE WHEN c.sailing_date > CURRENT_DATE THEN c.id END) as active_cruises,
-        GREATEST(
-          MAX(c.updated_at),
-          MAX(cp.last_updated)
-        ) as last_updated,
+        MAX(c.updated_at) as last_updated,
+        MAX(cp.last_updated) as last_pricing_update,
         COUNT(DISTINCT CASE WHEN c.updated_at > CURRENT_TIMESTAMP - INTERVAL '24 hours' THEN c.id END) as recently_updated
       FROM cruise_lines cl
       LEFT JOIN cruises c ON c.cruise_line_id = cl.id
@@ -573,17 +593,20 @@ router.get('/cruise-lines/stats', async (req: Request, res: Response) => {
 
     res.json({
       success: true,
-      cruiseLines: cruiseLines.map(line => {
+      cruiseLines: cruiseLines.map((line: any) => {
         const pricingSync = pricingSyncMap.get(line.id);
+        const ftpSync = ftpSyncMap.get(line.id);
         return {
           id: line.id,
           name: line.name,
           code: line.code,
           totalCruises: Number(line.total_cruises || 0),
           activeCruises: Number(line.active_cruises || 0),
-          lastUpdated: pricingSync || line.last_updated, // Use pricing sync date if available
+          lastUpdated: line.last_updated, // Most recent update (could be webhook)
+          lastPricingUpdate: line.last_pricing_update || pricingSync, // Pricing-specific update
+          lastFtpSync: ftpSync || pricingSync || line.last_updated, // Bulk FTP sync date
           recentlyUpdated: Number(line.recently_updated || 0),
-          lastSyncDate: pricingSync || line.last_updated, // This reflects the actual FTP data sync
+          lastSyncDate: ftpSync || pricingSync || line.last_updated, // This reflects the actual FTP data sync
         };
       }),
       stats: {
