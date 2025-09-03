@@ -305,7 +305,6 @@ class EmailService {
               <p style="margin: 8px 0; color: #333;">✅ Our cruise specialists review your request</p>
               <p style="margin: 8px 0; color: #333;">🔍 We search for the best deals and availability</p>
               <p style="margin: 8px 0; color: #333;">📧 You receive personalized quotes within 24 hours</p>
-              <p style="margin: 8px 0; color: #333;">📞 We'll contact you to discuss options and answer questions</p>
             </div>
           </div>
           
