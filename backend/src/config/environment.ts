@@ -32,6 +32,7 @@ const envSchema = z.object({
   
   // Email
   RESEND_API_KEY: z.string().min(1).optional(),
+  TEAM_NOTIFICATION_EMAIL: z.string().email().optional().default('win@zipsea.com'),
   
   // Security
   JWT_SECRET: z.string().min(1).optional(),

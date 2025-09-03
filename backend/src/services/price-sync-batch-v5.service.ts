@@ -22,10 +22,11 @@ interface SyncResult {
   skippedLines: number;
   duration: number;
   details: any[];
+  processedCruiseIds: string[]; // Track all processed cruise IDs
 }
 
 export class PriceSyncBatchServiceV5 {
-  private readonly MAX_LINES_PER_RUN = 5; // Balanced for more months of data
+  private readonly MAX_LINES_PER_RUN = 10; // Doubled from 5 to 10
   private readonly MONTHS_TO_SYNC = 24; // Sync 2 years ahead for cruise bookings
   private readonly MAX_FILES_PER_LINE = 2000; // Increased to handle more months
   private readonly FILE_DOWNLOAD_TIMEOUT = 10000; // 10 seconds per file
@@ -54,7 +55,8 @@ export class PriceSyncBatchServiceV5 {
       totalErrors: 0,
       skippedLines: 0,
       duration: 0,
-      details: []
+      details: [],
+      processedCruiseIds: []
     };
 
     try {
@@ -97,18 +99,34 @@ export class PriceSyncBatchServiceV5 {
           result.totalPricesUpdated += lineResult.pricesUpdated;
           result.totalErrors += lineResult.errors;
           
+          // Collect processed cruise IDs
+          result.processedCruiseIds.push(...lineResult.processedCruiseIds);
+          
           result.details.push({
             lineId,
             ...lineResult
           });
 
-          // Clear needs_price_update flag
-          await db.execute(sql`
-            UPDATE cruises
-            SET needs_price_update = false
-            WHERE cruise_line_id = ${lineId}
-              AND needs_price_update = true
-          `);
+          // Only clear needs_price_update flag for cruises that were ACTUALLY processed
+          if (lineResult.processedCruiseIds.length > 0) {
+            logger.info(`Clearing needs_price_update flag for ${lineResult.processedCruiseIds.length} processed cruises from line ${lineId}`);
+            
+            // Clear flags in batches to avoid SQL parameter limits
+            const batchSize = 1000;
+            for (let i = 0; i < lineResult.processedCruiseIds.length; i += batchSize) {
+              const batch = lineResult.processedCruiseIds.slice(i, i + batchSize);
+              const placeholders = batch.map(() => '?').join(',');
+              
+              await db.execute(sql`
+                UPDATE cruises
+                SET needs_price_update = false
+                WHERE id IN (${sql.raw(batch.map(id => `'${id}'`).join(','))})
+                  AND needs_price_update = true
+              `);
+            }
+          } else {
+            logger.info(`No cruises were processed for line ${lineId}, keeping needs_price_update flags intact`);
+          }
 
         } catch (error) {
           logger.error(`❌ Error syncing line ${lineId}:`, error);
@@ -122,12 +140,33 @@ export class PriceSyncBatchServiceV5 {
       const statusIcon = result.totalErrors > 0 ? '⚠️' : '✅';
       await slackService.notifyCustomMessage({
         title: `${statusIcon} Price sync V5 completed`,
-        message: `Created: ${result.totalCruisesCreated} | Updated: ${result.totalCruisesUpdated} | Errors: ${result.totalErrors}`,
+        message: `Created: ${result.totalCruisesCreated} | Updated: ${result.totalCruisesUpdated} | Processed: ${result.processedCruiseIds.length} cruises | Errors: ${result.totalErrors}`,
         details: {
           ...result,
-          durationSeconds: Math.round(result.duration / 1000)
+          durationSeconds: Math.round(result.duration / 1000),
+          totalProcessedCruises: result.processedCruiseIds.length
         }
       });
+
+      // Check if there are still cruises needing updates
+      const remainingLinesToSync = await this.getLinesToSync();
+      const remainingCount = remainingLinesToSync.length;
+      
+      if (remainingCount > 0) {
+        logger.warn(`⚠️ ${remainingCount} cruise lines still need price updates after this batch run`, {
+          remainingLines: remainingLinesToSync
+        });
+        
+        // Add to Slack notification
+        await slackService.notifyCustomMessage({
+          title: `⚠️ Remaining cruises need updates`,
+          message: `${remainingCount} cruise lines still have cruises marked for price updates`,
+          details: {
+            remainingCruiseLines: remainingLinesToSync,
+            note: "These will be processed in the next batch run"
+          }
+        });
+      }
 
       logger.info(`✅ Batch sync V5 completed in ${Math.round(result.duration / 1000)}s`, result);
 
@@ -149,7 +188,8 @@ export class PriceSyncBatchServiceV5 {
       cruisesCreated: 0,
       cruisesUpdated: 0,
       pricesUpdated: 0,
-      errors: 0
+      errors: 0,
+      processedCruiseIds: [] as string[] // Track processed cruise IDs for this line
     };
 
     let connection: any = null;
@@ -188,8 +228,8 @@ export class PriceSyncBatchServiceV5 {
           
           if (directories.length === 0) continue;
 
-          // Process first few ships only
-          for (const shipDir of directories.slice(0, 3)) {
+          // Process first 6 ships only (doubled from 3)
+          for (const shipDir of directories.slice(0, 6)) {
             if (filesCollected >= this.MAX_FILES_PER_LINE) break;
 
             const shipPath = `${monthPath}/${shipDir.name}`;
@@ -203,7 +243,7 @@ export class PriceSyncBatchServiceV5 {
               ]);
 
               const jsonFiles = files.filter((f: any) => f.name.endsWith('.json'));
-              const filesToProcess = jsonFiles.slice(0, Math.min(50, this.MAX_FILES_PER_LINE - filesCollected));
+              const filesToProcess = jsonFiles.slice(0, Math.min(100, this.MAX_FILES_PER_LINE - filesCollected)); // Doubled from 50 to 100
               
               result.filesFound += filesToProcess.length;
               filesCollected += filesToProcess.length;
@@ -224,6 +264,10 @@ export class PriceSyncBatchServiceV5 {
                     }
                     if (upsertResult.priceUpdated) {
                       result.pricesUpdated++;
+                    }
+                    // Track the processed cruise ID
+                    if (upsertResult.cruiseId) {
+                      result.processedCruiseIds.push(upsertResult.cruiseId);
                     }
                   }
                 } catch (err) {
@@ -412,7 +456,8 @@ export class PriceSyncBatchServiceV5 {
 
     return {
       created,
-      priceUpdated: cheapestPrice !== null
+      priceUpdated: cheapestPrice !== null,
+      cruiseId: cruiseId
     };
   }
 

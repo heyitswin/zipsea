@@ -540,67 +540,6 @@ Calculate the OBC suggestion by multiplying the vacation subtotal (total column)
 Format the OBC suggestion as: OBC suggestion | | | $XXX.XX
 Send the raw pricing data with OBC suggestions without additional formatting or analysis
 
-STEP 9: Send Raw Data to Slack
-After extracting all pricing data, create a Python script to send the raw data to our Slack channel:
-1. Create a new file called send_to_slack.py with the following content:
-
-import json
-import requests
-
-# IMPORTANT: The webhook URL needs to be updated with a valid one
-# The previous webhook (ending in 6kuiXARC3s98H0H0Avu6VZrs) returns 404
-# To create a new webhook:
-# 1. Go to https://api.slack.com/apps
-# 2. Select your app or create a new one  
-# 3. Go to "Incoming Webhooks" and activate it
-# 4. Add a new webhook to workspace and select #updates-quote-requests channel
-# 5. Copy the new webhook URL and replace below
-webhook_url = "YOUR_SLACK_WEBHOOK_URL_HERE"  # Replace with valid webhook URL
-
-# Raw pricing data (paste your extracted data here)
-raw_data = """
-Reference #: ${referenceNumber || 'Pending'}
-Customer: ${userEmail}
-Cruise: ${cruiseData?.name || 'N/A'}
-Ship: ${cruiseData?.shipName || 'N/A'}
-Departure: ${formatDate(cruiseData?.sailingDate) || 'N/A'}
-Cabin Type: ${cabinType || 'N/A'}
-
-[PASTE ALL EXTRACTED PRICING DATA HERE]
-"""
-
-# Create the message payload
-payload = {
-    "text": "New Quote Pricing Data - Ref #${referenceNumber || 'Pending'}",
-    "blocks": [
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": "*New Quote Pricing Data*\\nReference: #${referenceNumber || 'Pending'}\\nCustomer: ${userEmail}"
-            }
-        },
-        {
-            "type": "section",
-            "text": {
-                "type": "mrkdwn",
-                "text": \`\\\`\\\`\\\`\${raw_data}\\\`\\\`\\\`\`
-            }
-        }
-    ]
-}
-
-# Send to Slack
-response = requests.post(webhook_url, json=payload)
-if response.status_code == 200:
-    print("Successfully sent to Slack #updates-quote-requests channel")
-else:
-    print("Failed to send to Slack: " + str(response.status_code))
-
-2. Replace [PASTE ALL EXTRACTED PRICING DATA HERE] with the actual pricing data you extracted
-3. Run the script: python send_to_slack.py
-4. Confirm the message appears in the #updates-quote-requests channel
-
 Customer Details:
 ${cruiseDetails}`;
 

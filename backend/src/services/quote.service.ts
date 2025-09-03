@@ -2,6 +2,7 @@ import { db } from '../db/connection';
 import { quoteRequests, cruises } from '../db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { logger } from '../config/logger';
+import { emailService } from './email.service';
 import type { QuoteRequest, NewQuoteRequest } from '../db/schema/quote-requests';
 
 interface CreateQuoteData {
@@ -85,13 +86,94 @@ class QuoteService {
         .values(quoteData)
         .returning();
 
-      logger.info('Quote request created', { 
-        quoteId: result[0].id,
+      const quote = result[0];
+
+      logger.info('Quote request created successfully', { 
+        quoteId: quote.id,
+        referenceNumber: quote.referenceNumber,
         cruiseId: data.cruiseId,
+        customerEmail: data.email,
         userId: data.userId 
       });
 
-      return result[0];
+      // Send confirmation email to customer and notification to team
+      if (data.email) {
+        try {
+          // Get cruise details for email
+          let cruiseName = '';
+          let shipName = '';
+          let departureDate = '';
+
+          try {
+            const cruiseDetails = await db
+              .select({
+                cruise: cruises.name,
+                ship: cruises.shipName,
+                sailing: cruises.sailingDate,
+              })
+              .from(cruises)
+              .where(eq(cruises.id, data.cruiseId))
+              .limit(1);
+
+            if (cruiseDetails.length > 0) {
+              cruiseName = cruiseDetails[0].cruise || '';
+              shipName = cruiseDetails[0].ship || '';
+              departureDate = cruiseDetails[0].sailing || '';
+            }
+          } catch (cruiseError) {
+            logger.warn('Could not fetch cruise details for email', {
+              cruiseId: data.cruiseId,
+              error: cruiseError instanceof Error ? cruiseError.message : 'Unknown error'
+            });
+          }
+
+          const emailData = {
+            email: data.email,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            referenceNumber: quote.referenceNumber,
+            cruiseName,
+            shipName,
+            departureDate,
+            cabinType: data.cabinType,
+            adults: data.adults,
+            children: data.children,
+            specialRequests: data.specialRequests,
+          };
+
+          // Send customer confirmation email
+          const customerEmailSent = await emailService.sendQuoteConfirmationEmail(emailData);
+          
+          // Send team notification email
+          const teamEmailSent = await emailService.sendQuoteNotificationToTeam(emailData);
+
+          // Log email results
+          logger.info('Quote confirmation emails processed', {
+            quoteId: quote.id,
+            referenceNumber: quote.referenceNumber,
+            customerEmail: data.email,
+            customerEmailSent,
+            teamEmailSent,
+            emailType: 'quote_confirmation'
+          });
+
+        } catch (emailError) {
+          // Don't fail the quote creation if emails fail
+          logger.error('Failed to send quote confirmation emails, but quote was created successfully', {
+            quoteId: quote.id,
+            referenceNumber: quote.referenceNumber,
+            customerEmail: data.email,
+            error: emailError instanceof Error ? emailError.message : 'Unknown error'
+          });
+        }
+      } else {
+        logger.warn('No customer email provided for quote - skipping confirmation emails', {
+          quoteId: quote.id,
+          referenceNumber: quote.referenceNumber
+        });
+      }
+
+      return quote;
     } catch (error) {
       logger.error('Error creating quote request:', error);
       throw error;

@@ -629,6 +629,110 @@ router.get('/cruise-lines/stats', async (req: Request, res: Response) => {
 });
 
 /**
+ * Test email functionality
+ */
+router.post('/test-email', async (req: Request, res: Response) => {
+  try {
+    const { type, email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Email address is required' }
+      });
+    }
+
+    let emailSent = false;
+    let details = {};
+
+    switch (type) {
+      case 'confirmation':
+        emailSent = await emailService.sendQuoteConfirmationEmail({
+          email,
+          firstName: 'Test',
+          lastName: 'Customer',
+          referenceNumber: 'ZQ-TEST-' + Date.now(),
+          cruiseName: 'Test Cruise to Caribbean',
+          shipName: 'Test Ship',
+          departureDate: '2024-06-01',
+          cabinType: 'balcony',
+          adults: 2,
+          children: 0,
+          specialRequests: 'This is a test email'
+        });
+        details = { type: 'customer_confirmation', recipient: email };
+        break;
+
+      case 'notification':
+        emailSent = await emailService.sendQuoteNotificationToTeam({
+          email,
+          firstName: 'Test',
+          lastName: 'Customer',
+          referenceNumber: 'ZQ-TEST-' + Date.now(),
+          cruiseName: 'Test Cruise to Caribbean',
+          shipName: 'Test Ship',
+          departureDate: '2024-06-01',
+          cabinType: 'balcony',
+          adults: 2,
+          children: 0,
+          specialRequests: 'This is a test email notification'
+        });
+        details = { type: 'team_notification', recipient: email };
+        break;
+
+      case 'ready':
+        emailSent = await emailService.sendQuoteReadyEmail({
+          email,
+          referenceNumber: 'ZQ-TEST-' + Date.now(),
+          cruiseName: 'Test Cruise to Caribbean',
+          shipName: 'Test Ship',
+          departureDate: '2024-06-01',
+          returnDate: '2024-06-08',
+          categories: [
+            {
+              category: 'Interior Cabin',
+              roomName: 'Interior Room',
+              finalPrice: 1299,
+              obcAmount: 50
+            },
+            {
+              category: 'Balcony Cabin',
+              roomName: 'Balcony Room with Ocean View',
+              finalPrice: 1899,
+              obcAmount: 100
+            }
+          ],
+          notes: 'This is a test quote with sample pricing. Prices are for testing only.'
+        });
+        details = { type: 'quote_ready', recipient: email };
+        break;
+
+      default:
+        return res.status(400).json({
+          success: false,
+          error: { message: 'Invalid email type. Use: confirmation, notification, or ready' }
+        });
+    }
+
+    res.json({
+      success: emailSent,
+      message: emailSent ? 'Test email sent successfully' : 'Test email failed to send',
+      details
+    });
+
+  } catch (error) {
+    logger.error('Error sending test email:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        message: 'Failed to send test email',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      }
+    });
+  }
+});
+
+/**
  * Get quotes for admin view with pagination
  */
 router.get('/quotes', async (req: Request, res: Response) => {
@@ -770,10 +874,11 @@ router.post('/quotes/:quoteId/respond', async (req: Request, res: Response) => {
       const customerEmail = (quote.contactInfo as any)?.email || (quote as any).email;
       
       if (customerEmail) {
-        logger.info('Sending quote ready email', {
+        logger.info('Preparing to send quote ready email to customer', {
           quoteId,
           customerEmail,
           referenceNumber: (quote as any).referenceNumber,
+          emailType: 'quote_ready'
         });
         
         try {
@@ -790,13 +895,25 @@ router.post('/quotes/:quoteId/respond', async (req: Request, res: Response) => {
           });
           
           if (!emailSent) {
-            logger.warn('Failed to send quote ready email, but quote was updated successfully', {
+            logger.warn('❌ Failed to send quote ready email, but quote was updated successfully', {
               quoteId,
               customerEmail,
+              emailType: 'quote_ready'
+            });
+          } else {
+            logger.info('✅ Quote ready email sent successfully to customer', {
+              quoteId,
+              customerEmail,
+              emailType: 'quote_ready'
             });
           }
         } catch (emailError) {
-          logger.error('Error sending quote ready email:', emailError);
+          logger.error('❌ Error sending quote ready email to customer:', {
+            error: emailError instanceof Error ? emailError.message : 'Unknown error',
+            quoteId,
+            customerEmail,
+            emailType: 'quote_ready'
+          });
           // Don't fail the entire request if email fails - quote update was successful
         }
       } else {
