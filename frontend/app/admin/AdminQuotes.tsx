@@ -265,6 +265,7 @@ export default function AdminQuotes() {
 
   const handleRespond = async (quoteId: string, response: any) => {
     try {
+      // Step 1: Update quote in backend
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://zipsea-production.onrender.com';
       const res = await fetch(`${backendUrl}/api/v1/admin/quotes/${quoteId}/respond`, {
         method: 'POST',
@@ -272,12 +273,47 @@ export default function AdminQuotes() {
         body: JSON.stringify(response)
       });
 
-      if (res.ok) {
-        showAlert('Quote response sent successfully');
-        fetchQuotes();
-      } else {
-        showAlert('Failed to send quote response');
+      if (!res.ok) {
+        showAlert('Failed to update quote response');
+        return;
       }
+
+      // Step 2: Find the quote to get customer email and details
+      const quote = quotes.find(q => q.id === quoteId);
+      if (!quote || !quote.email) {
+        showAlert('Quote updated but email could not be sent - customer email not found');
+        fetchQuotes();
+        return;
+      }
+
+      // Step 3: Send email using the working frontend email service
+      try {
+        const emailRes = await fetch('/api/send-quote-ready', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: quote.email,
+            referenceNumber: quote.reference_number,
+            cruiseName: quote.cruise_line_name && quote.ship_name ? `${quote.cruise_line_name} - ${quote.ship_name}` : 'Your Selected Cruise',
+            shipName: quote.ship_name || '',
+            departureDate: quote.sailing_date,
+            returnDate: undefined, // We don't have return date in the admin quotes
+            categories: response.categories,
+            notes: response.notes
+          })
+        });
+
+        if (emailRes.ok) {
+          showAlert('Quote response sent successfully via email!');
+        } else {
+          showAlert('Quote updated successfully, but email notification failed to send');
+        }
+      } catch (emailError) {
+        console.error('Error sending quote email:', emailError);
+        showAlert('Quote updated successfully, but email notification failed to send');
+      }
+
+      fetchQuotes();
     } catch (error) {
       console.error('Error sending response:', error);
       showAlert('Error sending quote response');
@@ -343,7 +379,7 @@ export default function AdminQuotes() {
       {/* Quotes Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
