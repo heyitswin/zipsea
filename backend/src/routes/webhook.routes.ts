@@ -1,7 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import logger from '../config/logger';
-import { traveltekWebhookService } from '../services/traveltek-webhook.service';
-import { webhookQueue, getQueueStats, retryFailedJobs } from '../queues/webhook-queue';
+import { realtimeWebhookService } from '../services/realtime-webhook.service';
 import { db } from '../db/connection';
 import { sql } from 'drizzle-orm';
 
@@ -21,18 +20,19 @@ const router = Router();
  * 
  * Note: We only use static pricing webhooks (cruiseline_pricing_updated)
  */
-// Specific Traveltek webhook endpoints as per their documentation
+// Specific Traveltek webhook endpoints - REAL-TIME PROCESSING
 router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: Response, next: NextFunction) => {
   const startTime = Date.now();
   const webhookId = `webhook_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
   try {
-    logger.info('🚀 Cruiseline pricing updated webhook received', {
+    logger.info('🚀 Cruiseline pricing updated webhook received (REAL-TIME)', {
       webhookId,
       bodySize: JSON.stringify(req.body).length,
       lineId: req.body.lineid || req.body.lineId || req.body.line_id,
       currency: req.body.currency,
-      timestamp: req.body.timestamp
+      timestamp: req.body.timestamp,
+      processingMode: 'realtime_parallel'
     });
 
     // Validate required fields
@@ -57,99 +57,45 @@ router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: R
       timestamp: req.body.timestamp || Math.floor(Date.now() / 1000)
     };
 
-    // Always acknowledge receipt first (prevent webhook retries)
-    
-    // If queue is available, use it for parallel processing
-    if (webhookQueue) {
-      const job = await webhookQueue.add('cruiseline-pricing-updated', {
+    try {
+      // Process webhook in real-time using new service
+      const processingResult = await realtimeWebhookService.processWebhook(payload);
+      
+      logger.info('📨 Webhook queued for real-time parallel processing', {
         webhookId,
-        eventType: 'cruiseline_pricing_updated',
         lineId: payload.lineid,
-        payload,
-        timestamp: new Date().toISOString(),
-      }, {
-        jobId: webhookId,
-        priority: 1,
+        jobId: processingResult.jobId,
+        message: processingResult.message
       });
 
-      logger.info('📨 Webhook added to processing queue', {
+      // Immediate acknowledgment
+      res.status(200).json({
+        success: true,
+        message: 'Webhook received and processing in real-time with parallel workers',
+        timestamp: new Date().toISOString(),
         webhookId,
-        jobId: job.id,
         lineId: payload.lineid,
-        queueName: 'webhook-processing',
+        processingJobId: processingResult.jobId,
+        processingMode: 'realtime_parallel',
+        note: 'Cruises are being updated immediately via FTP - check Slack for accurate results'
       });
 
+    } catch (processingError) {
+      logger.error('❌ Failed to queue webhook for real-time processing', {
+        webhookId,
+        lineId: payload.lineid,
+        error: processingError instanceof Error ? processingError.message : 'Unknown error'
+      });
+
+      // Still acknowledge webhook to prevent retries, but note the error
       res.status(200).json({
-        success: true,
-        message: 'Cruiseline pricing update webhook received and queued for processing',
+        success: false,
+        message: 'Webhook received but failed to queue for processing',
         timestamp: new Date().toISOString(),
         webhookId,
         lineId: payload.lineid,
-        jobId: job.id,
-      });
-    } else {
-      // Process directly without queue
-      logger.info('📨 Processing webhook directly (no queue available)', {
-        webhookId,
-        lineId: payload.lineid,
-      });
-      
-      // Always acknowledge receipt first to prevent webhook retries
-      res.status(200).json({
-        success: true,
-        message: 'Cruiseline pricing update webhook received and processing directly',
-        timestamp: new Date().toISOString(),
-        webhookId,
-        lineId: payload.lineid,
-        note: 'Processing without queue - check logs for results'
-      });
-      
-      // Process in background with comprehensive error handling
-      setImmediate(async () => {
-        const processingStartTime = Date.now();
-        try {
-          logger.info('🔄 Starting direct webhook processing', {
-            webhookId,
-            lineId: payload.lineid,
-            mappingCheck: `Webhook line ${payload.lineid} maps to database line ${require('../config/cruise-line-mapping').getDatabaseLineId(payload.lineid)}`,
-          });
-          
-          const result = await traveltekWebhookService.handleStaticPricingUpdate(payload);
-          
-          const processingTime = Date.now() - processingStartTime;
-          
-          logger.info('✅ Direct webhook processing completed successfully', {
-            webhookId,
-            lineId: payload.lineid,
-            processingTimeMs: processingTime,
-            cruisesProcessed: result.totalCruises,
-            successful: result.successful,
-            failed: result.failed,
-            errors: result.errors?.length || 0
-          });
-          
-          // Log first few errors for debugging
-          if (result.errors && result.errors.length > 0) {
-            result.errors.slice(0, 3).forEach((error, index) => {
-              logger.error(`❌ Processing error ${index + 1}:`, {
-                webhookId,
-                error: error.error,
-                cruiseId: error.cruiseId,
-                filePath: error.filePath
-              });
-            });
-          }
-          
-        } catch (error) {
-          const processingTime = Date.now() - processingStartTime;
-          logger.error('❌ CRITICAL: Direct webhook processing failed', {
-            webhookId,
-            lineId: payload.lineid,
-            processingTimeMs: processingTime,
-            error: error instanceof Error ? error.message : 'Unknown error',
-            stack: error instanceof Error ? error.stack : undefined
-          });
-        }
+        error: processingError instanceof Error ? processingError.message : 'Unknown error',
+        note: 'Check system logs and Redis connection'
       });
     }
 
@@ -239,7 +185,7 @@ router.post('/traveltek', async (req: Request, res: Response, next: NextFunction
 
     // Route to appropriate handler based on event type
     if (webhookEvent === 'cruiseline_pricing_updated' || body.event === 'cruiseline_pricing_updated') {
-      // Normalize payload and redirect to enhanced handler
+      // Normalize payload for real-time processing
       const payload = {
         event: 'cruiseline_pricing_updated',
         lineid: body.lineid || body.lineId || body.line_id,
@@ -250,63 +196,44 @@ router.post('/traveltek', async (req: Request, res: Response, next: NextFunction
         timestamp: body.timestamp || Math.floor(Date.now() / 1000)
       };
 
-      // Always acknowledge receipt first
-      res.status(200).json({
-        success: true,
-        message: 'Cruise line pricing webhook received and queued for processing',
-        timestamp: new Date().toISOString(),
-        event: webhookEvent,
-        webhookId,
-        lineId: payload.lineid
-      });
+      try {
+        // Process webhook in real-time
+        const processingResult = await realtimeWebhookService.processWebhook(payload);
+        
+        logger.info('📨 Generic webhook queued for real-time processing', {
+          webhookId,
+          lineId: payload.lineid,
+          jobId: processingResult.jobId
+        });
 
-      // Process asynchronously with comprehensive error handling
-      setImmediate(async () => {
-        const processingStartTime = Date.now();
-        try {
-          logger.info('🔄 Starting generic webhook processing', {
-            webhookId,
-            lineId: payload.lineid,
-            mappingCheck: `Webhook line ${payload.lineid} maps to database line ${require('../config/cruise-line-mapping').getDatabaseLineId(payload.lineid)}`,
-          });
-          
-          const result = await traveltekWebhookService.handleStaticPricingUpdate(payload);
-          
-          const processingTime = Date.now() - processingStartTime;
-          
-          logger.info('✅ Generic webhook cruise line pricing processing completed', {
-            webhookId,
-            lineId: payload.lineid,
-            processingTimeMs: processingTime,
-            successful: result.successful,
-            failed: result.failed,
-            totalCruises: result.totalCruises,
-            errors: result.errors?.length || 0
-          });
-          
-          // Log first few errors for debugging
-          if (result.errors && result.errors.length > 0) {
-            result.errors.slice(0, 3).forEach((error, index) => {
-              logger.error(`❌ Generic processing error ${index + 1}:`, {
-                webhookId,
-                error: error.error,
-                cruiseId: error.cruiseId,
-                filePath: error.filePath
-              });
-            });
-          }
-          
-        } catch (processingError) {
-          const processingTime = Date.now() - processingStartTime;
-          logger.error('❌ CRITICAL: Generic webhook processing failed', {
-            webhookId,
-            lineId: payload.lineid,
-            processingTimeMs: processingTime,
-            error: processingError instanceof Error ? processingError.message : 'Unknown error',
-            stack: processingError instanceof Error ? processingError.stack : undefined
-          });
-        }
-      });
+        res.status(200).json({
+          success: true,
+          message: 'Generic cruise line pricing webhook received and processing in real-time',
+          timestamp: new Date().toISOString(),
+          event: webhookEvent,
+          webhookId,
+          lineId: payload.lineid,
+          processingJobId: processingResult.jobId,
+          processingMode: 'realtime_parallel'
+        });
+
+      } catch (processingError) {
+        logger.error('❌ Failed to queue generic webhook for real-time processing', {
+          webhookId,
+          lineId: payload.lineid,
+          error: processingError instanceof Error ? processingError.message : 'Unknown error'
+        });
+
+        res.status(200).json({
+          success: false,
+          message: 'Generic webhook received but failed to queue for processing',
+          timestamp: new Date().toISOString(),
+          event: webhookEvent,
+          webhookId,
+          lineId: payload.lineid,
+          error: processingError instanceof Error ? processingError.message : 'Unknown error'
+        });
+      }
 
     } else if (webhookEvent === 'cruises_live_pricing_updated' || body.event === 'cruises_live_pricing_updated') {
       // Live pricing not currently used but acknowledge it
@@ -372,24 +299,54 @@ router.get('/traveltek/health', async (req: Request, res: Response) => {
       endpoint: req.originalUrl,
     };
 
-    // Get recent webhook statistics
+    // Get recent webhook statistics from database
     try {
-      const stats = await traveltekWebhookService.getWebhookStats(7);
-      const recentWebhooks = await traveltekWebhookService.getRecentWebhooks(5);
+      const stats = await db.execute(sql`
+        SELECT 
+          COUNT(*) as total_webhooks,
+          COUNT(*) FILTER (WHERE processed = true) as processed_webhooks,
+          COUNT(*) FILTER (WHERE processed = false) as pending_webhooks,
+          AVG(processing_time_ms) as avg_processing_time,
+          MAX(processing_time_ms) as max_processing_time,
+          SUM(successful_count) as total_successful,
+          SUM(failed_count) as total_failed
+        FROM webhook_events
+        WHERE created_at >= CURRENT_DATE - 7::integer * INTERVAL '1 day'
+      `);
+      
+      const recentWebhooks = await db.execute(sql`
+        SELECT 
+          id,
+          event_type,
+          line_id,
+          processed,
+          successful_count,
+          failed_count,
+          processing_time_ms,
+          created_at,
+          processed_at,
+          description
+        FROM webhook_events
+        ORDER BY created_at DESC
+        LIMIT 5
+      `);
+
+      const statsRow = stats[0] || {};
+      const webhooksRows = recentWebhooks || [];
 
       Object.assign(healthData, {
         statistics: {
           last7Days: {
-            totalWebhooks: parseInt(stats.total_webhooks) || 0,
-            processedWebhooks: parseInt(stats.processed_webhooks) || 0,
-            pendingWebhooks: parseInt(stats.pending_webhooks) || 0,
-            averageProcessingTime: stats.avg_processing_time ? Math.round(stats.avg_processing_time) : null,
-            maxProcessingTime: stats.max_processing_time ? Math.round(stats.max_processing_time) : null,
-            totalSuccessful: parseInt(stats.total_successful) || 0,
-            totalFailed: parseInt(stats.total_failed) || 0
+            totalWebhooks: parseInt(statsRow.total_webhooks) || 0,
+            processedWebhooks: parseInt(statsRow.processed_webhooks) || 0,
+            pendingWebhooks: parseInt(statsRow.pending_webhooks) || 0,
+            averageProcessingTime: statsRow.avg_processing_time ? Math.round(statsRow.avg_processing_time) : null,
+            maxProcessingTime: statsRow.max_processing_time ? Math.round(statsRow.max_processing_time) : null,
+            totalSuccessful: parseInt(statsRow.total_successful) || 0,
+            totalFailed: parseInt(statsRow.total_failed) || 0
           }
         },
-        recentWebhooks: recentWebhooks.map(webhook => ({
+        recentWebhooks: webhooksRows.map((webhook: any) => ({
           eventType: webhook.event_type,
           lineId: webhook.line_id,
           processed: webhook.processed,
@@ -577,24 +534,53 @@ router.get('/traveltek/status', async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 20;
 
     const [stats, recentWebhooks] = await Promise.all([
-      traveltekWebhookService.getWebhookStats(days),
-      traveltekWebhookService.getRecentWebhooks(limit)
+      db.execute(sql`
+        SELECT 
+          COUNT(*) as total_webhooks,
+          COUNT(*) FILTER (WHERE processed = true) as processed_webhooks,
+          COUNT(*) FILTER (WHERE processed = false) as pending_webhooks,
+          AVG(processing_time_ms) as avg_processing_time,
+          MAX(processing_time_ms) as max_processing_time,
+          SUM(successful_count) as total_successful,
+          SUM(failed_count) as total_failed
+        FROM webhook_events
+        WHERE created_at >= CURRENT_DATE - ${days}::integer * INTERVAL '1 day'
+      `),
+      db.execute(sql`
+        SELECT 
+          id,
+          event_type,
+          line_id,
+          processed,
+          successful_count,
+          failed_count,
+          processing_time_ms,
+          created_at,
+          processed_at,
+          description
+        FROM webhook_events
+        ORDER BY created_at DESC
+        LIMIT ${limit}
+      `)
     ]);
 
+    const statsRow = stats[0] || {};
+    const webhooksRows = recentWebhooks || [];
+
     const response = {
-      service: 'Traveltek Webhook Status Dashboard',
+      service: 'Real-time Webhook Status Dashboard',
       timestamp: new Date().toISOString(),
       period: `Last ${days} days`,
       summary: {
-        totalWebhooks: parseInt(stats.total_webhooks) || 0,
-        processedWebhooks: parseInt(stats.processed_webhooks) || 0,
-        pendingWebhooks: parseInt(stats.pending_webhooks) || 0,
-        successfulCruises: parseInt(stats.total_successful) || 0,
-        failedCruises: parseInt(stats.total_failed) || 0,
-        averageProcessingTimeMs: stats.avg_processing_time ? Math.round(stats.avg_processing_time) : null,
-        maxProcessingTimeMs: stats.max_processing_time ? Math.round(stats.max_processing_time) : null
+        totalWebhooks: parseInt(statsRow.total_webhooks) || 0,
+        processedWebhooks: parseInt(statsRow.processed_webhooks) || 0,
+        pendingWebhooks: parseInt(statsRow.pending_webhooks) || 0,
+        successfulCruises: parseInt(statsRow.total_successful) || 0,
+        failedCruises: parseInt(statsRow.total_failed) || 0,
+        averageProcessingTimeMs: statsRow.avg_processing_time ? Math.round(statsRow.avg_processing_time) : null,
+        maxProcessingTimeMs: statsRow.max_processing_time ? Math.round(statsRow.max_processing_time) : null
       },
-      recentWebhooks: recentWebhooks.map(webhook => ({
+      recentWebhooks: webhooksRows.map((webhook: any) => ({
         id: webhook.id,
         eventType: webhook.event_type,
         lineId: webhook.line_id,
@@ -607,11 +593,12 @@ router.get('/traveltek/status', async (req: Request, res: Response) => {
         description: webhook.description
       })),
       healthStatus: {
-        healthy: (parseInt(stats.pending_webhooks) || 0) < 10,
+        healthy: (parseInt(statsRow.pending_webhooks) || 0) < 10,
         pendingThreshold: 10,
-        avgProcessingOk: !stats.avg_processing_time || stats.avg_processing_time < 60000, // Less than 60s
+        avgProcessingOk: !statsRow.avg_processing_time || statsRow.avg_processing_time < 60000, // Less than 60s
         processingThreshold: 60000
-      }
+      },
+      processingMode: 'realtime_parallel'
     };
 
     res.status(200).json(response);
@@ -654,27 +641,23 @@ router.post('/test-simulate', async (req: Request, res: Response) => {
       timestamp: Math.floor(Date.now() / 1000)
     };
     
-    logger.info('🧨 TEST: Simulating webhook call', {
+    logger.info('🧨 TEST: Simulating webhook call with real-time processing', {
       simulatedPayload,
       testEndpoint: '/test-simulate'
     });
     
-    // Process the webhook using our existing logic
-    const result = await traveltekWebhookService.handleStaticPricingUpdate(simulatedPayload);
+    // Process the webhook using our new real-time service
+    const processingResult = await realtimeWebhookService.processWebhook(simulatedPayload);
     
     res.status(200).json({
       success: true,
-      message: 'Webhook simulation completed',
+      message: 'Webhook simulation queued for real-time processing',
       timestamp: new Date().toISOString(),
       simulation: {
         payload: simulatedPayload,
-        result: {
-          totalCruises: result.totalCruises,
-          successful: result.successful,
-          failed: result.failed,
-          processingTimeMs: result.processingTimeMs,
-          errors: result.errors?.slice(0, 5) || [] // Show first 5 errors
-        }
+        processingJobId: processingResult.jobId,
+        processingMode: 'realtime_parallel',
+        note: 'Check Slack for accurate processing results with FTP connection status'
       }
     });
     

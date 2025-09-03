@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
 import { corsConfig } from './config/environment';
-import { securityHeaders, rateLimiter } from './middleware/security';
+import { securityHeaders, rateLimiter, maliciousRequestBlocker } from './middleware/security';
 import { requestLogger } from './middleware/request-logger';
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 import routes from './routes';
@@ -19,6 +19,7 @@ app.set('trust proxy', 1);
 
 // Pre-route middleware
 app.use(compression());
+app.use(maliciousRequestBlocker); // Block malicious requests first
 app.use(securityHeaders);
 app.use(cors(corsConfig));
 
