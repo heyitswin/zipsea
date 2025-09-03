@@ -30,7 +30,8 @@ async function cleanup() {
       WHERE needs_price_update = true
     `);
 
-    console.log(`✅ Cleared ${result.rowCount || 0} needs_price_update flags`);
+    const rowCount = result.rowCount || result.affectedRows || (result[0]?.affectedRows) || 0;
+    console.log(`✅ Cleared ${rowCount} needs_price_update flags`);
 
     // Clean up old webhook events (older than 30 days)
     const cleanupResult = await db.execute(sql`
@@ -39,7 +40,8 @@ async function cleanup() {
         AND status IN ('pending', 'processing')
     `);
 
-    console.log(`✅ Cleaned up ${cleanupResult.rowCount || 0} old webhook events`);
+    const cleanupCount = cleanupResult.rowCount || cleanupResult.affectedRows || (cleanupResult[0]?.affectedRows) || 0;
+    console.log(`✅ Cleaned up ${cleanupCount} old webhook events`);
 
     // Verify cleanup
     const checkResult = await db.execute(sql`
@@ -48,7 +50,8 @@ async function cleanup() {
       WHERE needs_price_update = true
     `);
 
-    const remainingCount = checkResult.rows[0]?.count || 0;
+    const checkData = checkResult.rows ? checkResult.rows[0] : (checkResult[0] || {});
+    const remainingCount = checkData.count || 0;
     
     if (remainingCount === 0) {
       console.log('✅ All batch sync flags successfully cleared!');
@@ -77,12 +80,14 @@ async function status() {
       WHERE sailing_date >= CURRENT_DATE
     `);
 
-    const stats = result.rows[0];
+    // Handle different result formats
+    const stats = result.rows ? result.rows[0] : (result[0] || {});
+    
     console.log(`
 📈 Batch Sync Status:
-- Total future cruises: ${stats.total}
-- Needs price update: ${stats.needs_update} 
-- Has update request time: ${stats.has_request_time}
+- Total future cruises: ${stats.total || 0}
+- Needs price update: ${stats.needs_update || 0} 
+- Has update request time: ${stats.has_request_time || 0}
     `);
 
     if (stats.needs_update > 0) {
