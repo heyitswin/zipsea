@@ -531,66 +531,120 @@ export class DataSyncService {
   }
 
   /**
-   * Sync cheapest pricing (denormalized for fast search)
+   * Sync cheapest pricing (denormalized for fast search) with fallback logic
    */
   private async syncCheapestPricing(tx: any, data: TraveltekCruiseData): Promise<void> {
     // Delete existing cheapest pricing for this cruise
     await tx.delete(cheapestPricing).where(eq(cheapestPricing.cruiseId, data.cruiseid));
 
+    // Extract combined pricing with fallback logic
+    const cheapestObj = data.cheapest || {};
+    const combined = cheapestObj.combined || {};
+    const cachedPrices = cheapestObj.cachedprices || {};
+    const staticPrices = cheapestObj.prices || {};
+
+    // Use fallback logic: combined → cached → static → direct cheapest fields
+    const interiorPrice = this.parsePrice(combined.inside) || 
+                         this.parsePrice(cachedPrices.inside) || 
+                         this.parsePrice(staticPrices.inside) ||
+                         this.parsePrice(data.cheapestinside?.price);
+    
+    const oceanviewPrice = this.parsePrice(combined.outside) || 
+                          this.parsePrice(cachedPrices.outside) || 
+                          this.parsePrice(staticPrices.outside) ||
+                          this.parsePrice(data.cheapestoutside?.price);
+    
+    const balconyPrice = this.parsePrice(combined.balcony) || 
+                        this.parsePrice(cachedPrices.balcony) || 
+                        this.parsePrice(staticPrices.balcony) ||
+                        this.parsePrice(data.cheapestbalcony?.price);
+    
+    const suitePrice = this.parsePrice(combined.suite) || 
+                      this.parsePrice(cachedPrices.suite) || 
+                      this.parsePrice(staticPrices.suite) ||
+                      this.parsePrice(data.cheapestsuite?.price);
+
+    // Find overall cheapest price
+    const allPrices = [
+      { price: interiorPrice, type: 'interior' },
+      { price: oceanviewPrice, type: 'oceanview' },
+      { price: balconyPrice, type: 'balcony' },
+      { price: suitePrice, type: 'suite' }
+    ].filter(p => p.price && p.price > 0);
+
+    const cheapestPrice = allPrices.length > 0 ? 
+      Math.min(...allPrices.map(p => p.price!)) : null;
+    
+    const cheapestCabinType = allPrices.length > 0 ?
+      allPrices.find(p => p.price === cheapestPrice)?.type || 'unknown' : 'unknown';
+
     const cheapestRecord: NewCheapestPricing = {
       cruiseId: data.cruiseid,
       
-      // Overall cheapest
-      cheapestPrice: data.cheapest?.price?.toString() || null,
-      cheapestCabinType: data.cheapest?.cabintype || null,
+      // Overall cheapest - use calculated values with fallback to original data
+      cheapestPrice: cheapestPrice?.toString() || data.cheapest?.price?.toString() || null,
+      cheapestCabinType: cheapestCabinType || data.cheapest?.cabintype || null,
       cheapestTaxes: data.cheapest?.taxes?.toString() || null,
       cheapestNcf: data.cheapest?.ncf?.toString() || null,
       cheapestGratuity: data.cheapest?.gratuity?.toString() || null,
       cheapestFuel: data.cheapest?.fuel?.toString() || null,
       cheapestNonComm: data.cheapest?.noncomm?.toString() || null,
       
-      // Interior
-      interiorPrice: data.cheapestinside?.price?.toString() || null,
+      // Interior - use fallback pricing with original price codes
+      interiorPrice: interiorPrice?.toString() || null,
       interiorTaxes: data.cheapestinside?.taxes?.toString() || null,
       interiorNcf: data.cheapestinside?.ncf?.toString() || null,
       interiorGratuity: data.cheapestinside?.gratuity?.toString() || null,
       interiorFuel: data.cheapestinside?.fuel?.toString() || null,
       interiorNonComm: data.cheapestinside?.noncomm?.toString() || null,
-      interiorPriceCode: data.cheapestinsidepricecode || null,
+      interiorPriceCode: combined.insidepricecode || cachedPrices.insidepricecode || 
+                        staticPrices.insidepricecode || data.cheapestinsidepricecode || null,
       
-      // Oceanview
-      oceanviewPrice: data.cheapestoutside?.price?.toString() || null,
+      // Oceanview - use fallback pricing with original price codes
+      oceanviewPrice: oceanviewPrice?.toString() || null,
       oceanviewTaxes: data.cheapestoutside?.taxes?.toString() || null,
       oceanviewNcf: data.cheapestoutside?.ncf?.toString() || null,
       oceanviewGratuity: data.cheapestoutside?.gratuity?.toString() || null,
       oceanviewFuel: data.cheapestoutside?.fuel?.toString() || null,
       oceanviewNonComm: data.cheapestoutside?.noncomm?.toString() || null,
-      oceanviewPriceCode: data.cheapestoutsidepricecode || null,
+      oceanviewPriceCode: combined.outsidepricecode || cachedPrices.outsidepricecode || 
+                         staticPrices.outsidepricecode || data.cheapestoutsidepricecode || null,
       
-      // Balcony
-      balconyPrice: data.cheapestbalcony?.price?.toString() || null,
+      // Balcony - use fallback pricing with original price codes
+      balconyPrice: balconyPrice?.toString() || null,
       balconyTaxes: data.cheapestbalcony?.taxes?.toString() || null,
       balconyNcf: data.cheapestbalcony?.ncf?.toString() || null,
       balconyGratuity: data.cheapestbalcony?.gratuity?.toString() || null,
       balconyFuel: data.cheapestbalcony?.fuel?.toString() || null,
       balconyNonComm: data.cheapestbalcony?.noncomm?.toString() || null,
-      balconyPriceCode: data.cheapestbalconypricecode || null,
+      balconyPriceCode: combined.balconypricecode || cachedPrices.balconypricecode || 
+                       staticPrices.balconypricecode || data.cheapestbalconypricecode || null,
       
-      // Suite
-      suitePrice: data.cheapestsuite?.price?.toString() || null,
+      // Suite - use fallback pricing with original price codes
+      suitePrice: suitePrice?.toString() || null,
       suiteTaxes: data.cheapestsuite?.taxes?.toString() || null,
       suiteNcf: data.cheapestsuite?.ncf?.toString() || null,
       suiteGratuity: data.cheapestsuite?.gratuity?.toString() || null,
       suiteFuel: data.cheapestsuite?.fuel?.toString() || null,
       suiteNonComm: data.cheapestsuite?.noncomm?.toString() || null,
-      suitePriceCode: data.cheapestsuitepricecode || null,
+      suitePriceCode: combined.suitepricecode || cachedPrices.suitepricecode || 
+                     staticPrices.suitepricecode || data.cheapestsuitepricecode || null,
       
       currency: 'USD',
       lastUpdated: new Date(),
     };
 
     await tx.insert(cheapestPricing).values(cheapestRecord);
-    logger.info(`Synced cheapest pricing for cruise ${data.cruiseid}`);
+    logger.info(`Synced cheapest pricing for cruise ${data.cruiseid} with combined fallback logic`);
+  }
+
+  /**
+   * Helper method to parse price values
+   */
+  private parsePrice(value: any): number | null {
+    if (value === null || value === undefined || value === '') return null;
+    const num = parseFloat(value);
+    return isNaN(num) || num <= 0 ? null : num;
   }
 
   /**

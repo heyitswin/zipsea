@@ -917,87 +917,90 @@ export class TraveltekWebhookService {
     const cachedPrices = cheapest.cachedprices || {};
     const combined = cheapest.combined || {};
     
+    // Extract prices with fallback logic - prioritize combined, then cached, then static
+    const interiorPrice = this.parseDecimal(combined.inside) || 
+                         this.parseDecimal(cachedPrices.inside) || 
+                         this.parseDecimal(staticPrices.inside);
+    const interiorPriceCode = combined.insidepricecode || 
+                             cachedPrices.insidepricecode || 
+                             staticPrices.insidepricecode;
+    
+    const oceanviewPrice = this.parseDecimal(combined.outside) || 
+                          this.parseDecimal(cachedPrices.outside) || 
+                          this.parseDecimal(staticPrices.outside);
+    const oceanviewPriceCode = combined.outsidepricecode || 
+                              cachedPrices.outsidepricecode || 
+                              staticPrices.outsidepricecode;
+    
+    const balconyPrice = this.parseDecimal(combined.balcony) || 
+                        this.parseDecimal(cachedPrices.balcony) || 
+                        this.parseDecimal(staticPrices.balcony);
+    const balconyPriceCode = combined.balconypricecode || 
+                            cachedPrices.balconypricecode || 
+                            staticPrices.balconypricecode;
+    
+    const suitePrice = this.parseDecimal(combined.suite) || 
+                      this.parseDecimal(cachedPrices.suite) || 
+                      this.parseDecimal(staticPrices.suite);
+    const suitePriceCode = combined.suitepricecode || 
+                          cachedPrices.suitepricecode || 
+                          staticPrices.suitepricecode;
+    
+    // Find the overall cheapest price from all cabin types
+    const allPrices = [interiorPrice, oceanviewPrice, balconyPrice, suitePrice]
+      .filter(price => price && price > 0);
+    
+    const cheapestPrice = allPrices.length > 0 ? Math.min(...allPrices) : null;
+    const cheapestCabinType = this.determineCheapestCabinType({
+      interior: interiorPrice,
+      oceanview: oceanviewPrice, 
+      balcony: balconyPrice,
+      suite: suitePrice
+    });
+    
     await db.execute(sql`
-      INSERT INTO cheapest_prices (
+      INSERT INTO cheapest_pricing (
         cruise_id,
-        static_inside, static_inside_code,
-        static_outside, static_outside_code,
-        static_balcony, static_balcony_code,
-        static_suite, static_suite_code,
-        cached_inside, cached_inside_code,
-        cached_outside, cached_outside_code,
-        cached_balcony, cached_balcony_code,
-        cached_suite, cached_suite_code,
-        combined_inside, combined_inside_code, combined_inside_source,
-        combined_outside, combined_outside_code, combined_outside_source,
-        combined_balcony, combined_balcony_code, combined_balcony_source,
-        combined_suite, combined_suite_code, combined_suite_source,
-        cheapest_price, cheapest_cabin_type
+        interior_price,
+        interior_price_code,
+        oceanview_price,
+        oceanview_price_code,
+        balcony_price,
+        balcony_price_code,
+        suite_price,
+        suite_price_code,
+        cheapest_price,
+        cheapest_cabin_type,
+        currency,
+        last_updated
       ) VALUES (
         ${cruiseId},
-        ${this.parseDecimal(staticPrices.inside)},
-        ${staticPrices.insidepricecode || null},
-        ${this.parseDecimal(staticPrices.outside)},
-        ${staticPrices.outsidepricecode || null},
-        ${this.parseDecimal(staticPrices.balcony)},
-        ${staticPrices.balconypricecode || null},
-        ${this.parseDecimal(staticPrices.suite)},
-        ${staticPrices.suitepricecode || null},
-        ${this.parseDecimal(cachedPrices.inside)},
-        ${cachedPrices.insidepricecode || null},
-        ${this.parseDecimal(cachedPrices.outside)},
-        ${cachedPrices.outsidepricecode || null},
-        ${this.parseDecimal(cachedPrices.balcony)},
-        ${cachedPrices.balconypricecode || null},
-        ${this.parseDecimal(cachedPrices.suite)},
-        ${cachedPrices.suitepricecode || null},
-        ${this.parseDecimal(combined.inside)},
-        ${combined.insidepricecode || null},
-        ${combined.insidesource || null},
-        ${this.parseDecimal(combined.outside)},
-        ${combined.outsidepricecode || null},
-        ${combined.outsidesource || null},
-        ${this.parseDecimal(combined.balcony)},
-        ${combined.balconypricecode || null},
-        ${combined.balconysource || null},
-        ${this.parseDecimal(combined.suite)},
-        ${combined.suitepricecode || null},
-        ${combined.suitesource || null},
-        ${this.parseDecimal(data.cheapestprice)},
-        ${this.determineCabinType(data)}
+        ${interiorPrice ? interiorPrice.toString() : null},
+        ${interiorPriceCode || null},
+        ${oceanviewPrice ? oceanviewPrice.toString() : null},
+        ${oceanviewPriceCode || null},
+        ${balconyPrice ? balconyPrice.toString() : null},
+        ${balconyPriceCode || null},
+        ${suitePrice ? suitePrice.toString() : null},
+        ${suitePriceCode || null},
+        ${cheapestPrice ? cheapestPrice.toString() : null},
+        ${cheapestCabinType},
+        'USD',
+        CURRENT_TIMESTAMP
       )
       ON CONFLICT (cruise_id) DO UPDATE SET
-        static_inside = EXCLUDED.static_inside,
-        static_inside_code = EXCLUDED.static_inside_code,
-        static_outside = EXCLUDED.static_outside,
-        static_outside_code = EXCLUDED.static_outside_code,
-        static_balcony = EXCLUDED.static_balcony,
-        static_balcony_code = EXCLUDED.static_balcony_code,
-        static_suite = EXCLUDED.static_suite,
-        static_suite_code = EXCLUDED.static_suite_code,
-        cached_inside = EXCLUDED.cached_inside,
-        cached_inside_code = EXCLUDED.cached_inside_code,
-        cached_outside = EXCLUDED.cached_outside,
-        cached_outside_code = EXCLUDED.cached_outside_code,
-        cached_balcony = EXCLUDED.cached_balcony,
-        cached_balcony_code = EXCLUDED.cached_balcony_code,
-        cached_suite = EXCLUDED.cached_suite,
-        cached_suite_code = EXCLUDED.cached_suite_code,
-        combined_inside = EXCLUDED.combined_inside,
-        combined_inside_code = EXCLUDED.combined_inside_code,
-        combined_inside_source = EXCLUDED.combined_inside_source,
-        combined_outside = EXCLUDED.combined_outside,
-        combined_outside_code = EXCLUDED.combined_outside_code,
-        combined_outside_source = EXCLUDED.combined_outside_source,
-        combined_balcony = EXCLUDED.combined_balcony,
-        combined_balcony_code = EXCLUDED.combined_balcony_code,
-        combined_balcony_source = EXCLUDED.combined_balcony_source,
-        combined_suite = EXCLUDED.combined_suite,
-        combined_suite_code = EXCLUDED.combined_suite_code,
-        combined_suite_source = EXCLUDED.combined_suite_source,
+        interior_price = EXCLUDED.interior_price,
+        interior_price_code = EXCLUDED.interior_price_code,
+        oceanview_price = EXCLUDED.oceanview_price,
+        oceanview_price_code = EXCLUDED.oceanview_price_code,
+        balcony_price = EXCLUDED.balcony_price,
+        balcony_price_code = EXCLUDED.balcony_price_code,
+        suite_price = EXCLUDED.suite_price,
+        suite_price_code = EXCLUDED.suite_price_code,
         cheapest_price = EXCLUDED.cheapest_price,
         cheapest_cabin_type = EXCLUDED.cheapest_cabin_type,
-        last_updated = CURRENT_TIMESTAMP
+        currency = EXCLUDED.currency,
+        last_updated = EXCLUDED.last_updated
     `);
   }
   
@@ -1051,6 +1054,31 @@ export class TraveltekWebhookService {
     if (data.cheapestbalcony) return 'balcony';
     if (data.cheapestsuite) return 'suite';
     return 'unknown';
+  }
+
+  /**
+   * Helper: Determine which cabin type has the cheapest price
+   */
+  private determineCheapestCabinType(prices: {
+    interior: number | null;
+    oceanview: number | null;
+    balcony: number | null;
+    suite: number | null;
+  }): string {
+    const validPrices = [
+      { type: 'interior', price: prices.interior },
+      { type: 'oceanview', price: prices.oceanview },
+      { type: 'balcony', price: prices.balcony },
+      { type: 'suite', price: prices.suite }
+    ].filter(p => p.price && p.price > 0);
+    
+    if (validPrices.length === 0) return 'unknown';
+    
+    const cheapest = validPrices.reduce((min, current) => 
+      current.price! < min.price! ? current : min
+    );
+    
+    return cheapest.type;
   }
 
   /**
