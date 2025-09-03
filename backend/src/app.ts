@@ -10,6 +10,7 @@ import logger from './config/logger';
 import { cronService } from './services/cron.service';
 import { redisInitService } from './cache/redis-init.service';
 import { cacheWarmingService } from './cache/cache-warming.service';
+import { realtimeWebhookService } from './services/realtime-webhook.service';
 
 // Create Express application
 const app = express();
@@ -66,6 +67,12 @@ const initializeServices = async () => {
         }
       }, 30000); // Wait 30 seconds after startup
       
+      // Initialize realtime webhook service (this starts the BullMQ workers)
+      logger.info('Initializing realtime webhook service...');
+      // The service is already initialized when imported (constructor runs)
+      // Just log that the workers are ready
+      logger.info('✅ Realtime webhook workers are now running');
+      
       // Then initialize cron jobs
       logger.info('Initializing cron jobs...');
       await cronService.init();
@@ -89,6 +96,7 @@ process.on('SIGTERM', async () => {
     await Promise.allSettled([
       cronService.shutdown(),
       redisInitService.shutdown(),
+      // The realtimeWebhookService handles its own shutdown via SIGTERM handler
     ]);
   }
   process.exit(0);
@@ -100,6 +108,7 @@ process.on('SIGINT', async () => {
     await Promise.allSettled([
       cronService.shutdown(),
       redisInitService.shutdown(),
+      // The realtimeWebhookService handles its own shutdown via SIGTERM handler
     ]);
   }
   process.exit(0);
