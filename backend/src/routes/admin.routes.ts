@@ -762,29 +762,29 @@ router.post('/quotes/:quoteId/respond', async (req: Request, res: Response) => {
       notes,
     });
     
-    // Get quote with full details for email
-    const quoteDetails = await quoteService.getQuoteWithDetails(quoteId);
+    // Get just the quote for email (avoid problematic join)
+    const quote = await quoteService.getQuoteById(quoteId);
     
-    if (quoteDetails && quoteDetails.quote) {
+    if (quote) {
       // Get email from either contactInfo or the direct email field
-      const customerEmail = quoteDetails.quote.contactInfo?.email || quoteDetails.quote.email;
+      const customerEmail = (quote.contactInfo as any)?.email || (quote as any).email;
       
       if (customerEmail) {
         logger.info('Sending quote ready email', {
           quoteId,
           customerEmail,
-          referenceNumber: quoteDetails.quote.referenceNumber,
+          referenceNumber: (quote as any).referenceNumber,
         });
         
         try {
-          // Send quote ready email
+          // Send quote ready email (simplified without cruise details for now)
           const emailSent = await emailService.sendQuoteReadyEmail({
             email: customerEmail,
-            referenceNumber: quoteDetails.quote.referenceNumber,
-            cruiseName: quoteDetails.cruise?.name || 'Your Selected Cruise',
-            shipName: quoteDetails.cruise?.name || '',
-            departureDate: quoteDetails.cruise?.sailingDate,
-            returnDate: quoteDetails.cruise?.returnDate,
+            referenceNumber: (quote as any).referenceNumber,
+            cruiseName: 'Your Selected Cruise',
+            shipName: '',
+            departureDate: undefined,
+            returnDate: undefined,
             categories,
             notes,
           });
@@ -802,12 +802,12 @@ router.post('/quotes/:quoteId/respond', async (req: Request, res: Response) => {
       } else {
         logger.warn('No customer email found for quote', {
           quoteId,
-          contactInfo: quoteDetails.quote.contactInfo,
-          email: quoteDetails.quote.email,
+          contactInfo: (quote as any).contactInfo,
+          email: (quote as any).email,
         });
       }
     } else {
-      logger.warn('Quote details not found for email', { quoteId });
+      logger.warn('Quote not found', { quoteId });
     }
     
     res.json({
