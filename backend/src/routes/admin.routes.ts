@@ -686,18 +686,21 @@ router.post('/test-email', async (req: Request, res: Response) => {
           referenceNumber: 'ZQ-TEST-' + Date.now(),
           cruiseName: 'Test Cruise to Caribbean',
           shipName: 'Test Ship',
+          shipId: 1,
           departureDate: '2024-06-01',
           returnDate: '2024-06-08',
           categories: [
             {
               category: 'Interior Cabin',
               roomName: 'Interior Room',
+              cabinCode: 'INT',
               finalPrice: 1299,
               obcAmount: 50
             },
             {
               category: 'Balcony Cabin',
               roomName: 'Balcony Room with Ocean View',
+              cabinCode: 'BAL',
               finalPrice: 1899,
               obcAmount: 100
             }
@@ -876,7 +879,7 @@ router.post('/quotes/:quoteId/respond', async (req: Request, res: Response) => {
       notes,
     });
     
-    // Get just the quote for email (avoid problematic join)
+    // Get quote with cruise details for email
     const quote = await quoteService.getQuoteById(quoteId);
     
     if (quote) {
@@ -895,25 +898,53 @@ router.post('/quotes/:quoteId/respond', async (req: Request, res: Response) => {
         });
         
         try {
+          // Get cruise and ship details for the email
+          let cruiseInfo = null;
+          let shipId = null;
+          
+          if ((quote as any).cruiseId) {
+            const cruiseResult = await db.execute(sql`
+              SELECT 
+                c.id,
+                c.name as cruise_name,
+                c.departure_date,
+                c.return_date,
+                s.id as ship_id,
+                s.name as ship_name
+              FROM cruises c
+              LEFT JOIN ships s ON c.ship_id = s.id
+              WHERE c.id = ${(quote as any).cruiseId}
+              LIMIT 1
+            `);
+            
+            if (cruiseResult && cruiseResult.length > 0) {
+              cruiseInfo = cruiseResult[0];
+              shipId = cruiseInfo.ship_id;
+            }
+          }
+          
           logger.info('📋 Email data prepared for sending', {
             quoteId,
             customerEmail,
             referenceNumber: (quote as any).referenceNumber,
-            cruiseName: 'Your Selected Cruise',
+            cruiseName: cruiseInfo?.cruise_name || 'Your Selected Cruise',
+            shipName: cruiseInfo?.ship_name || '',
+            shipId: shipId,
             categoriesData: categories,
             notes: notes,
             emailType: 'quote_ready',
             step: 'calling_email_service'
           });
           
-          // Send quote ready email (simplified without cruise details for now)
+          // Send quote ready email with full cruise details
           const emailSent = await emailService.sendQuoteReadyEmail({
             email: customerEmail,
             referenceNumber: (quote as any).referenceNumber,
-            cruiseName: 'Your Selected Cruise',
-            shipName: '',
-            departureDate: undefined,
-            returnDate: undefined,
+            cruiseName: cruiseInfo?.cruise_name || 'Your Selected Cruise',
+            shipName: cruiseInfo?.ship_name || '',
+            shipId: shipId,
+            departureDate: cruiseInfo?.departure_date,
+            returnDate: cruiseInfo?.return_date,
             categories,
             notes,
           });

@@ -5,6 +5,7 @@ import { useState } from 'react';
 interface Category {
   category: string;
   roomName?: string;
+  cabinCode?: string;
   finalPrice: number;
   obcAmount: number;
 }
@@ -17,16 +18,16 @@ interface QuoteResponseModalProps {
 
 export default function QuoteResponseModal({ quote, onClose, onSubmit }: QuoteResponseModalProps) {
   const [categories, setCategories] = useState<Category[]>([
-    { category: '', roomName: '', finalPrice: 0, obcAmount: 0 },
-    { category: '', roomName: '', finalPrice: 0, obcAmount: 0 },
-    { category: '', roomName: '', finalPrice: 0, obcAmount: 0 },
-    { category: '', roomName: '', finalPrice: 0, obcAmount: 0 },
-    { category: '', roomName: '', finalPrice: 0, obcAmount: 0 },
-    { category: '', roomName: '', finalPrice: 0, obcAmount: 0 },
-    { category: '', roomName: '', finalPrice: 0, obcAmount: 0 },
-    { category: '', roomName: '', finalPrice: 0, obcAmount: 0 },
-    { category: '', roomName: '', finalPrice: 0, obcAmount: 0 },
-    { category: '', roomName: '', finalPrice: 0, obcAmount: 0 },
+    { category: '', roomName: '', cabinCode: '', finalPrice: 0, obcAmount: 0 },
+    { category: '', roomName: '', cabinCode: '', finalPrice: 0, obcAmount: 0 },
+    { category: '', roomName: '', cabinCode: '', finalPrice: 0, obcAmount: 0 },
+    { category: '', roomName: '', cabinCode: '', finalPrice: 0, obcAmount: 0 },
+    { category: '', roomName: '', cabinCode: '', finalPrice: 0, obcAmount: 0 },
+    { category: '', roomName: '', cabinCode: '', finalPrice: 0, obcAmount: 0 },
+    { category: '', roomName: '', cabinCode: '', finalPrice: 0, obcAmount: 0 },
+    { category: '', roomName: '', cabinCode: '', finalPrice: 0, obcAmount: 0 },
+    { category: '', roomName: '', cabinCode: '', finalPrice: 0, obcAmount: 0 },
+    { category: '', roomName: '', cabinCode: '', finalPrice: 0, obcAmount: 0 },
   ]);
   
   const [notes, setNotes] = useState('');
@@ -116,6 +117,9 @@ export default function QuoteResponseModal({ quote, onClose, onSubmit }: QuoteRe
                             Room Name (Optional)
                           </th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Cabin Code (Optional)
+                          </th>
+                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Final Price ($)
                           </th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -142,6 +146,15 @@ export default function QuoteResponseModal({ quote, onClose, onSubmit }: QuoteRe
                                 onChange={(e) => handleCategoryChange(index, 'roomName', e.target.value)}
                                 className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="e.g., Ocean View Stateroom"
+                              />
+                            </td>
+                            <td className="px-4 py-2">
+                              <input
+                                type="text"
+                                value={cat.cabinCode || ''}
+                                onChange={(e) => handleCategoryChange(index, 'cabinCode', e.target.value)}
+                                className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="e.g., INT, BAL, SUI"
                               />
                             </td>
                             <td className="px-4 py-2">

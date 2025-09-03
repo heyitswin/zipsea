@@ -1,17 +1,22 @@
 import { logger } from '../config/logger';
 import { Resend } from 'resend';
 import { env } from '../config/environment';
+import { db } from '../db/connection';
+import { cabinCategories } from '../db/schema/cabin-categories';
+import { eq, and } from 'drizzle-orm';
 
 interface QuoteReadyEmailData {
   email: string;
   referenceNumber: string;
   cruiseName: string;
   shipName: string;
+  shipId?: number;
   departureDate?: string;
   returnDate?: string;
   categories: Array<{
     category: string;
     roomName?: string;
+    cabinCode?: string;
     finalPrice: number;
     obcAmount: number;
   }>;
@@ -40,6 +45,27 @@ class EmailService {
       this.resend = new Resend(env.RESEND_API_KEY);
     } else {
       logger.warn('RESEND_API_KEY not configured - email service will be disabled');
+    }
+  }
+
+  /**
+   * Get cabin image URL by ship ID and cabin code
+   */
+  private async getCabinImage(shipId: number, cabinCode: string): Promise<string | null> {
+    try {
+      const cabin = await db
+        .select({ imageUrl: cabinCategories.imageUrl })
+        .from(cabinCategories)
+        .where(and(
+          eq(cabinCategories.shipId, shipId),
+          eq(cabinCategories.cabinCode, cabinCode)
+        ))
+        .limit(1);
+
+      return cabin.length > 0 ? cabin[0].imageUrl : null;
+    } catch (error) {
+      logger.warn('Failed to fetch cabin image:', { shipId, cabinCode, error });
+      return null;
     }
   }
 
@@ -82,53 +108,80 @@ class EmailService {
           })
         : 'TBD';
 
-      // Format categories for display
-      const categoryDetails = data.categories.map(cat => {
-        return `
-          <div style="margin-bottom: 16px; padding: 16px; background: #f8f9fa; border-radius: 8px;">
-            <h3 style="margin: 0 0 8px 0; color: #1a73e8;">${cat.category}</h3>
-            ${cat.roomName ? `<p style="margin: 4px 0;"><strong>Room:</strong> ${cat.roomName}</p>` : ''}
-            <p style="margin: 4px 0;"><strong>Price:</strong> $${cat.finalPrice.toLocaleString()}</p>
-            <p style="margin: 4px 0;"><strong>Onboard Credit:</strong> $${cat.obcAmount}</p>
+      // Build category options with images and new styling
+      let optionSections = '';
+      for (let i = 0; i < data.categories.length; i++) {
+        const cat = data.categories[i];
+        let cabinImageHtml = '';
+        
+        // Get cabin image if we have ship ID and cabin code
+        if (data.shipId && cat.cabinCode) {
+          const imageUrl = await this.getCabinImage(data.shipId, cat.cabinCode);
+          if (imageUrl) {
+            cabinImageHtml = `
+              <div style="margin-bottom: 16px;">
+                <img src="${imageUrl}" alt="${cat.roomName || cat.category}" style="width: 100%; max-width: 400px; height: 200px; object-fit: cover; border-radius: 8px;">
+              </div>
+            `;
+          }
+        }
+
+        optionSections += `
+          <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e0e0e0;">
+            <h3 style="margin: 0 0 16px 0; color: #0E1B4D; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; letter-spacing: -0.02em;">Option #${i + 1}</h3>
+            ${cat.roomName ? `<p style="margin: 8px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px;"><strong>Room Name:</strong> ${cat.roomName}</p>` : ''}
+            <p style="margin: 8px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px;"><strong>Category:</strong> ${cat.category}</p>
+            ${cat.cabinCode ? `<p style="margin: 8px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px;"><strong>Cabin Code:</strong> ${cat.cabinCode}</p>` : ''}
+            ${cabinImageHtml}
+            <div style="background: #E9B4EB; color: #0E1B4D; border-radius: 16px; padding: 16px; margin: 16px 0; text-align: center; font-family: Arial, sans-serif; font-weight: bold; font-size: 20px; letter-spacing: -0.02em;">
+              $${cat.finalPrice.toLocaleString()} vacation total (incl. all fees, taxes, port expenses)
+            </div>
+            <div style="background: #1B8F57; color: white; border-radius: 16px; padding: 16px; margin: 16px 0; text-align: center; font-family: Arial, sans-serif; font-weight: bold; font-size: 20px; letter-spacing: -0.02em;">
+              + $${cat.obcAmount} onboard credit
+            </div>
           </div>
         `;
-      }).join('');
+      }
+
+      // Note from team section
+      const noteSection = data.notes ? `
+        <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e0e0e0;">
+          <h3 style="margin: 0 0 16px 0; color: #0E1B4D; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; letter-spacing: -0.02em;">Note from our team</h3>
+          <p style="margin: 0; color: #2f2f2f; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4; white-space: pre-line;">${data.notes}</p>
+        </div>
+      ` : '';
 
       const emailHtml = `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; margin-bottom: 32px;">
-            <h1 style="color: #1a73e8; margin: 0;">Your Cruise Quote is Ready!</h1>
-            <p style="color: #666; margin: 8px 0 0 0;">Reference: ${data.referenceNumber}</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
+          <!-- Hero Section -->
+          <div style="text-align: center; margin-bottom: 32px; background: white; border-radius: 12px; padding: 24px;">
+            <h1 style="color: #0E1B4D; margin: 0; font-family: Arial, sans-serif; font-size: 36px; font-weight: bold; letter-spacing: -0.02em;">Your quote is ready!</h1>
+            <p style="color: #666; margin: 8px 0 0 0; font-family: Arial, sans-serif; font-size: 16px;">Reference: ${data.referenceNumber}</p>
           </div>
           
-          <div style="background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-            <h2 style="color: #333; margin: 0 0 16px 0;">Cruise Details</h2>
-            <p style="margin: 8px 0;"><strong>Cruise:</strong> ${data.cruiseName}</p>
-            ${data.shipName ? `<p style="margin: 8px 0;"><strong>Ship:</strong> ${data.shipName}</p>` : ''}
-            <p style="margin: 8px 0;"><strong>Departure Date:</strong> ${formattedDepartureDate}</p>
-            <p style="margin: 8px 0;"><strong>Return Date:</strong> ${formattedReturnDate}</p>
+          <!-- Cruise Details -->
+          <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e0e0e0;">
+            <h2 style="color: #0E1B4D; margin: 0 0 16px 0; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; letter-spacing: -0.02em;">Cruise Details</h2>
+            <p style="margin: 8px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px;"><strong>Cruise:</strong> ${data.cruiseName}</p>
+            ${data.shipName ? `<p style="margin: 8px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px;"><strong>Ship:</strong> ${data.shipName}</p>` : ''}
+            <p style="margin: 8px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px;"><strong>Departure Date:</strong> ${formattedDepartureDate}</p>
+            <p style="margin: 8px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px;"><strong>Return Date:</strong> ${formattedReturnDate}</p>
           </div>
           
-          <div style="background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-            <h2 style="color: #333; margin: 0 0 16px 0;">Available Options</h2>
-            ${categoryDetails}
-            ${data.notes ? `
-              <div style="margin-top: 16px; padding: 16px; background: #e8f0fe; border-radius: 8px;">
-                <h3 style="margin: 0 0 8px 0; color: #1a73e8;">Additional Notes</h3>
-                <p style="margin: 0; white-space: pre-line;">${data.notes}</p>
-              </div>
-            ` : ''}
-          </div>
+          <!-- Option Sections -->
+          ${optionSections}
           
-          <div style="background: #f8f9fa; border-radius: 12px; padding: 24px; text-align: center;">
-            <h3 style="color: #333; margin: 0 0 16px 0;">Ready to Book?</h3>
-            <p style="color: #666; margin: 0 0 16px 0;">Contact our team to secure your cruise at these prices!</p>
-            <p style="color: #666; margin: 0;"><strong>Email:</strong> bookings@zipsea.com</p>
-            <p style="color: #666; margin: 4px 0 0 0;"><strong>Phone:</strong> 1-800-ZIPSEA</p>
+          <!-- Note from team -->
+          ${noteSection}
+          
+          <!-- Ready to book section -->
+          <div style="background: white; border-radius: 12px; padding: 24px; text-align: center; border: 1px solid #e0e0e0;">
+            <h3 style="color: #0E1B4D; margin: 0 0 16px 0; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; letter-spacing: -0.02em;">Ready to book?</h3>
+            <p style="color: #2f2f2f; margin: 0; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">Reply to this email, we're ready to book your vacation for you. Or don't hesitate to reply if you have questions or want more quotes.</p>
           </div>
           
           <div style="text-align: center; margin-top: 32px; padding-top: 16px; border-top: 1px solid #e0e0e0;">
-            <p style="color: #999; font-size: 14px; margin: 0;">
+            <p style="color: #999; font-size: 14px; margin: 0; font-family: Arial, sans-serif;">
               This quote is valid for 7 days from the date of this email.<br>
               Prices are subject to availability and may change.
             </p>
@@ -139,12 +192,12 @@ class EmailService {
       logger.info('📧 Sending quote ready email via Resend API', {
         referenceNumber: data.referenceNumber,
         email: data.email,
-        fromAddress: 'Zipsea <zippy@zipsea.com>',
+        fromAddress: 'Zipsea Quote Team <zippy@zipsea.com>',
         emailType: 'quote_ready'
       });
 
       const result = await this.resend.emails.send({
-        from: 'Zipsea <zippy@zipsea.com>',
+        from: 'Zipsea Quote Team <zippy@zipsea.com>',
         to: [data.email],
         subject: `Your Cruise Quote is Ready - ${data.referenceNumber}`,
         html: emailHtml,
@@ -258,9 +311,7 @@ class EmailService {
           
           <div style="background: #f8f9fa; border-radius: 12px; padding: 24px; text-align: center;">
             <h3 style="color: #333; margin: 0 0 16px 0;">Have Questions?</h3>
-            <p style="color: #666; margin: 0 0 16px 0;">Our cruise experts are here to help!</p>
-            <p style="color: #666; margin: 0;"><strong>Email:</strong> quotes@zipsea.com</p>
-            <p style="color: #666; margin: 4px 0 0 0;"><strong>Phone:</strong> 1-800-ZIPSEA</p>
+            <p style="color: #666; margin: 0;">Reply to this email, we're ready to book your vacation for you.</p>
           </div>
           
           <div style="text-align: center; margin-top: 32px; padding-top: 16px; border-top: 1px solid #e0e0e0;">
@@ -273,7 +324,7 @@ class EmailService {
       `;
 
       const result = await this.resend.emails.send({
-        from: 'Zipsea <zippy@zipsea.com>',
+        from: 'Zipsea Quote Team <zippy@zipsea.com>',
         to: [data.email],
         subject: `Quote Request Confirmed - ${data.referenceNumber}`,
         html: emailHtml,
@@ -376,7 +427,7 @@ class EmailService {
       `;
 
       const result = await this.resend.emails.send({
-        from: 'Zipsea <zippy@zipsea.com>',
+        from: 'Zipsea Quote Team <zippy@zipsea.com>',
         to: [env.TEAM_NOTIFICATION_EMAIL || 'win@zipsea.com'], // Team notification email from environment
         subject: `🚨 New Quote Request: ${data.referenceNumber}`,
         html: emailHtml,
