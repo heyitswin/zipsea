@@ -1,5 +1,5 @@
 import { db } from '../db/connection';
-import { quoteRequests, cruises } from '../db/schema';
+import { quoteRequests, cruises, ships } from '../db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { logger } from '../config/logger';
 import { emailService } from './email.service';
@@ -108,10 +108,11 @@ class QuoteService {
             const cruiseDetails = await db
               .select({
                 cruise: cruises.name,
-                ship: cruises.shipName,
+                ship: ships.name,
                 sailing: cruises.sailingDate,
               })
               .from(cruises)
+              .leftJoin(ships, eq(cruises.shipId, ships.id))
               .where(eq(cruises.id, data.cruiseId))
               .limit(1);
 
