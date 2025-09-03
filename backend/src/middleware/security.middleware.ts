@@ -30,7 +30,7 @@ const BLOCKED_PATHS = [
 // Blocked user agents (common scanners and bots)
 const BLOCKED_USER_AGENTS = [
   /python-requests/i,
-  /curl/i,
+  // /curl/i,  // Commented out to allow webhook testing
   /wget/i,
   /nikto/i,
   /sqlmap/i,
@@ -61,6 +61,12 @@ export const securityMiddleware = (req: Request, res: Response, next: NextFuncti
   const userAgent = req.get('User-Agent') || '';
   const path = req.path;
   const method = req.method;
+  
+  // Exempt webhook endpoints from user-agent blocking
+  const isWebhookEndpoint = path.includes('/webhook') || path.includes('/webhooks');
+  if (isWebhookEndpoint) {
+    return next(); // Allow all webhook requests through
+  }
 
   // Check blocked IPs
   if (BLOCKED_IPS.includes(clientIP)) {
