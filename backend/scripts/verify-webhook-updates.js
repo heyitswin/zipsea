@@ -29,24 +29,25 @@ async function verifyUpdates() {
     const query = `
       SELECT 
         c.id,
-        c.cruise_name,
-        c.code_to_cruise_id,
-        c.ship_name,
-        c.departure_date,
-        c.pricing_updated_at,
-        c.price_inside,
-        c.price_oceanview,
-        c.price_balcony,
-        c.price_suite,
+        c.name as cruise_name,
+        c.cruise_id as code_to_cruise_id,
+        s.name as ship_name,
+        c.sailing_date as departure_date,
+        c.updated_at as pricing_updated_at,
+        c.interior_price as price_inside,
+        c.oceanview_price as price_oceanview,
+        c.balcony_price as price_balcony,
+        c.suite_price as price_suite,
         CASE 
-          WHEN c.pricing_updated_at > NOW() - INTERVAL '1 hour' THEN 'UPDATED TODAY'
-          WHEN c.pricing_updated_at > NOW() - INTERVAL '24 hours' THEN 'Updated yesterday'
+          WHEN c.updated_at > NOW() - INTERVAL '1 hour' THEN 'UPDATED TODAY'
+          WHEN c.updated_at > NOW() - INTERVAL '24 hours' THEN 'Updated yesterday'
           ELSE 'OLD DATA'
         END as update_status,
-        EXTRACT(EPOCH FROM (NOW() - c.pricing_updated_at))/60 as minutes_since_update
+        EXTRACT(EPOCH FROM (NOW() - c.updated_at))/60 as minutes_since_update
       FROM cruises c
-      WHERE c.line_id = 22  -- Royal Caribbean
-      ORDER BY c.pricing_updated_at DESC
+      LEFT JOIN ships s ON c.ship_id = s.id
+      WHERE c.cruise_line_id = 22  -- Royal Caribbean
+      ORDER BY c.updated_at DESC
       LIMIT 20
     `;
 
@@ -79,13 +80,13 @@ async function verifyUpdates() {
     const statsQuery = `
       SELECT 
         COUNT(*) as total_cruises,
-        COUNT(CASE WHEN pricing_updated_at > NOW() - INTERVAL '1 hour' THEN 1 END) as updated_last_hour,
-        COUNT(CASE WHEN pricing_updated_at > NOW() - INTERVAL '30 minutes' THEN 1 END) as updated_last_30min,
-        COUNT(CASE WHEN pricing_updated_at IS NULL OR pricing_updated_at < NOW() - INTERVAL '24 hours' THEN 1 END) as old_data,
-        MAX(pricing_updated_at) as most_recent,
-        MIN(pricing_updated_at) as oldest
+        COUNT(CASE WHEN updated_at > NOW() - INTERVAL '1 hour' THEN 1 END) as updated_last_hour,
+        COUNT(CASE WHEN updated_at > NOW() - INTERVAL '30 minutes' THEN 1 END) as updated_last_30min,
+        COUNT(CASE WHEN updated_at IS NULL OR updated_at < NOW() - INTERVAL '24 hours' THEN 1 END) as old_data,
+        MAX(updated_at) as most_recent,
+        MIN(updated_at) as oldest
       FROM cruises
-      WHERE line_id = 22
+      WHERE cruise_line_id = 22
     `;
     
     const stats = await pool.query(statsQuery);
