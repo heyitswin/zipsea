@@ -11,6 +11,8 @@ import { dataSyncService } from './data-sync.service';
 import { cacheManager, searchCache, cruiseCache } from '../cache/cache-manager';
 import { CacheKeys } from '../cache/cache-keys';
 import { slackService } from './slack.service';
+import { bulkFtpDownloader } from './bulk-ftp-downloader.service';
+import { getDatabaseLineId } from '../config/cruise-line-mapping';
 
 export interface WebhookPricingData {
   cruiseId?: number;
@@ -41,66 +43,89 @@ export class WebhookService {
 
   /**
    * Process cruiseline pricing updated webhook
-   * Updates pricing for all cruises in a cruise line
+   * Uses bulk FTP downloader for efficient processing of entire cruise lines
    */
   async processCruiselinePricingUpdate(data: WebhookPricingData): Promise<void> {
     try {
-      logger.info('Processing cruiseline pricing update', { lineId: data.lineId, eventType: data.eventType });
+      logger.info('Processing cruiseline pricing update using bulk FTP downloader', { 
+        lineId: data.lineId, 
+        eventType: data.eventType 
+      });
 
       if (!data.lineId) {
         throw new Error('Line ID is required for cruiseline pricing updates');
       }
 
-      // Get all cruises for this cruise line
-      const cruisesInLine = await db
-        .select({ id: cruises.id })
-        .from(cruises)
-        .where(and(
-          eq(cruises.cruiseLineId, data.lineId),
-          eq(cruises.isActive, true)
-        ));
+      // Map webhook line ID to database line ID
+      const databaseLineId = getDatabaseLineId(data.lineId);
+      
+      if (databaseLineId !== data.lineId) {
+        logger.info(`Mapping webhook line ${data.lineId} to database line ${databaseLineId}`);
+      }
 
-      logger.info(`Found ${cruisesInLine.length} cruises for line ${data.lineId}`);
+      // Get cruise information for bulk download
+      const cruiseInfos = await bulkFtpDownloader.getCruiseInfoForLine(databaseLineId);
 
-      if (cruisesInLine.length === 0) {
-        logger.warn(`No active cruises found for cruise line ${data.lineId}`);
+      logger.info(`Found ${cruiseInfos.length} cruises for bulk download (line ${data.lineId} -> ${databaseLineId})`);
+
+      if (cruiseInfos.length === 0) {
+        logger.warn(`No active cruises found for cruise line ${data.lineId} (database line ${databaseLineId})`);
         return;
       }
 
-      // Process updates in batches
-      const batchSize = 10;
-      let successful = 0;
-      let failed = 0;
+      // Perform bulk FTP download
+      const downloadResult = await bulkFtpDownloader.downloadLineUpdates(databaseLineId, cruiseInfos);
+      
+      logger.info(`Bulk download completed`, {
+        lineId: data.lineId,
+        databaseLineId,
+        totalFiles: downloadResult.totalFiles,
+        successful: downloadResult.successfulDownloads,
+        failed: downloadResult.failedDownloads,
+        duration: `${(downloadResult.duration / 1000).toFixed(2)}s`
+      });
 
-      for (let i = 0; i < cruisesInLine.length; i += batchSize) {
-        const batch = cruisesInLine.slice(i, i + batchSize);
-        
-        await Promise.all(batch.map(async (cruise) => {
-          try {
-            await this.updateCruisePricing(cruise.id);
-            successful++;
-          } catch (error) {
-            failed++;
-            logger.error(`Failed to update pricing for cruise ${cruise.id}:`, error);
-          }
-        }));
-
-        // Small delay between batches
-        if (i + batchSize < cruisesInLine.length) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-      }
+      // Process downloaded data to update database
+      const processingResult = await bulkFtpDownloader.processCruiseUpdates(databaseLineId, downloadResult);
 
       // Clear relevant cache entries
-      await this.clearCacheForCruiseLine(data.lineId);
+      await this.clearCacheForCruiseLine(databaseLineId);
 
-      logger.info(`Cruiseline pricing update completed: ${successful} successful, ${failed} failed`);
+      // Aggregate final results
+      const finalResult = {
+        successful: processingResult.successful,
+        failed: processingResult.failed + downloadResult.failedDownloads,
+        actuallyUpdated: processingResult.actuallyUpdated,
+        ftpConnectionFailures: downloadResult.connectionFailures,
+        processingTimeMs: downloadResult.duration
+      };
+
+      logger.info(`Bulk FTP processing completed for line ${data.lineId}`, {
+        databaseLineId,
+        totalCruises: downloadResult.totalFiles,
+        successful: finalResult.successful,
+        failed: finalResult.failed,
+        actuallyUpdated: finalResult.actuallyUpdated,
+        ftpConnectionFailures: finalResult.ftpConnectionFailures,
+        duration: `${(downloadResult.duration / 1000).toFixed(2)}s`,
+        successRate: `${Math.round((finalResult.actuallyUpdated / downloadResult.totalFiles) * 100)}%`
+      });
       
-      // Send Slack notification
-      await slackService.notifyCruiseLinePricingUpdate(data, { successful, failed });
+      // Send Slack notification using existing method
+      await slackService.notifyCruiseLinePricingUpdate(data, {
+        successful: finalResult.actuallyUpdated,
+        failed: finalResult.failed
+      });
 
     } catch (error) {
-      logger.error('Failed to process cruiseline pricing update:', error);
+      logger.error('Failed to process cruiseline pricing update with bulk FTP:', error);
+      
+      // Send error notification
+      await slackService.notifySyncError(
+        error instanceof Error ? error.message : 'Unknown bulk FTP error',
+        `Bulk FTP processing for line ${data.lineId}`
+      );
+      
       throw error;
     }
   }

@@ -21,6 +21,9 @@ export const CRUISE_LINE_ID_MAPPING: Record<number, number> = {
   // Verified mismatches:
   3: 22,    // Royal Caribbean: webhook sends 3, database has 22
   
+  // Confirmed mappings:
+  15: 15,   // Holland America Line: webhook and database both use 15
+  
   // These might be correct but need verification:
   1: 1,     // P&O Cruises: appears to match
   21: 21,   // Virgin Voyages: needs verification
@@ -45,6 +48,7 @@ export const CRUISE_LINE_NAMES: Record<number, string> = {
   8: 'Carnival Cruise Line',
   9: 'Costa Cruises',
   10: 'Crystal Cruises',
+  15: 'Holland America Line', // Line 15 - confirmed
   22: 'Royal Caribbean',   // In our database
   // Add more as needed
 };

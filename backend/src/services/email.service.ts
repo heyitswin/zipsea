@@ -13,6 +13,8 @@ interface QuoteReadyEmailData {
   shipId?: number;
   departureDate?: string;
   returnDate?: string;
+  nights?: number;
+  passengerCount?: number;
   categories: Array<{
     category: string;
     roomName?: string;
@@ -119,24 +121,37 @@ class EmailService {
           const imageUrl = await this.getCabinImage(data.shipId, cat.cabinCode);
           if (imageUrl) {
             cabinImageHtml = `
-              <div style="margin-bottom: 16px;">
-                <img src="${imageUrl}" alt="${cat.roomName || cat.category}" style="width: 100%; max-width: 400px; height: 200px; object-fit: cover; border-radius: 8px;">
+              <div style="float: right; width: 140px; height: 90px; margin-left: 16px; margin-bottom: 16px;">
+                <img src="${imageUrl}" alt="${cat.roomName || cat.category}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
               </div>
             `;
           }
         }
 
+        // Room name and category section with image on the right
+        const roomDetailsHtml = `
+          <div style="overflow: hidden; margin-bottom: 16px;">
+            ${cabinImageHtml}
+            <div style="overflow: hidden;">
+              ${cat.roomName ? `
+                <p style="margin: 0 0 8px 0; color: #666; font-family: Arial, sans-serif; font-size: 14px; font-weight: normal; text-transform: uppercase; letter-spacing: 0.5px;">ROOM NAME</p>
+                <p style="margin: 0 0 16px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal;">${cat.roomName}</p>
+              ` : ''}
+              <p style="margin: 0 0 8px 0; color: #666; font-family: Arial, sans-serif; font-size: 14px; font-weight: normal; text-transform: uppercase; letter-spacing: 0.5px;">CATEGORY</p>
+              <p style="margin: 0; color: #333; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal;">${cat.cabinCode || cat.category}</p>
+            </div>
+          </div>
+        `;
+
         optionSections += `
           <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e0e0e0;">
-            <h3 style="margin: 0 0 16px 0; color: #0E1B4D; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; letter-spacing: -0.02em;">Option #${i + 1}</h3>
-            ${cat.roomName ? `<p style="margin: 8px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px;"><strong>Room Name:</strong> ${cat.roomName}</p>` : ''}
-            <p style="margin: 8px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px;"><strong>Category:</strong> ${cat.category}</p>
-            ${cat.cabinCode ? `<p style="margin: 8px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px;"><strong>Cabin Code:</strong> ${cat.cabinCode}</p>` : ''}
-            ${cabinImageHtml}
-            <div style="background: #E9B4EB; color: #0E1B4D; border-radius: 16px; padding: 16px; margin: 16px 0; text-align: center; font-family: Arial, sans-serif; font-weight: bold; font-size: 20px; letter-spacing: -0.02em;">
+            <h3 style="margin: 0 0 20px 0; color: #333; font-family: Arial, sans-serif; font-size: 22px; font-weight: bold;">Option #${i + 1}</h3>
+            ${roomDetailsHtml}
+            <div style="clear: both;"></div>
+            <div style="background: #E9B4EB; color: #0E1B4D; border-radius: 10px; padding: 16px; margin: 16px 0 8px 0; text-align: center; font-family: Arial, sans-serif; font-weight: bold; font-size: 20px; letter-spacing: -0.02em;">
               $${cat.finalPrice.toLocaleString()} vacation total (incl. all fees, taxes, port expenses)
             </div>
-            <div style="background: #1B8F57; color: white; border-radius: 16px; padding: 16px; margin: 16px 0; text-align: center; font-family: Arial, sans-serif; font-weight: bold; font-size: 20px; letter-spacing: -0.02em;">
+            <div style="background: #1B8F57; color: white; border-radius: 10px; padding: 16px; margin: 0; text-align: center; font-family: Arial, sans-serif; font-weight: bold; font-size: 20px; letter-spacing: -0.02em;">
               + $${cat.obcAmount} onboard credit
             </div>
           </div>
@@ -146,26 +161,63 @@ class EmailService {
       // Note from team section
       const noteSection = data.notes ? `
         <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e0e0e0;">
-          <h3 style="margin: 0 0 16px 0; color: #0E1B4D; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; letter-spacing: -0.02em;">Note from our team</h3>
-          <p style="margin: 0; color: #2f2f2f; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4; white-space: pre-line;">${data.notes}</p>
+          <h3 style="margin: 0 0 16px 0; color: #333; font-family: Arial, sans-serif; font-size: 22px; font-weight: bold;">Note from our team</h3>
+          <p style="margin: 0; color: #2f2f2f; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal; line-height: 1.5; white-space: pre-line;">${data.notes}</p>
         </div>
       ` : '';
 
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f9fa;">
           <!-- Hero Section -->
-          <div style="text-align: center; margin-bottom: 32px; background: white; border-radius: 12px; padding: 24px;">
-            <h1 style="color: #0E1B4D; margin: 0; font-family: Arial, sans-serif; font-size: 36px; font-weight: bold; letter-spacing: -0.02em;">Your quote is ready!</h1>
-            <p style="color: #666; margin: 8px 0 0 0; font-family: Arial, sans-serif; font-size: 16px;">Reference: ${data.referenceNumber}</p>
+          <div style="text-align: center; margin-bottom: 32px; background: #0E1B4D; border-radius: 12px; padding: 32px 24px;">
+            <div style="margin-bottom: 16px;">
+              <span style="color: white; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold;">zipsea</span>
+            </div>
+            <h1 style="color: white; margin: 0; font-family: Arial, sans-serif; font-size: 28px; font-weight: normal; letter-spacing: -0.02em;">Your quote is here!</h1>
+            <p style="color: #ccc; margin: 12px 0 0 0; font-family: Arial, sans-serif; font-size: 14px;">Reference: ${data.referenceNumber}</p>
           </div>
           
           <!-- Cruise Details -->
           <div style="background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; border: 1px solid #e0e0e0;">
-            <h2 style="color: #0E1B4D; margin: 0 0 16px 0; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; letter-spacing: -0.02em;">Cruise Details</h2>
-            <p style="margin: 8px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px;"><strong>Cruise:</strong> ${data.cruiseName}</p>
-            ${data.shipName ? `<p style="margin: 8px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px;"><strong>Ship:</strong> ${data.shipName}</p>` : ''}
-            <p style="margin: 8px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px;"><strong>Departure Date:</strong> ${formattedDepartureDate}</p>
-            <p style="margin: 8px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px;"><strong>Return Date:</strong> ${formattedReturnDate}</p>
+            <h2 style="color: #333; margin: 0 0 24px 0; font-family: Arial, sans-serif; font-size: 22px; font-weight: bold;">Cruise details</h2>
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
+              <tr>
+                <td style="width: 50%; vertical-align: top; padding-right: 8px;">
+                  <p style="margin: 0 0 4px 0; color: #666; font-family: Arial, sans-serif; font-size: 12px; font-weight: normal; text-transform: uppercase; letter-spacing: 0.5px;">CRUISE</p>
+                  <p style="margin: 0 0 16px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal;">${data.cruiseName}</p>
+                </td>
+                <td style="width: 50%; vertical-align: top; padding-left: 8px;">
+                  <p style="margin: 0 0 4px 0; color: #666; font-family: Arial, sans-serif; font-size: 12px; font-weight: normal; text-transform: uppercase; letter-spacing: 0.5px;">CRUISE LINE</p>
+                  <p style="margin: 0 0 16px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal;">${data.shipName ? data.shipName.split(' ')[0] : 'MSC'}</p>
+                </td>
+              </tr>
+            </table>
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
+              <tr>
+                ${data.shipName ? `
+                <td style="width: 50%; vertical-align: top; padding-right: 8px;">
+                  <p style="margin: 0 0 4px 0; color: #666; font-family: Arial, sans-serif; font-size: 12px; font-weight: normal; text-transform: uppercase; letter-spacing: 0.5px;">SHIP</p>
+                  <p style="margin: 0 0 16px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal;">${data.shipName}</p>
+                </td>
+                ` : ''}
+                <td style="width: 50%; vertical-align: top; padding-left: 8px;">
+                  <p style="margin: 0 0 4px 0; color: #666; font-family: Arial, sans-serif; font-size: 12px; font-weight: normal; text-transform: uppercase; letter-spacing: 0.5px;">DEPARTURE</p>
+                  <p style="margin: 0 0 16px 0; color: #333; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal;">${formattedDepartureDate}</p>
+                </td>
+              </tr>
+            </table>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="width: 50%; vertical-align: top; padding-right: 8px;">
+                  <p style="margin: 0 0 4px 0; color: #666; font-family: Arial, sans-serif; font-size: 12px; font-weight: normal; text-transform: uppercase; letter-spacing: 0.5px;">NIGHTS</p>
+                  <p style="margin: 0; color: #333; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal;">${data.nights || 7} nights</p>
+                </td>
+                <td style="width: 50%; vertical-align: top; padding-left: 8px;">
+                  <p style="margin: 0 0 4px 0; color: #666; font-family: Arial, sans-serif; font-size: 12px; font-weight: normal; text-transform: uppercase; letter-spacing: 0.5px;">PASSENGERS</p>
+                  <p style="margin: 0; color: #333; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal;">${data.passengerCount || 2} adults</p>
+                </td>
+              </tr>
+            </table>
           </div>
           
           <!-- Option Sections -->
@@ -175,15 +227,15 @@ class EmailService {
           ${noteSection}
           
           <!-- Ready to book section -->
-          <div style="background: white; border-radius: 12px; padding: 24px; text-align: center; border: 1px solid #e0e0e0;">
-            <h3 style="color: #0E1B4D; margin: 0 0 16px 0; font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; letter-spacing: -0.02em;">Ready to book?</h3>
-            <p style="color: #2f2f2f; margin: 0; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">Reply to this email, we're ready to book your vacation for you. Or don't hesitate to reply if you have questions or want more quotes.</p>
+          <div style="background: #D8A7E8; border-radius: 12px; padding: 24px; text-align: left; margin-bottom: 24px;">
+            <h3 style="color: #0E1B4D; margin: 0 0 16px 0; font-family: Arial, sans-serif; font-size: 22px; font-weight: bold;">Ready to book?</h3>
+            <p style="color: #0E1B4D; margin: 0 0 16px 0; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal; line-height: 1.5;">Reply to this email, we're ready to book your vacation for you.</p>
+            <p style="color: #0E1B4D; margin: 0; font-family: Arial, sans-serif; font-size: 16px; font-weight: normal; line-height: 1.5;">Or don't hesitate to reply if you have questions or want more quotes.</p>
           </div>
           
-          <div style="text-align: center; margin-top: 32px; padding-top: 16px; border-top: 1px solid #e0e0e0;">
-            <p style="color: #999; font-size: 14px; margin: 0; font-family: Arial, sans-serif;">
-              This quote is valid for 7 days from the date of this email.<br>
-              Prices are subject to availability and may change.
+          <div style="text-align: center; margin-top: 0; padding-top: 16px;">
+            <p style="color: #999; font-size: 12px; margin: 0; font-family: Arial, sans-serif; text-transform: uppercase; letter-spacing: 0.5px;">
+              This email was sent because you requested a cruise quote on our website zipsea.com
             </p>
           </div>
         </div>
