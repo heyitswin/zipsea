@@ -265,16 +265,18 @@ export class RealtimeWebhookService {
         const megaBatches = Math.ceil(totalCruises / this.MAX_CRUISES_PER_MEGA_BATCH);
         
         await this.sendSlackUpdate({
-          title: '📦 Processing Large Cruise Line in Mega-Batches',
-          message: `Line ${lineId} has ${totalCruises} cruises. Processing in ${megaBatches} mega-batches of up to ${this.MAX_CRUISES_PER_MEGA_BATCH} cruises each`,
+          title: '📦 Large Cruise Line Detected - Using Mega-Batching',
+          message: `${this.getCruiseLineName(databaseLineId)} (Line ${lineId}): ${totalCruises} cruises will be processed in ${megaBatches} mega-batches to prevent FTP overload`,
           details: {
+            cruiseLine: this.getCruiseLineName(databaseLineId),
             webhookLineId: lineId,
             databaseLineId,
             totalCruises,
             megaBatches,
-            megaBatchSize: this.MAX_CRUISES_PER_MEGA_BATCH,
-            estimatedTime: `${Math.round((totalCruises * 0.5) / 60)} minutes`,
-            processingMode: 'mega_batched_realtime'
+            cruisesPerBatch: this.MAX_CRUISES_PER_MEGA_BATCH,
+            ftpConnections: `${megaBatches} (vs ${totalCruises} without batching)`,
+            estimatedTime: `${Math.round((totalCruises * 0.3) / 60)}-${Math.round((totalCruises * 0.5) / 60)} minutes`,
+            processingStrategy: 'Persistent FTP connections with bulk downloads'
           }
         });
       }
@@ -284,14 +286,14 @@ export class RealtimeWebhookService {
         
         // Send accurate Slack message
         await this.sendSlackUpdate({
-          title: '⚠️ No Cruises Found',
-          message: `Webhook for line ${lineId} received, but no active cruises found in database`,
+          title: '⚠️ No Active Cruises to Update',
+          message: `${this.getCruiseLineName(databaseLineId)} webhook received but no future departures found`,
           details: {
+            cruiseLine: this.getCruiseLineName(databaseLineId),
             webhookLineId: lineId,
             databaseLineId,
-            cruisesFound: 0,
-            actualUpdates: 0,
-            ftpConnectionFailures: 0
+            reason: 'All cruises have sailed or are inactive',
+            action: 'No processing needed'
           }
         });
 
@@ -303,15 +305,18 @@ export class RealtimeWebhookService {
       // Send initial processing notification
       const totalBatches = Math.ceil(totalCruises / this.BATCH_SIZE);
       await this.sendSlackUpdate({
-        title: '🔄 Real-time Webhook Processing Started (Batched)',
-        message: `Processing ${totalCruises} cruises for line ${lineId} in ${totalBatches} batches of ${this.BATCH_SIZE}`,
+        title: '🔄 Webhook Processing Started',
+        message: `${this.getCruiseLineName(databaseLineId)}: Downloading ${totalCruises} cruise pricing updates from FTP`,
         details: {
-          lineId,
+          cruiseLine: this.getCruiseLineName(databaseLineId),
+          webhookLineId: lineId,
+          databaseLineId,
           totalCruises,
+          processingBatches: totalBatches,
           batchSize: this.BATCH_SIZE,
-          totalBatches,
-          processingMode: 'batched_realtime',
-          webhookId
+          estimatedDuration: `${Math.round((totalCruises * 0.2) / 60)}-${Math.round((totalCruises * 0.4) / 60)} minutes`,
+          webhookId,
+          timestamp: new Date().toISOString()
         }
       });
 
@@ -726,32 +731,52 @@ export class RealtimeWebhookService {
   private async sendAccurateSlackUpdate(result: ProcessingResult, lineId: number, totalCruises: number): Promise<void> {
     const successRate = totalCruises > 0 ? Math.round((result.actuallyUpdated / totalCruises) * 100) : 0;
     const ftpFailureRate = totalCruises > 0 ? Math.round((result.ftpConnectionFailures / totalCruises) * 100) : 0;
+    const databaseLineId = getDatabaseLineId(lineId);
     
     let statusIcon = '✅';
-    let title = 'Real-time Webhook Processing Completed';
+    let title = 'Webhook Processing Complete';
+    let statusDescription = 'Successfully updated pricing';
     
     if (result.ftpConnectionFailures > result.actuallyUpdated) {
-      statusIcon = '❌';
+      statusIcon = '🔴';
       title = 'Webhook Processing Failed';
+      statusDescription = 'Failed to download pricing from FTP';
+    } else if (successRate < 50) {
+      statusIcon = '🟡';
+      title = 'Webhook Processing Partially Complete';
+      statusDescription = 'Some pricing updates failed';
     } else if (result.ftpConnectionFailures > 0) {
-      statusIcon = '⚠️';
-      title = 'Webhook Processing Completed with Issues';
+      statusIcon = '🟢';
+      title = 'Webhook Processing Complete';
+      statusDescription = 'Most pricing updated successfully';
     }
+
+    const processingMinutes = Math.round(result.processingTimeMs / 60000);
+    const processingSeconds = Math.round((result.processingTimeMs % 60000) / 1000);
+    const timeString = processingMinutes > 0 ? `${processingMinutes}m ${processingSeconds}s` : `${processingSeconds}s`;
 
     await this.sendSlackUpdate({
       title: `${statusIcon} ${title}`,
-      message: `Line ${lineId}: ${result.actuallyUpdated} cruises actually updated out of ${totalCruises} (${successRate}% success)`,
+      message: `${this.getCruiseLineName(databaseLineId)}: ${statusDescription}. ${result.actuallyUpdated}/${totalCruises} cruises updated (${successRate}%)`,
       details: {
-        lineId,
+        cruiseLine: this.getCruiseLineName(databaseLineId),
+        webhookLineId: lineId,
+        databaseLineId,
         totalCruises,
-        actualUpdates: result.actuallyUpdated,
-        ftpConnectionFailures: result.ftpConnectionFailures,
+        cruisesUpdated: result.actuallyUpdated,
+        cruisesUnchanged: result.successful - result.actuallyUpdated,
+        ftpDownloadsFailed: result.ftpConnectionFailures,
+        successRate: `${successRate}%`,
         ftpFailureRate: `${ftpFailureRate}%`,
-        processingTimeSeconds: Math.round(result.processingTimeMs / 1000),
-        errorSummary: this.summarizeErrors(result.errors),
-        note: result.ftpConnectionFailures === 0 ? 
-          'All cruise updates successful!' : 
-          `${result.ftpConnectionFailures} cruises failed due to FTP connection issues`
+        processingTime: timeString,
+        throughput: `${Math.round(totalCruises / (result.processingTimeMs / 1000))} cruises/second`,
+        errorBreakdown: this.summarizeErrors(result.errors),
+        timestamp: new Date().toISOString(),
+        result: result.ftpConnectionFailures === 0 ? 
+          '✅ All pricing data successfully synchronized' : 
+          result.ftpConnectionFailures > totalCruises * 0.5 ?
+          '❌ FTP server issues prevented most updates' :
+          `⚠️ ${result.ftpConnectionFailures} cruises could not be updated due to FTP issues`
       }
     });
   }
@@ -759,6 +784,32 @@ export class RealtimeWebhookService {
   /**
    * Helper methods
    */
+  private getCruiseLineName(lineId: number): string {
+    const cruiseLineNames: Record<number, string> = {
+      1: 'P&O Cruises',
+      3: 'Celebrity Cruises',
+      5: 'Cunard',
+      8: 'Carnival',
+      9: 'Costa Cruises',
+      10: 'Crystal Cruises',
+      16: 'Holland America',
+      21: 'Virgin Voyages',
+      22: 'Royal Caribbean',
+      41: 'American Cruise Lines',
+      46: 'Princess Cruises',
+      62: 'MSC Cruises',
+      63: 'AmaWaterways',
+      66: 'Silversea',
+      91: 'Oceania Cruises',
+      118: 'Disney Cruise Line',
+      123: 'Norwegian Cruise Line',
+      186: 'AIDA',
+      643: 'Regent Seven Seas',
+      848: 'Ambassador Cruise Line'
+    };
+    return cruiseLineNames[lineId] || `Line ${lineId}`;
+  }
+  
   private determinePriority(lineId: number): number {
     // Higher priority for lines that frequently have issues
     const highPriorityLines = [5, 21, 22, 46, 118, 123, 643];
