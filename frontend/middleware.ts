@@ -9,6 +9,8 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up',
   '/terms',
   '/privacy',
+  '/why-zipsea',
+  '/faqs',
   '/api/send-quote-confirmation',
   '/api/test-email',
   '/api/test-config',

@@ -1,6 +1,7 @@
-import { logger } from '../utils/logger';
+import { logger } from '../config/logger';
 import * as ftp from 'basic-ftp';
 import { env } from '../config/environment';
+import { Writable } from 'stream';
 
 export interface BulkDownloadResult {
   lineId: number;
@@ -60,7 +61,7 @@ export class BulkFtpDownloaderService {
       
       logger.info(`🚀 Starting bulk download for line ${lineId}`, {
         totalFiles: cruiseIds.length,
-        ships: [...new Set(shipNames)].length
+        ships: Array.from(new Set(shipNames)).length
       });
       
       // Process in chunks to avoid memory issues
@@ -126,7 +127,7 @@ export class BulkFtpDownloaderService {
     }
     
     // Process each ship's files
-    for (const [ship, cruises] of shipGroups) {
+    for (const [ship, cruises] of Array.from(shipGroups.entries())) {
       const shipDir = `/2025/09/${lineId}/${ship}`;
       
       try {
@@ -138,21 +139,17 @@ export class BulkFtpDownloaderService {
           try {
             const fileName = `${cruiseId}.json`;
             
-            // Use streaming to avoid memory issues
+            // Download file to memory using a custom writable stream
             const chunks: Buffer[] = [];
-            const stream = await client.downloadTo(
-              writable => writable,
-              fileName
-            );
             
-            // Collect data
-            stream.on('data', chunk => chunks.push(chunk));
-            
-            await new Promise((resolve, reject) => {
-              stream.on('end', resolve);
-              stream.on('error', reject);
+            const memoryStream = new Writable({
+              write(chunk: Buffer, encoding: BufferEncoding, callback: (error?: Error | null) => void) {
+                chunks.push(chunk);
+                callback();
+              }
             });
             
+            await client.downloadTo(memoryStream, fileName);
             const data = Buffer.concat(chunks).toString('utf-8');
             const jsonData = JSON.parse(data);
             
@@ -200,9 +197,7 @@ export class BulkFtpDownloaderService {
       host: env.TRAVELTEK_FTP_HOST,
       user: env.TRAVELTEK_FTP_USER,
       password: env.TRAVELTEK_FTP_PASSWORD,
-      secure: false,
-      connTimeout: 30000,
-      pasvTimeout: 30000
+      secure: false
     });
     
     logger.info('📡 Established new FTP connection');
@@ -217,7 +212,11 @@ export class BulkFtpDownloaderService {
       this.connectionPool.push(client);
     } else {
       // Pool is full, close this connection
-      client.close().catch(() => {});
+      try {
+        client.close();
+      } catch (error) {
+        // Ignore errors during connection cleanup
+      }
     }
   }
   
