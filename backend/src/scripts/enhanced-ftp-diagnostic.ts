@@ -473,7 +473,7 @@ export async function runEnhancedFtpDiagnostic() {
 }
 
 // Export for use as module
-export { EnhancedDiagnosticResult, EnhancedFtpDiagnostic };
+export { EnhancedDiagnosticResult };
 
 // Run if called directly
 if (require.main === module) {

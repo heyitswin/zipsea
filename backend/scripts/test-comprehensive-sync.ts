@@ -1,7 +1,7 @@
 #!/usr/bin/env ts-node
 
 import { ftpComprehensiveSyncService } from '../src/services/ftp-comprehensive-sync.service';
-import { logger } from '../src/utils/logger';
+import { logger } from '../src/config/logger';
 import * as dotenv from 'dotenv';
 
 dotenv.config();

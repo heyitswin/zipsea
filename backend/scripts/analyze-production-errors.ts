@@ -139,9 +139,11 @@ async function main() {
     console.log('\n2. 📈 Database Update Activity');
     console.log('─────────────────────────────');
     
+    let recentUpdates: any[] = [];
+    
     try {
       // Check recent cruise updates
-      const recentUpdates = await db.execute(sql`
+      recentUpdates = await db.execute(sql`
         SELECT 
           cruise_line_id,
           COUNT(*) as cruise_count,

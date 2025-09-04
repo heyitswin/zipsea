@@ -334,7 +334,7 @@ class BulkFTPMonitor {
     console.log(`🎯 Future cruises: ${chalk.blue(status.future_cruises || 0)}`);
     console.log(`⏳ Pending updates: ${chalk.yellow(status.pending_updates || 0)}`);
     console.log(`🔥 Updated last hour: ${chalk.green(status.updated_last_hour || 0)}`);
-    console.log(`⚡ Updated last 10min: ${chalk.brightGreen(status.updated_last_10min || 0)}`);
+    console.log(`⚡ Updated last 10min: ${chalk.greenBright(status.updated_last_10min || 0)}`);
     
     if (status.last_update) {
       const timeSince = Date.now() - new Date(status.last_update).getTime();
