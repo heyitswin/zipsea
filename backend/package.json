@@ -37,6 +37,7 @@
     "script:analyze-production-errors": "tsx scripts/analyze-production-errors.ts",
     "script:cleanup-stuck-jobs": "tsx scripts/cleanup-stuck-jobs.ts",
     "script:fix-webhook-processing": "tsx scripts/fix-webhook-processing.ts",
+    "script:production-ftp-diagnostic": "tsx src/scripts/production-ftp-diagnostic.ts",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
     "render:build": "./build.sh",
