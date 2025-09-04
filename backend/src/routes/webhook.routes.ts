@@ -245,27 +245,30 @@ router.post('/traveltek', async (req: Request, res: Response, next: NextFunction
       };
 
       try {
-        // Process webhook in real-time
-        const processingResult = await realtimeWebhookService.processWebhook(payload);
+        // Process webhook using simple flagging
+        await webhookSimpleService.processCruiselinePricingUpdate({
+          eventType: payload.event,
+          lineId: payload.lineid,
+          timestamp: String(payload.timestamp),
+        });
 
-        logger.info('📨 Generic webhook queued for real-time processing', {
+        logger.info('📨 Generic webhook processed - cruises flagged', {
           webhookId,
           lineId: payload.lineid,
-          jobId: processingResult.jobId,
         });
 
         res.status(200).json({
           success: true,
-          message: 'Generic cruise line pricing webhook received and processing in real-time',
+          message:
+            'Generic cruise line pricing webhook received and cruises flagged for batch processing',
           timestamp: new Date().toISOString(),
           event: webhookEvent,
           webhookId,
           lineId: payload.lineid,
-          processingJobId: processingResult.jobId,
-          processingMode: 'realtime_parallel',
+          processingMode: 'batch_flagging_v6',
         });
       } catch (processingError) {
-        logger.error('❌ Failed to queue generic webhook for real-time processing', {
+        logger.error('❌ Failed to flag cruises from generic webhook', {
           webhookId,
           lineId: payload.lineid,
           error: processingError instanceof Error ? processingError.message : 'Unknown error',
@@ -273,7 +276,7 @@ router.post('/traveltek', async (req: Request, res: Response, next: NextFunction
 
         res.status(200).json({
           success: false,
-          message: 'Generic webhook received but failed to queue for processing',
+          message: 'Generic webhook received but failed to flag cruises',
           timestamp: new Date().toISOString(),
           event: webhookEvent,
           webhookId,

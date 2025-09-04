@@ -44,7 +44,7 @@ export class PriceSyncBatchServiceV6 {
       workerId: this.workerId,
       maxPerRun: this.MAX_LINES_PER_RUN,
       monthsToSync: this.MONTHS_TO_SYNC,
-      maxFilesPerBatch: this.MAX_FILES_PER_BATCH
+      maxFilesPerBatch: this.MAX_FILES_PER_BATCH,
     });
 
     const result: SyncResult = {
@@ -59,7 +59,7 @@ export class PriceSyncBatchServiceV6 {
       duration: 0,
       details: [],
       processedCruiseIds: [],
-      remainingCruises: 0
+      remainingCruises: 0,
     };
 
     try {
@@ -76,18 +76,18 @@ export class PriceSyncBatchServiceV6 {
 
       logger.info(`📋 Processing ${linesToProcess.length} cruise lines`, {
         cruiseLines: linesToProcess,
-        skipped: result.skippedLines
+        skipped: result.skippedLines,
       });
 
       // Send Slack notification
       await slackService.notifyCustomMessage({
-        title: `🔄 Starting batch price sync V6`,
-        message: `Processing ${linesToProcess.length} lines (batch mode)`,
+        title: `🔄 Batch Sync Started`,
+        message: `Processing flagged cruises from ${linesToProcess.length} line${linesToProcess.length > 1 ? 's' : ''}`,
         details: {
           cruiseLines: linesToProcess,
-          workerId: this.workerId,
-          maxFilesPerBatch: this.MAX_FILES_PER_BATCH
-        }
+          batchSize: this.MAX_FILES_PER_BATCH,
+          note: 'Processing cruises that were flagged by recent webhooks',
+        },
       });
 
       // Process each cruise line
@@ -109,9 +109,8 @@ export class PriceSyncBatchServiceV6 {
 
           result.details.push({
             lineId,
-            ...lineResult
+            ...lineResult,
           });
-
         } catch (error) {
           logger.error(`❌ Error syncing line ${lineId}:`, error);
           result.totalErrors++;
@@ -125,22 +124,26 @@ export class PriceSyncBatchServiceV6 {
       result.remainingCruises = remainingCount;
 
       // Send completion notification
-      const statusIcon = result.remainingCruises > 0 ? '⚠️' : '✅';
+      const statusIcon = result.remainingCruises > 0 ? '⏳' : '✅';
+      const statusMessage =
+        result.remainingCruises > 0
+          ? `Batch complete - ${result.remainingCruises} cruises still pending`
+          : 'All flagged cruises processed!';
+
       await slackService.notifyCustomMessage({
-        title: `${statusIcon} Price sync V6 completed`,
-        message: `Processed: ${result.processedCruiseIds.length} cruises | Remaining: ${result.remainingCruises} cruises`,
+        title: `${statusIcon} Batch Sync Complete`,
+        message: statusMessage,
         details: {
-          created: result.totalCruisesCreated,
-          updated: result.totalCruisesUpdated,
           processed: result.processedCruiseIds.length,
+          updated: result.totalCruisesUpdated,
           remaining: result.remainingCruises,
           errors: result.totalErrors,
-          durationSeconds: Math.round(result.duration / 1000)
-        }
+          duration: `${Math.round(result.duration / 1000)}s`,
+          nextRun: result.remainingCruises > 0 ? 'In 15 minutes' : 'When new webhooks arrive',
+        },
       });
 
       logger.info(`✅ Batch sync V6 completed in ${Math.round(result.duration / 1000)}s`, result);
-
     } catch (error) {
       logger.error('❌ Fatal error in batch sync:', error);
       result.totalErrors++;
@@ -161,7 +164,7 @@ export class PriceSyncBatchServiceV6 {
       pricesUpdated: 0,
       errors: 0,
       processedCruiseIds: [] as string[],
-      remainingCruises: 0
+      remainingCruises: 0,
     };
 
     let connection: any = null;
@@ -180,21 +183,23 @@ export class PriceSyncBatchServiceV6 {
         ftpConnectionPool.getConnection(),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('FTP connection timeout')), 30000)
-        )
+        ),
       ]);
 
       logger.info(`🔗 Got FTP connection for line ${lineId}`);
 
       // Process in batches
       let batchStart = 0;
-      while (batchStart < cruisesToSync.length && result.filesProcessed < this.MAX_FILES_PER_BATCH) {
-        const batchEnd = Math.min(
-          batchStart + this.MAX_FILES_PER_BATCH,
-          cruisesToSync.length
-        );
+      while (
+        batchStart < cruisesToSync.length &&
+        result.filesProcessed < this.MAX_FILES_PER_BATCH
+      ) {
+        const batchEnd = Math.min(batchStart + this.MAX_FILES_PER_BATCH, cruisesToSync.length);
         const batch = cruisesToSync.slice(batchStart, batchEnd);
 
-        logger.info(`📦 Processing batch ${batchStart}-${batchEnd} of ${cruisesToSync.length} for line ${lineId}`);
+        logger.info(
+          `📦 Processing batch ${batchStart}-${batchEnd} of ${cruisesToSync.length} for line ${lineId}`
+        );
 
         for (const cruise of batch) {
           if (result.filesProcessed >= this.MAX_FILES_PER_BATCH) {
@@ -219,10 +224,11 @@ export class PriceSyncBatchServiceV6 {
       logger.info(`✅ Line ${lineId} batch complete:`, {
         processed: result.filesProcessed,
         remaining: result.remainingCruises,
-        successRate: result.filesProcessed > 0 ?
-          `${Math.round((result.filesProcessed / cruisesToSync.length) * 100)}%` : '0%'
+        successRate:
+          result.filesProcessed > 0
+            ? `${Math.round((result.filesProcessed / cruisesToSync.length) * 100)}%`
+            : '0%',
       });
-
     } catch (error) {
       logger.error(`Error syncing line ${lineId}:`, error);
       result.errors++;
@@ -238,7 +244,12 @@ export class PriceSyncBatchServiceV6 {
   /**
    * Process a single cruise file
    */
-  private async processCruise(connection: any, cruise: any, lineId: number, result: any): Promise<boolean> {
+  private async processCruise(
+    connection: any,
+    cruise: any,
+    lineId: number,
+    result: any
+  ): Promise<boolean> {
     try {
       const year = new Date(cruise.sailing_date).getFullYear();
       const month = String(new Date(cruise.sailing_date).getMonth() + 1).padStart(2, '0');
@@ -266,7 +277,6 @@ export class PriceSyncBatchServiceV6 {
       }
 
       return false; // Failed to download/parse
-
     } catch (err) {
       result.errors++;
       logger.debug(`Error processing cruise ${cruise.cruise_id}:`, err);
@@ -346,20 +356,19 @@ export class PriceSyncBatchServiceV6 {
         write(chunk: Buffer, encoding: string, callback: Function) {
           chunks.push(chunk);
           callback();
-        }
+        },
       });
 
       await Promise.race([
         connection.downloadTo(writableStream, filePath),
         new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Download timeout')), this.FILE_DOWNLOAD_TIMEOUT)
-        )
+        ),
       ]);
 
       const buffer = Buffer.concat(chunks);
       const content = buffer.toString();
       return JSON.parse(content);
-
     } catch (err) {
       return null;
     }
@@ -395,11 +404,12 @@ export class PriceSyncBatchServiceV6 {
       interior: data.cheapestinside ? parseFloat(String(data.cheapestinside)) : null,
       oceanview: data.cheapestoutside ? parseFloat(String(data.cheapestoutside)) : null,
       balcony: data.cheapestbalcony ? parseFloat(String(data.cheapestbalcony)) : null,
-      suite: data.cheapestsuite ? parseFloat(String(data.cheapestsuite)) : null
+      suite: data.cheapestsuite ? parseFloat(String(data.cheapestsuite)) : null,
     };
 
-    const validPrices = [prices.interior, prices.oceanview, prices.balcony, prices.suite]
-      .filter(p => p !== null && p > 0) as number[];
+    const validPrices = [prices.interior, prices.oceanview, prices.balcony, prices.suite].filter(
+      p => p !== null && p > 0
+    ) as number[];
     const cheapestPrice = validPrices.length > 0 ? Math.min(...validPrices) : null;
 
     // Upsert cruise
@@ -445,7 +455,7 @@ export class PriceSyncBatchServiceV6 {
     return {
       created: false, // Simplified for now
       priceUpdated: true,
-      cruiseId: cruiseId
+      cruiseId: cruiseId,
     };
   }
 }

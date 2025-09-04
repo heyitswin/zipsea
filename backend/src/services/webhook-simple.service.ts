@@ -27,7 +27,7 @@ export class WebhookSimpleService {
       logger.info('📌 WEBHOOK SIMPLE: Cruiseline pricing update received', {
         webhookLineId: data.lineId,
         eventType: data.eventType,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       if (!data.lineId) {
@@ -40,7 +40,7 @@ export class WebhookSimpleService {
       logger.info('🔄 WEBHOOK SIMPLE: Line ID mapping', {
         webhookLineId: data.lineId,
         databaseLineId: databaseLineId,
-        isMapped: data.lineId !== databaseLineId
+        isMapped: data.lineId !== databaseLineId,
       });
 
       // Flag all active cruises for this line as needing price update
@@ -61,29 +61,33 @@ export class WebhookSimpleService {
       logger.info('✅ WEBHOOK SIMPLE: Cruises flagged for sync', {
         databaseLineId,
         cruisesFlagged: rowsUpdated,
-        durationMs: duration
+        durationMs: duration,
       });
 
       // Send Slack notification
-      await slackService.notifyCustomMessage({
-        title: '📌 Webhook: Cruises Flagged for Sync',
-        message: `Line ${databaseLineId} - ${rowsUpdated} cruises marked for batch processing`,
-        details: {
-          webhookLineId: data.lineId,
-          databaseLineId,
-          cruisesFlagged: rowsUpdated,
-          processingTime: `${duration}ms`,
-          method: 'simple-flagging'
-        }
-      });
-
+      if (rowsUpdated > 0) {
+        await slackService.notifyCustomMessage({
+          title: '🎯 Webhook Received - Cruises Flagged',
+          message: `Line ${databaseLineId}: ${rowsUpdated} cruises flagged for next batch sync (runs every 15 min)`,
+          details: {
+            webhookLineId: data.lineId,
+            databaseLineId,
+            cruisesFlagged: rowsUpdated,
+            processingTime: `${duration}ms`,
+            nextSyncIn: 'Within 15 minutes',
+            note: 'Cruises will be updated in the next scheduled batch run',
+          },
+        });
+      } else {
+        logger.info('No new cruises to flag - all already marked or no active cruises');
+      }
     } catch (error) {
       logger.error('❌ WEBHOOK SIMPLE: Failed to process cruiseline pricing update', error);
 
       // Send error notification
       await slackService.notifySyncError(
         error instanceof Error ? error.message : 'Unknown error',
-        `Simple webhook processing for line ${data.lineId}`
+        `Failed to flag cruises for line ${data.lineId} - manual intervention may be required`
       );
 
       throw error;
@@ -99,10 +103,10 @@ export class WebhookSimpleService {
       logger.info('📌 WEBHOOK SIMPLE: Cruise pricing update received', {
         cruiseId: data.cruiseId,
         cruiseIds: data.cruiseIds?.length,
-        eventType: data.eventType
+        eventType: data.eventType,
       });
 
-      const cruiseIds = data.cruiseId ? [data.cruiseId] : (data.cruiseIds || []);
+      const cruiseIds = data.cruiseId ? [data.cruiseId] : data.cruiseIds || [];
       if (cruiseIds.length === 0) {
         throw new Error('Cruise ID(s) required for pricing updates');
       }
@@ -113,34 +117,44 @@ export class WebhookSimpleService {
         const updateResult = await db
           .update(cruises)
           .set({
-            needs_price_update: true
+            needs_price_update: true,
           })
-          .where(and(
-            eq(cruises.cruiseId, String(cruiseId)),
-            eq(cruises.isActive, true),
-            gte(cruises.sailingDate, new Date())
-          ));
+          .where(
+            and(
+              eq(cruises.cruiseId, String(cruiseId)),
+              eq(cruises.isActive, true),
+              gte(cruises.sailingDate, new Date())
+            )
+          );
 
         if (updateResult.rowCount && updateResult.rowCount > 0) {
           flaggedCount++;
         }
       }
 
-      logger.info(`✅ WEBHOOK SIMPLE: ${flaggedCount}/${cruiseIds.length} cruises flagged for sync`);
+      logger.info(
+        `✅ WEBHOOK SIMPLE: ${flaggedCount}/${cruiseIds.length} cruises flagged for sync`
+      );
 
       // Send Slack notification
       if (flaggedCount > 0) {
         await slackService.notifyCustomMessage({
-          title: '📌 Webhook: Individual Cruises Flagged',
-          message: `${flaggedCount} cruises marked for batch processing`,
+          title: '🎯 Individual Cruise Update Received',
+          message: `${flaggedCount} cruise${flaggedCount > 1 ? 's' : ''} flagged for next batch sync`,
           details: {
             totalRequested: cruiseIds.length,
             successfullyFlagged: flaggedCount,
-            method: 'simple-flagging'
-          }
+            failedToFlag: cruiseIds.length - flaggedCount,
+            nextSyncIn: 'Within 15 minutes',
+            note:
+              flaggedCount < cruiseIds.length
+                ? 'Some cruises were not flagged (may be inactive or past sailing)'
+                : 'All requested cruises flagged successfully',
+          },
         });
+      } else {
+        logger.info('No cruises were flagged - they may be inactive or already flagged');
       }
-
     } catch (error) {
       logger.error('❌ WEBHOOK SIMPLE: Failed to process cruise pricing update', error);
       throw error;
@@ -156,7 +170,7 @@ export class WebhookSimpleService {
     logger.info('📨 WEBHOOK SIMPLE: Processing webhook', {
       eventType,
       hasLineId: !!payload.lineId || !!payload.line_id,
-      hasCruiseId: !!payload.cruiseId || !!payload.cruise_id
+      hasCruiseId: !!payload.cruiseId || !!payload.cruise_id,
     });
 
     switch (eventType) {
