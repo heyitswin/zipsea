@@ -48,10 +48,13 @@ export function getWebhookLineId(databaseLineId: number): number {
   // Find the webhook ID that maps to this database ID
   for (const [webhookId, dbId] of Object.entries(CRUISE_LINE_ID_MAPPING)) {
     if (dbId === databaseLineId) {
-      return parseInt(webhookId);
+      const result = parseInt(webhookId);
+      console.log(`🔄 FTP Path Mapping: Database line ${databaseLineId} -> Webhook line ${result} (mapped)`);
+      return result;
     }
   }
   // If no mapping found, assume they're the same
+  console.log(`🔄 FTP Path Mapping: Database line ${databaseLineId} -> Webhook line ${databaseLineId} (no mapping, assumed same)`);
   return databaseLineId;
 }
 
