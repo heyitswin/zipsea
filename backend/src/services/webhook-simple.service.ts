@@ -1,7 +1,7 @@
 import { db } from '../db/connection';
 import { logger } from '../config/logger';
 import { cruises, ships } from '../db/schema';
-import { eq, and, sql, gte } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { slackService } from './slack.service';
 import { getDatabaseLineId } from '../config/cruise-line-mapping';
 
@@ -123,7 +123,7 @@ export class WebhookSimpleService {
             and(
               eq(cruises.cruiseId, String(cruiseId)),
               eq(cruises.isActive, true),
-              gte(cruises.sailingDate, new Date())
+              sql`${cruises.sailingDate} >= CURRENT_DATE`
             )
           );
 

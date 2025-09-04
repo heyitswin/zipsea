@@ -708,17 +708,20 @@ router.post('/test-simulate', async (req: Request, res: Response) => {
       testEndpoint: '/test-simulate',
     });
 
-    // Process the webhook using our new real-time service
-    const processingResult = await realtimeWebhookService.processWebhook(simulatedPayload);
+    // Process the webhook using simple flagging service
+    await webhookSimpleService.processCruiselinePricingUpdate({
+      eventType: simulatedPayload.event,
+      lineId: simulatedPayload.lineid,
+      timestamp: String(simulatedPayload.timestamp),
+    });
 
     res.status(200).json({
       success: true,
-      message: 'Webhook simulation queued for real-time processing',
+      message: 'Webhook simulation - cruises flagged for batch processing',
       timestamp: new Date().toISOString(),
       simulation: {
         payload: simulatedPayload,
-        processingJobId: processingResult.jobId,
-        processingMode: 'realtime_parallel',
+        processingMode: 'batch_flagging_v6',
         note: 'Check Slack for accurate processing results with FTP connection status',
       },
     });
