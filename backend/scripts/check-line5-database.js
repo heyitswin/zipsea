@@ -11,7 +11,7 @@ const { Client } = require('pg');
 const logger = {
   info: (message, ...args) => console.log(`[INFO] ${message}`, ...args),
   error: (message, ...args) => console.error(`[ERROR] ${message}`, ...args),
-  warn: (message, ...args) => console.warn(`[WARN] ${message}`, ...args)
+  warn: (message, ...args) => console.warn(`[WARN] ${message}`, ...args),
 };
 
 async function checkLine5Database() {
@@ -24,7 +24,7 @@ async function checkLine5Database() {
     // Connect to database
     client = new Client({
       connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false }
+      ssl: { rejectUnauthorized: false },
     });
 
     await client.connect();
@@ -48,7 +48,7 @@ async function checkLine5Database() {
     // Check ships for line 5
     logger.info('\n🚢 Checking ships for cruise line 5...');
     const shipsQuery = `
-      SELECT id, name, cruise_line_id, capacity, is_active
+      SELECT id, name, cruise_line_id, occupancy, is_active
       FROM ships
       WHERE cruise_line_id = 5
       ORDER BY name
@@ -58,7 +58,9 @@ async function checkLine5Database() {
     const shipsResult = await client.query(shipsQuery);
     logger.info(`Found ${shipsResult.rows.length} ships for cruise line 5:`);
     shipsResult.rows.forEach(row => {
-      logger.info(`  - ID: ${row.id}, Name: ${row.name}, Active: ${row.is_active}, Capacity: ${row.capacity || 'N/A'}`);
+      logger.info(
+        `  - ID: ${row.id}, Name: ${row.name}, Active: ${row.is_active}, Occupancy: ${row.occupancy || 'N/A'}`
+      );
     });
 
     // Check cruises for line 5
@@ -79,7 +81,9 @@ async function checkLine5Database() {
     const cruisesResult = await client.query(cruisesQuery);
     logger.info(`Found ${cruisesResult.rows.length} active cruises for cruise line 5:`);
     cruisesResult.rows.forEach(row => {
-      logger.info(`  - Cruise ID: ${row.cruise_id}, Name: ${row.name}, Ship: ${row.ship_name}, Sailing: ${row.sailing_date}, Nights: ${row.nights}`);
+      logger.info(
+        `  - Cruise ID: ${row.cruise_id}, Name: ${row.name}, Ship: ${row.ship_name}, Sailing: ${row.sailing_date}, Nights: ${row.nights}`
+      );
     });
 
     // Check if there are any cruises at all for line 5 (including inactive)
@@ -92,7 +96,9 @@ async function checkLine5Database() {
 
     const allCruisesResult = await client.query(allCruisesQuery);
     const counts = allCruisesResult.rows[0];
-    logger.info(`\n📊 Cruise line 5 summary: ${counts.active_cruises} active / ${counts.total_cruises} total cruises`);
+    logger.info(
+      `\n📊 Cruise line 5 summary: ${counts.active_cruises} active / ${counts.total_cruises} total cruises`
+    );
 
     // Check recent webhook processing attempts
     logger.info('\n📨 Checking recent webhook processing logs...');
@@ -122,9 +128,15 @@ async function checkLine5Database() {
     const hasPricing = pricingCount > 0;
 
     logger.info(`Cruise Line 5 Exists: ${hasLine5 ? '✅ Yes' : '❌ No'}`);
-    logger.info(`Ships for Line 5: ${hasShips ? '✅ Yes' : '❌ No'} (${shipsResult.rows.length} ships)`);
-    logger.info(`Active Cruises for Line 5: ${hasCruises ? '✅ Yes' : '❌ No'} (${cruisesResult.rows.length} cruises)`);
-    logger.info(`Pricing Data for Line 5: ${hasPricing ? '✅ Yes' : '❌ No'} (${pricingCount} records)`);
+    logger.info(
+      `Ships for Line 5: ${hasShips ? '✅ Yes' : '❌ No'} (${shipsResult.rows.length} ships)`
+    );
+    logger.info(
+      `Active Cruises for Line 5: ${hasCruises ? '✅ Yes' : '❌ No'} (${cruisesResult.rows.length} cruises)`
+    );
+    logger.info(
+      `Pricing Data for Line 5: ${hasPricing ? '✅ Yes' : '❌ No'} (${pricingCount} records)`
+    );
 
     logger.info('\n🔧 DIAGNOSIS:');
 
@@ -141,7 +153,6 @@ async function checkLine5Database() {
     } else {
       logger.info('✅ Line 5 has database records - issue might be in webhook processing logic');
     }
-
   } catch (error) {
     logger.error('❌ Database check failed:', error);
   } finally {
