@@ -38,7 +38,7 @@
     "script:cleanup-stuck-jobs": "tsx scripts/cleanup-stuck-jobs.ts",
     "script:fix-webhook-processing": "tsx scripts/fix-webhook-processing.ts",
     "script:production-ftp-diagnostic": "tsx src/scripts/production-ftp-diagnostic.ts",
-    "script:render-ftp-diagnostic": "tsx scripts/render-ftp-diagnostic.ts",
+    "script:render-ftp-diagnostic": "node scripts/render-ftp-diagnostic.js",
     "script:check-ftp-credentials": "tsx scripts/check-ftp-credentials.ts",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
