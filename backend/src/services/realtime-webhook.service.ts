@@ -33,6 +33,8 @@ export interface CruiseProcessingJobData {
   webhookId: string;
   filePath?: string;
   retryCount?: number;
+  batchNumber?: number;
+  totalBatches?: number;
 }
 
 export interface ProcessingResult {
