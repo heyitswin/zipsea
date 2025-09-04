@@ -39,6 +39,21 @@ export function getDatabaseLineId(webhookLineId: number): number {
 }
 
 /**
+ * Get the webhook line ID from a database line ID (reverse mapping)
+ * This is used for FTP path construction since FTP uses webhook line IDs
+ */
+export function getWebhookLineId(databaseLineId: number): number {
+  // Find the webhook ID that maps to this database ID
+  for (const [webhookId, dbId] of Object.entries(CRUISE_LINE_ID_MAPPING)) {
+    if (dbId === databaseLineId) {
+      return parseInt(webhookId);
+    }
+  }
+  // If no mapping found, assume they're the same
+  return databaseLineId;
+}
+
+/**
  * Known cruise line names for reference
  */
 export const CRUISE_LINE_NAMES: Record<number, string> = {

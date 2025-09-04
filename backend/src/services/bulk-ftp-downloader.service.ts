@@ -5,6 +5,7 @@ import { Writable } from 'stream';
 import { sql } from 'drizzle-orm';
 import { db } from '../db/connection';
 import { cruises, ships } from '../db/schema';
+import { getWebhookLineId } from '../config/cruise-line-mapping';
 
 export interface BulkDownloadResult {
   lineId: number;
@@ -288,15 +289,25 @@ export class BulkFtpDownloaderService {
     // Try multiple directory patterns for each year/month combination
     const allPossibleDirs: string[] = [];
     
+    // Get the webhook line ID for FTP path construction
+    // FTP structure uses webhook line IDs, not database line IDs
+    const webhookLineId = getWebhookLineId(lineId);
+    
+    logger.info(`📁 BULK FTP DEBUG: Using webhook line ID ${webhookLineId} for FTP paths (database line ID: ${lineId})`, {
+      lineId,
+      webhookLineId,
+      shipKey
+    });
+    
     for (const yearMonth of uniqueYearMonths) {
-      // Pattern 1: /YYYY/MM/LINE/SHIP
-      allPossibleDirs.push(`/${yearMonth}/${lineId}/${shipKey}`);
-      // Pattern 2: /isell_json/YYYY/MM/LINE/SHIP 
-      allPossibleDirs.push(`/isell_json/${yearMonth}/${lineId}/${shipKey}`);
-      // Pattern 3: /YYYY/MM/LINE (no ship subdirectory)
-      allPossibleDirs.push(`/${yearMonth}/${lineId}`);
-      // Pattern 4: /isell_json/YYYY/MM/LINE (no ship subdirectory)
-      allPossibleDirs.push(`/isell_json/${yearMonth}/${lineId}`);
+      // Pattern 1: /YYYY/MM/WEBHOOK_LINE/SHIP
+      allPossibleDirs.push(`/${yearMonth}/${webhookLineId}/${shipKey}`);
+      // Pattern 2: /isell_json/YYYY/MM/WEBHOOK_LINE/SHIP 
+      allPossibleDirs.push(`/isell_json/${yearMonth}/${webhookLineId}/${shipKey}`);
+      // Pattern 3: /YYYY/MM/WEBHOOK_LINE (no ship subdirectory)
+      allPossibleDirs.push(`/${yearMonth}/${webhookLineId}`);
+      // Pattern 4: /isell_json/YYYY/MM/WEBHOOK_LINE (no ship subdirectory)
+      allPossibleDirs.push(`/isell_json/${yearMonth}/${webhookLineId}`);
       
       // Additional patterns with ship name variations if shipKey is an ID
       if (cruises.length > 0) {
@@ -306,8 +317,8 @@ export class BulkFtpDownloaderService {
             .replace(/[^a-zA-Z0-9\s]/g, '')
             .replace(/\s+/g, '_')
             .toLowerCase();
-          allPossibleDirs.push(`/${yearMonth}/${lineId}/${processedShipName}`);
-          allPossibleDirs.push(`/isell_json/${yearMonth}/${lineId}/${processedShipName}`);
+          allPossibleDirs.push(`/${yearMonth}/${webhookLineId}/${processedShipName}`);
+          allPossibleDirs.push(`/isell_json/${yearMonth}/${webhookLineId}/${processedShipName}`);
         }
       }
     }
