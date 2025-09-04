@@ -9,7 +9,7 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { logger } from '../config/logger';
 import { env } from '../config/environment';
-import { traveltekFTPService } from './traveltek-ftp.service';
+import { improvedFTPService } from './improved-ftp.service';
 import { slackService } from './slack.service';
 import { db } from '../db/connection';
 import { sql, eq } from 'drizzle-orm';
@@ -57,9 +57,15 @@ export class RealtimeWebhookService {
   private webhookWorker: Worker<WebhookJobData>;
   private cruiseWorker: Worker<CruiseProcessingJobData>;
   
+  // Track recent webhooks to prevent duplicates
+  private recentWebhooks = new Map<string, Date>();
+  private readonly DUPLICATE_PREVENTION_WINDOW = 5 * 60 * 1000; // 5 minutes
+  
   private readonly MAX_RETRIES = 3;
-  private readonly FTP_TIMEOUT = 15000; // 15 seconds
-  private readonly PARALLEL_CRUISE_WORKERS = 10; // Process 10 cruises in parallel
+  private readonly FTP_TIMEOUT = 30000; // 30 seconds - increased from 15s
+  private readonly PARALLEL_CRUISE_WORKERS = 5; // Reduced from 10 to 5 to avoid overwhelming FTP
+  private readonly BATCH_SIZE = 50; // Process cruises in batches of 50
+  private readonly MAX_CRUISES_PER_WEBHOOK = 1000; // Reject webhooks with too many cruises
 
   constructor() {
     // Initialize Redis connection
@@ -120,9 +126,9 @@ export class RealtimeWebhookService {
       this.processCruiseJob.bind(this),
       {
         connection: this.redisConnection,
-        concurrency: this.PARALLEL_CRUISE_WORKERS, // High concurrency for individual cruise updates
+        concurrency: this.PARALLEL_CRUISE_WORKERS, // Reduced concurrency to avoid FTP overload
         limiter: {
-          max: 50, // Max 50 cruise updates per second to avoid overwhelming FTP
+          max: 10, // Max 10 cruise updates per second - significantly reduced
           duration: 1000,
         },
       }
@@ -139,6 +145,34 @@ export class RealtimeWebhookService {
    */
   async processWebhook(payload: any): Promise<{ jobId: string; message: string }> {
     const webhookId = `wh_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const duplicateKey = `line_${payload.lineid}`;
+    
+    // Check for duplicate webhooks
+    const now = new Date();
+    const lastProcessed = this.recentWebhooks.get(duplicateKey);
+    
+    if (lastProcessed && (now.getTime() - lastProcessed.getTime()) < this.DUPLICATE_PREVENTION_WINDOW) {
+      const timeSinceLastMs = now.getTime() - lastProcessed.getTime();
+      const timeSinceLastSec = Math.round(timeSinceLastMs / 1000);
+      
+      logger.warn('🔄 Duplicate webhook detected - ignoring', {
+        webhookId,
+        lineId: payload.lineid,
+        timeSinceLastProcessing: `${timeSinceLastSec}s`,
+        lastProcessedAt: lastProcessed.toISOString()
+      });
+      
+      return {
+        jobId: `duplicate_${webhookId}`,
+        message: `Duplicate webhook ignored - Line ${payload.lineid} processed ${timeSinceLastSec}s ago`
+      };
+    }
+    
+    // Clean up old entries
+    this.cleanupOldWebhookEntries();
+    
+    // Record this webhook
+    this.recentWebhooks.set(duplicateKey, now);
     
     logger.info('🚀 Processing webhook in real-time', {
       webhookId,
@@ -216,6 +250,39 @@ export class RealtimeWebhookService {
       const totalCruises = cruisesToProcess.length;
       logger.info(`📈 Found ${totalCruises} cruises to process for line ${lineId}`);
 
+      // Check if too many cruises to process safely
+      if (totalCruises > this.MAX_CRUISES_PER_WEBHOOK) {
+        logger.error(`🚨 TOO MANY CRUISES: Line ${lineId} has ${totalCruises} cruises - exceeds limit of ${this.MAX_CRUISES_PER_WEBHOOK}`, {
+          webhookId,
+          lineId,
+          totalCruises,
+          maxAllowed: this.MAX_CRUISES_PER_WEBHOOK
+        });
+        
+        await this.sendSlackUpdate({
+          title: '🚨 Webhook Rejected - Too Many Cruises',
+          message: `Line ${lineId} has ${totalCruises} cruises which exceeds safety limit of ${this.MAX_CRUISES_PER_WEBHOOK}`,
+          details: {
+            webhookLineId: lineId,
+            databaseLineId,
+            cruisesFound: totalCruises,
+            maxAllowed: this.MAX_CRUISES_PER_WEBHOOK,
+            reason: 'Prevented FTP server overload',
+            recommendation: 'Consider splitting this line into multiple smaller updates'
+          }
+        });
+
+        result.failed = 1;
+        result.errors.push({
+          error: `Too many cruises (${totalCruises}) - exceeds safety limit of ${this.MAX_CRUISES_PER_WEBHOOK}`,
+          type: 'database_error'
+        });
+        
+        result.endTime = new Date();
+        result.processingTimeMs = result.endTime.getTime() - result.startTime.getTime();
+        return result;
+      }
+
       if (totalCruises === 0) {
         logger.warn(`⚠️ No active cruises found for line ${lineId} (database line ${databaseLineId})`);
         
@@ -238,33 +305,54 @@ export class RealtimeWebhookService {
       }
 
       // Send initial processing notification
+      const totalBatches = Math.ceil(totalCruises / this.BATCH_SIZE);
       await this.sendSlackUpdate({
-        title: '🔄 Real-time Webhook Processing Started',
-        message: `Processing ${totalCruises} cruises for line ${lineId} in parallel`,
+        title: '🔄 Real-time Webhook Processing Started (Batched)',
+        message: `Processing ${totalCruises} cruises for line ${lineId} in ${totalBatches} batches of ${this.BATCH_SIZE}`,
         details: {
           lineId,
           totalCruises,
-          processingMode: 'parallel_realtime',
+          batchSize: this.BATCH_SIZE,
+          totalBatches,
+          processingMode: 'batched_realtime',
           webhookId
         }
       });
 
-      // Queue all cruises for parallel processing
+      // Process cruises in batches to avoid overwhelming FTP server
       const cruiseJobs = [];
-      for (const cruise of cruisesToProcess) {
-        const cruiseJob = await this.cruiseQueue.add('process-cruise', {
-          cruiseId: cruise.id,
-          lineId: databaseLineId,
-          webhookId,
-          retryCount: 0
-        }, {
-          priority: this.determinePriority(lineId),
-        });
+      for (let i = 0; i < cruisesToProcess.length; i += this.BATCH_SIZE) {
+        const batch = cruisesToProcess.slice(i, i + this.BATCH_SIZE);
+        const batchNumber = Math.floor(i / this.BATCH_SIZE) + 1;
         
-        cruiseJobs.push(cruiseJob);
+        logger.info(`🔢 Processing batch ${batchNumber}/${totalBatches} (${batch.length} cruises)`);
+        
+        // Queue batch with delay between batches
+        for (const cruise of batch) {
+          const cruiseJob = await this.cruiseQueue.add('process-cruise', {
+            cruiseId: cruise.id,
+            lineId: databaseLineId,
+            webhookId,
+            retryCount: 0,
+            batchNumber,
+            totalBatches
+          }, {
+            priority: this.determinePriority(lineId),
+            // Add small delay between each cruise in batch
+            delay: (cruiseJobs.length % this.BATCH_SIZE) * 200, // 200ms between cruises
+          });
+          
+          cruiseJobs.push(cruiseJob);
+        }
+        
+        // Add delay between batches to prevent FTP overload
+        if (i + this.BATCH_SIZE < cruisesToProcess.length) {
+          logger.info(`⏳ Adding 2s delay before next batch to prevent FTP overload`);
+          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between batches
+        }
       }
 
-      logger.info(`⚡ Queued ${cruiseJobs.length} cruise processing jobs`);
+      logger.info(`⚡ Queued ${cruiseJobs.length} cruise processing jobs in ${totalBatches} batches`);
 
       // Wait for all cruise jobs to complete (with timeout)
       const PROCESSING_TIMEOUT = 5 * 60 * 1000; // 5 minutes total timeout
@@ -280,23 +368,30 @@ export class RealtimeWebhookService {
         } else {
           result.failed++;
           
-          if (jobResult.error?.includes('FTP connection') || jobResult.error?.includes('timeout')) {
+          // Properly format error message
+          const errorMessage = this.formatErrorMessage(jobResult.error);
+          
+          if (errorMessage.includes('FTP connection') || 
+              errorMessage.includes('timeout') || 
+              errorMessage.includes('ECONNREFUSED') ||
+              errorMessage.includes('ENOTFOUND') ||
+              errorMessage.includes('connection closed')) {
             result.ftpConnectionFailures++;
             result.errors.push({
               cruiseId: jobResult.cruiseId,
-              error: jobResult.error,
+              error: errorMessage,
               type: 'ftp_connection'
             });
-          } else if (jobResult.error?.includes('not found')) {
+          } else if (errorMessage.includes('not found') || errorMessage.includes('404')) {
             result.errors.push({
               cruiseId: jobResult.cruiseId,
-              error: jobResult.error,
+              error: errorMessage,
               type: 'file_not_found'
             });
           } else {
             result.errors.push({
               cruiseId: jobResult.cruiseId,
-              error: jobResult.error,
+              error: errorMessage,
               type: 'database_error'
             });
           }
@@ -427,20 +522,16 @@ export class RealtimeWebhookService {
       let usedPath = null;
       let ftpError = null;
 
-      // Try each path with timeout
+      // Try each path with improved FTP service (circuit breaker + pooling)
       for (const path of possiblePaths) {
         try {
-          cruiseData = await Promise.race([
-            traveltekFTPService.getCruiseDataFile(path),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('FTP timeout')), this.FTP_TIMEOUT)
-            )
-          ]) as any;
-          
+          cruiseData = await improvedFTPService.getCruiseDataFile(path);
           usedPath = path;
           break;
         } catch (error) {
-          ftpError = error instanceof Error ? error.message : 'Unknown FTP error';
+          const formattedError = this.formatErrorMessage(error);
+          ftpError = `Path ${path}: ${formattedError}`;
+          logger.debug(`❌ FTP path ${path} failed: ${formattedError}`);
           continue;
         }
       }
@@ -704,6 +795,59 @@ export class RealtimeWebhookService {
   private truncateString(str: string, maxLength: number): string {
     if (!str) return '';
     return str.length > maxLength ? str.substring(0, maxLength) : str;
+  }
+
+  /**
+   * Format error message to avoid [object Object] display
+   */
+  private formatErrorMessage(error: any): string {
+    if (!error) return 'Unknown error';
+    
+    if (typeof error === 'string') {
+      return error;
+    }
+    
+    if (error instanceof Error) {
+      return error.message;
+    }
+    
+    if (typeof error === 'object') {
+      // Try to extract meaningful information from error object
+      if (error.message) return error.message;
+      if (error.code) return `Error code: ${error.code}`;
+      if (error.name) return `${error.name}: ${error.message || 'Unknown'}`;
+      
+      // Last resort - stringify but make it readable
+      try {
+        return JSON.stringify(error);
+      } catch {
+        return String(error);
+      }
+    }
+    
+    return String(error);
+  }
+
+  /**
+   * Clean up old webhook entries to prevent memory leaks
+   */
+  private cleanupOldWebhookEntries(): void {
+    const now = Date.now();
+    const entriesToRemove: string[] = [];
+    
+    for (const [key, timestamp] of this.recentWebhooks.entries()) {
+      if (now - timestamp.getTime() > this.DUPLICATE_PREVENTION_WINDOW) {
+        entriesToRemove.push(key);
+      }
+    }
+    
+    for (const key of entriesToRemove) {
+      this.recentWebhooks.delete(key);
+    }
+    
+    if (entriesToRemove.length > 0) {
+      logger.debug(`🧹 Cleaned up ${entriesToRemove.length} old webhook entries`);
+    }
   }
 
   private setupErrorHandlers(): void {

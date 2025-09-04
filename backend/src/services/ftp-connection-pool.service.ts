@@ -1,9 +1,9 @@
-import * as ftp from 'basic-ftp';
+import { Client } from 'basic-ftp';
 import { env } from '../config/environment';
 import logger from '../config/logger';
 
 interface PooledConnection {
-  client: ftp.Client;
+  client: Client;
   inUse: boolean;
   lastUsed: Date;
   id: number;
@@ -28,7 +28,7 @@ export class FTPConnectionPool {
   /**
    * Get an available connection from the pool or create a new one
    */
-  async getConnection(): Promise<ftp.Client> {
+  async getConnection(): Promise<Client> {
     // Try to find an available connection
     const available = this.pool.find(conn => !conn.inUse);
     
@@ -71,7 +71,7 @@ export class FTPConnectionPool {
   /**
    * Release a connection back to the pool
    */
-  releaseConnection(client: ftp.Client): void {
+  releaseConnection(client: Client): void {
     const connection = this.pool.find(conn => conn.client === client);
     if (connection) {
       connection.inUse = false;
@@ -83,7 +83,7 @@ export class FTPConnectionPool {
   /**
    * Create a new FTP connection
    */
-  private async createConnection(): Promise<ftp.Client> {
+  private async createConnection(): Promise<Client> {
     // Check if FTP credentials are configured
     if (!env.TRAVELTEK_FTP_HOST || !env.TRAVELTEK_FTP_USER || !env.TRAVELTEK_FTP_PASSWORD) {
       const missingCreds = [];
@@ -96,7 +96,7 @@ export class FTPConnectionPool {
       throw error;
     }
     
-    const client = new ftp.Client();
+    const client = new Client();
     client.ftp.verbose = false;
     
     try {
