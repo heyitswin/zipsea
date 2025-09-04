@@ -19,7 +19,8 @@ export class CronService {
       // Only run cron jobs in production or if explicitly enabled
       if (env.NODE_ENV === 'production' || process.env.ENABLE_CRON === 'true') {
         this.setupDataSyncJobs();
-        this.setupBatchSyncJobs();
+        // Batch sync is handled by Render cron job (render.yaml) every 5 minutes
+        // this.setupBatchSyncJobs();
         this.setupHealthCheckJobs();
         this.setupMaintenanceJobs();
         this.setupPriceHistoryJobs();

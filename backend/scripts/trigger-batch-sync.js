@@ -1,17 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * WARNING: This script is DEPRECATED!
+ * Trigger batch sync via API endpoint
+ * This is called by Render cron job every 5 minutes (configured in render.yaml)
  *
- * The internal cron service now handles batch syncing automatically every 15 minutes.
- * This external Render cron job should be DISABLED in the Render dashboard.
- *
- * To disable: Go to Render Dashboard > Your Service > Jobs > Delete this cron job
- *
- * The new system:
+ * Flow:
  * 1. Webhooks flag cruises with needs_price_update = true
- * 2. Internal cron runs priceSyncBatchServiceV6 every 15 minutes
- * 3. Only clears flags after successful processing
+ * 2. This script calls the admin API every 5 minutes
+ * 3. The API triggers priceSyncBatchServiceV6 which processes flagged cruises
+ * 4. Only clears flags after successful processing
  */
 
 const https = require('https');
@@ -19,14 +16,9 @@ const https = require('https');
 const API_URL = process.env.API_URL || 'https://zipsea-production.onrender.com';
 
 function makeRequest() {
-  console.log('⚠️  WARNING: This Render cron job is DEPRECATED!');
-  console.log('⚠️  The internal cron service handles batch syncing automatically.');
-  console.log('⚠️  Please disable this cron job in Render Dashboard > Jobs');
-  console.log('');
-
   return new Promise((resolve, reject) => {
     const url = `${API_URL}/api/admin/trigger-batch-sync`;
-    console.log(`Still triggering batch sync at ${url} (but this should be disabled)`);
+    console.log(`[${new Date().toISOString()}] Triggering batch sync at ${url}`);
 
     const parsedUrl = new URL(url);
     const options = {
