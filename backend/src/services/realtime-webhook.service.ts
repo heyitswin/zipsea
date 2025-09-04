@@ -67,7 +67,8 @@ export class RealtimeWebhookService {
   private readonly FTP_TIMEOUT = 30000; // 30 seconds - increased from 15s
   private readonly PARALLEL_CRUISE_WORKERS = 5; // Reduced from 10 to 5 to avoid overwhelming FTP
   private readonly BATCH_SIZE = 50; // Process cruises in batches of 50
-  private readonly MAX_CRUISES_PER_WEBHOOK = 1000; // Reject webhooks with too many cruises
+  private readonly MAX_CRUISES_PER_WEBHOOK = 0; // Disabled - now we process all cruises in batches
+  private readonly MAX_CRUISES_PER_MEGA_BATCH = 500; // Process mega batches of 500 to prevent FTP overload
 
   constructor() {
     // Initialize Redis connection
@@ -252,37 +253,30 @@ export class RealtimeWebhookService {
       const totalCruises = cruisesToProcess.length;
       logger.info(`📈 Found ${totalCruises} cruises to process for line ${lineId}`);
 
-      // Check if too many cruises to process safely
-      if (totalCruises > this.MAX_CRUISES_PER_WEBHOOK) {
-        logger.error(`🚨 TOO MANY CRUISES: Line ${lineId} has ${totalCruises} cruises - exceeds limit of ${this.MAX_CRUISES_PER_WEBHOOK}`, {
+      // Handle large cruise lines with mega-batching
+      if (totalCruises > this.MAX_CRUISES_PER_MEGA_BATCH) {
+        logger.warn(`⚠️ Large cruise line detected: ${totalCruises} cruises for line ${lineId}. Will process in mega-batches of ${this.MAX_CRUISES_PER_MEGA_BATCH}`, {
           webhookId,
           lineId,
           totalCruises,
-          maxAllowed: this.MAX_CRUISES_PER_WEBHOOK
+          megaBatchSize: this.MAX_CRUISES_PER_MEGA_BATCH
         });
         
+        const megaBatches = Math.ceil(totalCruises / this.MAX_CRUISES_PER_MEGA_BATCH);
+        
         await this.sendSlackUpdate({
-          title: '🚨 Webhook Rejected - Too Many Cruises',
-          message: `Line ${lineId} has ${totalCruises} cruises which exceeds safety limit of ${this.MAX_CRUISES_PER_WEBHOOK}`,
+          title: '📦 Processing Large Cruise Line in Mega-Batches',
+          message: `Line ${lineId} has ${totalCruises} cruises. Processing in ${megaBatches} mega-batches of up to ${this.MAX_CRUISES_PER_MEGA_BATCH} cruises each`,
           details: {
             webhookLineId: lineId,
             databaseLineId,
-            cruisesFound: totalCruises,
-            maxAllowed: this.MAX_CRUISES_PER_WEBHOOK,
-            reason: 'Prevented FTP server overload',
-            recommendation: 'Consider splitting this line into multiple smaller updates'
+            totalCruises,
+            megaBatches,
+            megaBatchSize: this.MAX_CRUISES_PER_MEGA_BATCH,
+            estimatedTime: `${Math.round((totalCruises * 0.5) / 60)} minutes`,
+            processingMode: 'mega_batched_realtime'
           }
         });
-
-        result.failed = 1;
-        result.errors.push({
-          error: `Too many cruises (${totalCruises}) - exceeds safety limit of ${this.MAX_CRUISES_PER_WEBHOOK}`,
-          type: 'database_error'
-        });
-        
-        result.endTime = new Date();
-        result.processingTimeMs = result.endTime.getTime() - result.startTime.getTime();
-        return result;
       }
 
       if (totalCruises === 0) {
@@ -321,43 +315,67 @@ export class RealtimeWebhookService {
         }
       });
 
-      // Process cruises in batches to avoid overwhelming FTP server
+      // Process cruises in mega-batches for very large cruise lines
       const cruiseJobs = [];
-      for (let i = 0; i < cruisesToProcess.length; i += this.BATCH_SIZE) {
-        const batch = cruisesToProcess.slice(i, i + this.BATCH_SIZE);
-        const batchNumber = Math.floor(i / this.BATCH_SIZE) + 1;
+      const megaBatchSize = this.MAX_CRUISES_PER_MEGA_BATCH;
+      
+      // Process in mega-batches if needed
+      for (let megaBatchStart = 0; megaBatchStart < cruisesToProcess.length; megaBatchStart += megaBatchSize) {
+        const megaBatch = cruisesToProcess.slice(megaBatchStart, megaBatchStart + megaBatchSize);
+        const megaBatchNumber = Math.floor(megaBatchStart / megaBatchSize) + 1;
+        const totalMegaBatches = Math.ceil(cruisesToProcess.length / megaBatchSize);
         
-        logger.info(`🔢 Processing batch ${batchNumber}/${totalBatches} (${batch.length} cruises)`);
-        
-        // Queue batch with delay between batches
-        for (const cruise of batch) {
-          const cruiseJob = await this.cruiseQueue.add('process-cruise', {
-            cruiseId: cruise.id,
-            lineId: databaseLineId,
-            webhookId,
-            retryCount: 0,
-            batchNumber,
-            totalBatches
-          }, {
-            priority: this.determinePriority(lineId),
-            // Add small delay between each cruise in batch
-            delay: (cruiseJobs.length % this.BATCH_SIZE) * 200, // 200ms between cruises
-          });
+        if (totalMegaBatches > 1) {
+          logger.info(`📦 Processing mega-batch ${megaBatchNumber}/${totalMegaBatches} (${megaBatch.length} cruises)`);
           
-          cruiseJobs.push(cruiseJob);
+          // Add longer delay between mega-batches
+          if (megaBatchStart > 0) {
+            const megaBatchDelay = 10000; // 10 seconds between mega-batches
+            logger.info(`⏳ Adding ${megaBatchDelay/1000}s delay before mega-batch ${megaBatchNumber} to prevent FTP overload`);
+            await new Promise(resolve => setTimeout(resolve, megaBatchDelay));
+          }
         }
         
-        // Add delay between batches to prevent FTP overload
-        if (i + this.BATCH_SIZE < cruisesToProcess.length) {
-          logger.info(`⏳ Adding 2s delay before next batch to prevent FTP overload`);
-          await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between batches
+        // Process each mega-batch in smaller batches
+        for (let i = 0; i < megaBatch.length; i += this.BATCH_SIZE) {
+          const batch = megaBatch.slice(i, i + this.BATCH_SIZE);
+          const batchNumber = Math.floor(i / this.BATCH_SIZE) + 1;
+          const totalBatchesInMega = Math.ceil(megaBatch.length / this.BATCH_SIZE);
+          
+          logger.info(`🔢 Processing batch ${batchNumber}/${totalBatchesInMega} in mega-batch ${megaBatchNumber} (${batch.length} cruises)`);
+          
+          // Queue batch with delay between batches
+          for (const cruise of batch) {
+            const cruiseJob = await this.cruiseQueue.add('process-cruise', {
+              cruiseId: cruise.id,
+              lineId: databaseLineId,
+              webhookId,
+              retryCount: 0,
+              batchNumber: batchNumber + ((megaBatchNumber - 1) * Math.ceil(megaBatchSize / this.BATCH_SIZE)),
+              totalBatches: Math.ceil(cruisesToProcess.length / this.BATCH_SIZE)
+            }, {
+              priority: this.determinePriority(lineId),
+              // Add small delay between each cruise in batch
+              delay: (cruiseJobs.length % this.BATCH_SIZE) * 200, // 200ms between cruises
+            });
+            
+            cruiseJobs.push(cruiseJob);
+          }
+          
+          // Add delay between batches to prevent FTP overload
+          if (i + this.BATCH_SIZE < megaBatch.length) {
+            logger.info(`⏳ Adding 2s delay before next batch to prevent FTP overload`);
+            await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between batches
+          }
         }
       }
 
       logger.info(`⚡ Queued ${cruiseJobs.length} cruise processing jobs in ${totalBatches} batches`);
 
       // Wait for all cruise jobs to complete (with timeout)
-      const PROCESSING_TIMEOUT = 5 * 60 * 1000; // 5 minutes total timeout
+      // Scale timeout based on number of cruises (approximately 1 second per cruise + overhead)
+      const PROCESSING_TIMEOUT = Math.max(5 * 60 * 1000, cruiseJobs.length * 1000); // Min 5 minutes, or 1 second per cruise
+      logger.info(`⏱️ Using timeout of ${Math.round(PROCESSING_TIMEOUT / 1000)}s for ${cruiseJobs.length} cruises`);
       const jobResults = await this.waitForJobsCompletion(cruiseJobs, PROCESSING_TIMEOUT);
 
       // Aggregate results
