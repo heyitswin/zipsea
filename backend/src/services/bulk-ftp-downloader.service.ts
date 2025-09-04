@@ -463,12 +463,12 @@ export class BulkFtpDownloaderService {
       .from(cruises)
       .leftJoin(ships, sql`${ships.id} = ${cruises.shipId}`)
       .where(
-        sql`cruise_line_id = ${lineId} 
-            AND sailing_date >= CURRENT_DATE 
-            AND sailing_date <= CURRENT_DATE + INTERVAL '2 years'
-            AND is_active = true`
+        sql`${cruises.cruiseLineId} = ${lineId} 
+            AND ${cruises.sailingDate} >= CURRENT_DATE 
+            AND ${cruises.sailingDate} <= CURRENT_DATE + INTERVAL '2 years'
+            AND ${cruises.isActive} = true`
       )
-      .orderBy(sql`sailing_date ASC`)
+      .orderBy(sql`${cruises.sailingDate} ASC`)
       .limit(limit);
 
     const results = cruiseData.map(cruise => ({

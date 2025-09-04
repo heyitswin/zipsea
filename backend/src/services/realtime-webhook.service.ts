@@ -259,10 +259,10 @@ export class RealtimeWebhookService {
           })
           .from(cruises)
           .where(
-            sql`cruise_line_id = ${databaseLineId} 
-                AND sailing_date >= CURRENT_DATE 
-                AND sailing_date <= CURRENT_DATE + INTERVAL '2 years'
-                AND is_active = true`
+            sql`${cruises.cruiseLineId} = ${databaseLineId} 
+                AND ${cruises.sailingDate} >= CURRENT_DATE 
+                AND ${cruises.sailingDate} <= CURRENT_DATE + INTERVAL '2 years'
+                AND ${cruises.isActive} = true`
           );
         cruisesToProcess = legacyCruises.map(c => ({
           id: c.id,
