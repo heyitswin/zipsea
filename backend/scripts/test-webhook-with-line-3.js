@@ -69,13 +69,13 @@ async function testWebhook() {
     }
     console.log('');
     
-    // Send webhook with line ID 3 (what Traveltek actually sends)
+    // Send webhook with line ID 3 (Celebrity Cruises)
     console.log('📤 Sending webhook with lineid = 3...');
     const webhookPayload = {
       event: 'cruiseline_pricing_updated',
-      lineid: 3,  // This is what Traveltek sends for Royal Caribbean
+      lineid: 3,  // This is Celebrity Cruises (verified via FTP)
       timestamp: Math.floor(Date.now() / 1000),
-      description: 'Royal Caribbean pricing updated',
+      description: 'Celebrity Cruises pricing updated',
       source: 'test_webhook',
       currency: 'USD'
     };

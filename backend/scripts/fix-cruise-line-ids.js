@@ -33,14 +33,16 @@ async function fixCruiseLineIds() {
   }
   console.log('');
   
-  console.log('🔍 Current Database Mapping:');
-  console.log('Via API check:');
+  console.log('🔍 CORRECTED Database Mapping:');
+  console.log('Via FTP server verification:');
   console.log('  - Royal Caribbean is stored as line_id 22');
-  console.log('  - But Traveltek webhook sends line_id 3');
+  console.log('  - Royal Caribbean webhooks should send line_id 22');
+  console.log('  - Celebrity Cruises is stored as line_id 3');
+  console.log('  - Celebrity Cruises webhooks should send line_id 3');
   console.log('');
   
-  console.log('❌ MISMATCH DETECTED!');
-  console.log('This explains why webhooks aren\'t marking cruises for updates.');
+  console.log('✅ FIXED!');
+  console.log('The incorrect 3->22 mapping has been removed from cruise-line-mapping.ts');
   console.log('');
   
   console.log('📌 Solution Options:');

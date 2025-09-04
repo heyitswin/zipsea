@@ -18,8 +18,10 @@ export const CRUISE_LINE_ID_MAPPING: Record<number, number> = {
   // Webhook ID -> Database ID
   // Format: [what Traveltek sends]: [what's in our database]
   
-  // Verified mismatches:
-  3: 22,    // Royal Caribbean: webhook sends 3, database has 22
+  // CRITICAL FIX: Removed incorrect 3->22 mapping
+  // Based on FTP server verification:
+  // - Line ID 3 = Celebrity Cruises (webhook 3 = database 3, no mapping needed)
+  // - Line ID 22 = Royal Caribbean (webhook 22 = database 22, no mapping needed)
   
   // Confirmed mappings:
   15: 15,   // Holland America Line: webhook and database both use 15
