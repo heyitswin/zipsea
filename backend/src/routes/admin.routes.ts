@@ -532,21 +532,26 @@ router.get('/cruise-lines/stats', async (req: Request, res: Response) => {
       pricingSyncDates.map((row: any) => [row.cruise_line_id, row.last_pricing_sync])
     );
     
-    // Get bulk FTP sync dates (when more than 50 cruises were updated on the same day)
+    // Get the most recent FTP/webhook sync date for each cruise line
+    // Consider it an FTP sync if >10 cruises were updated within a 1-hour window
     const ftpSyncDates = await db.execute(sql`
-      SELECT 
-        cruise_line_id,
-        MAX(update_date) as last_ftp_sync
-      FROM (
+      WITH recent_updates AS (
         SELECT 
           cruise_line_id,
-          DATE(updated_at) as update_date,
-          COUNT(*) as daily_count
+          updated_at,
+          COUNT(*) OVER (
+            PARTITION BY cruise_line_id 
+            ORDER BY updated_at 
+            RANGE BETWEEN INTERVAL '1 hour' PRECEDING AND CURRENT ROW
+          ) as hourly_count
         FROM cruises
-        WHERE updated_at > CURRENT_TIMESTAMP - INTERVAL '60 days'
-        GROUP BY cruise_line_id, DATE(updated_at)
-        HAVING COUNT(*) > 50
-      ) as bulk_updates
+        WHERE updated_at > CURRENT_TIMESTAMP - INTERVAL '30 days'
+      )
+      SELECT 
+        cruise_line_id,
+        MAX(updated_at) as last_ftp_sync
+      FROM recent_updates
+      WHERE hourly_count >= 10
       GROUP BY cruise_line_id
     `);
     
@@ -564,7 +569,7 @@ router.get('/cruise-lines/stats', async (req: Request, res: Response) => {
         COUNT(DISTINCT CASE WHEN c.sailing_date > CURRENT_DATE THEN c.id END) as active_cruises,
         MAX(c.updated_at) as last_updated,
         MAX(cp.last_updated) as last_pricing_update,
-        COUNT(DISTINCT CASE WHEN c.updated_at > CURRENT_TIMESTAMP - INTERVAL '24 hours' THEN c.id END) as recently_updated
+        COUNT(DISTINCT CASE WHEN c.updated_at > CURRENT_TIMESTAMP - INTERVAL '1 hour' THEN c.id END) as recently_updated
       FROM cruise_lines cl
       LEFT JOIN cruises c ON c.cruise_line_id = cl.id
       LEFT JOIN ships s ON c.ship_id = s.id

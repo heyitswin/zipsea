@@ -22,7 +22,7 @@ const envSchema = z.object({
   CLERK_SECRET_KEY: z.string().min(1).optional(),
   CLERK_JWT_KEY: z.string().min(1).optional(),
   
-  // Traveltek (optional for initial deployment)
+  // Traveltek (required in production)
   TRAVELTEK_FTP_HOST: z.string().min(1).optional(),
   TRAVELTEK_FTP_USER: z.string().min(1).optional(),
   TRAVELTEK_FTP_PASSWORD: z.string().min(1).optional(),
@@ -69,6 +69,25 @@ if (!parseResult.success) {
 }
 
 export const env = parseResult.data;
+
+// Additional validation for production
+if (env.NODE_ENV === 'production') {
+  const missingFtpCreds = [];
+  if (!env.TRAVELTEK_FTP_HOST) missingFtpCreds.push('TRAVELTEK_FTP_HOST');
+  if (!env.TRAVELTEK_FTP_USER) missingFtpCreds.push('TRAVELTEK_FTP_USER');
+  if (!env.TRAVELTEK_FTP_PASSWORD) missingFtpCreds.push('TRAVELTEK_FTP_PASSWORD');
+  
+  if (missingFtpCreds.length > 0) {
+    console.error('❌ Production environment missing required FTP credentials:');
+    missingFtpCreds.forEach(cred => {
+      console.error(`  ${cred} is required for webhook processing to work`);
+    });
+    console.error('');
+    console.error('🚨 CRITICAL: Webhook processing will fail without FTP credentials!');
+    console.error('Add these environment variables to your deployment and restart.');
+    process.exit(1);
+  }
+}
 
 // Environment helpers
 export const isStaging = env.NODE_ENV === 'staging';
