@@ -22,6 +22,7 @@ export interface BulkDownloadResult {
 export interface CruiseInfo {
   id: string;
   cruiseCode: string;
+  shipId?: string;
   shipName: string;
   sailingDate: Date;
 }
@@ -197,17 +198,35 @@ export class BulkFtpDownloaderService {
   
   /**
    * Group cruises by ship for efficient FTP navigation
+   * Uses shipId primarily, falls back to processed shipName
    */
   private groupCruisesByShip(cruiseInfos: CruiseInfo[]): Map<string, CruiseInfo[]> {
     const groups = new Map<string, CruiseInfo[]>();
     
     for (const cruise of cruiseInfos) {
-      const shipKey = cruise.shipName.replace(/ /g, '_');
+      // Priority: use shipId if available, otherwise process shipName
+      let shipKey: string;
+      if (cruise.shipId) {
+        shipKey = cruise.shipId;
+      } else {
+        // Process ship name: replace spaces with underscores, remove special characters
+        shipKey = cruise.shipName
+          .replace(/[^a-zA-Z0-9\s]/g, '')
+          .replace(/\s+/g, '_')
+          .toLowerCase();
+      }
+      
       if (!groups.has(shipKey)) {
         groups.set(shipKey, []);
       }
       groups.get(shipKey)!.push(cruise);
     }
+    
+    logger.debug('🚢 BULK FTP DEBUG: Grouped cruises by ship', {
+      totalCruises: cruiseInfos.length,
+      uniqueShips: groups.size,
+      shipKeys: Array.from(groups.keys()).slice(0, 5)
+    });
     
     return groups;
   }
@@ -222,12 +241,12 @@ export class BulkFtpDownloaderService {
     cruisesByShip: Map<string, CruiseInfo[]>,
     result: BulkDownloadResult
   ): Promise<void> {
-    for (const shipName of shipNames) {
-      const cruises = cruisesByShip.get(shipName)!;
-      await this.downloadShipFiles(client, lineId, shipName, cruises, result);
+    for (const shipKey of shipNames) {
+      const cruises = cruisesByShip.get(shipKey)!;
+      await this.downloadShipFiles(client, lineId, shipKey, cruises, result);
       
       // Small delay between ships to prevent overwhelming the server
-      if (shipNames.indexOf(shipName) < shipNames.length - 1) {
+      if (shipNames.indexOf(shipKey) < shipNames.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 500));
       }
     }
@@ -239,32 +258,67 @@ export class BulkFtpDownloaderService {
   private async downloadShipFiles(
     client: ftp.Client,
     lineId: number,
-    shipName: string,
+    shipKey: string,
     cruises: CruiseInfo[],
     result: BulkDownloadResult
   ): Promise<void> {
-    logger.info(`🚢 BULK FTP DEBUG: Starting ship ${shipName}`, {
+    logger.info(`🚢 BULK FTP DEBUG: Starting ship ${shipKey}`, {
       lineId,
-      shipName,
+      shipKey,
       cruiseCount: cruises.length,
-      cruiseIds: cruises.slice(0, 3).map(c => c.id)
+      cruiseIds: cruises.slice(0, 3).map(c => c.id),
+      sampleSailingDates: cruises.slice(0, 3).map(c => c.sailingDate.toISOString().split('T')[0])
     });
     
-    const currentYear = new Date().getFullYear();
-    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+    // Use sailing dates from cruises to determine FTP paths (not current date!)
+    const sailingDates = cruises.map(c => c.sailingDate);
+    const uniqueYearMonths = new Set<string>();
     
-    // Try multiple possible directory structures
-    const possibleDirs = [
-      `/${currentYear}/${currentMonth}/${lineId}/${shipName}`,
-      `/isell_json/${currentYear}/${currentMonth}/${lineId}/${shipName}`,
-      `/${currentYear}/${currentMonth}/${lineId}`
-    ];
+    // Collect all year/month combinations from sailing dates
+    for (const date of sailingDates) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      uniqueYearMonths.add(`${year}/${month}`);
+    }
     
-    logger.info(`📁 BULK FTP DEBUG: Trying directories for ${shipName}`, {
-      possibleDirs,
-      currentYear,
-      currentMonth,
-      lineId
+    logger.info(`📅 BULK FTP DEBUG: Found ${uniqueYearMonths.size} year/month combinations`, {
+      yearMonths: Array.from(uniqueYearMonths).slice(0, 5)
+    });
+    
+    // Try multiple directory patterns for each year/month combination
+    const allPossibleDirs: string[] = [];
+    
+    for (const yearMonth of uniqueYearMonths) {
+      // Pattern 1: /YYYY/MM/LINE/SHIP
+      allPossibleDirs.push(`/${yearMonth}/${lineId}/${shipKey}`);
+      // Pattern 2: /isell_json/YYYY/MM/LINE/SHIP 
+      allPossibleDirs.push(`/isell_json/${yearMonth}/${lineId}/${shipKey}`);
+      // Pattern 3: /YYYY/MM/LINE (no ship subdirectory)
+      allPossibleDirs.push(`/${yearMonth}/${lineId}`);
+      // Pattern 4: /isell_json/YYYY/MM/LINE (no ship subdirectory)
+      allPossibleDirs.push(`/isell_json/${yearMonth}/${lineId}`);
+      
+      // Additional patterns with ship name variations if shipKey is an ID
+      if (cruises.length > 0) {
+        const firstCruise = cruises[0];
+        if (firstCruise.shipName && firstCruise.shipName !== shipKey) {
+          const processedShipName = firstCruise.shipName
+            .replace(/[^a-zA-Z0-9\s]/g, '')
+            .replace(/\s+/g, '_')
+            .toLowerCase();
+          allPossibleDirs.push(`/${yearMonth}/${lineId}/${processedShipName}`);
+          allPossibleDirs.push(`/isell_json/${yearMonth}/${lineId}/${processedShipName}`);
+        }
+      }
+    }
+    
+    // Remove duplicates and limit attempts
+    const possibleDirs = [...new Set(allPossibleDirs)].slice(0, 20);
+    
+    logger.info(`📁 BULK FTP DEBUG: Trying ${possibleDirs.length} directories for ${shipKey}`, {
+      possibleDirs: possibleDirs.slice(0, 10), // Show first 10 for logging
+      lineId,
+      yearMonthCombinations: Array.from(uniqueYearMonths).slice(0, 5)
     });
     
     let successfulDirChange = false;
@@ -284,22 +338,24 @@ export class BulkFtpDownloaderService {
     }
     
     if (!successfulDirChange) {
-      const errorMsg = `Could not access any directory for ship ${shipName}`;
-      logger.error(`🚨 BULK FTP DEBUG: Directory access failed for ${shipName}`, {
-        possibleDirs,
+      const errorMsg = `Could not access any directory for ship ${shipKey}`;
+      logger.error(`🚨 BULK FTP DEBUG: Directory access failed for ${shipKey}`, {
+        triedDirectories: possibleDirs.length,
+        sampleDirs: possibleDirs.slice(0, 5),
         errorMsg,
         lineId
       });
       result.failedDownloads += cruises.length;
       result.connectionFailures += cruises.length;
-      result.errors.push(`${shipName}: ${errorMsg}`);
+      result.errors.push(`${shipKey}: ${errorMsg}`);
       return;
     }
     
     logger.info(`📁 BULK FTP DEBUG: Successfully accessed directory`, {
-      shipName,
+      shipKey,
       usedDir,
-      cruiseCount: cruises.length
+      cruiseCount: cruises.length,
+      directoriesAttempted: possibleDirs.indexOf(usedDir) + 1
     });
     
     // Download all cruise files for this ship
@@ -320,9 +376,10 @@ export class BulkFtpDownloaderService {
       await new Promise(resolve => setTimeout(resolve, 50));
     }
     
-    logger.info(`✅ BULK FTP DEBUG: Completed ship ${shipName}`, {
+    logger.info(`✅ BULK FTP DEBUG: Completed ship ${shipKey}`, {
       shipSuccessful,
       shipFailed,
+      successRate: shipSuccessful > 0 ? `${Math.round((shipSuccessful / cruises.length) * 100)}%` : '0%',
       totalSuccessful: result.successfulDownloads,
       downloadedDataSize: result.downloadedData.size
     });
@@ -337,29 +394,70 @@ export class BulkFtpDownloaderService {
     result: BulkDownloadResult
   ): Promise<void> {
     const fileName = `${cruise.id}.json`;
+    const sailingYear = cruise.sailingDate.getFullYear();
+    const sailingMonth = String(cruise.sailingDate.getMonth() + 1).padStart(2, '0');
     
     logger.debug(`📥 BULK FTP DEBUG: Attempting to download ${fileName}`, {
       cruiseId: cruise.id,
       shipName: cruise.shipName,
-      fileName
+      shipId: cruise.shipId,
+      fileName,
+      sailingDate: cruise.sailingDate.toISOString().split('T')[0],
+      sailingYearMonth: `${sailingYear}/${sailingMonth}`
     });
     
     try {
-      // Download with timeout protection
-      const downloadPromise = this.downloadFileToMemory(client, fileName);
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Download timeout')), this.DOWNLOAD_TIMEOUT);
+      // Try multiple file locations within the current directory
+      let data: string | null = null;
+      const filesToTry = [
+        fileName, // cruise_id.json
+        `${cruise.cruiseCode}.json`, // cruise code.json
+        fileName.toLowerCase(), // lowercase version
+        fileName.toUpperCase() // uppercase version
+      ].filter((f, i, arr) => arr.indexOf(f) === i); // remove duplicates
+      
+      logger.debug(`🔍 BULK FTP DEBUG: Trying ${filesToTry.length} file variations for cruise ${cruise.id}`, {
+        filesToTry
       });
       
-      logger.debug(`🔍 BULK FTP DEBUG: Starting download race for ${fileName}`);
-      const data = await Promise.race([downloadPromise, timeoutPromise]);
+      for (const fileToTry of filesToTry) {
+        try {
+          // Download with timeout protection
+          const downloadPromise = this.downloadFileToMemory(client, fileToTry);
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Download timeout')), this.DOWNLOAD_TIMEOUT);
+          });
+          
+          logger.debug(`🔍 BULK FTP DEBUG: Attempting download of ${fileToTry}`);
+          data = await Promise.race([downloadPromise, timeoutPromise]);
+          
+          if (data) {
+            logger.debug(`✅ BULK FTP DEBUG: Successfully downloaded ${fileToTry}`);
+            break;
+          }
+        } catch (fileError) {
+          const fileErrorMsg = fileError instanceof Error ? fileError.message : 'Unknown error';
+          logger.debug(`❌ BULK FTP DEBUG: Failed to download ${fileToTry}: ${fileErrorMsg}`);
+          continue;
+        }
+      }
       
-      logger.debug(`📋 BULK FTP DEBUG: Data received for ${fileName}`, {
+      if (!data) {
+        throw new Error(`All file variations failed: ${filesToTry.join(', ')}`);
+      }
+      
+      logger.debug(`📋 BULK FTP DEBUG: Data received for ${cruise.id}`, {
         dataLength: data.length,
-        dataPreview: data.substring(0, 100)
+        dataPreview: data.substring(0, 100),
+        isValidJson: data.trim().startsWith('{') && data.trim().endsWith('}')
       });
       
-      const jsonData = JSON.parse(data);
+      let jsonData;
+      try {
+        jsonData = JSON.parse(data);
+      } catch (parseError) {
+        throw new Error(`JSON parse failed: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`);
+      }
       
       result.downloadedData.set(cruise.id, jsonData);
       result.successfulDownloads++;
@@ -375,8 +473,12 @@ export class BulkFtpDownloaderService {
       logger.error(`🚨 BULK FTP DEBUG: Failed to download ${fileName}`, {
         cruiseId: cruise.id,
         shipName: cruise.shipName,
+        shipId: cruise.shipId,
+        sailingDate: cruise.sailingDate.toISOString().split('T')[0],
+        fileName,
         error: errorMsg,
-        errorStack: error instanceof Error ? error.stack : 'No stack'
+        errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+        errorStack: error instanceof Error ? error.stack?.split('\n').slice(0, 3).join('\n') : 'No stack'
       });
       
       result.failedDownloads++;
@@ -444,6 +546,12 @@ export class BulkFtpDownloaderService {
    * Get a connection from the pool or create a new one with circuit breaker
    */
   private async getConnection(): Promise<ftp.Client> {
+    logger.info('🔗 BULK FTP DEBUG: Getting FTP connection', {
+      poolSize: this.connectionPool.length,
+      circuitBreakerOpen: this.circuitBreakerState.isOpen,
+      circuitFailureCount: this.circuitBreakerState.failureCount
+    });
+    
     // Try to reuse existing connection
     if (this.connectionPool.length > 0) {
       const client = this.connectionPool.pop()!;
@@ -454,7 +562,9 @@ export class BulkFtpDownloaderService {
         logger.debug('♻️ Reusing existing FTP connection');
         return client;
       } catch (error) {
-        logger.debug('💀 Pooled connection was dead, creating new one');
+        logger.debug('💀 Pooled connection was dead, creating new one', {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
         try {
           await client.close();
         } catch {
@@ -465,6 +575,17 @@ export class BulkFtpDownloaderService {
     
     // Create new connection with circuit breaker protection
     try {
+      logger.info('🔌 BULK FTP DEBUG: Creating new FTP connection', {
+        host: env.TRAVELTEK_FTP_HOST ? env.TRAVELTEK_FTP_HOST.substring(0, 10) + '***' : 'MISSING',
+        user: env.TRAVELTEK_FTP_USER ? env.TRAVELTEK_FTP_USER.substring(0, 3) + '***' : 'MISSING',
+        password: env.TRAVELTEK_FTP_PASSWORD ? '***' : 'MISSING',
+        timeout: this.CONNECTION_TIMEOUT
+      });
+      
+      if (!env.TRAVELTEK_FTP_HOST || !env.TRAVELTEK_FTP_USER || !env.TRAVELTEK_FTP_PASSWORD) {
+        throw new Error('Missing FTP credentials: TRAVELTEK_FTP_HOST, TRAVELTEK_FTP_USER, or TRAVELTEK_FTP_PASSWORD not configured');
+      }
+      
       const client = new ftp.Client();
       client.ftp.verbose = false;
       
@@ -482,7 +603,7 @@ export class BulkFtpDownloaderService {
       
       await Promise.race([connectPromise, timeoutPromise]);
       
-      logger.info('📡 Established new FTP connection');
+      logger.info('📡 Established new FTP connection successfully');
       
       // Reset circuit breaker on successful connection
       if (this.circuitBreakerState.failureCount > 0) {
@@ -577,6 +698,7 @@ export class BulkFtpDownloaderService {
         .select({
           id: cruises.id,
           cruiseCode: cruises.cruiseId,
+          shipId: cruises.shipId,
           shipName: sql<string>`COALESCE(ships.name, 'Unknown_Ship')`,
           sailingDate: cruises.sailingDate
         })
@@ -599,6 +721,7 @@ export class BulkFtpDownloaderService {
       const results = cruiseData.map(cruise => ({
         id: cruise.id,
         cruiseCode: cruise.cruiseCode,
+        shipId: cruise.shipId,
         shipName: cruise.shipName || `Ship_${cruise.id}`,
         sailingDate: new Date(cruise.sailingDate)
       }));
