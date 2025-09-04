@@ -636,11 +636,25 @@ export class BulkFtpDownloaderService {
     
     // Create new connection with circuit breaker protection
     try {
-      logger.info('🔌 BULK FTP DEBUG: Creating new FTP connection', {
-        host: env.TRAVELTEK_FTP_HOST ? env.TRAVELTEK_FTP_HOST.substring(0, 10) + '***' : 'MISSING',
-        user: env.TRAVELTEK_FTP_USER ? env.TRAVELTEK_FTP_USER.substring(0, 3) + '***' : 'MISSING',
-        password: env.TRAVELTEK_FTP_PASSWORD ? '***' : 'MISSING',
-        timeout: this.CONNECTION_TIMEOUT
+      // Enhanced logging to diagnose credential loading issues
+      const credentialStatus = {
+        hostStatus: env.TRAVELTEK_FTP_HOST ? 'LOADED' : 'MISSING',
+        hostPreview: env.TRAVELTEK_FTP_HOST ? env.TRAVELTEK_FTP_HOST.substring(0, 10) + '***' : 'MISSING',
+        userStatus: env.TRAVELTEK_FTP_USER ? 'LOADED' : 'MISSING',
+        userPreview: env.TRAVELTEK_FTP_USER ? env.TRAVELTEK_FTP_USER.substring(0, 3) + '***' : 'MISSING',
+        passwordStatus: env.TRAVELTEK_FTP_PASSWORD ? 'LOADED' : 'MISSING',
+        rawEnvCheck: {
+          HOST_RAW: process.env.TRAVELTEK_FTP_HOST ? 'LOADED' : 'MISSING',
+          USER_RAW: process.env.TRAVELTEK_FTP_USER ? 'LOADED' : 'MISSING',
+          PASSWORD_RAW: process.env.TRAVELTEK_FTP_PASSWORD ? 'LOADED' : 'MISSING'
+        }
+      };
+      
+      logger.info('🔌 BULK FTP DEBUG: Creating new FTP connection with credential status check', {
+        ...credentialStatus,
+        timeout: this.CONNECTION_TIMEOUT,
+        nodeEnv: process.env.NODE_ENV || 'UNDEFINED',
+        stage: 'PRE_CONNECTION'
       });
       
       if (!env.TRAVELTEK_FTP_HOST || !env.TRAVELTEK_FTP_USER || !env.TRAVELTEK_FTP_PASSWORD) {
