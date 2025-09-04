@@ -74,10 +74,10 @@ export class ImprovedFTPService {
                 this.releaseConnection(client);
                 logger.error(`❌ FTP get error for ${filePath}:`, {
                   error: err.message,
-                  code: err.code,
+                  code: (err as any).code,
                   filePath
                 });
-                reject(new Error(`FTP error: ${err.message} (${err.code || 'unknown'})`));
+                reject(new Error(`FTP error: ${err.message} (${(err as any).code || 'unknown'})`));
                 return;
               }
 
