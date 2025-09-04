@@ -73,6 +73,12 @@ export class BulkFtpDownloaderService {
     lineId: number, 
     cruiseInfos: CruiseInfo[]
   ): Promise<BulkDownloadResult> {
+    logger.info('🔧 BULK FTP DEBUG: downloadLineUpdates called', {
+      lineId,
+      cruiseInfosCount: cruiseInfos.length,
+      sampleCruiseIds: cruiseInfos.slice(0, 3).map(c => c.id)
+    });
+    
     // Enforce mega-batch size limit
     if (cruiseInfos.length > this.MEGA_BATCH_SIZE) {
       logger.warn(`⚠️ Cruise list too large (${cruiseInfos.length}). Processing first ${this.MEGA_BATCH_SIZE} cruises to prevent FTP overload`, {
@@ -111,7 +117,9 @@ export class BulkFtpDownloaderService {
     
     try {
       // Get or create FTP connection
+      logger.info('📡 BULK FTP DEBUG: Getting FTP connection', { lineId });
       client = await this.getConnection();
+      logger.info('✅ BULK FTP DEBUG: FTP connection established', { lineId });
       
       logger.info(`🚀 Starting bulk download for line ${lineId}`, {
         totalFiles: cruiseInfos.length,
@@ -132,16 +140,31 @@ export class BulkFtpDownloaderService {
       
       // Process ships in chunks optimized for mega-batches
       const shipsPerChunk = Math.max(1, Math.ceil(shipNames.length / this.MAX_CONNECTIONS));
+      logger.info('🔄 BULK FTP DEBUG: Starting ship processing', {
+        totalShips: shipNames.length,
+        shipsPerChunk,
+        totalChunks: Math.ceil(shipNames.length / shipsPerChunk)
+      });
+      
       for (let i = 0; i < shipNames.length; i += shipsPerChunk) {
         const shipChunk = shipNames.slice(i, i + shipsPerChunk);
         const chunkNumber = Math.floor(i / shipsPerChunk) + 1;
         const totalChunks = Math.ceil(shipNames.length / shipsPerChunk);
         
         const chunkCruiseCount = shipChunk.reduce((sum, ship) => sum + cruisesByShip.get(ship)!.length, 0);
-        logger.info(`🚢 Processing ship chunk ${chunkNumber}/${totalChunks} (${shipChunk.length} ships, ${chunkCruiseCount} cruises)`);
+        logger.info(`🚢 BULK FTP DEBUG: Processing ship chunk ${chunkNumber}/${totalChunks}`, {
+          ships: shipChunk,
+          cruiseCount: chunkCruiseCount
+        });
         
         // Process ships in this chunk using shared connection
         await this.downloadShipChunk(client, lineId, shipChunk, cruisesByShip, result);
+        
+        logger.info(`✅ BULK FTP DEBUG: Completed ship chunk ${chunkNumber}/${totalChunks}`, {
+          currentSuccessful: result.successfulDownloads,
+          currentFailed: result.failedDownloads,
+          downloadedDataSize: result.downloadedData.size
+        });
         
         // Minimal delay between chunks for mega-batch efficiency
         if (i + shipsPerChunk < shipNames.length) {
@@ -220,6 +243,13 @@ export class BulkFtpDownloaderService {
     cruises: CruiseInfo[],
     result: BulkDownloadResult
   ): Promise<void> {
+    logger.info(`🚢 BULK FTP DEBUG: Starting ship ${shipName}`, {
+      lineId,
+      shipName,
+      cruiseCount: cruises.length,
+      cruiseIds: cruises.slice(0, 3).map(c => c.id)
+    });
+    
     const currentYear = new Date().getFullYear();
     const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
     
@@ -229,6 +259,13 @@ export class BulkFtpDownloaderService {
       `/isell_json/${currentYear}/${currentMonth}/${lineId}/${shipName}`,
       `/${currentYear}/${currentMonth}/${lineId}`
     ];
+    
+    logger.info(`📁 BULK FTP DEBUG: Trying directories for ${shipName}`, {
+      possibleDirs,
+      currentYear,
+      currentMonth,
+      lineId
+    });
     
     let successfulDirChange = false;
     let usedDir = '';
@@ -248,22 +285,47 @@ export class BulkFtpDownloaderService {
     
     if (!successfulDirChange) {
       const errorMsg = `Could not access any directory for ship ${shipName}`;
-      logger.warn(errorMsg);
+      logger.error(`🚨 BULK FTP DEBUG: Directory access failed for ${shipName}`, {
+        possibleDirs,
+        errorMsg,
+        lineId
+      });
       result.failedDownloads += cruises.length;
       result.connectionFailures += cruises.length;
       result.errors.push(`${shipName}: ${errorMsg}`);
       return;
     }
     
-    logger.info(`📁 Processing ${cruises.length} cruises for ship ${shipName} from ${usedDir}`);
+    logger.info(`📁 BULK FTP DEBUG: Successfully accessed directory`, {
+      shipName,
+      usedDir,
+      cruiseCount: cruises.length
+    });
     
     // Download all cruise files for this ship
+    let shipSuccessful = 0;
+    let shipFailed = 0;
+    
     for (const cruise of cruises) {
+      const beforeDownload = result.successfulDownloads;
       await this.downloadSingleCruiseFile(client, cruise, result);
+      
+      if (result.successfulDownloads > beforeDownload) {
+        shipSuccessful++;
+      } else {
+        shipFailed++;
+      }
       
       // Minimal delay for mega-batch efficiency - reduced from 100ms to 50ms
       await new Promise(resolve => setTimeout(resolve, 50));
     }
+    
+    logger.info(`✅ BULK FTP DEBUG: Completed ship ${shipName}`, {
+      shipSuccessful,
+      shipFailed,
+      totalSuccessful: result.successfulDownloads,
+      downloadedDataSize: result.downloadedData.size
+    });
   }
   
   /**
@@ -276,6 +338,12 @@ export class BulkFtpDownloaderService {
   ): Promise<void> {
     const fileName = `${cruise.id}.json`;
     
+    logger.debug(`📥 BULK FTP DEBUG: Attempting to download ${fileName}`, {
+      cruiseId: cruise.id,
+      shipName: cruise.shipName,
+      fileName
+    });
+    
     try {
       // Download with timeout protection
       const downloadPromise = this.downloadFileToMemory(client, fileName);
@@ -283,17 +351,33 @@ export class BulkFtpDownloaderService {
         setTimeout(() => reject(new Error('Download timeout')), this.DOWNLOAD_TIMEOUT);
       });
       
+      logger.debug(`🔍 BULK FTP DEBUG: Starting download race for ${fileName}`);
       const data = await Promise.race([downloadPromise, timeoutPromise]);
+      
+      logger.debug(`📋 BULK FTP DEBUG: Data received for ${fileName}`, {
+        dataLength: data.length,
+        dataPreview: data.substring(0, 100)
+      });
+      
       const jsonData = JSON.parse(data);
       
       result.downloadedData.set(cruise.id, jsonData);
       result.successfulDownloads++;
       
-      logger.debug(`✅ Downloaded ${fileName} (${data.length} bytes)`);
+      logger.debug(`✅ BULK FTP DEBUG: Successfully downloaded ${fileName}`, {
+        cruiseId: cruise.id,
+        dataSize: data.length,
+        totalDownloaded: result.successfulDownloads
+      });
       
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      logger.debug(`❌ Failed to download ${fileName}: ${errorMsg}`);
+      logger.error(`🚨 BULK FTP DEBUG: Failed to download ${fileName}`, {
+        cruiseId: cruise.id,
+        shipName: cruise.shipName,
+        error: errorMsg,
+        errorStack: error instanceof Error ? error.stack : 'No stack'
+      });
       
       result.failedDownloads++;
       result.errors.push(`${cruise.id} (${cruise.shipName}): ${errorMsg}`);
@@ -301,10 +385,15 @@ export class BulkFtpDownloaderService {
       // Categorize errors for better reporting
       if (errorMsg.includes('timeout') || errorMsg.includes('connection') || errorMsg.includes('ECONNRESET')) {
         result.connectionFailures++;
+        logger.error(`🚨 BULK FTP DEBUG: Connection failure for ${fileName}`);
       } else if (errorMsg.includes('not found') || errorMsg.includes('No such file')) {
         result.fileNotFoundErrors++;
+        logger.error(`🚨 BULK FTP DEBUG: File not found for ${fileName}`);
       } else if (errorMsg.includes('JSON') || errorMsg.includes('parse')) {
         result.parseErrors++;
+        logger.error(`🚨 BULK FTP DEBUG: JSON parse error for ${fileName}`);
+      } else {
+        logger.error(`🚨 BULK FTP DEBUG: Other error for ${fileName}: ${errorMsg}`);
       }
     }
   }
@@ -313,17 +402,42 @@ export class BulkFtpDownloaderService {
    * Download file content to memory using streaming approach
    */
   private async downloadFileToMemory(client: ftp.Client, fileName: string): Promise<string> {
+    logger.debug(`💾 BULK FTP DEBUG: downloadFileToMemory called for ${fileName}`);
+    
     const chunks: Buffer[] = [];
     
     const memoryStream = new Writable({
       write(chunk: Buffer, encoding: BufferEncoding, callback: (error?: Error | null) => void) {
+        logger.debug(`💾 BULK FTP DEBUG: Received chunk for ${fileName}`, {
+          chunkSize: chunk.length,
+          totalChunks: chunks.length + 1
+        });
         chunks.push(chunk);
         callback();
       }
     });
     
-    await client.downloadTo(memoryStream, fileName);
-    return Buffer.concat(chunks).toString('utf-8');
+    logger.debug(`💾 BULK FTP DEBUG: Starting client.downloadTo for ${fileName}`);
+    
+    try {
+      await client.downloadTo(memoryStream, fileName);
+      
+      const result = Buffer.concat(chunks).toString('utf-8');
+      
+      logger.debug(`✅ BULK FTP DEBUG: downloadFileToMemory completed for ${fileName}`, {
+        totalChunks: chunks.length,
+        totalSize: result.length,
+        preview: result.substring(0, 100)
+      });
+      
+      return result;
+    } catch (error) {
+      logger.error(`🚨 BULK FTP DEBUG: downloadFileToMemory failed for ${fileName}`, {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        chunksReceived: chunks.length
+      });
+      throw error;
+    }
   }
   
   /**
@@ -453,36 +567,64 @@ export class BulkFtpDownloaderService {
   async getCruiseInfoForLine(lineId: number, megaBatchSize?: number): Promise<CruiseInfo[]> {
     const limit = megaBatchSize || this.MEGA_BATCH_SIZE;
     
-    const cruiseData = await db
-      .select({
-        id: cruises.id,
-        cruiseCode: cruises.cruiseId,
-        shipName: sql<string>`COALESCE(ships.name, 'Unknown_Ship')`,
-        sailingDate: cruises.sailingDate
-      })
-      .from(cruises)
-      .leftJoin(ships, sql`${ships.id} = ${cruises.shipId}`)
-      .where(
-        sql`${cruises.cruiseLineId} = ${lineId} 
-            AND ${cruises.sailingDate} >= CURRENT_DATE 
-            AND ${cruises.sailingDate} <= CURRENT_DATE + INTERVAL '2 years'
-            AND ${cruises.isActive} = true`
-      )
-      .orderBy(sql`${cruises.sailingDate} ASC`)
-      .limit(limit);
+    logger.info('📦 BULK FTP DEBUG: Starting database query for cruise info', {
+      lineId,
+      limit
+    });
+    
+    try {
+      const cruiseData = await db
+        .select({
+          id: cruises.id,
+          cruiseCode: cruises.cruiseId,
+          shipName: sql<string>`COALESCE(ships.name, 'Unknown_Ship')`,
+          sailingDate: cruises.sailingDate
+        })
+        .from(cruises)
+        .leftJoin(ships, sql`${ships.id} = ${cruises.shipId}`)
+        .where(
+          sql`${cruises.cruiseLineId} = ${lineId} 
+              AND ${cruises.sailingDate} >= CURRENT_DATE 
+              AND ${cruises.sailingDate} <= CURRENT_DATE + INTERVAL '2 years'
+              AND ${cruises.isActive} = true`
+        )
+        .orderBy(sql`${cruises.sailingDate} ASC`)
+        .limit(limit);
+        
+      logger.info('✅ BULK FTP DEBUG: Database query completed successfully', {
+        lineId,
+        rowCount: cruiseData.length
+      });
 
-    const results = cruiseData.map(cruise => ({
-      id: cruise.id,
-      cruiseCode: cruise.cruiseCode,
-      shipName: cruise.shipName || `Ship_${cruise.id}`,
-      sailingDate: new Date(cruise.sailingDate)
-    }));
+      const results = cruiseData.map(cruise => ({
+        id: cruise.id,
+        cruiseCode: cruise.cruiseCode,
+        shipName: cruise.shipName || `Ship_${cruise.id}`,
+        sailingDate: new Date(cruise.sailingDate)
+      }));
 
-    if (results.length === limit) {
-      logger.warn(`📊 Limited cruise list to ${limit} cruises for line ${lineId} to prevent FTP overload`);
+      if (results.length === limit) {
+        logger.warn(`📊 Limited cruise list to ${limit} cruises for line ${lineId} to prevent FTP overload`);
+      }
+
+      logger.info('✅ BULK FTP DEBUG: Cruise info processing completed', {
+        lineId,
+        resultCount: results.length,
+        sampleCruiseIds: results.slice(0, 3).map(r => r.id)
+      });
+
+      return results;
+      
+    } catch (error) {
+      logger.error('🚨 BULK FTP DEBUG: Database query failed', {
+        lineId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : 'No stack'
+      });
+      
+      // Re-throw with more context
+      throw new Error(`Failed to get cruise info for line ${lineId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-
-    return results;
   }
 
   /**
@@ -505,25 +647,50 @@ export class BulkFtpDownloaderService {
       errors: []
     };
 
-    logger.info(`🔄 Processing ${downloadResult.downloadedData.size} downloaded cruise files from memory`, {
+    logger.info(`🔄 BULK FTP DEBUG: processCruiseUpdates called`, {
       lineId,
-      downloadedFiles: downloadResult.downloadedData.size
+      downloadedDataSize: downloadResult.downloadedData.size,
+      totalFiles: downloadResult.totalFiles,
+      successfulDownloads: downloadResult.successfulDownloads,
+      failedDownloads: downloadResult.failedDownloads,
+      downloadedDataKeys: Array.from(downloadResult.downloadedData.keys()).slice(0, 5)
     });
+    
+    if (downloadResult.downloadedData.size === 0) {
+      logger.error(`🚨 BULK FTP DEBUG: No data to process! downloadedData.size is 0`, {
+        totalFiles: downloadResult.totalFiles,
+        successfulDownloads: downloadResult.successfulDownloads,
+        errors: downloadResult.errors.slice(0, 3)
+      });
+      return result;
+    }
 
     for (const [cruiseId, cruiseData] of downloadResult.downloadedData) {
+      logger.debug(`💽 BULK FTP DEBUG: Processing cruise ${cruiseId}`, {
+        cruiseId,
+        hasData: !!cruiseData,
+        dataKeys: cruiseData ? Object.keys(cruiseData).slice(0, 5) : []
+      });
+      
       try {
         // Update pricing in database from cached data
         await this.updatePricingFromCachedData(cruiseId, cruiseData);
         result.successful++;
         result.actuallyUpdated++;
         
-        logger.debug(`✅ Updated cruise ${cruiseId} from cached data`);
+        logger.debug(`✅ BULK FTP DEBUG: Successfully updated cruise ${cruiseId}`, {
+          successful: result.successful,
+          actuallyUpdated: result.actuallyUpdated
+        });
       } catch (error) {
         result.failed++;
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         result.errors.push(`${cruiseId}: ${errorMsg}`);
         
-        logger.warn(`❌ Failed to update cruise ${cruiseId}: ${errorMsg}`);
+        logger.error(`🚨 BULK FTP DEBUG: Failed to update cruise ${cruiseId}`, {
+          error: errorMsg,
+          failed: result.failed
+        });
       }
     }
 
@@ -541,28 +708,34 @@ export class BulkFtpDownloaderService {
    * Update pricing data from cached cruise data
    */
   private async updatePricingFromCachedData(cruiseId: string, data: any): Promise<void> {
-    // Delete existing pricing
-    await db.execute(sql`DELETE FROM pricing WHERE cruise_id = ${cruiseId}`);
+    logger.debug(`💽 BULK FTP DEBUG: Starting database update for cruise ${cruiseId}`);
+    
+    try {
+      // Delete existing pricing with timeout
+      logger.debug(`🗑️ BULK FTP DEBUG: Deleting existing pricing for cruise ${cruiseId}`);
+      await db.execute(sql`DELETE FROM pricing WHERE cruise_id = ${cruiseId}`);
+      
+      logger.debug(`✅ BULK FTP DEBUG: Existing pricing deleted for cruise ${cruiseId}`);
 
-    // Process and insert new pricing data
-    if (data.prices && typeof data.prices === 'object') {
-      for (const [rateCode, cabins] of Object.entries(data.prices)) {
-        if (typeof cabins !== 'object') continue;
+      // Process and insert new pricing data
+      if (data.prices && typeof data.prices === 'object') {
+        for (const [rateCode, cabins] of Object.entries(data.prices)) {
+          if (typeof cabins !== 'object') continue;
 
-        for (const [cabinCode, occupancies] of Object.entries(cabins as any)) {
-          if (typeof occupancies !== 'object') continue;
+          for (const [cabinCode, occupancies] of Object.entries(cabins as any)) {
+            if (typeof occupancies !== 'object') continue;
 
-          for (const [occupancyCode, pricingData] of Object.entries(occupancies as any)) {
-            if (typeof pricingData !== 'object') continue;
+            for (const [occupancyCode, pricingData] of Object.entries(occupancies as any)) {
+              if (typeof pricingData !== 'object') continue;
 
-            const pricing = pricingData as any;
+              const pricing = pricingData as any;
             
-            // Skip if no valid price
-            if (!pricing.price && !pricing.adultprice) continue;
+              // Skip if no valid price
+              if (!pricing.price && !pricing.adultprice) continue;
 
-            const totalPrice = this.calculateTotalPrice(pricing);
+              const totalPrice = this.calculateTotalPrice(pricing);
 
-            await db.execute(sql`
+              await db.execute(sql`
               INSERT INTO pricing (
                 cruise_id, rate_code, cabin_code, occupancy_code, cabin_type,
                 base_price, adult_price, child_price, infant_price, single_price,
@@ -583,10 +756,20 @@ export class BulkFtpDownloaderService {
                 ${this.parseInteger(pricing.inventory)}, ${pricing.waitlist === true},
                 ${pricing.guarantee === true}, ${data.currency || 'USD'}
               )
-            `);
+              `);
+            }
           }
         }
       }
+      
+      logger.debug(`✅ BULK FTP DEBUG: Database update completed for cruise ${cruiseId}`);
+      
+    } catch (error) {
+      logger.error(`🚨 BULK FTP DEBUG: Database update failed for cruise ${cruiseId}`, {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        cruiseId
+      });
+      throw error;
     }
   }
 

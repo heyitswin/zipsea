@@ -47,9 +47,10 @@ export class WebhookService {
    */
   async processCruiselinePricingUpdate(data: WebhookPricingData): Promise<void> {
     try {
-      logger.info('Processing cruiseline pricing update using bulk FTP downloader', { 
+      logger.info('🚀 WEBHOOK DEBUG: Starting cruiseline pricing update using bulk FTP downloader', { 
         lineId: data.lineId, 
-        eventType: data.eventType 
+        eventType: data.eventType,
+        timestamp: new Date().toISOString()
       });
 
       if (!data.lineId) {
@@ -63,10 +64,56 @@ export class WebhookService {
         logger.info(`Mapping webhook line ${data.lineId} to database line ${databaseLineId}`);
       }
 
-      // Get cruise information for bulk download
-      const cruiseInfos = await bulkFtpDownloader.getCruiseInfoForLine(databaseLineId);
+      // Get cruise information for bulk download with timeout and retry
+      logger.info('🔍 WEBHOOK DEBUG: Getting cruise info for line', { databaseLineId });
+      
+      let cruiseInfos;
+      const maxRetries = 3;
+      const timeoutMs = 15000; // 15 seconds
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          logger.info(`🔄 WEBHOOK DEBUG: Database query attempt ${attempt}/${maxRetries}`, { databaseLineId });
+          
+          // Add timeout wrapper for database query
+          const queryPromise = bulkFtpDownloader.getCruiseInfoForLine(databaseLineId);
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error(`Database query timeout after ${timeoutMs}ms`)), timeoutMs);
+          });
+          
+          cruiseInfos = await Promise.race([queryPromise, timeoutPromise]);
+          logger.info(`✅ WEBHOOK DEBUG: Database query succeeded on attempt ${attempt}`);
+          break;
+          
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          logger.error(`❌ WEBHOOK DEBUG: Database query attempt ${attempt}/${maxRetries} failed`, {
+            error: errorMsg,
+            databaseLineId,
+            attempt
+          });
+          
+          if (attempt === maxRetries) {
+            logger.error(`🚨 WEBHOOK DEBUG: All database attempts failed for line ${databaseLineId}`, {
+              error: errorMsg,
+              totalAttempts: maxRetries
+            });
+            throw new Error(`Failed to get cruise info after ${maxRetries} attempts: ${errorMsg}`);
+          }
+          
+          // Wait before retry with exponential backoff
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          logger.info(`⏳ WEBHOOK DEBUG: Waiting ${delay}ms before retry ${attempt + 1}`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
 
-      logger.info(`Found ${cruiseInfos.length} cruises for bulk download (line ${data.lineId} -> ${databaseLineId})`);
+      logger.info(`🎯 WEBHOOK DEBUG: Found ${cruiseInfos.length} cruises for bulk download`, {
+        originalLineId: data.lineId,
+        databaseLineId,
+        cruiseCount: cruiseInfos.length,
+        sampleCruises: cruiseInfos.slice(0, 3).map(c => ({ id: c.id, shipName: c.shipName }))
+      });
 
       if (cruiseInfos.length === 0) {
         logger.warn(`No active cruises found for cruise line ${data.lineId} (database line ${databaseLineId})`);
@@ -74,7 +121,20 @@ export class WebhookService {
       }
 
       // Perform bulk FTP download
+      logger.info('📥 WEBHOOK DEBUG: Starting bulk FTP download', {
+        databaseLineId,
+        cruiseCount: cruiseInfos.length
+      });
       const downloadResult = await bulkFtpDownloader.downloadLineUpdates(databaseLineId, cruiseInfos);
+      
+      logger.info('📦 WEBHOOK DEBUG: Bulk download result received', {
+        totalFiles: downloadResult.totalFiles,
+        successfulDownloads: downloadResult.successfulDownloads,
+        failedDownloads: downloadResult.failedDownloads,
+        downloadedDataSize: downloadResult.downloadedData.size,
+        errors: downloadResult.errors.slice(0, 3),
+        connectionFailures: downloadResult.connectionFailures
+      });
       
       logger.info(`Bulk download completed`, {
         lineId: data.lineId,
@@ -86,7 +146,28 @@ export class WebhookService {
       });
 
       // Process downloaded data to update database
+      logger.info('💽 WEBHOOK DEBUG: Starting database processing', {
+        downloadedDataSize: downloadResult.downloadedData.size,
+        hasDownloadedData: downloadResult.downloadedData.size > 0
+      });
+      
+      if (downloadResult.downloadedData.size === 0) {
+        logger.error('🚨 WEBHOOK DEBUG: No data was downloaded! This explains the 0% success rate', {
+          totalFiles: downloadResult.totalFiles,
+          successfulDownloads: downloadResult.successfulDownloads,
+          failedDownloads: downloadResult.failedDownloads,
+          errors: downloadResult.errors
+        });
+      }
+      
       const processingResult = await bulkFtpDownloader.processCruiseUpdates(databaseLineId, downloadResult);
+      
+      logger.info('✅ WEBHOOK DEBUG: Database processing result', {
+        successful: processingResult.successful,
+        failed: processingResult.failed,
+        actuallyUpdated: processingResult.actuallyUpdated,
+        errors: processingResult.errors.slice(0, 3)
+      });
 
       // Clear relevant cache entries
       await this.clearCacheForCruiseLine(databaseLineId);
