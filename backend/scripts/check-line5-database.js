@@ -6,6 +6,7 @@
  * Investigates database state for line 5 cruises
  */
 
+require('dotenv').config();
 const { Client } = require('pg');
 
 const logger = {
@@ -22,9 +23,14 @@ async function checkLine5Database() {
 
   try {
     // Connect to database
+    const databaseUrl = process.env.DATABASE_URL_PRODUCTION || process.env.DATABASE_URL;
+    if (!databaseUrl) {
+      throw new Error('DATABASE_URL or DATABASE_URL_PRODUCTION environment variable not set');
+    }
+
     client = new Client({
-      connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false },
+      connectionString: databaseUrl,
+      ssl: databaseUrl.includes('render.com') ? { rejectUnauthorized: false } : false,
     });
 
     await client.connect();
