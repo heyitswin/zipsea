@@ -75,10 +75,15 @@ export class BulkFtpDownloaderService {
     lineId: number, 
     cruiseInfos: CruiseInfo[]
   ): Promise<BulkDownloadResult> {
-    logger.info('🔧 BULK FTP DEBUG: downloadLineUpdates called', {
+    const downloadStartTime = new Date().toISOString();
+    logger.info('🔧 [BULK-FTP-START] Starting bulk FTP download operation', {
       lineId,
       cruiseInfosCount: cruiseInfos.length,
-      sampleCruiseIds: cruiseInfos.slice(0, 3).map(c => c.id)
+      sampleCruiseIds: cruiseInfos.slice(0, 3).map(c => c.id),
+      stage: 'BULK_DOWNLOAD_START',
+      downloadStartTime,
+      megaBatchLimit: this.MEGA_BATCH_SIZE,
+      maxConnections: this.MAX_CONNECTIONS
     });
     
     // Enforce mega-batch size limit
@@ -119,15 +124,35 @@ export class BulkFtpDownloaderService {
     
     try {
       // Get or create FTP connection
-      logger.info('📡 BULK FTP DEBUG: Getting FTP connection', { lineId });
-      client = await this.getConnection();
-      logger.info('✅ BULK FTP DEBUG: FTP connection established', { lineId });
+      logger.info('📡 [FTP-CONNECTION] Attempting FTP connection', { 
+        lineId,
+        stage: 'FTP_CONNECTION_ATTEMPT',
+        connectionAttemptTime: new Date().toISOString(),
+        host: env.TRAVELTEK_FTP_HOST ? env.TRAVELTEK_FTP_HOST.substring(0, 10) + '***' : 'MISSING',
+        poolSize: this.connectionPool.length
+      });
       
-      logger.info(`🚀 Starting bulk download for line ${lineId} with FIXED FTP path structure`, {
+      client = await this.getConnection();
+      
+      logger.info('✅ [FTP-CONNECTION] FTP connection established successfully', { 
+        lineId,
+        stage: 'FTP_CONNECTION_SUCCESS',
+        connectionTime: new Date().toISOString(),
+        connectionDuration: Date.now() - startTime
+      });
+      
+      logger.info(`🚀 [BULK-DOWNLOAD] Starting bulk download for line ${lineId}`, {
         totalFiles: cruiseInfos.length,
         ships: Array.from(new Set(cruiseInfos.map(c => c.shipName))).length,
         avgFilesPerShip: Math.round(cruiseInfos.length / Array.from(new Set(cruiseInfos.map(c => c.shipName))).length),
         webhookLineId: getWebhookLineId(lineId),
+        stage: 'BULK_DOWNLOAD_CONFIG',
+        downloadConfig: {
+          megaBatchSize: this.MEGA_BATCH_SIZE,
+          maxConnections: this.MAX_CONNECTIONS,
+          chunkSize: this.CHUNK_SIZE,
+          downloadTimeout: this.DOWNLOAD_TIMEOUT
+        },
         sampleCruiseInfo: cruiseInfos.slice(0, 2).map(c => ({
           id: c.id,
           shipId: c.shipId,
@@ -135,7 +160,7 @@ export class BulkFtpDownloaderService {
           sailingYear: c.sailingDate.getFullYear(),
           sailingMonth: String(c.sailingDate.getMonth() + 1).padStart(2, '0')
         })),
-        pathStructureNote: 'FIXED: Now using /YYYY/MM/LINEID/SHIPID/CRUISEID.json format'
+        pathStructureNote: 'Using /YYYY/MM/LINEID/SHIPID/CRUISEID.json format'
       });
       
       // Group cruises by ship for optimal FTP directory navigation
@@ -151,10 +176,12 @@ export class BulkFtpDownloaderService {
       
       // Process ships in chunks optimized for mega-batches
       const shipsPerChunk = Math.max(1, Math.ceil(shipNames.length / this.MAX_CONNECTIONS));
-      logger.info('🔄 BULK FTP DEBUG: Starting ship processing', {
+      logger.info('🔄 [BULK-PROCESSING] Starting ship processing in chunks', {
         totalShips: shipNames.length,
         shipsPerChunk,
-        totalChunks: Math.ceil(shipNames.length / shipsPerChunk)
+        totalChunks: Math.ceil(shipNames.length / shipsPerChunk),
+        stage: 'SHIP_PROCESSING_START',
+        processingStartTime: new Date().toISOString()
       });
       
       for (let i = 0; i < shipNames.length; i += shipsPerChunk) {
@@ -163,18 +190,25 @@ export class BulkFtpDownloaderService {
         const totalChunks = Math.ceil(shipNames.length / shipsPerChunk);
         
         const chunkCruiseCount = shipChunk.reduce((sum, ship) => sum + cruisesByShip.get(ship)!.length, 0);
-        logger.info(`🚢 BULK FTP DEBUG: Processing ship chunk ${chunkNumber}/${totalChunks}`, {
+        logger.info(`🚢 [CHUNK-PROGRESS] Processing ship chunk ${chunkNumber}/${totalChunks}`, {
           ships: shipChunk,
-          cruiseCount: chunkCruiseCount
+          cruiseCount: chunkCruiseCount,
+          stage: 'CHUNK_PROCESSING',
+          chunkStartTime: new Date().toISOString(),
+          progressBefore: `${result.successfulDownloads}/${cruiseInfos.length} files downloaded`
         });
         
         // Process ships in this chunk using shared connection
         await this.downloadShipChunk(client, lineId, shipChunk, cruisesByShip, result);
         
-        logger.info(`✅ BULK FTP DEBUG: Completed ship chunk ${chunkNumber}/${totalChunks}`, {
+        const progressPercent = Math.round((result.successfulDownloads / cruiseInfos.length) * 100);
+        logger.info(`✅ [CHUNK-COMPLETE] Completed ship chunk ${chunkNumber}/${totalChunks}`, {
           currentSuccessful: result.successfulDownloads,
           currentFailed: result.failedDownloads,
-          downloadedDataSize: result.downloadedData.size
+          downloadedDataSize: result.downloadedData.size,
+          stage: 'CHUNK_COMPLETED',
+          progress: `${result.successfulDownloads}/${cruiseInfos.length} files downloaded (${progressPercent}%)`,
+          chunkCompletedTime: new Date().toISOString()
         });
         
         // Minimal delay between chunks for mega-batch efficiency
@@ -301,8 +335,22 @@ export class BulkFtpDownloaderService {
     let shipSuccessful = 0;
     let shipFailed = 0;
     
-    for (const cruise of cruises) {
+    for (let i = 0; i < cruises.length; i++) {
+      const cruise = cruises[i];
       const beforeDownload = result.successfulDownloads;
+      
+      // Log individual cruise download progress every 10 files or for first/last files
+      if (i % 10 === 0 || i === cruises.length - 1 || i === 0) {
+        logger.info(`📥 [FILE-DOWNLOAD] Downloading cruise file ${i + 1}/${cruises.length} for ship ${shipKey}`, {
+          cruiseId: cruise.id,
+          shipKey,
+          lineId,
+          progress: `File ${i + 1}/${cruises.length}`,
+          overallProgress: `${result.successfulDownloads}/${result.totalFiles} total files`,
+          stage: 'INDIVIDUAL_FILE_DOWNLOAD'
+        });
+      }
+      
       await this.downloadSingleCruiseFile(client, lineId, cruise, result);
       
       if (result.successfulDownloads > beforeDownload) {
@@ -783,30 +831,44 @@ export class BulkFtpDownloaderService {
       errors: []
     };
 
-    logger.info(`🔄 BULK FTP DEBUG: processCruiseUpdates called`, {
+    const processingStartTime = new Date().toISOString();
+    logger.info(`🔄 [DATABASE-PROCESSING] Starting cruise data processing`, {
       lineId,
       downloadedDataSize: downloadResult.downloadedData.size,
       totalFiles: downloadResult.totalFiles,
       successfulDownloads: downloadResult.successfulDownloads,
       failedDownloads: downloadResult.failedDownloads,
+      stage: 'DATABASE_PROCESSING_START',
+      processingStartTime,
       downloadedDataKeys: Array.from(downloadResult.downloadedData.keys()).slice(0, 5)
     });
     
     if (downloadResult.downloadedData.size === 0) {
-      logger.error(`🚨 BULK FTP DEBUG: No data to process! downloadedData.size is 0`, {
+      logger.error(`🚨 [DATABASE-PROCESSING] No data to process! downloadedData.size is 0`, {
         totalFiles: downloadResult.totalFiles,
         successfulDownloads: downloadResult.successfulDownloads,
-        errors: downloadResult.errors.slice(0, 3)
+        errors: downloadResult.errors.slice(0, 3),
+        stage: 'NO_DATA_TO_PROCESS'
       });
       return result;
     }
 
+    let processedCount = 0;
+    const totalToProcess = downloadResult.downloadedData.size;
+
     for (const [cruiseId, cruiseData] of downloadResult.downloadedData) {
-      logger.debug(`💽 BULK FTP DEBUG: Processing cruise ${cruiseId}`, {
-        cruiseId,
-        hasData: !!cruiseData,
-        dataKeys: cruiseData ? Object.keys(cruiseData).slice(0, 5) : []
-      });
+      processedCount++;
+      
+      // Log progress every 25 items or for first/last items
+      if (processedCount % 25 === 0 || processedCount === totalToProcess || processedCount === 1) {
+        logger.info(`💽 [DATABASE-UPDATE] Processing cruise ${processedCount}/${totalToProcess}`, {
+          cruiseId,
+          progress: `${processedCount}/${totalToProcess} cruises processed`,
+          stage: 'DATABASE_UPDATING',
+          hasData: !!cruiseData,
+          dataKeys: cruiseData ? Object.keys(cruiseData).slice(0, 5) : []
+        });
+      }
       
       try {
         // Update pricing in database from cached data
@@ -814,27 +876,39 @@ export class BulkFtpDownloaderService {
         result.successful++;
         result.actuallyUpdated++;
         
-        logger.debug(`✅ BULK FTP DEBUG: Successfully updated cruise ${cruiseId}`, {
-          successful: result.successful,
-          actuallyUpdated: result.actuallyUpdated
-        });
+        if (processedCount % 50 === 0 || processedCount === totalToProcess) {
+          logger.info(`✅ [DATABASE-UPDATE] Successfully updated cruise ${cruiseId}`, {
+            successful: result.successful,
+            actuallyUpdated: result.actuallyUpdated,
+            progress: `${processedCount}/${totalToProcess} cruises processed`,
+            stage: 'DATABASE_UPDATE_SUCCESS'
+          });
+        }
       } catch (error) {
         result.failed++;
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         result.errors.push(`${cruiseId}: ${errorMsg}`);
         
-        logger.error(`🚨 BULK FTP DEBUG: Failed to update cruise ${cruiseId}`, {
+        logger.error(`🚨 [DATABASE-UPDATE] Failed to update cruise ${cruiseId}`, {
           error: errorMsg,
-          failed: result.failed
+          failed: result.failed,
+          progress: `${processedCount}/${totalToProcess} cruises processed`,
+          stage: 'DATABASE_UPDATE_FAILED'
         });
       }
     }
 
-    logger.info(`✅ Completed processing cached cruise data`, {
+    const processingCompletedTime = new Date().toISOString();
+    logger.info(`✅ [DATABASE-PROCESSING] Completed processing cached cruise data`, {
       lineId,
       successful: result.successful,
       failed: result.failed,
-      actuallyUpdated: result.actuallyUpdated
+      actuallyUpdated: result.actuallyUpdated,
+      stage: 'DATABASE_PROCESSING_COMPLETE',
+      processingStartTime,
+      processingCompletedTime,
+      totalProcessed: processedCount,
+      successRate: `${Math.round((result.successful / totalToProcess) * 100)}%`
     });
 
     return result;

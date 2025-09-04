@@ -24,20 +24,30 @@ const router = Router();
 router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: Response, next: NextFunction) => {
   const startTime = Date.now();
   const webhookId = `webhook_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const receivedAt = new Date().toISOString();
   
   try {
-    logger.info('🚀 Cruiseline pricing updated webhook received (REAL-TIME)', {
+    logger.info('🚀 [WEBHOOK-RECEIVED] Cruiseline pricing updated webhook received (REAL-TIME)', {
       webhookId,
+      receivedAt,
       bodySize: JSON.stringify(req.body).length,
       lineId: req.body.lineid || req.body.lineId || req.body.line_id,
       currency: req.body.currency,
       timestamp: req.body.timestamp,
-      processingMode: 'realtime_parallel'
+      processingMode: 'realtime_parallel',
+      userAgent: req.headers['user-agent'],
+      sourceIP: req.ip || req.connection.remoteAddress,
+      stage: 'WEBHOOK_RECEIVED'
     });
 
     // Validate required fields
     if (!req.body.lineid && !req.body.lineId && !req.body.line_id) {
-      logger.warn('⚠️ Missing required lineId in webhook payload', { webhookId, body: req.body });
+      logger.warn('⚠️ [WEBHOOK-VALIDATION-FAILED] Missing required lineId in webhook payload', { 
+        webhookId, 
+        body: req.body,
+        stage: 'VALIDATION_FAILED',
+        receivedAt 
+      });
       return res.status(200).json({
         success: false,
         message: 'Missing required lineId field',
@@ -57,15 +67,33 @@ router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: R
       timestamp: req.body.timestamp || Math.floor(Date.now() / 1000)
     };
 
+    logger.info('📋 [WEBHOOK-NORMALIZED] Payload normalized and ready for processing', {
+      webhookId,
+      payload,
+      validationTime: Date.now() - startTime,
+      stage: 'PAYLOAD_NORMALIZED',
+      receivedAt
+    });
+
     try {
+      logger.info('🔄 [WEBHOOK-QUEUING] Starting webhook queue process', {
+        webhookId,
+        lineId: payload.lineid,
+        stage: 'QUEUING_STARTED',
+        queueAttemptAt: new Date().toISOString()
+      });
+
       // Process webhook in real-time using new service
       const processingResult = await realtimeWebhookService.processWebhook(payload);
       
-      logger.info('📨 Webhook queued for real-time parallel processing', {
+      logger.info('📨 [WEBHOOK-QUEUED] Webhook queued for real-time parallel processing', {
         webhookId,
         lineId: payload.lineid,
         jobId: processingResult.jobId,
-        message: processingResult.message
+        message: processingResult.message,
+        queuedAt: new Date().toISOString(),
+        queueTime: Date.now() - startTime,
+        stage: 'QUEUED_FOR_PROCESSING'
       });
 
       // Immediate acknowledgment
@@ -80,11 +108,21 @@ router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: R
         note: 'Cruises are being updated immediately via FTP - check Slack for accurate results'
       });
 
-    } catch (processingError) {
-      logger.error('❌ Failed to queue webhook for real-time processing', {
+      logger.info('✅ [WEBHOOK-ACKNOWLEDGED] Webhook acknowledged to sender', {
         webhookId,
         lineId: payload.lineid,
-        error: processingError instanceof Error ? processingError.message : 'Unknown error'
+        jobId: processingResult.jobId,
+        responseTime: Date.now() - startTime,
+        stage: 'WEBHOOK_ACKNOWLEDGED'
+      });
+
+    } catch (processingError) {
+      logger.error('❌ [WEBHOOK-QUEUE-FAILED] Failed to queue webhook for real-time processing', {
+        webhookId,
+        lineId: payload.lineid,
+        error: processingError instanceof Error ? processingError.message : 'Unknown error',
+        queueFailedAt: new Date().toISOString(),
+        stage: 'QUEUE_FAILED'
       });
 
       // Still acknowledge webhook to prevent retries, but note the error

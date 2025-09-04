@@ -156,6 +156,14 @@ export class RealtimeWebhookService {
   async processWebhook(payload: any): Promise<{ jobId: string; message: string }> {
     const webhookId = `wh_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const duplicateKey = `line_${payload.lineid}`;
+    const startTime = Date.now();
+    
+    logger.info('🔄 [REDIS-QUEUE] Starting webhook processing service', {
+      webhookId,
+      lineId: payload.lineid,
+      stage: 'SERVICE_ENTRY',
+      entryTime: new Date().toISOString()
+    });
     
     // Check for duplicate webhooks
     const now = new Date();
@@ -165,11 +173,12 @@ export class RealtimeWebhookService {
       const timeSinceLastMs = now.getTime() - lastProcessed.getTime();
       const timeSinceLastSec = Math.round(timeSinceLastMs / 1000);
       
-      logger.warn('🔄 Duplicate webhook detected - ignoring', {
+      logger.warn('🔄 [DUPLICATE-DETECTED] Duplicate webhook detected - ignoring', {
         webhookId,
         lineId: payload.lineid,
         timeSinceLastProcessing: `${timeSinceLastSec}s`,
-        lastProcessedAt: lastProcessed.toISOString()
+        lastProcessedAt: lastProcessed.toISOString(),
+        stage: 'DUPLICATE_DETECTED'
       });
       
       return {
@@ -184,13 +193,28 @@ export class RealtimeWebhookService {
     // Record this webhook
     this.recentWebhooks.set(duplicateKey, now);
     
-    logger.info('🚀 Processing webhook in real-time', {
+    logger.info('🚀 [REDIS-QUEUE] Processing webhook in real-time', {
       webhookId,
       eventType: payload.event,
-      lineId: payload.lineid
+      lineId: payload.lineid,
+      stage: 'PROCESSING_START',
+      priority: this.determinePriority(payload.lineid),
+      queueConfig: {
+        useBulkDownloader: this.USE_BULK_DOWNLOADER,
+        maxCruisesPerMegaBatch: this.MAX_CRUISES_PER_MEGA_BATCH,
+        parallelWorkers: this.PARALLEL_CRUISE_WORKERS
+      }
     });
 
     // Add webhook job to queue for immediate processing
+    logger.info('📤 [REDIS-QUEUE] Adding job to webhook queue', {
+      webhookId,
+      lineId: payload.lineid,
+      priority: this.determinePriority(payload.lineid),
+      stage: 'ADDING_TO_QUEUE',
+      addingAt: new Date().toISOString()
+    });
+
     const job = await this.webhookQueue.add('process-webhook', {
       webhookId,
       eventType: payload.event || 'cruiseline_pricing_updated',
@@ -201,6 +225,16 @@ export class RealtimeWebhookService {
     }, {
       priority: this.determinePriority(payload.lineid),
       jobId: webhookId,
+    });
+
+    logger.info('✅ [REDIS-QUEUE] Job successfully added to webhook queue', {
+      webhookId,
+      jobId: job.id!,
+      lineId: payload.lineid,
+      priority: this.determinePriority(payload.lineid),
+      queueTime: Date.now() - startTime,
+      stage: 'ADDED_TO_QUEUE',
+      addedAt: new Date().toISOString()
     });
 
     return {
@@ -216,10 +250,14 @@ export class RealtimeWebhookService {
     const { webhookId, lineId, payload } = job.data;
     const startTime = new Date();
     
-    logger.info('📊 Starting webhook orchestration', {
+    logger.info('📊 [JOB-START] Starting webhook orchestration', {
       webhookId,
       lineId,
-      jobId: job.id
+      jobId: job.id,
+      stage: 'JOB_PROCESSING_START',
+      jobStartTime: startTime.toISOString(),
+      jobPriority: job.opts.priority,
+      jobAttempts: job.attemptsMade + 1
     });
 
     const result: ProcessingResult = {
