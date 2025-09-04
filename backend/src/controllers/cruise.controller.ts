@@ -11,7 +11,7 @@ const sql = postgres(env.DATABASE_URL, {
   max: 5,
   idle_timeout: 20,
   connect_timeout: 10,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
 });
 
 class CruiseController {
@@ -20,10 +20,10 @@ class CruiseController {
       const page = req.query.page ? Number(req.query.page) : 1;
       const limit = req.query.limit ? Number(req.query.limit) : 20;
       const offset = (page - 1) * limit;
-      
+
       // Extract filter parameters
       const { shipId, shipName, departureDate } = req.query;
-      
+
       // If no filters are provided, use the original hotfix service
       if (!shipId && !shipName && !departureDate) {
         const results = await searchHotfixService.getSimpleCruiseList(limit, offset);
@@ -40,31 +40,31 @@ class CruiseController {
       // Build filtered query when filters are provided
       const conditions = [];
       const params = [];
-      
+
       // Add base conditions
       conditions.push(`c.is_active = true`);
       conditions.push(`c.sailing_date >= CURRENT_DATE`);
-      
+
       if (shipId) {
         conditions.push(`c.ship_id = $${params.length + 1}`);
         params.push(shipId);
       }
-      
+
       if (shipName) {
         conditions.push(`LOWER(s.name) LIKE LOWER($${params.length + 1})`);
         params.push(`%${shipName}%`);
       }
-      
+
       if (departureDate) {
         conditions.push(`c.sailing_date = $${params.length + 1}`);
         params.push(departureDate);
       }
-      
+
       const whereClause = conditions.join(' AND ');
-      
+
       // Query for filtered results
       const query = `
-        SELECT 
+        SELECT
           c.id,
           c.cruise_id,
           c.name,
@@ -93,10 +93,10 @@ class CruiseController {
         LIMIT $${params.length + 1}
         OFFSET $${params.length + 2}
       `;
-      
+
       params.push(limit, offset);
       const results = await sql.unsafe(query, params);
-      
+
       // Get total count for filtered results
       const countQuery = `
         SELECT COUNT(*) as count
@@ -104,7 +104,7 @@ class CruiseController {
         LEFT JOIN ships s ON c.ship_id = s.id
         WHERE ${whereClause}
       `;
-      
+
       const countParams = params.slice(0, -2); // Remove limit and offset
       const countResult = await sql.unsafe(countQuery, countParams);
       const total = Number(countResult[0]?.count || 0);
@@ -127,7 +127,7 @@ class CruiseController {
         interior_price: row.interior_price,
         oceanview_price: row.oceanview_price,
         balcony_price: row.balcony_price,
-        suite_price: row.suite_price
+        suite_price: row.suite_price,
       }));
 
       res.json({
@@ -139,7 +139,7 @@ class CruiseController {
             limit,
             offset,
             page: Math.floor(offset / limit) + 1,
-            totalPages: Math.ceil(total / limit)
+            totalPages: Math.ceil(total / limit),
           },
         },
       });
@@ -159,7 +159,7 @@ class CruiseController {
     try {
       const cruiseId = Number(req.params.id);
       const comprehensive = req.query.comprehensive === 'true';
-      
+
       if (isNaN(cruiseId)) {
         res.status(400).json({
           success: false,
@@ -174,7 +174,7 @@ class CruiseController {
       // If comprehensive data is requested, use the comprehensive service method
       if (comprehensive) {
         const comprehensiveData = await cruiseService.getComprehensiveCruiseData(cruiseId);
-        
+
         if (!comprehensiveData) {
           res.status(404).json({
             success: false,
@@ -191,15 +191,15 @@ class CruiseController {
           data: comprehensiveData,
           meta: {
             dataVersion: 'comprehensive',
-            note: 'Comprehensive data includes all database fields and related records'
-          }
+            note: 'Comprehensive data includes all database fields and related records',
+          },
         });
         return;
       }
 
       // Otherwise, use the standard cruise details method
       const cruiseDetails = await cruiseService.getCruiseDetails(cruiseId);
-      
+
       if (!cruiseDetails) {
         res.status(404).json({
           success: false,
@@ -216,8 +216,8 @@ class CruiseController {
         data: cruiseDetails,
         meta: {
           dataVersion: 'standard',
-          note: 'Add ?comprehensive=true for complete database fields'
-        }
+          note: 'Add ?comprehensive=true for complete database fields',
+        },
       });
     } catch (error) {
       logger.error(`Get cruise details failed for ID ${req.params.id}:`, error);
@@ -236,7 +236,7 @@ class CruiseController {
       const cruiseId = Number(req.params.id);
       const cabinType = req.query.cabinType as string;
       const rateCode = req.query.rateCode as string;
-      
+
       if (isNaN(cruiseId)) {
         res.status(400).json({
           success: false,
@@ -269,7 +269,7 @@ class CruiseController {
   async getCruiseAvailability(req: Request, res: Response): Promise<void> {
     try {
       const cruiseId = Number(req.params.id);
-      
+
       if (isNaN(cruiseId)) {
         res.status(400).json({
           success: false,
@@ -302,7 +302,7 @@ class CruiseController {
   async getCruiseItinerary(req: Request, res: Response): Promise<void> {
     try {
       const cruiseId = Number(req.params.id);
-      
+
       if (isNaN(cruiseId)) {
         res.status(400).json({
           success: false,
@@ -336,7 +336,7 @@ class CruiseController {
     try {
       const cruiseId = Number(req.params.id);
       const cabinCode = req.params.cabinCode as string;
-      
+
       if (isNaN(cruiseId)) {
         res.status(400).json({
           success: false,
@@ -365,14 +365,17 @@ class CruiseController {
 
       res.json({
         success: true,
-        data: { 
+        data: {
           cruiseId,
           cabinCode,
-          pricing: cabinPricing 
+          pricing: cabinPricing,
         },
       });
     } catch (error) {
-      logger.error(`Get cabin pricing failed for cruise ${req.params.id}, cabin ${req.params.cabinCode}:`, error);
+      logger.error(
+        `Get cabin pricing failed for cruise ${req.params.id}, cabin ${req.params.cabinCode}:`,
+        error
+      );
       res.status(500).json({
         success: false,
         error: {
@@ -388,7 +391,7 @@ class CruiseController {
       // For now, get ship details through cruise details
       // In the future, you might want a dedicated ship service
       const cruiseId = Number(req.params.id);
-      
+
       if (isNaN(cruiseId)) {
         res.status(400).json({
           success: false,
@@ -401,7 +404,7 @@ class CruiseController {
       }
 
       const cruiseDetails = await cruiseService.getCruiseDetails(cruiseId);
-      
+
       if (!cruiseDetails) {
         res.status(404).json({
           success: false,
@@ -435,7 +438,7 @@ class CruiseController {
   async getAlternativeSailings(req: Request, res: Response): Promise<void> {
     try {
       const cruiseId = Number(req.params.id);
-      
+
       if (isNaN(cruiseId)) {
         res.status(400).json({
           success: false,
@@ -468,7 +471,7 @@ class CruiseController {
   async getCruiseBySlug(req: Request, res: Response): Promise<void> {
     try {
       const slug = req.params.slug;
-      
+
       if (!slug) {
         res.status(400).json({
           success: false,
@@ -493,14 +496,14 @@ class CruiseController {
       }
 
       const cruiseData = await cruiseService.getCruiseBySlug(slug);
-      
+
       if (!cruiseData) {
         const parsedSlug = parseCruiseSlug(slug);
         res.status(404).json({
           success: false,
           error: {
             message: 'Cruise not found',
-            details: parsedSlug 
+            details: parsedSlug
               ? `No cruise found matching ${parsedSlug.shipName} on ${parsedSlug.departureDate} with ID ${parsedSlug.cruiseId}`
               : `No cruise found for slug: ${slug}`,
           },
@@ -514,8 +517,8 @@ class CruiseController {
         meta: {
           slug,
           requestedAt: new Date().toISOString(),
-          dataVersion: 'comprehensive'
-        }
+          dataVersion: 'comprehensive',
+        },
       });
     } catch (error) {
       logger.error(`Get cruise by slug failed for slug ${req.params.slug}:`, error);
@@ -532,7 +535,7 @@ class CruiseController {
   async getComprehensiveCruiseData(req: Request, res: Response): Promise<void> {
     try {
       const cruiseId = Number(req.params.id);
-      
+
       if (isNaN(cruiseId)) {
         res.status(400).json({
           success: false,
@@ -545,7 +548,7 @@ class CruiseController {
       }
 
       const cruiseData = await cruiseService.getComprehensiveCruiseData(cruiseId);
-      
+
       if (!cruiseData) {
         res.status(404).json({
           success: false,
@@ -564,8 +567,8 @@ class CruiseController {
           cruiseId,
           requestedAt: new Date().toISOString(),
           dataVersion: 'comprehensive',
-          totalFields: Object.keys(cruiseData).length
-        }
+          totalFields: Object.keys(cruiseData).length,
+        },
       });
     } catch (error) {
       logger.error(`Get comprehensive cruise data failed for ID ${req.params.id}:`, error);
@@ -582,7 +585,7 @@ class CruiseController {
   async dumpCruiseData(req: Request, res: Response): Promise<void> {
     try {
       const cruiseId = Number(req.params.id);
-      
+
       if (isNaN(cruiseId)) {
         res.status(400).json({
           success: false,
@@ -596,7 +599,7 @@ class CruiseController {
 
       // Get comprehensive data
       const comprehensiveData = await cruiseService.getComprehensiveCruiseData(cruiseId);
-      
+
       if (!comprehensiveData) {
         res.status(404).json({
           success: false,
@@ -653,13 +656,13 @@ class CruiseController {
         // All regions
         regions: {
           count: comprehensiveData.regions.length,
-          data: comprehensiveData.regions
+          data: comprehensiveData.regions,
         },
 
         // All ports visited
         ports: {
           count: comprehensiveData.ports.length,
-          data: comprehensiveData.ports
+          data: comprehensiveData.ports,
         },
 
         // Complete pricing breakdown
@@ -669,7 +672,7 @@ class CruiseController {
           priceRange: comprehensiveData.pricing.summary.priceRange,
           cabinTypes: comprehensiveData.pricing.summary.cabinTypes,
           rateCodes: comprehensiveData.pricing.summary.rateCodes,
-          allPricingOptions: comprehensiveData.pricing.options
+          allPricingOptions: comprehensiveData.pricing.options,
         },
 
         // Cheapest pricing summary
@@ -678,19 +681,19 @@ class CruiseController {
         // Complete itinerary
         itinerary: {
           totalDays: comprehensiveData.itinerary.length,
-          data: comprehensiveData.itinerary
+          data: comprehensiveData.itinerary,
         },
 
         // All cabin categories
         cabinCategories: {
           totalCategories: comprehensiveData.cabinCategories.length,
-          data: comprehensiveData.cabinCategories
+          data: comprehensiveData.cabinCategories,
         },
 
         // Alternative sailings
         alternativeSailings: {
           totalAlternatives: comprehensiveData.alternativeSailings.length,
-          data: comprehensiveData.alternativeSailings
+          data: comprehensiveData.alternativeSailings,
         },
 
         // SEO data
@@ -713,8 +716,8 @@ class CruiseController {
           ...comprehensiveData.meta,
           dumpGeneratedAt: new Date().toISOString(),
           dataVersion: 'comprehensive-dump',
-          warning: 'This endpoint shows ALL database fields for debugging purposes'
-        }
+          warning: 'This endpoint shows ALL database fields for debugging purposes',
+        },
       };
 
       res.json({
@@ -723,10 +726,9 @@ class CruiseController {
         meta: {
           cruiseId,
           endpoint: 'dump',
-          warning: 'This is a comprehensive data dump including all database fields'
-        }
+          warning: 'This is a comprehensive data dump including all database fields',
+        },
       });
-
     } catch (error) {
       logger.error(`Dump cruise data failed for ID ${req.params.id}:`, error);
       res.status(500).json({
@@ -742,7 +744,7 @@ class CruiseController {
   async findCruiseForRedirect(req: Request, res: Response): Promise<void> {
     try {
       const { shipName, sailingDate } = req.query;
-      
+
       if (!shipName || !sailingDate) {
         res.status(400).json({
           success: false,
@@ -755,10 +757,10 @@ class CruiseController {
       }
 
       const cruise = await cruiseService.findCruiseByShipAndDate(
-        shipName as string, 
+        shipName as string,
         sailingDate as string
       );
-      
+
       if (!cruise) {
         res.status(404).json({
           success: false,
@@ -779,8 +781,8 @@ class CruiseController {
         },
         meta: {
           searchedFor: { shipName, sailingDate },
-          foundCruise: cruise.id
-        }
+          foundCruise: cruise.id,
+        },
       });
     } catch (error) {
       logger.error(`Find cruise for redirect failed:`, error);
@@ -808,7 +810,7 @@ class CruiseController {
         'Princess Cruises',
         'MSC Cruises',
         'Norwegian Cruise Line',
-        'Celebrity Cruises'
+        'Celebrity Cruises',
       ];
 
       const deals = [];
@@ -817,7 +819,7 @@ class CruiseController {
       // Try to get one cruise from each preferred cruise line in order
       for (const cruiseLineName of preferredCruiseLines) {
         const cruiseForLine = await sql`
-          SELECT 
+          SELECT
             c.id,
             c.cruise_id,
             c.name,
@@ -834,8 +836,8 @@ class CruiseController {
           LEFT JOIN cruise_lines cl ON s.cruise_line_id = cl.id
           LEFT JOIN ports ep ON c.embarkation_port_id = ep.id
           LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
-          WHERE 
-            c.is_active = true 
+          WHERE
+            c.is_active = true
             AND c.sailing_date >= ${formattedDate}
             AND c.sailing_date <= CURRENT_DATE + INTERVAL '1 year'
             AND cp.cheapest_price IS NOT NULL
@@ -844,6 +846,7 @@ class CruiseController {
             AND c.name IS NOT NULL
             AND c.nights > 0
             AND (cl.name = ${cruiseLineName} OR cl.name ILIKE ${cruiseLineName + '%'})
+            AND cl.name NOT ILIKE '%a-rosa%' AND cl.name NOT ILIKE '%arosa%'
           ORDER BY c.sailing_date ASC
           LIMIT 1
         `;
@@ -851,7 +854,7 @@ class CruiseController {
         if (cruiseForLine.length > 0) {
           deals.push({
             ...cruiseForLine[0],
-            onboard_credit: Math.floor(cruiseForLine[0].cheapest_pricing * 0.1)
+            onboard_credit: Math.floor(cruiseForLine[0].cheapest_pricing * 0.1),
           });
           usedCruiseLines.add(cruiseLineName);
         }
@@ -860,10 +863,10 @@ class CruiseController {
       // If we don't have 6 deals yet, fill with other cruises
       if (deals.length < 6) {
         const excludedLines = Array.from(usedCruiseLines);
-        
+
         // Build the WHERE clause conditionally
         let whereClause = `
-          c.is_active = true 
+          c.is_active = true
           AND c.sailing_date >= '${formattedDate}'
           AND c.sailing_date <= CURRENT_DATE + INTERVAL '1 year'
           AND cp.cheapest_price IS NOT NULL
@@ -871,16 +874,19 @@ class CruiseController {
           AND cp.cheapest_price <= 5000
           AND c.name IS NOT NULL
           AND c.nights > 0
+          AND cl.name NOT ILIKE '%a-rosa%' AND cl.name NOT ILIKE '%arosa%'
         `;
-        
+
         // Add exclusion for already used cruise lines
         if (excludedLines.length > 0) {
-          const excludedLinesList = excludedLines.map((name: string) => `'${name.replace(/'/g, "''")}'`).join(', ');
+          const excludedLinesList = excludedLines
+            .map((name: string) => `'${name.replace(/'/g, "''")}'`)
+            .join(', ');
           whereClause += ` AND cl.name NOT IN (${excludedLinesList})`;
         }
-        
+
         const remainingDeals = await sql.unsafe(`
-          SELECT 
+          SELECT
             c.id,
             c.cruise_id,
             c.name,
@@ -904,7 +910,7 @@ class CruiseController {
         for (const deal of remainingDeals) {
           deals.push({
             ...deal,
-            onboard_credit: Math.floor(deal.cheapest_pricing * 0.1)
+            onboard_credit: Math.floor(deal.cheapest_pricing * 0.1),
           });
         }
       }
@@ -913,8 +919,8 @@ class CruiseController {
         success: true,
         data: {
           deals,
-          total: deals.length
-        }
+          total: deals.length,
+        },
       });
     } catch (error) {
       logger.error(`Get last minute deals failed:`, error);
@@ -946,7 +952,7 @@ class CruiseController {
       // Try to get one cruise from each preferred cruise line in order
       for (const cruiseLineName of preferredCruiseLines) {
         const cruiseForLine = await sql`
-          SELECT 
+          SELECT
             c.id,
             c.cruise_id,
             c.name,
@@ -963,8 +969,8 @@ class CruiseController {
           LEFT JOIN cruise_lines cl ON s.cruise_line_id = cl.id
           LEFT JOIN ports ep ON c.embarkation_port_id = ep.id
           LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
-          WHERE 
-            c.is_active = true 
+          WHERE
+            c.is_active = true
             AND c.sailing_date >= ${formattedDate}
             AND c.sailing_date <= CURRENT_DATE + INTERVAL '1 year'
             AND cp.cheapest_price IS NOT NULL
@@ -1001,10 +1007,10 @@ class CruiseController {
       // This is a fallback for cases where preferred cruise lines don't have enough cruises
       if (deals.length < 6) {
         const remainingSlots = 6 - deals.length;
-        
+
         // Get additional cruises to fill remaining slots
         const additionalCruises = await sql`
-          SELECT 
+          SELECT
             c.id,
             c.cruise_id,
             c.name,
@@ -1020,8 +1026,8 @@ class CruiseController {
           LEFT JOIN cruise_lines cl ON s.cruise_line_id = cl.id
           LEFT JOIN ports ep ON c.embarkation_port_id = ep.id
           LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
-          WHERE 
-            c.is_active = true 
+          WHERE
+            c.is_active = true
             AND c.sailing_date >= ${formattedDate}
             AND c.sailing_date <= CURRENT_DATE + INTERVAL '1 year'
             AND cp.cheapest_price IS NOT NULL
@@ -1036,11 +1042,11 @@ class CruiseController {
         // Add additional cruises to fill remaining slots, but avoid duplicates
         let addedCount = 0;
         const existingIds = new Set(deals.map(deal => deal.id));
-        
+
         for (const cruise of additionalCruises) {
           if (addedCount >= remainingSlots) break;
           if (existingIds.has(cruise.id)) continue;
-          
+
           deals.push({
             id: cruise.id,
             cruise_id: cruise.cruise_id,
@@ -1063,16 +1069,16 @@ class CruiseController {
       const sortedDeals = deals.sort((a, b) => {
         const aIndex = preferredCruiseLines.indexOf(a.cruise_line_name);
         const bIndex = preferredCruiseLines.indexOf(b.cruise_line_name);
-        
+
         // If both cruise lines are in preferred list, sort by their index
         if (aIndex !== -1 && bIndex !== -1) {
           return aIndex - bIndex;
         }
-        
+
         // Preferred cruise lines come first
         if (aIndex !== -1 && bIndex === -1) return -1;
         if (aIndex === -1 && bIndex !== -1) return 1;
-        
+
         // For non-preferred cruise lines, sort by sailing date
         return new Date(a.sailing_date).getTime() - new Date(b.sailing_date).getTime();
       });

@@ -12,3 +12,5 @@
 
   # 4. Test specific direct search
   curl "https://zipsea-production.onrender.com/api/v1/search/by-ship?shipName=Symphony%20of%20the%20Seas&departureDate=2025-10-5"
+
+hi, please catch yourself up by reading the last 15 entries in /journal and also everything in /documentation, note that we do work on main branch (staging) and when done push it up, merge to production, and push that up too. also note that we test primarily on render which is where environment variables are stored as well so they wont be visible on local

@@ -31,7 +31,6 @@ export interface SimpleShip {
 }
 
 export class ShipService {
-  
   /**
    * Get all unique ships, sorted alphabetically
    */
@@ -59,11 +58,23 @@ export class ShipService {
         .where(eq(ships.isActive, true))
         .orderBy(asc(ships.name));
 
-      const shipsList: SimpleShip[] = results.map(row => ({
-        id: row.id,
-        name: row.name,
-        cruiseLineName: row.cruiseLineName || 'Unknown',
-      }));
+      const shipsList: SimpleShip[] = results
+        .filter(row => {
+          // Filter out A-ROSA ships
+          const cruiseLineName = (row.cruiseLineName || 'Unknown').toLowerCase();
+          const shipName = row.name.toLowerCase();
+          return (
+            !cruiseLineName.includes('a-rosa') &&
+            !cruiseLineName.includes('arosa') &&
+            !shipName.includes('a-rosa') &&
+            !shipName.includes('arosa')
+          );
+        })
+        .map(row => ({
+          id: row.id,
+          name: row.name,
+          cruiseLineName: row.cruiseLineName || 'Unknown',
+        }));
 
       // Remove duplicates by name and sort alphabetically
       const uniqueShips = shipsList.reduce((acc: SimpleShip[], current) => {
@@ -82,7 +93,6 @@ export class ShipService {
 
       logger.info(`Retrieved ${uniqueShips.length} unique ships`);
       return uniqueShips;
-
     } catch (error) {
       logger.error('Failed to get ships list:', error);
       throw error;
@@ -146,7 +156,6 @@ export class ShipService {
 
       logger.info(`Retrieved ship details for ${shipId}`);
       return shipInfo;
-
     } catch (error) {
       logger.error(`Failed to get ship details for ${shipId}:`, error);
       throw error;
@@ -159,38 +168,49 @@ export class ShipService {
   async searchShips(searchTerm: string): Promise<SimpleShip[]> {
     try {
       const allShips = await this.getAllShips();
-      
+
       if (!searchTerm.trim()) {
         return allShips;
       }
 
       const searchLower = searchTerm.toLowerCase();
-      
-      // Filter ships that match the search term
-      const filtered = allShips.filter(ship => 
-        ship.name.toLowerCase().includes(searchLower) ||
-        ship.cruiseLineName.toLowerCase().includes(searchLower)
-      );
+
+      // Filter ships that match the search term and exclude A-ROSA ships
+      const filtered = allShips.filter(ship => {
+        // First check if it's an A-ROSA ship and exclude it
+        const cruiseLineName = ship.cruiseLineName.toLowerCase();
+        const shipName = ship.name.toLowerCase();
+        if (
+          cruiseLineName.includes('a-rosa') ||
+          cruiseLineName.includes('arosa') ||
+          shipName.includes('a-rosa') ||
+          shipName.includes('arosa')
+        ) {
+          return false;
+        }
+
+        // Then apply the search filter
+        return shipName.includes(searchLower) || cruiseLineName.includes(searchLower);
+      });
 
       // Sort by relevance (exact matches first, then starts with, then contains)
       filtered.sort((a, b) => {
         const aName = a.name.toLowerCase();
         const bName = b.name.toLowerCase();
-        
+
         // Exact match
         if (aName === searchLower) return -1;
         if (bName === searchLower) return 1;
-        
+
         // Starts with
         if (aName.startsWith(searchLower) && !bName.startsWith(searchLower)) return -1;
         if (bName.startsWith(searchLower) && !aName.startsWith(searchLower)) return 1;
-        
+
         // Alphabetical for equal relevance
         return aName.localeCompare(bName);
       });
 
       return filtered;
-
     } catch (error) {
       logger.error(`Failed to search ships with term "${searchTerm}":`, error);
       throw error;
