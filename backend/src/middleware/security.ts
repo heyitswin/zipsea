@@ -11,7 +11,7 @@ export const securityHeaders = helmet({
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      imgSrc: ["'self'", 'data:', 'https:'],
       connectSrc: ["'self'"],
       fontSrc: ["'self'"],
       objectSrc: ["'none'"],
@@ -25,7 +25,7 @@ export const securityHeaders = helmet({
 // Rate limiting middleware
 export const rateLimiter = rateLimit({
   ...rateLimitConfig,
-  skip: (req) => {
+  skip: req => {
     // Skip rate limiting for health checks
     return req.path === '/health' || req.path === '/api/health';
   },
@@ -113,12 +113,12 @@ export const maliciousRequestBlocker = (req: Request, res: Response, next: NextF
       method: req.method,
       userAgent,
       headers: req.headers,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-    
+
     return res.status(403).json({
       error: 'Access denied',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -132,33 +132,36 @@ export const maliciousRequestBlocker = (req: Request, res: Response, next: NextF
         userAgent,
         pattern: blockedPattern.toString(),
         headers: req.headers,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
-      
+
       return res.status(404).json({
         error: 'Not found',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
     }
   }
 
-  // Check blocked user agents
-  for (const blockedAgent of BLOCKED_USER_AGENTS) {
-    if (blockedAgent.test(userAgent)) {
-      logger.warn('🔒 BLOCKED USER AGENT ACCESS ATTEMPT', {
-        ip: clientIP,
-        path,
-        method: req.method,
-        userAgent,
-        pattern: blockedAgent.toString(),
-        headers: req.headers,
-        timestamp: new Date().toISOString()
-      });
-      
-      return res.status(403).json({
-        error: 'Access denied',
-        timestamp: new Date().toISOString()
-      });
+  // Check blocked user agents (but allow webhook endpoints)
+  const isWebhookEndpoint = path.includes('/webhook') || path.includes('/webhooks');
+  if (!isWebhookEndpoint) {
+    for (const blockedAgent of BLOCKED_USER_AGENTS) {
+      if (blockedAgent.test(userAgent)) {
+        logger.warn('🔒 BLOCKED USER AGENT ACCESS ATTEMPT', {
+          ip: clientIP,
+          path,
+          method: req.method,
+          userAgent,
+          pattern: blockedAgent.toString(),
+          headers: req.headers,
+          timestamp: new Date().toISOString(),
+        });
+
+        return res.status(403).json({
+          error: 'Access denied',
+          timestamp: new Date().toISOString(),
+        });
+      }
     }
   }
 
@@ -168,13 +171,12 @@ export const maliciousRequestBlocker = (req: Request, res: Response, next: NextF
     return (
       param.toLowerCase().includes('env') ||
       param.toLowerCase().includes('config') ||
-      (typeof value === 'string' && (
-        value.includes('../') ||
-        value.includes('..\\') ||
-        value.includes('/etc/') ||
-        value.includes('passwd') ||
-        value.includes('.env')
-      ))
+      (typeof value === 'string' &&
+        (value.includes('../') ||
+          value.includes('..\\') ||
+          value.includes('/etc/') ||
+          value.includes('passwd') ||
+          value.includes('.env')))
     );
   });
 
@@ -187,12 +189,12 @@ export const maliciousRequestBlocker = (req: Request, res: Response, next: NextF
       suspiciousParams,
       query: req.query,
       headers: req.headers,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-    
+
     return res.status(400).json({
       error: 'Bad request',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
