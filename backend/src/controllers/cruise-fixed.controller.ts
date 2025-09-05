@@ -105,9 +105,15 @@ class CruiseControllerFixed {
         name: cruise.name,
         voyage_code: cruise.voyage_code,
         sailing_date: cruise.sailing_date,
-        return_date: cruise.return_date || (cruise.sailing_date && cruise.nights ?
-          new Date(new Date(cruise.sailing_date).getTime() + (cruise.nights * 24 * 60 * 60 * 1000)).toISOString().split('T')[0]
-          : null),
+        return_date:
+          cruise.return_date ||
+          (cruise.sailing_date && cruise.nights
+            ? new Date(
+                new Date(cruise.sailing_date).getTime() + cruise.nights * 24 * 60 * 60 * 1000
+              )
+                .toISOString()
+                .split('T')[0]
+            : null),
         nights: cruise.nights,
         cruise_line_name: cruise.cruise_line_name,
         ship_name: cruise.ship_name,
@@ -342,9 +348,15 @@ class CruiseControllerFixed {
           voyage_code: cruise.voyage_code,
           itinerary_code: cruise.itinerary_code,
           sailing_date: cruise.sailing_date,
-          return_date: cruise.return_date || (cruise.sailing_date && cruise.nights ?
-            new Date(new Date(cruise.sailing_date).getTime() + (cruise.nights * 24 * 60 * 60 * 1000)).toISOString().split('T')[0]
-            : null),
+          return_date:
+            cruise.return_date ||
+            (cruise.sailing_date && cruise.nights
+              ? new Date(
+                  new Date(cruise.sailing_date).getTime() + cruise.nights * 24 * 60 * 60 * 1000
+                )
+                  .toISOString()
+                  .split('T')[0]
+              : null),
           nights: cruise.nights,
           sail_nights: cruise.sail_nights,
           sea_days: cruise.sea_days,
@@ -411,18 +423,22 @@ class CruiseControllerFixed {
           default_ship_image_2k: cruise.default_ship_image_2k,
           nice_url: cruise.ship_nice_url,
         },
-        embark_port: cruise.embark_port_name ? {
-          id: cruise.embarkation_port_id,
-          name: cruise.embark_port_name,
-          code: cruise.embark_port_code,
-          country: cruise.embark_port_country,
-        } : null,
-        disembark_port: cruise.disembark_port_name ? {
-          id: cruise.disembarkation_port_id,
-          name: cruise.disembark_port_name,
-          code: cruise.disembark_port_code,
-          country: cruise.disembark_port_country,
-        } : null,
+        embark_port: cruise.embark_port_name
+          ? {
+              id: cruise.embarkation_port_id,
+              name: cruise.embark_port_name,
+              code: cruise.embark_port_code,
+              country: cruise.embark_port_country,
+            }
+          : null,
+        disembark_port: cruise.disembark_port_name
+          ? {
+              id: cruise.disembarkation_port_id,
+              name: cruise.disembark_port_name,
+              code: cruise.disembark_port_code,
+              country: cruise.disembark_port_country,
+            }
+          : null,
         ports: parseJsonField(cruise.ports) || [],
         regions: parseJsonField(cruise.regions) || [],
         line_content: parseJsonField(cruise.line_content),
@@ -572,9 +588,15 @@ class CruiseControllerFixed {
           deals.push({
             ...cruise,
             // Calculate return_date if not set
-            return_date: cruise.return_date || (cruise.sailing_date && cruise.nights ?
-              new Date(new Date(cruise.sailing_date).getTime() + (cruise.nights * 24 * 60 * 60 * 1000)).toISOString().split('T')[0]
-              : null),
+            return_date:
+              cruise.return_date ||
+              (cruise.sailing_date && cruise.nights
+                ? new Date(
+                    new Date(cruise.sailing_date).getTime() + cruise.nights * 24 * 60 * 60 * 1000
+                  )
+                    .toISOString()
+                    .split('T')[0]
+                : null),
             // Calculate onboard credit as 8% of cheapest pricing, rounded down to nearest $10
             onboard_credit: Math.floor((cruise.cheapest_pricing * 0.08) / 10) * 10,
             // Ensure we have the correct field names for frontend compatibility
@@ -592,14 +614,14 @@ class CruiseControllerFixed {
         let whereConditions = [
           'c.is_active = true',
           `c.sailing_date >= '${formattedDate}'`,
-          'c.sailing_date <= CURRENT_DATE + INTERVAL \'1 year\'',
+          "c.sailing_date <= CURRENT_DATE + INTERVAL '1 year'",
           'c.cheapest_price IS NOT NULL',
           'c.cheapest_price > 0',
           'c.cheapest_price <= 5000',
           'c.name IS NOT NULL',
           'c.nights > 0',
-          'cl.name NOT ILIKE \'%a-rosa%\'',
-          'cl.name NOT ILIKE \'%arosa%\'',
+          "cl.name NOT ILIKE '%a-rosa%'",
+          "cl.name NOT ILIKE '%arosa%'",
         ];
 
         // Add exclusion for already used cruise lines
@@ -638,9 +660,15 @@ class CruiseControllerFixed {
           deals.push({
             ...deal,
             // Calculate return_date if not set
-            return_date: deal.return_date || (deal.sailing_date && deal.nights ?
-              new Date(new Date(deal.sailing_date).getTime() + (deal.nights * 24 * 60 * 60 * 1000)).toISOString().split('T')[0]
-              : null),
+            return_date:
+              deal.return_date ||
+              (deal.sailing_date && deal.nights
+                ? new Date(
+                    new Date(deal.sailing_date).getTime() + deal.nights * 24 * 60 * 60 * 1000
+                  )
+                    .toISOString()
+                    .split('T')[0]
+                : null),
             // Calculate onboard credit as 8% of cheapest pricing, rounded down to nearest $10
             onboard_credit: Math.floor((deal.cheapest_pricing * 0.08) / 10) * 10,
             // Ensure we have the correct field names for frontend compatibility
@@ -783,10 +811,13 @@ class CruiseControllerFixed {
         options: filteredOptions,
         summary: {
           available_options: filteredOptions.length,
-          price_range: filteredOptions.length > 0 ? {
-            min: Math.min(...filteredOptions.map(o => o.price)),
-            max: Math.max(...filteredOptions.map(o => o.price)),
-          } : null,
+          price_range:
+            filteredOptions.length > 0
+              ? {
+                  min: Math.min(...filteredOptions.map(o => o.price)),
+                  max: Math.max(...filteredOptions.map(o => o.price)),
+                }
+              : null,
           cabin_types: [...new Set(filteredOptions.map(o => o.cabin_type))],
           rate_codes: [...new Set(filteredOptions.map(o => o.rate_code))],
           currency: cruise.currency || 'USD',
@@ -843,4 +874,13 @@ class CruiseControllerFixed {
     });
   }
 
-  async getShipDetails(req: Request, res: Response): Promise
+  async getShipDetails(req: Request, res: Response): Promise<void> {
+    res.json({
+      success: true,
+      data: {
+        ship: {},
+        message: 'Ship details - implementation pending',
+      },
+    });
+  }
+}
