@@ -478,7 +478,7 @@ class CruiseControllerFixed {
       }
 
       // Try to find cruise by ID first, then by ship name and sailing date
-      let cruiseDetails = await this.getCruiseDetailsWithSchema(parsedSlug.cruiseId);
+      let cruiseDetails = await this.getCruiseDetailsWithSchema(String(parsedSlug.cruiseId));
 
       if (!cruiseDetails) {
         // Fallback: try to find by ship name and sailing date
@@ -487,12 +487,12 @@ class CruiseControllerFixed {
           FROM cruises c
           LEFT JOIN ships s ON c.ship_id = s.id
           WHERE LOWER(REPLACE(s.name, ' ', '-')) = LOWER(${parsedSlug.shipName})
-            AND c.sailing_date = ${parsedSlug.sailingDate}
+            AND c.sailing_date = ${parsedSlug.departureDate}
           LIMIT 1
         `;
 
         if (fallbackResult.length > 0) {
-          cruiseDetails = await this.getCruiseDetailsWithSchema(fallbackResult[0].id);
+          cruiseDetails = await this.getCruiseDetailsWithSchema(String(fallbackResult[0].id));
         }
       }
 
