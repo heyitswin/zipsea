@@ -91,7 +91,6 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               // Track cruise view
               if (!hasTrackedView.current && comprehensiveData.cruise) {
                 const price =
-                  comprehensiveData.cheapestPricing?.overall?.price ||
                   comprehensiveData.cheapestPricing?.cheapestPrice ||
                   comprehensiveData.cruise?.cheapestPrice;
 
