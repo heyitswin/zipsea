@@ -1,128 +1,87 @@
 #!/usr/bin/env node
 
 /**
- * Test FTP Connection to Traveltek
- * Run this in Render shell to diagnose FTP issues
+ * Test FTP Connection Script
  */
 
-const FTP = require('ftp');
+const ftp = require('basic-ftp');
+require('dotenv').config({ path: '../.env' });
 
-// Manual configuration for testing
-const ftpConfig = {
-  host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
-  user: process.env.TRAVELTEK_FTP_USER,
-  password: process.env.TRAVELTEK_FTP_PASSWORD,
-  port: 21,
-  secure: false, // Try without TLS first
-  secureOptions: { rejectUnauthorized: false },
-  connTimeout: 30000,
-  pasvTimeout: 30000,
-  keepalive: 10000,
-  debug: function(msg) {
-    console.log('[FTP DEBUG]', msg);
-  }
-};
+async function testConnection() {
+  const credentials = [
+    {
+      name: 'From ENV',
+      host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
+      user: process.env.TRAVELTEK_FTP_USER,
+      password: process.env.TRAVELTEK_FTP_PASSWORD,
+    },
+    {
+      name: 'Zipzea_staging',
+      host: 'ftpeu1prod.traveltek.net',
+      user: 'Zipzea_staging',
+      password: 'PaSw!21#2024',
+    },
+    {
+      name: 'zipsea_staging',
+      host: 'ftpeu1prod.traveltek.net',
+      user: 'zipsea_staging',
+      password: 'PaSw!21#2024',
+    },
+  ];
 
-console.log('🔌 Testing Traveltek FTP Connection');
-console.log('===================================');
-console.log(`Host: ${ftpConfig.host}`);
-console.log(`User: ${ftpConfig.user ? ftpConfig.user.substring(0, 3) + '***' : 'NOT SET'}`);
-console.log(`Password: ${ftpConfig.password ? '***SET***' : 'NOT SET'}`);
-console.log(`Port: ${ftpConfig.port}`);
-console.log(`Secure: ${ftpConfig.secure}`);
-console.log('');
-
-if (!ftpConfig.user || !ftpConfig.password) {
-  console.error('❌ FTP credentials not found in environment variables');
-  console.error('');
-  console.error('Environment variables present:');
-  Object.keys(process.env).filter(k => k.includes('TRAVELTEK')).forEach(key => {
-    console.error(`  ${key}: ${process.env[key] ? 'SET' : 'NOT SET'}`);
-  });
-  process.exit(1);
-}
-
-const client = new FTP();
-
-// Set timeout for the entire operation
-const timeout = setTimeout(() => {
-  console.error('❌ Connection timeout after 30 seconds');
-  client.end();
-  process.exit(1);
-}, 30000);
-
-// Handle connection events
-client.on('ready', () => {
-  clearTimeout(timeout);
-  console.log('✅ Successfully connected to Traveltek FTP server!');
-  console.log('');
-  
-  // Try to list root directory
-  console.log('📁 Attempting to list root directory...');
-  client.list('/', (err, list) => {
-    if (err) {
-      console.error('❌ Error listing root directory:', err.message);
-      console.error('Full error:', err);
-    } else {
-      console.log(`✅ Successfully listed root directory!`);
-      console.log(`Found ${list.length} items:`);
-      list.slice(0, 5).forEach(item => {
-        const type = item.type === 'd' ? '📁' : '📄';
-        console.log(`  ${type} ${item.name}`);
-      });
-      if (list.length > 5) {
-        console.log(`  ... and ${list.length - 5} more`);
-      }
+  for (const cred of credentials) {
+    if (!cred.user || !cred.password) {
+      console.log(`❌ ${cred.name}: Missing credentials`);
+      continue;
     }
-    
-    console.log('');
-    console.log('✅ FTP connection test completed successfully!');
-    console.log('The FTP credentials are working correctly.');
-    client.end();
-    process.exit(0);
-  });
-});
 
-client.on('error', (err) => {
-  clearTimeout(timeout);
-  console.error('❌ FTP Connection Error:', err.message);
-  console.error('');
-  
-  if (err.message.includes('530')) {
-    console.error('🔐 Authentication failed. Please check:');
-    console.error('1. Username is correct');
-    console.error('2. Password is correct');
-    console.error('3. Account is active with Traveltek');
-  } else if (err.message.includes('ECONNREFUSED')) {
-    console.error('🔌 Connection refused. Possible causes:');
-    console.error('1. FTP server is down');
-    console.error('2. Firewall blocking connection');
-    console.error('3. IP needs to be whitelisted');
-  } else if (err.message.includes('ETIMEDOUT')) {
-    console.error('⏱️ Connection timeout. Possible causes:');
-    console.error('1. Network issues');
-    console.error('2. FTP server not responding');
-    console.error('3. Port 21 blocked');
-  } else {
-    console.error('Full error details:', err);
+    const client = new ftp.Client();
+    client.ftp.verbose = false;
+
+    try {
+      console.log(`\n🔌 Testing: ${cred.name}`);
+      console.log(`   Host: ${cred.host}`);
+      console.log(`   User: ${cred.user}`);
+
+      await client.access({
+        host: cred.host,
+        user: cred.user,
+        password: cred.password,
+        secure: false,
+        timeout: 10000,
+      });
+
+      console.log(`   ✅ Connection successful!`);
+
+      // Try to list root directory
+      const list = await client.list('/');
+      console.log(`   📁 Found ${list.length} items in root`);
+
+      // List first few directories
+      const dirs = list.filter(item => item.isDirectory).slice(0, 5);
+      dirs.forEach(dir => {
+        console.log(`      - ${dir.name}`);
+      });
+
+      client.close();
+
+      // Found working credentials, save them
+      console.log('\n✅ WORKING CREDENTIALS FOUND!');
+      console.log('Add these to your .env file:');
+      console.log(`TRAVELTEK_FTP_HOST=${cred.host}`);
+      console.log(`TRAVELTEK_FTP_USER=${cred.user}`);
+      console.log(`TRAVELTEK_FTP_PASSWORD=${cred.password}`);
+
+      return true;
+    } catch (error) {
+      console.log(`   ❌ Failed: ${error.message}`);
+      client.close();
+    }
   }
-  
-  client.end();
-  process.exit(1);
-});
 
-client.on('close', () => {
-  clearTimeout(timeout);
-  console.log('Connection closed');
-});
-
-// Attempt connection
-console.log('🔄 Attempting to connect...');
-console.log('');
-
-try {
-  client.connect(ftpConfig);
-} catch (error) {
-  console.error('❌ Failed to initiate connection:', error.message);
-  process.exit(1);
+  console.log('\n❌ No working credentials found');
+  return false;
 }
+
+// Run the test
+testConnection().catch(console.error);
