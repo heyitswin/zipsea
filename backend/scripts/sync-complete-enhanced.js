@@ -19,6 +19,7 @@ const ftp = require('basic-ftp');
 const { Pool } = require('pg');
 const fs = require('fs').promises;
 const path = require('path');
+const { Writable } = require('stream');
 require('dotenv').config({ path: '.env.local' });
 
 // Configuration
@@ -635,15 +636,16 @@ async function processBatch(files, yearMonth) {
       const ftpConn = await getFtpConnection();
 
       try {
-        // Download file to memory
+        // Download file to memory using streams
         const chunks = [];
-        await ftpConn.client.downloadTo(
-          {
-            write: chunk => chunks.push(chunk),
-            end: () => {},
+        const writeStream = new Writable({
+          write(chunk, encoding, callback) {
+            chunks.push(chunk);
+            callback();
           },
-          file.path
-        );
+        });
+
+        await ftpConn.client.downloadTo(writeStream, file.path);
 
         if (chunks.length === 0) {
           console.log(`   ⚠️  Empty file: ${file.path}`);
