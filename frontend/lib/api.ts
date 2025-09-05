@@ -1,10 +1,11 @@
 // API configuration and service functions
 
 // Use relative URL in production to leverage Next.js rewrites
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
-  (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
-    ? '/api/v1'  // Use relative path in production
-    : 'http://localhost:3001/api/v1');
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? "/api/v1" // Use relative path in production
+    : "http://localhost:3001/api/v1");
 
 export interface Ship {
   id: number;
@@ -27,16 +28,36 @@ export interface ShipsResponse {
 }
 
 export interface Cruise {
-  id: number;
-  shipId: number;
-  shipName: string;
-  cruiseLineName: string;
-  departureDate: string;
-  returnDate: string;
-  duration: number;
-  itinerary: string[];
-  departurePort: string;
-  prices: {
+  id: string;
+  name: string;
+  sailingDate: string;
+  nights: number;
+  cruiseLine: {
+    name: string;
+  };
+  ship: {
+    name: string;
+  };
+  embarkPort: {
+    name: string;
+  };
+  disembarkPort: {
+    name: string;
+  };
+  price: {
+    amount: number;
+    currency: string;
+  } | null;
+  // Legacy fields for backward compatibility
+  shipId?: number;
+  shipName?: string;
+  cruiseLineName?: string;
+  departureDate?: string;
+  returnDate?: string;
+  duration?: number;
+  itinerary?: string[];
+  departurePort?: string;
+  prices?: {
     interior?: number;
     oceanview?: number;
     balcony?: number;
@@ -65,28 +86,28 @@ export async function fetchShips(searchTerm?: string): Promise<Ship[]> {
   try {
     const url = new URL(`${API_BASE_URL}/ships`);
     if (searchTerm && searchTerm.trim()) {
-      url.searchParams.set('search', searchTerm);
+      url.searchParams.set("search", searchTerm);
     }
-    
+
     const response = await fetch(url.toString(), {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const result: ApiResponse<ShipsResponse> = await response.json();
-    
+
     if (!result.success) {
-      throw new Error(result.error?.message || 'Failed to fetch ships');
+      throw new Error(result.error?.message || "Failed to fetch ships");
     }
-    
+
     return result.data.ships;
   } catch (error) {
-    console.error('Error fetching ships:', error);
+    console.error("Error fetching ships:", error);
     throw error;
   }
 }
@@ -94,94 +115,99 @@ export async function fetchShips(searchTerm?: string): Promise<Ship[]> {
 export async function searchShips(searchTerm: string): Promise<Ship[]> {
   try {
     const url = new URL(`${API_BASE_URL}/ships/search`);
-    url.searchParams.set('q', searchTerm);
-    
+    url.searchParams.set("q", searchTerm);
+
     const response = await fetch(url.toString(), {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const result: ApiResponse<ShipsResponse> = await response.json();
-    
+
     if (!result.success) {
-      throw new Error(result.error?.message || 'Failed to search ships');
+      throw new Error(result.error?.message || "Failed to search ships");
     }
-    
+
     return result.data.ships;
   } catch (error) {
-    console.error('Error searching ships:', error);
+    console.error("Error searching ships:", error);
     throw error;
   }
 }
 
-export async function searchCruises(params: CruiseSearchParams): Promise<Cruise[]> {
+export async function searchCruises(
+  params: CruiseSearchParams,
+): Promise<Cruise[]> {
   try {
     const url = new URL(`${API_BASE_URL}/cruises`);
-    
+
     // Add search parameters
     if (params.shipId) {
-      url.searchParams.set('shipId', params.shipId.toString());
+      url.searchParams.set("shipId", params.shipId.toString());
     }
     if (params.shipName) {
-      url.searchParams.set('shipName', params.shipName);
+      url.searchParams.set("shipName", params.shipName);
     }
     if (params.departureDate) {
-      url.searchParams.set('departureDate', params.departureDate);
+      url.searchParams.set("departureDate", params.departureDate);
     }
     if (params.duration) {
-      url.searchParams.set('duration', params.duration.toString());
+      url.searchParams.set("duration", params.duration.toString());
     }
     if (params.limit) {
-      url.searchParams.set('limit', params.limit.toString());
+      url.searchParams.set("limit", params.limit.toString());
     }
     if (params.offset) {
-      url.searchParams.set('offset', params.offset.toString());
+      url.searchParams.set("offset", params.offset.toString());
     }
-    
+
     const response = await fetch(url.toString(), {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const result: ApiResponse<CruisesResponse> = await response.json();
-    
+
     if (!result.success) {
-      throw new Error(result.error?.message || 'Failed to search cruises');
+      throw new Error(result.error?.message || "Failed to search cruises");
     }
-    
-    // Map the API response to our Cruise interface
-    const mappedCruises = result.data.cruises.map((cruise: any) => ({
-      id: cruise.id,
-      cruise_id: cruise.cruise_id || cruise.id,
-      ship_name: cruise.ship_name || cruise.ship?.name || 'Unknown Ship',
-      cruise_line: cruise.cruise_line_name || cruise.cruiseLine?.name || 'Unknown Cruise Line',
-      name: cruise.name,
-      departure_date: cruise.sailing_date || cruise.sailingDate,
-      return_date: cruise.return_date || cruise.returnDate,
-      duration: cruise.nights ? `${cruise.nights} nights` : undefined,
-      departure_port: cruise.embark_port_name || cruise.embarkPort?.name,
-      arrival_port: cruise.disembark_port_name || cruise.disembarkPort?.name,
-      interior_cheapest_price: cruise.interior_price ? parseFloat(cruise.interior_price) : cruise.price?.interior || cruise.interiorPrice,
-      oceanview_cheapest_price: cruise.oceanview_price ? parseFloat(cruise.oceanview_price) : cruise.price?.oceanview || cruise.oceanviewPrice,
-      balcony_cheapest_price: cruise.balcony_price ? parseFloat(cruise.balcony_price) : cruise.price?.balcony || cruise.balconyPrice,
-      suite_cheapest_price: cruise.suite_price ? parseFloat(cruise.suite_price) : cruise.price?.suite || cruise.suitePrice,
-      onboard_credit: cruise.onboard_credit || cruise.onboardCredit,
-      ...cruise // Include any other fields
-    }));
-    
-    return mappedCruises;
+
+    // Normalize the API response using our helper function
+    const normalizedCruises = result.data.cruises.map((cruise: any) => {
+      const normalized = normalizeCruiseData(cruise);
+
+      // Additional legacy field mappings for search results
+      return {
+        ...normalized,
+        cruise_id: normalized.cruise_id || normalized.id,
+        ship_name: normalized.shipName,
+        cruise_line: normalized.cruiseLineName,
+        departure_date: normalized.departureDate,
+        return_date: normalized.returnDate,
+        duration: normalized.nights ? `${normalized.nights} nights` : undefined,
+        departure_port: normalized.departurePort,
+        arrival_port: normalized.arrivalPort,
+        interior_cheapest_price: normalized.prices?.interior,
+        oceanview_cheapest_price: normalized.prices?.oceanview,
+        balcony_cheapest_price: normalized.prices?.balcony,
+        suite_cheapest_price: normalized.prices?.suite,
+        onboard_credit: normalized.onboardCredit,
+      };
+    });
+
+    return normalizedCruises;
   } catch (error) {
-    console.error('Error searching cruises:', error);
+    console.error("Error searching cruises:", error);
     throw error;
   }
 }
@@ -354,84 +380,92 @@ export interface ComprehensiveCruiseData {
   };
 }
 
-export async function getCruiseBySlug(slug: string): Promise<ComprehensiveCruiseData | null> {
+export async function getCruiseBySlug(
+  slug: string,
+): Promise<ComprehensiveCruiseData | null> {
   try {
     const url = new URL(`${API_BASE_URL}/cruises/slug/${slug}`);
-    
+
     const response = await fetch(url.toString(), {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-      cache: 'no-store', // Disable caching to always get fresh data
+      cache: "no-store", // Disable caching to always get fresh data
     });
-    
+
     if (response.status === 404) {
       return null; // Cruise not found
     }
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const result: ApiResponse<ComprehensiveCruiseData> = await response.json();
-    
+
     if (!result.success) {
-      throw new Error(result.error?.message || 'Failed to get cruise by slug');
+      throw new Error(result.error?.message || "Failed to get cruise by slug");
     }
-    
+
     return result.data;
   } catch (error) {
-    console.error('Error getting cruise by slug:', error);
+    console.error("Error getting cruise by slug:", error);
     throw error;
   }
 }
 
-export async function getComprehensiveCruiseData(cruiseId: number): Promise<ComprehensiveCruiseData | null> {
+export async function getComprehensiveCruiseData(
+  cruiseId: number,
+): Promise<ComprehensiveCruiseData | null> {
   try {
     const url = new URL(`${API_BASE_URL}/cruises/${cruiseId}/comprehensive`);
-    
+
     const response = await fetch(url.toString(), {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-      cache: 'no-store', // Disable caching to always get fresh data
+      cache: "no-store", // Disable caching to always get fresh data
     });
-    
+
     if (response.status === 404) {
       return null; // Cruise not found
     }
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const result: ApiResponse<ComprehensiveCruiseData> = await response.json();
-    
+
     if (!result.success) {
-      throw new Error(result.error?.message || 'Failed to get comprehensive cruise data');
+      throw new Error(
+        result.error?.message || "Failed to get comprehensive cruise data",
+      );
     }
-    
+
     return result.data;
   } catch (error) {
-    console.error('Error getting comprehensive cruise data:', error);
+    console.error("Error getting comprehensive cruise data:", error);
     throw error;
   }
 }
 
 // Fallback function that tries to get cruise details from the regular search endpoint
-export async function getCruiseDetailsById(cruiseId: number): Promise<Cruise | null> {
+export async function getCruiseDetailsById(
+  cruiseId: number,
+): Promise<Cruise | null> {
   try {
     // Try to find the cruise in the search results
     const cruises = await searchCruises({ limit: 1000 }); // Get a large batch
-    const cruise = cruises.find(c => c.id === cruiseId);
-    
+    const cruise = cruises.find((c) => c.id === cruiseId);
+
     if (!cruise) {
       return null;
     }
-    
+
     return cruise;
   } catch (error) {
-    console.error('Error getting cruise details by ID:', error);
+    console.error("Error getting cruise details by ID:", error);
     throw error;
   }
 }
@@ -462,26 +496,28 @@ export interface LastMinuteDealsResponse {
 export async function fetchLastMinuteDeals(): Promise<LastMinuteDeals[]> {
   try {
     const url = new URL(`${API_BASE_URL}/cruises/last-minute-deals`);
-    
+
     const response = await fetch(url.toString(), {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const result: ApiResponse<LastMinuteDealsResponse> = await response.json();
-    
+
     if (!result.success) {
-      throw new Error(result.error?.message || 'Failed to fetch last minute deals');
+      throw new Error(
+        result.error?.message || "Failed to fetch last minute deals",
+      );
     }
-    
+
     return result.data.deals;
   } catch (error) {
-    console.error('Error fetching last minute deals:', error);
+    console.error("Error fetching last minute deals:", error);
     throw error;
   }
 }
@@ -497,44 +533,106 @@ export interface AvailableSailingDatesResponse {
   total: number;
 }
 
-export async function fetchAvailableSailingDates(shipId: number): Promise<AvailableSailingDate[]> {
+// Helper function to normalize cruise data for backward compatibility
+export function normalizeCruiseData(cruise: any): any {
+  return {
+    // New schema fields
+    id: cruise.id,
+    name: cruise.name,
+    sailingDate: cruise.sailingDate || cruise.sailing_date,
+    nights: cruise.nights,
+    cruiseLine: cruise.cruiseLine,
+    ship: cruise.ship,
+    embarkPort: cruise.embarkPort,
+    disembarkPort: cruise.disembarkPort,
+    price: cruise.price,
+
+    // Legacy field mappings for backward compatibility
+    shipId: cruise.shipId || cruise.ship_id,
+    shipName: cruise.shipName || cruise.ship_name || cruise.ship?.name,
+    cruiseLineName:
+      cruise.cruiseLineName ||
+      cruise.cruise_line_name ||
+      cruise.cruiseLine?.name,
+    departureDate:
+      cruise.departureDate ||
+      cruise.departure_date ||
+      cruise.sailingDate ||
+      cruise.sailing_date,
+    returnDate: cruise.returnDate || cruise.return_date,
+    duration: cruise.duration || cruise.nights,
+    departurePort:
+      cruise.departurePort || cruise.departure_port || cruise.embarkPort?.name,
+    arrivalPort:
+      cruise.arrivalPort || cruise.arrival_port || cruise.disembarkPort?.name,
+
+    // Pricing fields
+    prices: {
+      interior: cruise.interior_cheapest_price || cruise.interiorPrice,
+      oceanview: cruise.oceanview_cheapest_price || cruise.oceanviewPrice,
+      balcony: cruise.balcony_cheapest_price || cruise.balconyPrice,
+      suite: cruise.suite_cheapest_price || cruise.suitePrice,
+    },
+
+    // Additional fields
+    onboardCredit: cruise.onboard_credit || cruise.onboardCredit,
+
+    // Pass through any other fields
+    ...cruise,
+  };
+}
+
+export async function fetchAvailableSailingDates(
+  shipId: number,
+): Promise<AvailableSailingDate[]> {
   try {
     const url = new URL(`${API_BASE_URL}/cruises/available-dates`);
-    url.searchParams.set('shipId', shipId.toString());
-    
+    url.searchParams.set("shipId", shipId.toString());
+
     const response = await fetch(url.toString(), {
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
-    
+
     // Handle common error cases
     if (response.status === 400) {
-      console.warn(`Available sailing dates API returned 400 for shipId ${shipId}. This feature may not be implemented on the backend yet.`);
+      console.warn(
+        `Available sailing dates API returned 400 for shipId ${shipId}. This feature may not be implemented on the backend yet.`,
+      );
       return []; // Return empty array instead of throwing
     }
-    
+
     if (response.status === 404) {
-      console.warn(`Available sailing dates endpoint not found. This feature may not be implemented on the backend yet.`);
+      console.warn(
+        `Available sailing dates endpoint not found. This feature may not be implemented on the backend yet.`,
+      );
       return []; // Return empty array instead of throwing
     }
-    
+
     if (!response.ok) {
-      console.warn(`Available sailing dates API error: ${response.status}. Disabling smart date filtering.`);
+      console.warn(
+        `Available sailing dates API error: ${response.status}. Disabling smart date filtering.`,
+      );
       return []; // Return empty array instead of throwing
     }
-    
-    const result: ApiResponse<AvailableSailingDatesResponse> = await response.json();
-    
+
+    const result: ApiResponse<AvailableSailingDatesResponse> =
+      await response.json();
+
     if (!result.success) {
-      console.warn(`Available sailing dates API returned error: ${result.error?.message}. Disabling smart date filtering.`);
+      console.warn(
+        `Available sailing dates API returned error: ${result.error?.message}. Disabling smart date filtering.`,
+      );
       return []; // Return empty array instead of throwing
     }
-    
-    console.log(`Successfully loaded ${result.data.dates.length} available sailing dates for ship ${shipId}`);
+
+    console.log(
+      `Successfully loaded ${result.data.dates.length} available sailing dates for ship ${shipId}`,
+    );
     return result.data.dates;
   } catch (error) {
-    console.warn('Available sailing dates feature unavailable:', error);
+    console.warn("Available sailing dates feature unavailable:", error);
     return []; // Return empty array instead of throwing
   }
 }
