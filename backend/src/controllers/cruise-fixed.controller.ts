@@ -172,7 +172,9 @@ class CruiseControllerFixed {
 
       // If comprehensive is requested, use the comprehensive service
       if (comprehensive) {
-        const comprehensiveData = await cruiseService.getComprehensiveCruiseData(cruiseId);
+        const comprehensiveData = await cruiseService.getComprehensiveCruiseData(
+          parseInt(cruiseId, 10)
+        );
 
         if (!comprehensiveData) {
           res.status(404).json({
