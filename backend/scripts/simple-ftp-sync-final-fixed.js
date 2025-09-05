@@ -103,14 +103,13 @@ async function createFtpConnection() {
  */
 function getMonthsToProcess() {
   const months = [];
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
+  const endYear = 2028;
+  const endMonth = 12;
 
   let year = CONFIG.START_YEAR;
   let month = CONFIG.START_MONTH;
 
-  while (year < currentYear || (year === currentYear && month <= currentMonth)) {
+  while (year < endYear || (year === endYear && month <= endMonth)) {
     months.push({ year, month });
 
     month++;
@@ -603,16 +602,24 @@ async function main() {
 
     // Get months to process
     const months = getMonthsToProcess();
-    console.log(`📅 Found ${months.length} months to process\n`);
+    console.log(`📅 Found ${months.length} months to process`);
+    console.log(
+      `📅 Months found: ${months.map(({ year, month }) => `${year}/${String(month).padStart(2, '0')}`).join(', ')}\n`
+    );
 
     // Filter out already processed months
     const resumeFromMonth = checkpoint.lastProcessedMonth;
+    console.log(`📋 Last processed month: ${resumeFromMonth || 'none'}`);
+
     const filteredMonths = resumeFromMonth
       ? months.filter(
           ({ year, month }) => `${year}/${String(month).padStart(2, '0')}` > resumeFromMonth
         )
       : months;
 
+    console.log(
+      `📅 After filtering: ${filteredMonths.map(({ year, month }) => `${year}/${String(month).padStart(2, '0')}`).join(', ')}`
+    );
     console.log(`📅 Processing ${filteredMonths.length} months\n`);
 
     for (const { year, month } of filteredMonths) {
