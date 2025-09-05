@@ -240,12 +240,56 @@ export interface ComprehensiveCruiseData {
     isActive: boolean;
     createdAt?: string;
     updatedAt?: string;
-    // Price fields from database
-    cheapestPrice?: number;
-    interiorPrice?: number;
-    oceanviewPrice?: number;
-    balconyPrice?: number;
-    suitePrice?: number;
+    // Price fields from Traveltek JSON
+    cheapestprice?: string;
+    cheapestinside?: any;
+    cheapestinsidepricecode?: string;
+    cheapestoutside?: any;
+    cheapestoutsidepricecode?: string;
+    cheapestbalcony?: any;
+    cheapestbalconypricecode?: string;
+    cheapestsuite?: any;
+    cheapestsuitepricecode?: string;
+    cheapest?: {
+      prices?: {
+        inside?: any;
+        insidepricecode?: string;
+        outside?: any;
+        outsidepricecode?: string;
+        balcony?: any;
+        balconypricecode?: string;
+        suite?: any;
+        suitepricecode?: string;
+      };
+      cachedprices?: {
+        inside?: any;
+        insidepricecode?: string;
+        outside?: any;
+        outsidepricecode?: string;
+        balcony?: any;
+        balconypricecode?: string;
+        suite?: any;
+        suitepricecode?: string;
+        insidesource?: string;
+        outsidesource?: string;
+        balconysource?: string;
+        suitesource?: string;
+      };
+      combined?: {
+        inside?: any;
+        insidepricecode?: string;
+        outside?: any;
+        outsidepricecode?: string;
+        balcony?: any;
+        balconypricecode?: string;
+        suite?: any;
+        suitepricecode?: string;
+        insidesource?: string;
+        outsidesource?: string;
+        balconysource?: string;
+        suitesource?: string;
+      };
+    };
   };
   cruiseLine?: {
     id: number;

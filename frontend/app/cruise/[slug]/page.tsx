@@ -92,7 +92,9 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               if (!hasTrackedView.current && comprehensiveData.cruise) {
                 const price =
                   comprehensiveData.cheapestPricing?.cheapestPrice ||
-                  comprehensiveData.cruise?.cheapestPrice;
+                  comprehensiveData.cruise?.cheapestprice ||
+                  comprehensiveData.cruise?.cheapest?.combined?.inside ||
+                  comprehensiveData.cruise?.cheapestinside;
 
                 trackCruiseView({
                   cruiseId: String(comprehensiveData.cruise.id),
