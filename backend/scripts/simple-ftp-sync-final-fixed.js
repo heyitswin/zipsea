@@ -20,7 +20,7 @@ require('dotenv').config({ path: '.env.local' });
 // Configuration
 const CONFIG = {
   START_YEAR: 2025,
-  START_MONTH: 9,
+  START_MONTH: 10, // Start from October since September is already completed
   BATCH_SIZE: 20, // Small batches for stability
   CHECKPOINT_FILE: './sync-checkpoint.json',
   MAX_RETRIES: 3,
@@ -360,7 +360,13 @@ async function ensurePortsExist(client, data) {
  */
 function safeIntegerConvert(value) {
   // Handle all problematic values
-  if (value === null || value === undefined || value === '' || value === 'NaN' || value === 'system') {
+  if (
+    value === null ||
+    value === undefined ||
+    value === '' ||
+    value === 'NaN' ||
+    value === 'system'
+  ) {
     return null;
   }
 
@@ -382,9 +388,10 @@ function safeIntegerConvert(value) {
 async function upsertCruise(client, data) {
   const cruiseId = data.codetocruiseid;
   const sailingDate = data.saildate || data.startdate;
-  const returnDate = sailingDate && data.nights
-    ? new Date(new Date(sailingDate).getTime() + (data.nights * 24 * 60 * 60 * 1000))
-    : null;
+  const returnDate =
+    sailingDate && data.nights
+      ? new Date(new Date(sailingDate).getTime() + data.nights * 24 * 60 * 60 * 1000)
+      : null;
 
   // Extract cheapest prices
   const cheapest = data.cheapest?.combined || data.cheapest?.prices || {};
@@ -398,8 +405,8 @@ async function upsertCruise(client, data) {
   );
 
   // Convert problematic fields safely
-  const marketId = safeIntegerConvert(data.marketid);  // Handles "system", "NaN", etc.
-  const ownerId = safeIntegerConvert(data.ownerid);    // Handles "system", "NaN", etc.
+  const marketId = safeIntegerConvert(data.marketid); // Handles "system", "NaN", etc.
+  const ownerId = safeIntegerConvert(data.ownerid); // Handles "system", "NaN", etc.
 
   const result = await client.query(
     `
@@ -448,7 +455,7 @@ async function upsertCruise(client, data) {
       data.ports ? JSON.stringify(data.ports) : null,
       data.regions ? JSON.stringify(data.regions) : null,
       marketId, // Now safely handles "system" and "NaN"
-      ownerId,  // Now safely handles "system" and "NaN"
+      ownerId, // Now safely handles "system" and "NaN"
       data.nofly === 'Y',
       data.departuk === 'Y',
       data.showcruise !== 'N',
@@ -552,13 +559,16 @@ async function processFileBatch(files) {
       checkpoint.processedFiles.push(fileInfo.path);
       stats.totalProcessed++;
 
-      console.log(`     ✅ Success - Cruises: ${stats.cruisesCreated}+${stats.cruisesUpdated}, Lines: ${stats.linesCreated}, Ships: ${stats.shipsCreated}`);
+      console.log(
+        `     ✅ Success - Cruises: ${stats.cruisesCreated}+${stats.cruisesUpdated}, Lines: ${stats.linesCreated}, Ships: ${stats.shipsCreated}`
+      );
 
       // Progress update
       if (stats.totalProcessed % 10 === 0) {
-        console.log(`     📊 Progress: ${stats.totalProcessed}/${stats.totalFiles} (${((stats.totalProcessed / stats.totalFiles) * 100).toFixed(1)}%)`);
+        console.log(
+          `     📊 Progress: ${stats.totalProcessed}/${stats.totalFiles} (${((stats.totalProcessed / stats.totalFiles) * 100).toFixed(1)}%)`
+        );
       }
-
     } catch (error) {
       stats.totalFailed++;
       const errorMsg = `Failed to process ${fileInfo.path}: ${error.message}`;
@@ -598,7 +608,9 @@ async function main() {
     // Filter out already processed months
     const resumeFromMonth = checkpoint.lastProcessedMonth;
     const filteredMonths = resumeFromMonth
-      ? months.filter(({ year, month }) => `${year}/${String(month).padStart(2, '0')}` > resumeFromMonth)
+      ? months.filter(
+          ({ year, month }) => `${year}/${String(month).padStart(2, '0')}` > resumeFromMonth
+        )
       : months;
 
     console.log(`📅 Processing ${filteredMonths.length} months\n`);
@@ -623,7 +635,9 @@ async function main() {
       // Process files in batches
       for (let i = 0; i < files.length; i += CONFIG.BATCH_SIZE) {
         const batch = files.slice(i, i + CONFIG.BATCH_SIZE);
-        console.log(`   🔄 Processing batch ${Math.floor(i / CONFIG.BATCH_SIZE) + 1}/${Math.ceil(files.length / CONFIG.BATCH_SIZE)} (${batch.length} files)...`);
+        console.log(
+          `   🔄 Processing batch ${Math.floor(i / CONFIG.BATCH_SIZE) + 1}/${Math.ceil(files.length / CONFIG.BATCH_SIZE)} (${batch.length} files)...`
+        );
 
         await processFileBatch(batch);
 
@@ -639,7 +653,9 @@ async function main() {
     console.log('\n🎉 Initial FTP Sync completed successfully!');
     console.log('==========================================');
     console.log(`⏱️ Total time: ${Math.floor(elapsed / 60)}m ${Math.floor(elapsed % 60)}s`);
-    console.log(`📊 Files processed: ${stats.totalProcessed} (${stats.totalSuccess} ✓, ${stats.totalFailed} ✗)`);
+    console.log(
+      `📊 Files processed: ${stats.totalProcessed} (${stats.totalSuccess} ✓, ${stats.totalFailed} ✗)`
+    );
     console.log(`🚢 Cruises: ${stats.cruisesCreated} created, ${stats.cruisesUpdated} updated`);
     console.log(`🏢 Cruise lines: ${stats.linesCreated} created`);
     console.log(`⛵ Ships: ${stats.shipsCreated} created`);
@@ -654,7 +670,6 @@ async function main() {
     }
 
     console.log('✅ Ready to resume webhooks: node scripts/resume-webhooks.js');
-
   } catch (error) {
     console.error('\n❌ Fatal error:', error);
     console.error('Stack:', error.stack);
