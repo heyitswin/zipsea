@@ -42,35 +42,48 @@ export class PriceSyncBatchService {
       updated: 0,
       failed: 0,
       errors: [],
-      duration: 0
+      duration: 0,
     };
 
     try {
+      // Check if batch sync is paused
+      const pauseCheck = await db.execute(sql`
+        SELECT flag_value
+        FROM system_flags
+        WHERE flag_name = 'batch_sync_paused'
+      `);
+
+      if (pauseCheck.length > 0 && pauseCheck[0].flag_value === true) {
+        logger.info('🛑 Batch sync is paused - skipping processing');
+        result.duration = Date.now() - startTime;
+        return result;
+      }
+
       logger.info('🚀 Starting batch price sync process');
-      
+
       // Get cruises that need updates
       const pendingCruises = await this.getPendingCruises();
-      
+
       if (pendingCruises.length === 0) {
         logger.info('No cruises pending price updates');
         return result;
       }
 
       logger.info(`Found ${pendingCruises.length} cruises needing price updates`);
-      
+
       // Send Slack notification
       await slackService.notifyCustomMessage({
         title: '🔄 Starting batch price sync',
         message: `Processing ${pendingCruises.length} cruises in batches of ${this.BATCH_SIZE}`,
         details: {
           cruisesToProcess: pendingCruises.length,
-          batchSize: this.BATCH_SIZE
-        }
+          batchSize: this.BATCH_SIZE,
+        },
       });
 
       // Group cruises by line and month for efficient FTP operations
       const batches = this.groupIntoBatches(pendingCruises);
-      
+
       // Process each batch
       for (const batch of batches) {
         const batchResult = await this.processBatch(batch);
@@ -83,18 +96,17 @@ export class PriceSyncBatchService {
       // Mark ONLY successfully processed cruises (not failed ones)
       const successfulCruises = pendingCruises.filter(c => !result.errors.includes(c.cruiseId));
       await this.markCruisesAsProcessed(successfulCruises);
-      
-      // Failed cruises will remain with needs_price_update = true and will be retried next time
 
+      // Failed cruises will remain with needs_price_update = true and will be retried next time
     } catch (error) {
       logger.error('Fatal error in price sync:', error);
       result.errors.push(`Fatal error: ${error instanceof Error ? error.message : 'Unknown'}`);
     } finally {
       result.duration = Date.now() - startTime;
-      
+
       // Send completion notification
       await this.sendCompletionNotification(result);
-      
+
       logger.info(`✅ Price sync completed in ${result.duration}ms`, result);
     }
 
@@ -108,7 +120,7 @@ export class PriceSyncBatchService {
     // First, get cruises marked as needing updates
     // Include retry logic - don't retry failed cruises more than 3 times in 24 hours
     const markedCruises = await db.execute(sql`
-      SELECT 
+      SELECT
         c.id,
         c.cruise_id,
         c.cruise_line_id,
@@ -116,7 +128,7 @@ export class PriceSyncBatchService {
         c.sailing_date
       FROM cruises c
       WHERE c.needs_price_update = true
-        AND (c.price_update_requested_at IS NULL 
+        AND (c.price_update_requested_at IS NULL
              OR c.price_update_requested_at > NOW() - INTERVAL '24 hours'
              OR c.updated_at > NOW() - INTERVAL '1 hour')
       ORDER BY c.sailing_date ASC
@@ -132,7 +144,7 @@ export class PriceSyncBatchService {
     `);
 
     const cruisesToSync: CruiseToSync[] = [];
-    
+
     // Add existing cruises that need updates
     for (const cruise of markedCruises) {
       cruisesToSync.push({
@@ -141,21 +153,20 @@ export class PriceSyncBatchService {
         cruiseLineId: cruise.cruise_line_id,
         shipId: cruise.ship_id,
         sailingDate: new Date(cruise.sailing_date),
-        needsCreation: false
+        needsCreation: false,
       });
     }
 
     // Parse webhook payloads to find cruise IDs that might need creation
     for (const webhook of recentWebhooks) {
       try {
-        const payload = typeof webhook.payload === 'string' 
-          ? JSON.parse(webhook.payload) 
-          : webhook.payload;
-        
+        const payload =
+          typeof webhook.payload === 'string' ? JSON.parse(webhook.payload) : webhook.payload;
+
         if (payload.cruiseIds) {
           // Check which cruise IDs don't exist
           const missingCruises = await this.findMissingCruises(payload.cruiseIds, payload.lineid);
-          
+
           for (const cruiseId of missingCruises) {
             cruisesToSync.push({
               id: 0, // Will be assigned after creation
@@ -163,7 +174,7 @@ export class PriceSyncBatchService {
               cruiseLineId: payload.lineid,
               shipId: 0, // Will be determined from FTP data
               sailingDate: new Date(), // Will be determined from FTP data
-              needsCreation: true
+              needsCreation: true,
             });
           }
         }
@@ -180,11 +191,11 @@ export class PriceSyncBatchService {
    */
   private async findMissingCruises(cruiseIds: string[], lineId: number): Promise<string[]> {
     const existingResult = await db.execute(sql`
-      SELECT cruise_id FROM cruises 
+      SELECT cruise_id FROM cruises
       WHERE cruise_id = ANY(${cruiseIds})
         AND cruise_line_id = ${lineId}
     `);
-    
+
     const existingIds = new Set(existingResult.map(r => r.cruise_id));
     return cruiseIds.filter(id => !existingIds.has(id));
   }
@@ -194,15 +205,15 @@ export class PriceSyncBatchService {
    */
   private groupIntoBatches(cruisesToSync: CruiseToSync[]): CruiseToSync[][] {
     const batches: CruiseToSync[][] = [];
-    
+
     // Group by cruise line and sailing month for FTP efficiency
     const grouped = new Map<string, CruiseToSync[]>();
-    
+
     for (const cruise of cruisesToSync) {
       const month = cruise.sailingDate.getMonth() + 1;
       const year = cruise.sailingDate.getFullYear();
       const key = `${cruise.cruiseLineId}-${year}-${month}`;
-      
+
       if (!grouped.has(key)) {
         grouped.set(key, []);
       }
@@ -228,37 +239,37 @@ export class PriceSyncBatchService {
       updated: 0,
       failed: 0,
       errors: [],
-      duration: 0
+      duration: 0,
     };
 
     const startTime = Date.now();
-    
+
     try {
       logger.info(`Processing batch of ${batch.length} cruises`);
-      
+
       // First, find the actual FTP paths for all cruises
       const cruiseInfos = batch.map(c => ({
         cruiseId: c.cruiseId,
         lineId: c.cruiseLineId,
-        shipId: c.shipId > 0 ? c.shipId : undefined
+        shipId: c.shipId > 0 ? c.shipId : undefined,
       }));
-      
+
       logger.info('Searching for cruise files in FTP...');
       const foundPaths = await ftpFileSearchService.findCruiseFiles(cruiseInfos);
-      
+
       if (foundPaths.size === 0) {
         logger.error('Could not find any cruise files in FTP');
         result.failed = batch.length;
         result.errors = batch.map(c => c.cruiseId);
         return result;
       }
-      
+
       logger.info(`Found ${foundPaths.size}/${batch.length} cruise files`);
-      
+
       // Build list of paths to download
       const pathsToDownload: string[] = [];
       const cruiseByPath = new Map<string, CruiseToSync>();
-      
+
       for (const cruise of batch) {
         const path = foundPaths.get(cruise.cruiseId);
         if (path) {
@@ -270,15 +281,15 @@ export class PriceSyncBatchService {
           result.errors.push(cruise.cruiseId);
         }
       }
-      
+
       // Download all found files in batch
       const fileData = await ftpConnectionPool.downloadBatch(pathsToDownload);
-      
+
       // Process each downloaded file
       for (const [path, data] of fileData.entries()) {
         const cruise = cruiseByPath.get(path);
         if (!cruise) continue;
-        
+
         if (!data) {
           logger.warn(`No data downloaded for cruise ${cruise.cruiseId}`);
           result.failed++;
@@ -288,7 +299,7 @@ export class PriceSyncBatchService {
 
         try {
           const jsonData = JSON.parse(data.toString());
-          
+
           if (cruise.needsCreation) {
             // Create new cruise
             await this.createCruise(jsonData);
@@ -304,7 +315,6 @@ export class PriceSyncBatchService {
           result.errors.push(cruise.cruiseId);
         }
       }
-      
     } catch (error) {
       logger.error('Batch processing error:', error);
       result.failed = batch.length;
@@ -313,8 +323,10 @@ export class PriceSyncBatchService {
       result.duration = Date.now() - startTime;
     }
 
-    logger.info(`Batch completed: created=${result.created}, updated=${result.updated}, failed=${result.failed}, duration=${result.duration}ms`);
-    
+    logger.info(
+      `Batch completed: created=${result.created}, updated=${result.updated}, failed=${result.failed}, duration=${result.duration}ms`
+    );
+
     return result;
   }
 
@@ -328,7 +340,7 @@ export class PriceSyncBatchService {
     // In production, the files are organized by when they were created, not sailing date
     const year = cruise.sailingDate.getFullYear();
     const month = String(cruise.sailingDate.getMonth() + 1).padStart(2, '0');
-    
+
     // The actual FTP structure is: YYYY/MM/lineId/shipId/cruiseId.json (no isell_json prefix!)
     if (cruise.shipId && cruise.shipId > 0) {
       return `${year}/${month}/${cruise.cruiseLineId}/${cruise.shipId}/${cruise.cruiseId}.json`;
@@ -355,7 +367,7 @@ export class PriceSyncBatchService {
       interior_cheapest_price: data.interior_cheapest_price || null,
       oceanview_cheapest_price: data.oceanview_cheapest_price || null,
       balcony_cheapest_price: data.balcony_cheapest_price || null,
-      suite_cheapest_price: data.suite_cheapest_price || null
+      suite_cheapest_price: data.suite_cheapest_price || null,
     };
 
     // Update cruise with new pricing
@@ -363,7 +375,7 @@ export class PriceSyncBatchService {
       .update(cruises)
       .set({
         ...pricing,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(cruises.id, String(cruiseId)));
 
@@ -392,16 +404,16 @@ export class PriceSyncBatchService {
    */
   private async markCruisesAsProcessed(processed: CruiseToSync[]): Promise<void> {
     if (processed.length === 0) return;
-    
+
     const ids = processed.map(c => c.id).filter(id => id > 0);
-    
+
     if (ids.length > 0) {
       await db
         .update(cruises)
         .set({
           needsPriceUpdate: false,
           priceUpdateRequestedAt: null,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(inArray(cruises.id, ids.map(String)));
     }
@@ -412,7 +424,7 @@ export class PriceSyncBatchService {
    */
   private async sendCompletionNotification(result: SyncResult): Promise<void> {
     const emoji = result.failed === 0 ? '✅' : result.failed > result.updated ? '❌' : '⚠️';
-    
+
     await slackService.notifyCustomMessage({
       title: `${emoji} Price sync completed`,
       message: `Created: ${result.created} | Updated: ${result.updated} | Failed: ${result.failed} | Duration: ${(result.duration / 1000).toFixed(1)}s`,
@@ -421,8 +433,8 @@ export class PriceSyncBatchService {
         updated: result.updated,
         failed: result.failed,
         durationMs: result.duration,
-        errors: result.errors.slice(0, 10)
-      }
+        errors: result.errors.slice(0, 10),
+      },
     });
   }
 }
