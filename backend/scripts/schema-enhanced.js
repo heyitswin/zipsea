@@ -95,7 +95,7 @@ CREATE TABLE ships (
 
 -- Ports table (enhanced)
 CREATE TABLE ports (
-  id INTEGER PRIMARY KEY, -- Port ID from Traveltek
+  id VARCHAR(50) PRIMARY KEY, -- Port ID from Traveltek (string)
   name VARCHAR(255) NOT NULL, -- Port name
   code VARCHAR(10), -- Generated or from port details
   country VARCHAR(100), -- From port details map
@@ -110,9 +110,9 @@ CREATE TABLE ports (
 
 -- Regions table (enhanced)
 CREATE TABLE regions (
-  id INTEGER PRIMARY KEY, -- Region ID from Traveltek
+  id VARCHAR(50) PRIMARY KEY, -- Region ID from Traveltek (string)
   name VARCHAR(255) NOT NULL, -- Region name
-  parent_region_id INTEGER REFERENCES regions(id),
+  parent_region_id VARCHAR(50) REFERENCES regions(id),
   description TEXT,
   code VARCHAR(10),
   display_order INTEGER DEFAULT 0,
@@ -145,8 +145,8 @@ CREATE TABLE cruises (
   sea_days INTEGER, -- seadays
 
   -- Ports
-  embarkation_port_id INTEGER REFERENCES ports(id), -- startportid
-  disembarkation_port_id INTEGER REFERENCES ports(id), -- endportid
+  embarkation_port_id VARCHAR(50), -- startportid (string from Traveltek)
+  disembarkation_port_id VARCHAR(50), -- endportid (string from Traveltek)
 
   -- Arrays stored as strings (for backward compatibility)
   port_ids VARCHAR(500), -- portids array as comma-separated
@@ -155,8 +155,8 @@ CREATE TABLE cruises (
   regions TEXT, -- regions array as JSON string
 
   -- Market and owner
-  market_id INTEGER, -- marketid
-  owner_id INTEGER, -- ownerid
+  market_id VARCHAR(50), -- marketid (string from Traveltek)
+  owner_id VARCHAR(50), -- ownerid (string from Traveltek)
 
   -- Flags
   no_fly BOOLEAN DEFAULT false, -- nofly ("Y"/"N" -> boolean)
@@ -213,7 +213,7 @@ CREATE TABLE itineraries (
   cruise_id VARCHAR REFERENCES cruises(id) NOT NULL,
   day_number INTEGER NOT NULL, -- itinerary[].day
   date DATE, -- itinerary[].date
-  port_id INTEGER REFERENCES ports(id), -- itinerary[].portid
+  port_id VARCHAR(50) REFERENCES ports(id), -- itinerary[].portid (string)
   port_name VARCHAR(255), -- itinerary[].port
   arrival_time VARCHAR(10), -- itinerary[].arrive
   departure_time VARCHAR(10), -- itinerary[].depart

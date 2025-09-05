@@ -2,10 +2,10 @@
 
 /**
  * TRAVELTEK CLEAN SYNC SCRIPT
- * 
+ *
  * A production-ready, bulletproof sync script for Traveltek cruise data.
  * Built from scratch with no legacy dependencies - clean architecture.
- * 
+ *
  * Features:
  * - Month/year-based processing with clear progress
  * - Bulletproof FTP connection with auto-reconnect
@@ -14,7 +14,7 @@
  * - Detailed logging and progress tracking
  * - Test mode for validation before sync
  * - Resume capability if script fails mid-process
- * 
+ *
  * Usage:
  *   SYNC_YEAR=2025 SYNC_MONTH=09 node scripts/sync-traveltek-clean.js
  *   TEST_MODE=true SYNC_YEAR=2025 SYNC_MONTH=09 node scripts/sync-traveltek-clean.js
@@ -34,7 +34,7 @@ const CONFIG = {
   syncYear: process.env.SYNC_YEAR || new Date().getFullYear().toString(),
   syncMonth: process.env.SYNC_MONTH || String(new Date().getMonth() + 1).padStart(2, '0'),
   testMode: process.env.TEST_MODE === 'true',
-  
+
   // FTP Configuration
   ftp: {
     host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
@@ -43,7 +43,7 @@ const CONFIG = {
     connTimeout: 60000,
     pasvTimeout: 60000,
   },
-  
+
   // Database Configuration
   database: {
     url: process.env.DATABASE_URL,
@@ -51,12 +51,12 @@ const CONFIG = {
     idle_timeout: 30,
     connect_timeout: 10,
   },
-  
+
   // Processing Configuration
   batch: {
-    size: 50,           // Files processed per batch
-    delayMs: 100,       // Delay between files to be FTP-friendly
-    maxRetries: 3,      // Max retry attempts for failed operations
+    size: 50, // Files processed per batch
+    delayMs: 100, // Delay between files to be FTP-friendly
+    maxRetries: 3, // Max retry attempts for failed operations
     reconnectDelayMs: 5000, // Delay before FTP reconnection attempt
   },
 };
@@ -70,17 +70,17 @@ class Logger {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] INFO: ${message}`, data);
   }
-  
+
   static warn(message, data = {}) {
     const timestamp = new Date().toISOString();
     console.warn(`[${timestamp}] WARN: ${message}`, data);
   }
-  
+
   static error(message, error = null) {
     const timestamp = new Date().toISOString();
     console.error(`[${timestamp}] ERROR: ${message}`, error);
   }
-  
+
   static success(message, data = {}) {
     const timestamp = new Date().toISOString();
     console.log(`[${timestamp}] ✅ SUCCESS: ${message}`, data);
@@ -95,7 +95,7 @@ class ProgressTracker {
     this.failed = 0;
     this.startTime = Date.now();
   }
-  
+
   update(success = true) {
     this.processed++;
     if (success) {
@@ -103,17 +103,19 @@ class ProgressTracker {
     } else {
       this.failed++;
     }
-    
+
     const percentage = Math.round((this.processed / this.total) * 100);
     const elapsed = Date.now() - this.startTime;
     const avgTimePerFile = elapsed / this.processed;
     const remaining = this.total - this.processed;
     const eta = remaining * avgTimePerFile;
     const etaMinutes = Math.round(eta / 60000);
-    
-    console.log(`Progress: ${this.processed}/${this.total} (${percentage}%) | ✅ ${this.successful} | ❌ ${this.failed} | ETA: ${etaMinutes}m`);
+
+    console.log(
+      `Progress: ${this.processed}/${this.total} (${percentage}%) | ✅ ${this.successful} | ❌ ${this.failed} | ETA: ${etaMinutes}m`
+    );
   }
-  
+
   getSummary() {
     const elapsed = Math.round((Date.now() - this.startTime) / 1000);
     return {
@@ -122,7 +124,7 @@ class ProgressTracker {
       successful: this.successful,
       failed: this.failed,
       elapsedSeconds: elapsed,
-      successRate: Math.round((this.successful / this.processed) * 100)
+      successRate: Math.round((this.successful / this.processed) * 100),
     };
   }
 }
@@ -139,35 +141,35 @@ class ReliableFTPClient {
     this.connectionAttempts = 0;
     this.maxConnectionAttempts = 5;
   }
-  
+
   async connect() {
     return new Promise((resolve, reject) => {
       this.client = new Client();
       this.connectionAttempts++;
-      
+
       Logger.info(`Connecting to FTP server (attempt ${this.connectionAttempts})`, {
         host: this.config.host,
-        user: this.config.user?.substring(0, 3) + '***'
+        user: this.config.user?.substring(0, 3) + '***',
       });
-      
+
       this.client.on('ready', () => {
         this.connected = true;
         this.connectionAttempts = 0;
         Logger.success('Connected to Traveltek FTP server');
         resolve();
       });
-      
-      this.client.on('error', (err) => {
+
+      this.client.on('error', err => {
         this.connected = false;
         Logger.error('FTP connection error', err);
         reject(err);
       });
-      
+
       this.client.on('close', () => {
         this.connected = false;
         Logger.warn('FTP connection closed');
       });
-      
+
       try {
         this.client.connect({
           host: this.config.host,
@@ -181,27 +183,31 @@ class ReliableFTPClient {
       }
     });
   }
-  
+
   async ensureConnected() {
     if (!this.connected) {
       if (this.connectionAttempts >= this.maxConnectionAttempts) {
-        throw new Error(`Failed to connect to FTP server after ${this.maxConnectionAttempts} attempts`);
+        throw new Error(
+          `Failed to connect to FTP server after ${this.maxConnectionAttempts} attempts`
+        );
       }
-      
+
       try {
         await this.connect();
       } catch (error) {
-        Logger.warn(`Connection attempt ${this.connectionAttempts} failed, retrying in ${CONFIG.batch.reconnectDelayMs}ms`);
+        Logger.warn(
+          `Connection attempt ${this.connectionAttempts} failed, retrying in ${CONFIG.batch.reconnectDelayMs}ms`
+        );
         await new Promise(resolve => setTimeout(resolve, CONFIG.batch.reconnectDelayMs));
         return this.ensureConnected();
       }
     }
   }
-  
+
   async listFiles(directory) {
     await this.ensureConnected();
     const list = promisify(this.client.list.bind(this.client));
-    
+
     try {
       const files = await list(directory);
       return files || [];
@@ -215,10 +221,10 @@ class ReliableFTPClient {
       throw error;
     }
   }
-  
+
   async getFile(filePath) {
     await this.ensureConnected();
-    
+
     return new Promise((resolve, reject) => {
       this.client.get(filePath, (err, stream) => {
         if (err) {
@@ -231,12 +237,12 @@ class ReliableFTPClient {
           reject(err);
           return;
         }
-        
+
         let data = '';
-        stream.on('data', (chunk) => {
+        stream.on('data', chunk => {
           data += chunk.toString();
         });
-        
+
         stream.on('end', () => {
           try {
             const jsonData = JSON.parse(data);
@@ -245,35 +251,37 @@ class ReliableFTPClient {
             reject(new Error(`JSON parse error for ${filePath}: ${parseError.message}`));
           }
         });
-        
-        stream.on('error', (streamError) => {
+
+        stream.on('error', streamError => {
           reject(streamError);
         });
       });
     });
   }
-  
+
   async getFileWithRetry(filePath, maxRetries = CONFIG.batch.maxRetries) {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         return await this.getFile(filePath);
       } catch (error) {
         if (error.message === 'CONNECTION_LOST' && attempt < maxRetries) {
-          Logger.warn(`Retrying file download after connection loss: ${filePath} (attempt ${attempt + 1}/${maxRetries})`);
+          Logger.warn(
+            `Retrying file download after connection loss: ${filePath} (attempt ${attempt + 1}/${maxRetries})`
+          );
           await new Promise(resolve => setTimeout(resolve, CONFIG.batch.reconnectDelayMs));
           continue;
         }
-        
+
         if (attempt === maxRetries) {
           throw error;
         }
-        
+
         Logger.warn(`Retry ${attempt}/${maxRetries} for file ${filePath}:`, error.message);
         await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
     }
   }
-  
+
   async disconnect() {
     if (this.client && this.connected) {
       this.client.end();
@@ -296,7 +304,7 @@ class DatabaseClient {
       ssl: { rejectUnauthorized: false },
     });
   }
-  
+
   async testConnection() {
     try {
       await this.sql`SELECT 1`;
@@ -307,10 +315,10 @@ class DatabaseClient {
       return false;
     }
   }
-  
+
   async upsertCruise(cruiseData) {
     const sql = this.sql;
-    
+
     try {
       // Use transactions for data integrity
       await sql.begin(async sql => {
@@ -346,9 +354,9 @@ class DatabaseClient {
           cacheddate,
           filePath,
         } = cruiseData;
-        
+
         // Parse dates safely
-        const parseDate = (dateStr) => {
+        const parseDate = dateStr => {
           if (!dateStr) return null;
           try {
             return new Date(dateStr).toISOString().split('T')[0];
@@ -356,8 +364,8 @@ class DatabaseClient {
             return null;
           }
         };
-        
-        const parseTimestamp = (dateStr) => {
+
+        const parseTimestamp = dateStr => {
           if (!dateStr) return null;
           try {
             // Convert date string to timestamp for cached_date
@@ -367,33 +375,41 @@ class DatabaseClient {
             return null;
           }
         };
-        
+
         // Parse port and region IDs (they come as comma-separated strings)
         // Database expects VARCHAR(500), not JSON
-        const parseIdList = (idStr) => {
+        const parseIdList = idStr => {
           if (!idStr) return null;
           // Keep as comma-separated string, just clean it up
-          const ids = idStr.toString().split(',').map(id => id.trim()).filter(id => id);
+          const ids = idStr
+            .toString()
+            .split(',')
+            .map(id => id.trim())
+            .filter(id => id);
           return ids.join(',');
         };
-        
+
         // Parse sailing date
         const sailingDate = parseDate(startdate || saildate);
         const startDateParsed = parseDate(startdate);
-        
+
         // Extract real names from Traveltek data structure (based on TRAVELTEK-DATA-STRUCTURE.md)
         // Auto-create reference data with actual names where available
-        
+
         // Extract cruise line name from linecontent object
         if (lineid) {
-          const lineName = linecontent?.name || linecontent?.enginename || linecontent?.shortname || `Cruise Line ${lineid}`;
+          const lineName =
+            linecontent?.name ||
+            linecontent?.enginename ||
+            linecontent?.shortname ||
+            `Cruise Line ${lineid}`;
           const lineCode = linecontent?.code || `L${lineid}`;
-          
+
           await sql`
             INSERT INTO cruise_lines (id, name, code, is_active)
             VALUES (${parseInt(lineid)}, ${lineName}, ${lineCode}, true)
             ON CONFLICT (id) DO UPDATE SET
-              name = CASE 
+              name = CASE
                 WHEN cruise_lines.name LIKE 'Cruise Line %' THEN EXCLUDED.name
                 ELSE cruise_lines.name
               END,
@@ -404,12 +420,12 @@ class DatabaseClient {
               updated_at = NOW()
           `;
         }
-        
+
         // Extract ship name from shipcontent object
         if (shipid) {
           const shipName = shipcontent?.name || `Ship ${shipid}`;
           const shipCode = shipcontent?.code || `S${shipid}`;
-          
+
           await sql`
             INSERT INTO ships (id, name, cruise_line_id, code, is_active)
             VALUES (${parseInt(shipid)}, ${shipName}, ${parseInt(lineid) || 1}, ${shipCode}, true)
@@ -426,7 +442,7 @@ class DatabaseClient {
               updated_at = NOW()
           `;
         }
-        
+
         // Extract port names from itinerary array
         // The itinerary contains the actual port names in the 'name' field
         if (itinerary && Array.isArray(itinerary)) {
@@ -445,16 +461,16 @@ class DatabaseClient {
             }
           }
         }
-        
+
         // Also handle start/end ports if they're not in the itinerary
         if (startportid) {
           // Try to find the port name from the itinerary
           const startPortDay = itinerary?.find(day => day.portid == startportid);
           const startPortName = startPortDay?.name || `Port ${startportid}`;
-          
+
           await sql`
             INSERT INTO ports (id, name, code, country, is_active)
-            VALUES (${parseInt(startportid)}, ${startPortName}, ${`P${startportid}`}, 'Unknown', true)
+            VALUES (${startportid}, ${startPortName}, ${`P${startportid}`}, 'Unknown', true)
             ON CONFLICT (id) DO UPDATE SET
               name = CASE
                 WHEN ports.name LIKE 'Port %' AND EXCLUDED.name NOT LIKE 'Port %' THEN EXCLUDED.name
@@ -463,15 +479,15 @@ class DatabaseClient {
               updated_at = NOW()
           `;
         }
-        
+
         if (endportid) {
           // Try to find the port name from the itinerary
           const endPortDay = itinerary?.find(day => day.portid == endportid);
           const endPortName = endPortDay?.name || `Port ${endportid}`;
-          
+
           await sql`
             INSERT INTO ports (id, name, code, country, is_active)
-            VALUES (${parseInt(endportid)}, ${endPortName}, ${`P${endportid}`}, 'Unknown', true)
+            VALUES (${endportid}, ${endPortName}, ${`P${endportid}`}, 'Unknown', true)
             ON CONFLICT (id) DO UPDATE SET
               name = CASE
                 WHEN ports.name LIKE 'Port %' AND EXCLUDED.name NOT LIKE 'Port %' THEN EXCLUDED.name
@@ -480,7 +496,7 @@ class DatabaseClient {
               updated_at = NOW()
           `;
         }
-        
+
         // UPSERT cruise using the correct schema mapping:
         // - id = codetocruiseid (primary key)
         // - cruise_id = cruiseid (original cruise ID that can duplicate)
@@ -527,12 +543,12 @@ class DatabaseClient {
             ${parseInt(nights) || 0},
             ${parseInt(sailnights) || null},
             ${parseInt(seadays) || null},
-            ${parseInt(startportid) || null},
-            ${parseInt(endportid) || null},
+            ${startportid || null},
+            ${endportid || null},
             ${parseIdList(portids)},
             ${parseIdList(regionids)},
-            ${parseInt(marketid) || null},
-            ${'system'},                      -- owner_id is VARCHAR with default 'system'
+            ${marketid || null},
+            ${ownerid || 'system'},           -- owner_id is VARCHAR
             ${Boolean(nofly)},
             ${Boolean(departuk)},
             ${Boolean(showcruise)},
@@ -572,41 +588,41 @@ class DatabaseClient {
             updated_at = NOW()
         `;
       });
-      
+
       return true;
     } catch (error) {
       Logger.error(`Failed to upsert cruise ${cruiseData.codetocruiseid}:`, error);
       return false;
     }
   }
-  
+
   async getStats(year, month) {
     try {
       const stats = await this.sql`
-        SELECT 
+        SELECT
           COUNT(*) as total_cruises,
           COUNT(DISTINCT cruise_id) as unique_cruise_definitions,
           COUNT(DISTINCT cruise_line_id) as cruise_lines,
           COUNT(DISTINCT ship_id) as ships,
           MIN(sailing_date) as earliest_sailing,
           MAX(sailing_date) as latest_sailing
-        FROM cruises 
-        WHERE 
+        FROM cruises
+        WHERE
           traveltek_file_path LIKE ${year + '/' + month + '/%'}
           AND is_active = true
       `;
-      
+
       return stats[0];
     } catch (error) {
       Logger.error('Failed to get stats', error);
       return null;
     }
   }
-  
+
   async getSampleData(year, month, limit = 5) {
     try {
       return await this.sql`
-        SELECT 
+        SELECT
           id as primary_key,
           cruise_id as original_cruise_id,
           name,
@@ -614,8 +630,8 @@ class DatabaseClient {
           nights,
           voyage_code,
           traveltek_file_path
-        FROM cruises 
-        WHERE 
+        FROM cruises
+        WHERE
           traveltek_file_path LIKE ${year + '/' + month + '/%'}
           AND is_active = true
         ORDER BY sailing_date
@@ -626,7 +642,7 @@ class DatabaseClient {
       return [];
     }
   }
-  
+
   async close() {
     await this.sql.end();
     Logger.info('Database connection closed');
@@ -643,68 +659,68 @@ class CruiseSyncProcessor {
     this.dbClient = new DatabaseClient(CONFIG.database);
     this.processedFiles = new Set();
   }
-  
+
   async initialize() {
     Logger.info('Initializing Traveltek Clean Sync Script', {
       year: CONFIG.syncYear,
       month: CONFIG.syncMonth,
-      testMode: CONFIG.testMode
+      testMode: CONFIG.testMode,
     });
-    
+
     // Validate configuration
     if (!CONFIG.ftp.user || !CONFIG.ftp.password) {
       throw new Error('Missing FTP credentials. Set TRAVELTEK_FTP_USER and TRAVELTEK_FTP_PASSWORD');
     }
-    
+
     if (!CONFIG.database.url) {
       throw new Error('Missing database URL. Set DATABASE_URL');
     }
-    
+
     // Test connections
     await this.ftpClient.connect();
     const dbConnected = await this.dbClient.testConnection();
-    
+
     if (!dbConnected) {
       throw new Error('Database connection failed');
     }
-    
+
     Logger.success('Initialization complete');
   }
-  
+
   async discoverFiles() {
     Logger.info(`Discovering files for ${CONFIG.syncYear}/${CONFIG.syncMonth}`);
-    
+
     const monthPath = `${CONFIG.syncYear}/${CONFIG.syncMonth}`;
     const files = [];
-    
+
     try {
       // Get all line directories for the month
       const lineDirectories = await this.ftpClient.listFiles(monthPath);
       Logger.info(`Found ${lineDirectories.length} cruise line directories`);
-      
+
       for (const lineDir of lineDirectories) {
         if (lineDir.type !== 'd') continue;
-        
+
         const linePath = `${monthPath}/${lineDir.name}`;
-        
+
         try {
           // Get all ship directories for this line
           const shipDirectories = await this.ftpClient.listFiles(linePath);
-          
+
           for (const shipDir of shipDirectories) {
             if (shipDir.type !== 'd') continue;
-            
+
             const shipPath = `${linePath}/${shipDir.name}`;
-            
+
             try {
               // Get all JSON files for this ship
               const jsonFiles = await this.ftpClient.listFiles(shipPath);
-              
+
               for (const file of jsonFiles) {
                 if (file.name.endsWith('.json')) {
                   const filePath = `${shipPath}/${file.name}`;
                   const codetocruiseid = file.name.replace('.json', '');
-                  
+
                   files.push({
                     filePath,
                     year: CONFIG.syncYear,
@@ -713,7 +729,7 @@ class CruiseSyncProcessor {
                     shipid: shipDir.name,
                     codetocruiseid,
                     lastModified: file.date,
-                    size: file.size
+                    size: file.size,
                   });
                 }
               }
@@ -729,19 +745,19 @@ class CruiseSyncProcessor {
       Logger.error(`Failed to discover files for ${monthPath}`, error);
       throw error;
     }
-    
+
     Logger.success(`Discovered ${files.length} cruise data files`);
     return files;
   }
-  
+
   async processFile(fileInfo) {
     try {
       // Download file data
       const cruiseData = await this.ftpClient.getFileWithRetry(fileInfo.filePath);
-      
+
       // Add file path to data for tracking
       cruiseData.filePath = fileInfo.filePath;
-      
+
       if (CONFIG.testMode) {
         // In test mode, just validate the data structure
         this.validateCruiseData(cruiseData);
@@ -750,64 +766,73 @@ class CruiseSyncProcessor {
         // In normal mode, upsert to database
         return await this.dbClient.upsertCruise(cruiseData);
       }
-      
     } catch (error) {
       Logger.error(`Failed to process file ${fileInfo.filePath}`, error);
       return false;
     }
   }
-  
+
   validateCruiseData(data) {
-    const required = ['cruiseid', 'codetocruiseid', 'lineid', 'shipid', 'name', 'saildate', 'nights'];
+    const required = [
+      'cruiseid',
+      'codetocruiseid',
+      'lineid',
+      'shipid',
+      'name',
+      'saildate',
+      'nights',
+    ];
     const missing = required.filter(field => !data[field]);
-    
+
     if (missing.length > 0) {
       throw new Error(`Missing required fields: ${missing.join(', ')}`);
     }
   }
-  
+
   async processBatch(files) {
     const progress = new ProgressTracker(files.length);
-    
-    Logger.info(`Starting ${CONFIG.testMode ? 'TEST MODE' : 'SYNC'} processing of ${files.length} files`);
-    
+
+    Logger.info(
+      `Starting ${CONFIG.testMode ? 'TEST MODE' : 'SYNC'} processing of ${files.length} files`
+    );
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      
+
       if (this.processedFiles.has(file.filePath)) {
         progress.update(true);
         continue;
       }
-      
+
       const success = await this.processFile(file);
       progress.update(success);
-      
+
       if (success) {
         this.processedFiles.add(file.filePath);
       }
-      
+
       // Small delay to be FTP-friendly
       if (i < files.length - 1) {
         await new Promise(resolve => setTimeout(resolve, CONFIG.batch.delayMs));
       }
     }
-    
+
     return progress.getSummary();
   }
-  
+
   async generateReport(year, month) {
     Logger.info('Generating sync report...');
-    
+
     const stats = await this.dbClient.getStats(year, month);
     const sampleData = await this.dbClient.getSampleData(year, month);
-    
+
     console.log('\n' + '='.repeat(60));
     console.log('                 SYNC REPORT                 ');
     console.log('='.repeat(60));
     console.log(`Period: ${year}/${month}`);
     console.log(`Test Mode: ${CONFIG.testMode ? 'YES' : 'NO'}`);
     console.log('');
-    
+
     if (stats) {
       console.log('DATABASE STATISTICS:');
       console.log(`  Total Sailings: ${stats.total_cruises}`);
@@ -817,20 +842,24 @@ class CruiseSyncProcessor {
       console.log(`  Date Range: ${stats.earliest_sailing} to ${stats.latest_sailing}`);
       console.log('');
     }
-    
+
     if (sampleData.length > 0) {
       console.log('SAMPLE DATA:');
       sampleData.forEach((cruise, index) => {
-        console.log(`  ${index + 1}. ID: ${cruise.primary_key} | Cruise: ${cruise.original_cruise_id} | ${cruise.name}`);
-        console.log(`     Sailing: ${cruise.sailing_date} | ${cruise.nights} nights | ${cruise.voyage_code}`);
+        console.log(
+          `  ${index + 1}. ID: ${cruise.primary_key} | Cruise: ${cruise.original_cruise_id} | ${cruise.name}`
+        );
+        console.log(
+          `     Sailing: ${cruise.sailing_date} | ${cruise.nights} nights | ${cruise.voyage_code}`
+        );
         console.log(`     File: ${cruise.traveltek_file_path}`);
       });
       console.log('');
     }
-    
+
     console.log('='.repeat(60));
   }
-  
+
   async cleanup() {
     await this.ftpClient.disconnect();
     await this.dbClient.close();
@@ -843,22 +872,22 @@ class CruiseSyncProcessor {
 
 async function main() {
   const processor = new CruiseSyncProcessor();
-  
+
   try {
     // Initialize connections
     await processor.initialize();
-    
+
     // Discover files
     const files = await processor.discoverFiles();
-    
+
     if (files.length === 0) {
       Logger.warn('No files found for the specified period');
       return;
     }
-    
+
     // Process files
     const summary = await processor.processBatch(files);
-    
+
     // Show results
     console.log('\n' + '='.repeat(60));
     console.log('                 PROCESSING SUMMARY                 ');
@@ -870,19 +899,18 @@ async function main() {
     console.log(`Success Rate: ${summary.successRate}%`);
     console.log(`Total Time: ${summary.elapsedSeconds}s`);
     console.log('='.repeat(60));
-    
+
     // Generate detailed report if not in test mode
     if (!CONFIG.testMode) {
       await processor.generateReport(CONFIG.syncYear, CONFIG.syncMonth);
     }
-    
+
     if (summary.failed > 0) {
       Logger.warn(`Sync completed with ${summary.failed} failures`);
       process.exit(1);
     } else {
       Logger.success('Sync completed successfully!');
     }
-    
   } catch (error) {
     Logger.error('Sync failed', error);
     process.exit(1);

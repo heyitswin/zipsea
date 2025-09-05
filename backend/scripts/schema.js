@@ -87,7 +87,7 @@ CREATE TABLE ships (
 
 -- Ports table
 CREATE TABLE ports (
-  id INTEGER PRIMARY KEY,
+  id VARCHAR(50) PRIMARY KEY, -- Port ID from Traveltek (string)
   name VARCHAR(255) NOT NULL,
   code VARCHAR(10),
   country VARCHAR(100),
@@ -102,9 +102,9 @@ CREATE TABLE ports (
 
 -- Regions table
 CREATE TABLE regions (
-  id INTEGER PRIMARY KEY,
+  id VARCHAR(50) PRIMARY KEY, -- Region ID from Traveltek (string)
   name VARCHAR(255) NOT NULL,
-  parent_region_id INTEGER REFERENCES regions(id),
+  parent_region_id VARCHAR(50) REFERENCES regions(id),
   description TEXT,
   code VARCHAR(10),
   display_order INTEGER DEFAULT 0,
@@ -126,12 +126,12 @@ CREATE TABLE cruise_definitions (
   nights INTEGER NOT NULL,
   sail_nights INTEGER,
   sea_days INTEGER,
-  embarkation_port_id INTEGER REFERENCES ports(id),
-  disembarkation_port_id INTEGER REFERENCES ports(id),
+  embarkation_port_id VARCHAR(50), -- startportid (string from Traveltek)
+  disembarkation_port_id VARCHAR(50), -- endportid (string from Traveltek)
   region_ids JSONB DEFAULT '[]',
   port_ids JSONB DEFAULT '[]',
-  market_id INTEGER,
-  owner_id INTEGER,
+  market_id VARCHAR(50), -- marketid (string from Traveltek)
+  owner_id VARCHAR(50), -- ownerid (string from Traveltek)
   no_fly BOOLEAN DEFAULT false,
   depart_uk BOOLEAN DEFAULT false,
   show_cruise BOOLEAN DEFAULT true,
@@ -171,12 +171,12 @@ CREATE TABLE cruises (
   return_date DATE,
   nights INTEGER,
   sea_days INTEGER,
-  embarkation_port_id INTEGER REFERENCES ports(id),
-  disembarkation_port_id INTEGER REFERENCES ports(id),
+  embarkation_port_id VARCHAR(50) REFERENCES ports(id), -- startportid (string from Traveltek)
+  disembarkation_port_id VARCHAR(50) REFERENCES ports(id), -- endportid (string from Traveltek)
   port_ids VARCHAR(500), -- Comma-separated string
   region_ids VARCHAR(200), -- Comma-separated string
-  market_id INTEGER,
-  owner_id INTEGER,
+  market_id VARCHAR(50), -- marketid (string from Traveltek)
+  owner_id VARCHAR(50), -- ownerid (string from Traveltek)
   no_fly BOOLEAN DEFAULT false,
   depart_uk BOOLEAN DEFAULT false,
   show_cruise BOOLEAN DEFAULT true,
@@ -211,7 +211,7 @@ CREATE TABLE itineraries (
   id SERIAL PRIMARY KEY,
   cruise_id VARCHAR REFERENCES cruises(id) NOT NULL,
   day_number INTEGER NOT NULL,
-  port_id INTEGER REFERENCES ports(id),
+  port_id VARCHAR(50) REFERENCES ports(id), -- Port ID from Traveltek (string)
   port_name VARCHAR(255),
   arrival_time VARCHAR(10),
   departure_time VARCHAR(10),

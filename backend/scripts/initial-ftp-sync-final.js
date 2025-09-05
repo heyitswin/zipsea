@@ -21,7 +21,7 @@ require('dotenv').config({ path: '.env.local' });
 const CONFIG = {
   START_YEAR: 2025,
   START_MONTH: 9,
-  END_YEAR: 2028,  // Process up to end of 2028
+  END_YEAR: 2028, // Process up to end of 2028
   END_MONTH: 12,
   BATCH_SIZE: 100, // Process 100 files per batch
   MAX_FTP_CONNECTIONS: 3, // Reduced to avoid overwhelming server
@@ -47,7 +47,7 @@ let checkpoint = {
   totalFilesFound: 0,
   errors: [],
   startTime: null,
-  lastCheckpointTime: null
+  lastCheckpointTime: null,
 };
 
 // Statistics
@@ -71,7 +71,7 @@ const stats = {
   totalBatches: 0,
   connectionResets: 0,
   averageProcessingTime: 0,
-  estimatedTimeRemaining: 0
+  estimatedTimeRemaining: 0,
 };
 
 /**
@@ -89,7 +89,7 @@ async function initDatabase() {
     ssl: databaseUrl.includes('render.com') ? { rejectUnauthorized: false } : false,
     max: 20, // Increased pool size for parallel processing
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000
+    connectionTimeoutMillis: 10000,
   });
 
   // Test connection
@@ -99,11 +99,15 @@ async function initDatabase() {
     console.log('✅ Database connection established');
 
     // Check if system_flags table exists and webhooks are paused
-    const flagCheck = await client.query(`
+    const flagCheck = await client
+      .query(
+        `
       SELECT flag_value
       FROM system_flags
       WHERE flag_name = 'webhooks_paused'
-    `).catch(() => null);
+    `
+      )
+      .catch(() => null);
 
     if (!flagCheck || !flagCheck.rows[0]?.flag_value) {
       console.log('⚠️ WARNING: Webhooks may not be paused!');
@@ -126,7 +130,7 @@ async function createFtpConnection(index) {
     password: process.env.TRAVELTEK_FTP_PASSWORD,
     secure: false,
     timeout: CONFIG.CONNECTION_TIMEOUT,
-    verbose: false
+    verbose: false,
   };
 
   const client = new ftp.Client();
@@ -171,7 +175,7 @@ async function initFtpPool() {
       client,
       index: i,
       busy: false,
-      lastUsed: Date.now()
+      lastUsed: Date.now(),
     });
     console.log(`   Connection ${i + 1}/${CONFIG.MAX_FTP_CONNECTIONS} established`);
   }
@@ -250,7 +254,9 @@ function getMonthsToProcess() {
     }
   }
 
-  console.log(`📅 Will process months from ${CONFIG.START_YEAR}/${String(CONFIG.START_MONTH).padStart(2, '0')} to ${CONFIG.END_YEAR}/${String(CONFIG.END_MONTH).padStart(2, '0')}`);
+  console.log(
+    `📅 Will process months from ${CONFIG.START_YEAR}/${String(CONFIG.START_MONTH).padStart(2, '0')} to ${CONFIG.END_YEAR}/${String(CONFIG.END_MONTH).padStart(2, '0')}`
+  );
   return months;
 }
 
@@ -292,9 +298,10 @@ async function listCruiseFiles(year, month) {
     const monthPath = `/${year}/${String(month).padStart(2, '0')}`;
 
     // Check if year directory exists
-    const yearExists = await connection.client.list('/').then(list =>
-      list.some(item => item.name === String(year))
-    ).catch(() => false);
+    const yearExists = await connection.client
+      .list('/')
+      .then(list => list.some(item => item.name === String(year)))
+      .catch(() => false);
 
     if (!yearExists) {
       console.log(`   📁 Year ${year} not found on FTP server`);
@@ -302,9 +309,10 @@ async function listCruiseFiles(year, month) {
     }
 
     // Check if month directory exists
-    const monthExists = await connection.client.list(`/${year}`).then(list =>
-      list.some(item => item.name === String(month).padStart(2, '0'))
-    ).catch(() => false);
+    const monthExists = await connection.client
+      .list(`/${year}`)
+      .then(list => list.some(item => item.name === String(month).padStart(2, '0')))
+      .catch(() => false);
 
     if (!monthExists) {
       console.log(`   📁 Month ${monthPath} not found on FTP server`);
@@ -344,7 +352,7 @@ async function listCruiseFiles(year, month) {
               shipId: parseInt(shipDir.name),
               cruiseId: path.basename(file.name, '.json'),
               size: file.size,
-              date: file.date
+              date: file.date,
             });
 
             fileCount++;
@@ -359,12 +367,17 @@ async function listCruiseFiles(year, month) {
     }
 
     if (fileCount > 0) {
-      process.stdout.write(`\r   📊 Found ${files.length} new files to process (${fileCount} total)\n`);
+      process.stdout.write(
+        `\r   📊 Found ${files.length} new files to process (${fileCount} total)\n`
+      );
     }
 
     return files;
   } catch (error) {
-    console.error(`   ❌ Error listing files for ${year}/${String(month).padStart(2, '0')}:`, error.message);
+    console.error(
+      `   ❌ Error listing files for ${year}/${String(month).padStart(2, '0')}:`,
+      error.message
+    );
     return files;
   } finally {
     releaseFtpConnection(connection);
@@ -392,7 +405,6 @@ async function downloadFile(filePath, retries = 0) {
     await fs.unlink(tempFile).catch(() => {});
 
     return data;
-
   } catch (error) {
     if (retries < CONFIG.MAX_RETRIES) {
       await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY));
@@ -410,7 +422,7 @@ async function downloadFile(filePath, retries = 0) {
 function displayProgress() {
   const percent = Math.round((stats.totalProcessed / stats.totalFiles) * 100) || 0;
   const barLength = 40;
-  const filledLength = Math.round(barLength * percent / 100);
+  const filledLength = Math.round((barLength * percent) / 100);
   const bar = '█'.repeat(filledLength) + '░'.repeat(barLength - filledLength);
 
   const elapsed = (Date.now() - stats.startTime) / 1000;
@@ -419,7 +431,7 @@ function displayProgress() {
   const eta = remaining / rate || 0;
 
   // Format time
-  const formatTime = (seconds) => {
+  const formatTime = seconds => {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = Math.floor(seconds % 60);
@@ -433,28 +445,39 @@ function displayProgress() {
   // Overall progress
   console.log(`📅 Processing: ${stats.currentMonth}`);
   console.log(`📊 Overall Progress: ${bar} ${percent}%`);
-  console.log(`📁 Files: ${stats.totalProcessed}/${stats.totalFiles} (${stats.totalSuccess} ✓, ${stats.totalFailed} ✗)`);
-  console.log(`⏱️ Elapsed: ${formatTime(elapsed)} | ETA: ${formatTime(eta)} | Rate: ${rate.toFixed(1)} files/sec`);
+  console.log(
+    `📁 Files: ${stats.totalProcessed}/${stats.totalFiles} (${stats.totalSuccess} ✓, ${stats.totalFailed} ✗)`
+  );
+  console.log(
+    `⏱️ Elapsed: ${formatTime(elapsed)} | ETA: ${formatTime(eta)} | Rate: ${rate.toFixed(1)} files/sec`
+  );
   console.log('');
 
   // Monthly progress
   if (stats.monthlyFiles > 0) {
     const monthPercent = Math.round((stats.monthlyProcessed / stats.monthlyFiles) * 100) || 0;
-    const monthBar = '█'.repeat(Math.round(barLength * monthPercent / 100)) +
-                     '░'.repeat(barLength - Math.round(barLength * monthPercent / 100));
+    const monthBar =
+      '█'.repeat(Math.round((barLength * monthPercent) / 100)) +
+      '░'.repeat(barLength - Math.round((barLength * monthPercent) / 100));
     console.log(`📆 Current Month: ${monthBar} ${monthPercent}%`);
-    console.log(`   Files: ${stats.monthlyProcessed}/${stats.monthlyFiles} (${stats.monthlySuccess} ✓, ${stats.monthlyFailed} ✗)`);
+    console.log(
+      `   Files: ${stats.monthlyProcessed}/${stats.monthlyFiles} (${stats.monthlySuccess} ✓, ${stats.monthlyFailed} ✗)`
+    );
   }
   console.log('');
 
   // Database stats
   console.log('💾 Database Operations:');
   console.log(`   🚢 Cruises: ${stats.cruisesCreated} created, ${stats.cruisesUpdated} updated`);
-  console.log(`   🏢 Lines: ${stats.linesCreated} | Ships: ${stats.shipsCreated} | Ports: ${stats.portsCreated}`);
+  console.log(
+    `   🏢 Lines: ${stats.linesCreated} | Ships: ${stats.shipsCreated} | Ports: ${stats.portsCreated}`
+  );
 
   // Connection stats
   console.log('');
-  console.log(`🔌 Connections: ${CONFIG.MAX_FTP_CONNECTIONS} active | Resets: ${stats.connectionResets}`);
+  console.log(
+    `🔌 Connections: ${CONFIG.MAX_FTP_CONNECTIONS} active | Resets: ${stats.connectionResets}`
+  );
 
   // Current batch
   if (stats.totalBatches > 0) {
@@ -484,10 +507,9 @@ async function processCruiseData(fileInfo, data) {
     let portsCreated = 0;
 
     // 1. Ensure cruise line exists
-    const lineResult = await client.query(
-      'SELECT id FROM cruise_lines WHERE id = $1',
-      [fileInfo.lineId]
-    );
+    const lineResult = await client.query('SELECT id FROM cruise_lines WHERE id = $1', [
+      fileInfo.lineId,
+    ]);
 
     if (lineResult.rows.length === 0) {
       lineCreated = true;
@@ -495,10 +517,7 @@ async function processCruiseData(fileInfo, data) {
     }
 
     // 2. Ensure ship exists
-    const shipResult = await client.query(
-      'SELECT id FROM ships WHERE id = $1',
-      [fileInfo.shipId]
-    );
+    const shipResult = await client.query('SELECT id FROM ships WHERE id = $1', [fileInfo.shipId]);
 
     if (shipResult.rows.length === 0) {
       shipCreated = true;
@@ -551,10 +570,10 @@ async function processCruiseData(fileInfo, data) {
     // Calculate average processing time
     const processingTime = Date.now() - startTime;
     stats.averageProcessingTime =
-      (stats.averageProcessingTime * (stats.totalSuccess - 1) + processingTime) / stats.totalSuccess;
+      (stats.averageProcessingTime * (stats.totalSuccess - 1) + processingTime) /
+      stats.totalSuccess;
 
     return { success: true };
-
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -571,7 +590,7 @@ async function ensureCruiseLineExists(client, lineId, data) {
     description: '',
     engine_name: null,
     short_name: null,
-    title: null
+    title: null,
   };
 
   if (data.linecontent && typeof data.linecontent === 'object') {
@@ -593,8 +612,15 @@ async function ensureCruiseLineExists(client, lineId, data) {
        name = EXCLUDED.name,
        code = EXCLUDED.code,
        updated_at = NOW()`,
-    [lineId, lineInfo.name, lineInfo.code, lineInfo.description,
-     lineInfo.engine_name, lineInfo.short_name, lineInfo.title]
+    [
+      lineId,
+      lineInfo.name,
+      lineInfo.code,
+      lineInfo.description,
+      lineInfo.engine_name,
+      lineInfo.short_name,
+      lineInfo.title,
+    ]
   );
 }
 
@@ -615,7 +641,7 @@ async function ensureShipExists(client, shipId, lineId, data) {
     registry: null,
     built_year: null,
     refurbished_year: null,
-    description: null
+    description: null,
   };
 
   if (data.shipcontent && typeof data.shipcontent === 'object') {
@@ -647,10 +673,26 @@ async function ensureShipExists(client, shipId, lineId, data) {
        name = EXCLUDED.name,
        code = EXCLUDED.code,
        updated_at = NOW()`,
-    [shipId, lineId, shipInfo.name, shipInfo.nice_name, shipInfo.short_name,
-     shipInfo.code, shipInfo.tonnage, shipInfo.total_cabins, shipInfo.max_passengers,
-     shipInfo.crew, shipInfo.length, shipInfo.beam, shipInfo.draft, shipInfo.speed,
-     shipInfo.registry, shipInfo.built_year, shipInfo.refurbished_year, shipInfo.description]
+    [
+      shipId,
+      lineId,
+      shipInfo.name,
+      shipInfo.nice_name,
+      shipInfo.short_name,
+      shipInfo.code,
+      shipInfo.tonnage,
+      shipInfo.total_cabins,
+      shipInfo.max_passengers,
+      shipInfo.crew,
+      shipInfo.length,
+      shipInfo.beam,
+      shipInfo.draft,
+      shipInfo.speed,
+      shipInfo.registry,
+      shipInfo.built_year,
+      shipInfo.refurbished_year,
+      shipInfo.description,
+    ]
   );
 }
 
@@ -717,10 +759,9 @@ async function ensureRegionsExist(client, data) {
 }
 
 async function upsertCruise(client, data) {
-  const existing = await client.query(
-    'SELECT id FROM cruises WHERE id = $1',
-    [String(data.codetocruiseid)]
-  );
+  const existing = await client.query('SELECT id FROM cruises WHERE id = $1', [
+    String(data.codetocruiseid),
+  ]);
 
   let cheapestPrice = null;
   const prices = [];
@@ -755,8 +796,8 @@ async function upsertCruise(client, data) {
     sea_days: data.seadays || null,
     embarkation_port_id: data.startportid || null,
     disembarkation_port_id: data.endportid || null,
-    port_ids: data.portids ? data.portids.join(',') : null,
-    region_ids: data.regionids ? data.regionids.join(',') : null,
+    port_ids: data.portids || null,
+    region_ids: data.regionids || null,
     ports: data.ports ? JSON.stringify(data.ports) : null,
     regions: data.regions ? JSON.stringify(data.regions) : null,
     market_id: data.marketid || null,
@@ -765,8 +806,10 @@ async function upsertCruise(client, data) {
     depart_uk: data.departuk === true,
     show_cruise: data.showcruise !== false,
     fly_cruise_info: data.flycruiseinfo || null,
-    line_content: typeof data.linecontent === 'object' ? JSON.stringify(data.linecontent) : data.linecontent,
-    ship_content: typeof data.shipcontent === 'object' ? JSON.stringify(data.shipcontent) : data.shipcontent,
+    line_content:
+      typeof data.linecontent === 'object' ? JSON.stringify(data.linecontent) : data.linecontent,
+    ship_content:
+      typeof data.shipcontent === 'object' ? JSON.stringify(data.shipcontent) : data.shipcontent,
     last_cached: data.lastcached || null,
     cached_date: data.cacheddate || null,
     interior_price: data.cheapest?.inside || data.cheapestinside || null,
@@ -777,7 +820,7 @@ async function upsertCruise(client, data) {
     interior_price_code: data.cheapestinsidepricecode || data.cheapest?.insidepricecode || null,
     oceanview_price_code: data.cheapestoutsidepricecode || data.cheapest?.outsidepricecode || null,
     balcony_price_code: data.cheapestbalconypricecode || data.cheapest?.balconypricecode || null,
-    suite_price_code: data.cheapestsuitepricecode || data.cheapest?.suitepricecode || null
+    suite_price_code: data.cheapestsuitepricecode || data.cheapest?.suitepricecode || null,
   };
 
   // Calculate return date
@@ -804,19 +847,43 @@ async function upsertCruise(client, data) {
         $31, $32, $33, $34, $35, $36, $37
       )`,
       [
-        cruiseData.id, cruiseData.cruise_id, cruiseData.cruise_line_id, cruiseData.ship_id,
-        cruiseData.name, cruiseData.voyage_code, cruiseData.itinerary_code,
-        cruiseData.sailing_date, cruiseData.return_date, cruiseData.nights,
-        cruiseData.sail_nights, cruiseData.sea_days, cruiseData.embarkation_port_id,
-        cruiseData.disembarkation_port_id, cruiseData.port_ids, cruiseData.region_ids,
-        cruiseData.ports, cruiseData.regions, cruiseData.market_id, cruiseData.owner_id,
-        cruiseData.no_fly, cruiseData.depart_uk, cruiseData.show_cruise,
-        cruiseData.fly_cruise_info, cruiseData.line_content, cruiseData.ship_content,
-        cruiseData.last_cached, cruiseData.cached_date, cruiseData.interior_price,
-        cruiseData.oceanview_price, cruiseData.balcony_price, cruiseData.suite_price,
-        cruiseData.cheapest_price, cruiseData.interior_price_code,
-        cruiseData.oceanview_price_code, cruiseData.balcony_price_code,
-        cruiseData.suite_price_code
+        cruiseData.id,
+        cruiseData.cruise_id,
+        cruiseData.cruise_line_id,
+        cruiseData.ship_id,
+        cruiseData.name,
+        cruiseData.voyage_code,
+        cruiseData.itinerary_code,
+        cruiseData.sailing_date,
+        cruiseData.return_date,
+        cruiseData.nights,
+        cruiseData.sail_nights,
+        cruiseData.sea_days,
+        cruiseData.embarkation_port_id,
+        cruiseData.disembarkation_port_id,
+        cruiseData.port_ids,
+        cruiseData.region_ids,
+        cruiseData.ports,
+        cruiseData.regions,
+        cruiseData.market_id,
+        cruiseData.owner_id,
+        cruiseData.no_fly,
+        cruiseData.depart_uk,
+        cruiseData.show_cruise,
+        cruiseData.fly_cruise_info,
+        cruiseData.line_content,
+        cruiseData.ship_content,
+        cruiseData.last_cached,
+        cruiseData.cached_date,
+        cruiseData.interior_price,
+        cruiseData.oceanview_price,
+        cruiseData.balcony_price,
+        cruiseData.suite_price,
+        cruiseData.cheapest_price,
+        cruiseData.interior_price_code,
+        cruiseData.oceanview_price_code,
+        cruiseData.balcony_price_code,
+        cruiseData.suite_price_code,
       ]
     );
     return true;
@@ -835,18 +902,42 @@ async function upsertCruise(client, data) {
         suite_price_code = $36, updated_at = NOW()
        WHERE id = $1`,
       [
-        cruiseData.id, cruiseData.cruise_line_id, cruiseData.ship_id, cruiseData.name,
-        cruiseData.voyage_code, cruiseData.itinerary_code, cruiseData.sailing_date,
-        cruiseData.return_date, cruiseData.nights, cruiseData.sail_nights,
-        cruiseData.sea_days, cruiseData.embarkation_port_id, cruiseData.disembarkation_port_id,
-        cruiseData.port_ids, cruiseData.region_ids, cruiseData.ports, cruiseData.regions,
-        cruiseData.market_id, cruiseData.owner_id, cruiseData.no_fly, cruiseData.depart_uk,
-        cruiseData.show_cruise, cruiseData.fly_cruise_info, cruiseData.line_content,
-        cruiseData.ship_content, cruiseData.last_cached, cruiseData.cached_date,
-        cruiseData.interior_price, cruiseData.oceanview_price, cruiseData.balcony_price,
-        cruiseData.suite_price, cruiseData.cheapest_price, cruiseData.interior_price_code,
-        cruiseData.oceanview_price_code, cruiseData.balcony_price_code,
-        cruiseData.suite_price_code
+        cruiseData.id,
+        cruiseData.cruise_line_id,
+        cruiseData.ship_id,
+        cruiseData.name,
+        cruiseData.voyage_code,
+        cruiseData.itinerary_code,
+        cruiseData.sailing_date,
+        cruiseData.return_date,
+        cruiseData.nights,
+        cruiseData.sail_nights,
+        cruiseData.sea_days,
+        cruiseData.embarkation_port_id,
+        cruiseData.disembarkation_port_id,
+        cruiseData.port_ids,
+        cruiseData.region_ids,
+        cruiseData.ports,
+        cruiseData.regions,
+        cruiseData.market_id,
+        cruiseData.owner_id,
+        cruiseData.no_fly,
+        cruiseData.depart_uk,
+        cruiseData.show_cruise,
+        cruiseData.fly_cruise_info,
+        cruiseData.line_content,
+        cruiseData.ship_content,
+        cruiseData.last_cached,
+        cruiseData.cached_date,
+        cruiseData.interior_price,
+        cruiseData.oceanview_price,
+        cruiseData.balcony_price,
+        cruiseData.suite_price,
+        cruiseData.cheapest_price,
+        cruiseData.interior_price_code,
+        cruiseData.oceanview_price_code,
+        cruiseData.balcony_price_code,
+        cruiseData.suite_price_code,
       ]
     );
     return false;
@@ -873,7 +964,7 @@ async function syncItinerary(client, cruiseId, itinerary) {
         day.arrive || null,
         day.depart || null,
         day.description || null,
-        day.seaday === true
+        day.seaday === true,
       ]
     );
   }
@@ -881,7 +972,9 @@ async function syncItinerary(client, cruiseId, itinerary) {
 
 async function syncAlternativeSailings(client, cruiseId, altSailings) {
   // Delete existing alternative sailings
-  await client.query('DELETE FROM alternative_sailings WHERE base_cruise_id = $1', [String(cruiseId)]);
+  await client.query('DELETE FROM alternative_sailings WHERE base_cruise_id = $1', [
+    String(cruiseId),
+  ]);
 
   // Insert new alternative sailings
   for (const alt of altSailings) {
@@ -889,12 +982,7 @@ async function syncAlternativeSailings(client, cruiseId, altSailings) {
       `INSERT INTO alternative_sailings (
         base_cruise_id, alternative_date, alternative_cruise_id, price
       ) VALUES ($1, $2, $3, $4)`,
-      [
-        String(cruiseId),
-        alt.date || null,
-        alt.cruiseid || null,
-        alt.price || null
-      ]
+      [String(cruiseId), alt.date || null, alt.cruiseid || null, alt.price || null]
     );
   }
 }
@@ -936,7 +1024,10 @@ async function processPriceObject(client, cruiseId, prices, source) {
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
                 ON CONFLICT DO NOTHING`,
                 [
-                  String(cruiseId), rateCode, cabinCode, occupancyCode,
+                  String(cruiseId),
+                  rateCode,
+                  cabinCode,
+                  occupancyCode,
                   priceData.price || null,
                   priceData.baseprice || priceData.price || null,
                   priceData.tax || null,
@@ -949,7 +1040,7 @@ async function processPriceObject(client, cruiseId, prices, source) {
                   priceData.commission || null,
                   priceData.netprice || null,
                   source,
-                  priceData.currency || 'USD'
+                  priceData.currency || 'USD',
                 ]
               );
               count++;
@@ -971,8 +1062,10 @@ async function syncCheapestPricing(client, cruiseId, data) {
   // Calculate overall cheapest
   const prices = [];
   if (cheapest.inside || data.cheapestinside) prices.push(cheapest.inside || data.cheapestinside);
-  if (cheapest.outside || data.cheapestoutside) prices.push(cheapest.outside || data.cheapestoutside);
-  if (cheapest.balcony || data.cheapestbalcony) prices.push(cheapest.balcony || data.cheapestbalcony);
+  if (cheapest.outside || data.cheapestoutside)
+    prices.push(cheapest.outside || data.cheapestoutside);
+  if (cheapest.balcony || data.cheapestbalcony)
+    prices.push(cheapest.balcony || data.cheapestbalcony);
   if (cheapest.suite || data.cheapestsuite) prices.push(cheapest.suite || data.cheapestsuite);
 
   const cheapestPrice = prices.length > 0 ? Math.min(...prices.filter(p => p && !isNaN(p))) : null;
@@ -995,7 +1088,7 @@ async function syncCheapestPricing(client, cruiseId, data) {
       data.cheapestoutsidepricecode || cheapest.outsidepricecode || null,
       data.cheapestbalconypricecode || cheapest.balconypricecode || null,
       data.cheapestsuitepricecode || cheapest.suitepricecode || null,
-      'USD'
+      'USD',
     ]
   );
 }
@@ -1007,7 +1100,7 @@ async function processFileBatch(files) {
   const batchStartTime = Date.now();
 
   const results = await Promise.allSettled(
-    files.map(async (fileInfo) => {
+    files.map(async fileInfo => {
       try {
         const data = await downloadFile(fileInfo.path);
         await processCruiseData(fileInfo, data);
@@ -1019,7 +1112,6 @@ async function processFileBatch(files) {
         checkpoint.processedFiles.push(fileInfo.path);
 
         return { success: true, file: fileInfo.path };
-
       } catch (error) {
         stats.totalFailed++;
         stats.monthlyFailed++;
@@ -1027,7 +1119,7 @@ async function processFileBatch(files) {
         checkpoint.errors.push({
           file: fileInfo.path,
           error: error.message,
-          time: new Date().toISOString()
+          time: new Date().toISOString(),
         });
 
         return { success: false, file: fileInfo.path, error: error.message };
@@ -1057,9 +1149,7 @@ async function processFileBatch(files) {
  */
 async function saveErrorLog() {
   if (checkpoint.errors.length > 0) {
-    const errorLog = checkpoint.errors
-      .map(e => `${e.time} - ${e.file}: ${e.error}`)
-      .join('\n');
+    const errorLog = checkpoint.errors.map(e => `${e.time} - ${e.file}: ${e.error}`).join('\n');
     await fs.appendFile(CONFIG.ERROR_LOG, errorLog + '\n');
   }
 }
@@ -1070,7 +1160,9 @@ async function saveErrorLog() {
 async function main() {
   console.log('🚀 Zipsea Initial FTP Sync - FINAL VERSION');
   console.log('==========================================');
-  console.log(`📅 Processing from ${CONFIG.START_YEAR}/${String(CONFIG.START_MONTH).padStart(2, '0')} to ${CONFIG.END_YEAR}/${String(CONFIG.END_MONTH).padStart(2, '0')}`);
+  console.log(
+    `📅 Processing from ${CONFIG.START_YEAR}/${String(CONFIG.START_MONTH).padStart(2, '0')} to ${CONFIG.END_YEAR}/${String(CONFIG.END_MONTH).padStart(2, '0')}`
+  );
   console.log(`📦 Batch size: ${CONFIG.BATCH_SIZE} files`);
   console.log(`🔌 Persistent connections: ${CONFIG.MAX_FTP_CONNECTIONS}`);
   console.log('💾 Resume capability: ENABLED');
@@ -1089,7 +1181,9 @@ async function main() {
 
     // Filter out already processed months
     const startIndex = checkpoint.lastProcessedMonth
-      ? months.findIndex(m => `${m.year}/${String(m.month).padStart(2, '0')}` === checkpoint.lastProcessedMonth) + 1
+      ? months.findIndex(
+          m => `${m.year}/${String(m.month).padStart(2, '0')}` === checkpoint.lastProcessedMonth
+        ) + 1
       : 0;
 
     const monthsToProcess = months.slice(startIndex);
@@ -1099,7 +1193,9 @@ async function main() {
       return;
     }
 
-    console.log(`📅 Processing ${monthsToProcess.length} months starting from ${monthsToProcess[0].year}/${String(monthsToProcess[0].month).padStart(2, '0')}\n`);
+    console.log(
+      `📅 Processing ${monthsToProcess.length} months starting from ${monthsToProcess[0].year}/${String(monthsToProcess[0].month).padStart(2, '0')}\n`
+    );
 
     // Process each month
     for (const { year, month } of monthsToProcess) {
@@ -1137,7 +1233,9 @@ async function main() {
         const batch = files.slice(i, i + CONFIG.BATCH_SIZE);
         stats.currentBatch = Math.floor(i / CONFIG.BATCH_SIZE) + 1;
 
-        console.log(`\n📦 Processing batch ${stats.currentBatch}/${totalBatches} (${batch.length} files)`);
+        console.log(
+          `\n📦 Processing batch ${stats.currentBatch}/${totalBatches} (${batch.length} files)`
+        );
 
         await processFileBatch(batch);
 
@@ -1147,7 +1245,9 @@ async function main() {
         await saveCheckpoint();
       }
 
-      console.log(`\n✅ Completed ${monthStr}: ${stats.monthlySuccess} successful, ${stats.monthlyFailed} failed`);
+      console.log(
+        `\n✅ Completed ${monthStr}: ${stats.monthlySuccess} successful, ${stats.monthlyFailed} failed`
+      );
     }
 
     // Final statistics
@@ -1157,16 +1257,22 @@ async function main() {
     console.log('='.repeat(50));
     console.log(`⏱️ Total time: ${(elapsed / 60).toFixed(1)} minutes`);
     console.log(`📁 Files processed: ${stats.totalProcessed}/${stats.totalFiles}`);
-    console.log(`✅ Successful: ${stats.totalSuccess} (${Math.round(stats.totalSuccess / stats.totalProcessed * 100)}%)`);
+    console.log(
+      `✅ Successful: ${stats.totalSuccess} (${Math.round((stats.totalSuccess / stats.totalProcessed) * 100)}%)`
+    );
     console.log(`❌ Failed: ${stats.totalFailed}`);
     console.log(`🚢 Cruises: ${stats.cruisesCreated} created, ${stats.cruisesUpdated} updated`);
-    console.log(`🏢 Entities: ${stats.linesCreated} lines, ${stats.shipsCreated} ships, ${stats.portsCreated} ports`);
+    console.log(
+      `🏢 Entities: ${stats.linesCreated} lines, ${stats.shipsCreated} ships, ${stats.portsCreated} ports`
+    );
     console.log(`🔌 Connection resets: ${stats.connectionResets}`);
     console.log(`📊 Average processing: ${stats.averageProcessingTime.toFixed(0)}ms per file`);
     console.log(`📈 Average rate: ${(stats.totalProcessed / elapsed).toFixed(1)} files/sec`);
 
     if (checkpoint.errors.length > 0) {
-      console.log(`\n⚠️ ${checkpoint.errors.length} errors occurred. Check ${CONFIG.ERROR_LOG} for details.`);
+      console.log(
+        `\n⚠️ ${checkpoint.errors.length} errors occurred. Check ${CONFIG.ERROR_LOG} for details.`
+      );
       await saveErrorLog();
     }
 
@@ -1179,7 +1285,6 @@ async function main() {
     console.log('2. Verify data integrity with test queries');
     console.log('3. Resume webhook processing:');
     console.log('   node scripts/resume-webhooks.js');
-
   } catch (error) {
     console.error('\n❌ Fatal error:', error);
     console.error('Stack:', error.stack);
