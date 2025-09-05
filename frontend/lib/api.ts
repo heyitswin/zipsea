@@ -240,6 +240,12 @@ export interface ComprehensiveCruiseData {
     isActive: boolean;
     createdAt?: string;
     updatedAt?: string;
+    // Price fields from database
+    cheapestPrice?: number;
+    interiorPrice?: number;
+    oceanviewPrice?: number;
+    balconyPrice?: number;
+    suitePrice?: number;
   };
   cruiseLine?: {
     id: number;
