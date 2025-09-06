@@ -385,9 +385,25 @@ async function processShip(client, shipContent, shipId, cruiseLineId) {
  * Process ports data
  */
 async function processPorts(client, ports) {
-  if (!ports || !Array.isArray(ports)) return;
+  if (!ports) return;
 
-  for (const port of ports) {
+  // Handle both object format {"295": "Southampton"} and array format
+  let portEntries = [];
+
+  if (Array.isArray(ports)) {
+    // Handle array format (if it exists)
+    portEntries = ports.map(p => ({ id: p.id, name: p.name, ...p }));
+  } else if (typeof ports === 'object') {
+    // Handle object format from Traveltek JSON
+    portEntries = Object.entries(ports).map(([id, name]) => ({
+      id: id,
+      name: name,
+    }));
+  } else {
+    return;
+  }
+
+  for (const port of portEntries) {
     if (!port.id) continue;
 
     const query = `
@@ -397,12 +413,12 @@ async function processPorts(client, ports) {
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
-        code = EXCLUDED.code,
-        country = EXCLUDED.country,
-        region = EXCLUDED.region,
-        latitude = EXCLUDED.latitude,
-        longitude = EXCLUDED.longitude,
-        description = EXCLUDED.description,
+        code = COALESCE(EXCLUDED.code, ports.code),
+        country = COALESCE(EXCLUDED.country, ports.country),
+        region = COALESCE(EXCLUDED.region, ports.region),
+        latitude = COALESCE(EXCLUDED.latitude, ports.latitude),
+        longitude = COALESCE(EXCLUDED.longitude, ports.longitude),
+        description = COALESCE(EXCLUDED.description, ports.description),
         raw_port_data = EXCLUDED.raw_port_data,
         updated_at = NOW()
     `;
@@ -426,12 +442,60 @@ async function processPorts(client, ports) {
 }
 
 /**
+ * Process individual port IDs (for embarkation/disembarkation ports)
+ */
+async function processPortById(client, portId, portName) {
+  if (!portId) return;
+
+  const query = `
+    INSERT INTO ports (
+      id, name, code, country, region, latitude, longitude,
+      description, raw_port_data, is_active
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    ON CONFLICT (id) DO UPDATE SET
+      name = COALESCE(EXCLUDED.name, ports.name),
+      updated_at = NOW()
+  `;
+
+  const values = [
+    safeIntegerConvert(portId),
+    safeStringConvert(portName) || `Port ${portId}`,
+    null, // code
+    null, // country
+    null, // region
+    null, // latitude
+    null, // longitude
+    null, // description
+    JSON.stringify({ id: portId, name: portName }),
+    true,
+  ];
+
+  await client.query(query, values);
+}
+
+/**
  * Process regions data
  */
 async function processRegions(client, regions) {
-  if (!regions || !Array.isArray(regions)) return;
+  if (!regions) return;
 
-  for (const region of regions) {
+  // Handle both object format {"4": "Europe"} and array format
+  let regionEntries = [];
+
+  if (Array.isArray(regions)) {
+    // Handle array format (if it exists)
+    regionEntries = regions.map(r => ({ id: r.id, name: r.name, ...r }));
+  } else if (typeof regions === 'object') {
+    // Handle object format from Traveltek JSON
+    regionEntries = Object.entries(regions).map(([id, name]) => ({
+      id: id,
+      name: name,
+    }));
+  } else {
+    return;
+  }
+
+  for (const region of regionEntries) {
     if (!region.id) continue;
 
     const query = `
@@ -440,8 +504,8 @@ async function processRegions(client, regions) {
       ) VALUES ($1, $2, $3, $4, $5, $6)
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
-        code = EXCLUDED.code,
-        description = EXCLUDED.description,
+        code = COALESCE(EXCLUDED.code, regions.code),
+        description = COALESCE(EXCLUDED.description, regions.description),
         raw_region_data = EXCLUDED.raw_region_data,
         updated_at = NOW()
     `;
@@ -669,15 +733,33 @@ async function processBatch(files, yearMonth) {
           stats.shipsCreated++;
         }
 
-        // Process ports and regions
+        // Process ports and regions BEFORE cruise (for foreign key constraints)
         if (cruiseData.ports) {
           await processPorts(client, cruiseData.ports);
         }
+
+        // Also ensure embarkation and disembarkation ports exist
+        if (cruiseData.startportid) {
+          const portName =
+            cruiseData.ports && cruiseData.ports[cruiseData.startportid]
+              ? cruiseData.ports[cruiseData.startportid]
+              : `Port ${cruiseData.startportid}`;
+          await processPortById(client, cruiseData.startportid, portName);
+        }
+
+        if (cruiseData.endportid) {
+          const portName =
+            cruiseData.ports && cruiseData.ports[cruiseData.endportid]
+              ? cruiseData.ports[cruiseData.endportid]
+              : `Port ${cruiseData.endportid}`;
+          await processPortById(client, cruiseData.endportid, portName);
+        }
+
         if (cruiseData.regions) {
           await processRegions(client, cruiseData.regions);
         }
 
-        // Process main cruise
+        // Process main cruise (now that all referenced data exists)
         const cruiseId = await processCruise(client, cruiseData);
         if (cruiseId) {
           stats.cruisesCreated++;
