@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#f5f5f5"/>
+  <rect x="50" y="50" width="300" height="200" fill="#e8e8e8" stroke="#ccc" stroke-width="2"/>
+  <rect x="60" y="60" width="180" height="120" fill="#87CEEB" stroke="#5F9EA0" stroke-width="2"/>
+  <rect x="60" y="160" width="180" height="20" fill="#D2691E" stroke="#A0522D" stroke-width="1"/>
+  <rect x="250" y="70" width="90" height="60" fill="#fff" stroke="#999" stroke-width="1"/>
+  <rect x="250" y="140" width="90" height="30" fill="#E6E6FA" stroke="#9370DB" stroke-width="1"/>
+  <rect x="100" y="190" width="200" height="50" fill="#8B7355" stroke="#6B5545" stroke-width="2"/>
+  <rect x="140" y="200" width="40" height="30" fill="#DAA520" stroke="#B8860B" stroke-width="1"/>
+  <rect x="220" y="200" width="40" height="30" fill="#DAA520" stroke="#B8860B" stroke-width="1"/>
+  <text x="200" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666">Luxury Suite</text>
+</svg>

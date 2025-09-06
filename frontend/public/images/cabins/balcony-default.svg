@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#f5f5f5"/>
+  <rect x="50" y="50" width="300" height="200" fill="#e8e8e8" stroke="#ccc" stroke-width="2"/>
+  <rect x="70" y="70" width="150" height="100" fill="#87CEEB" stroke="#5F9EA0" stroke-width="2"/>
+  <rect x="70" y="150" width="150" height="20" fill="#D2691E" stroke="#A0522D" stroke-width="1"/>
+  <line x1="70" y1="155" x2="220" y2="155" stroke="#A0522D" stroke-width="1"/>
+  <line x1="70" y1="160" x2="220" y2="160" stroke="#A0522D" stroke-width="1"/>
+  <line x1="70" y1="165" x2="220" y2="165" stroke="#A0522D" stroke-width="1"/>
+  <rect x="240" y="80" width="80" height="60" fill="#fff" stroke="#999" stroke-width="1"/>
+  <rect x="120" y="190" width="160" height="40" fill="#8B7355" stroke="#6B5545" stroke-width="2"/>
+  <text x="200" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666">Balcony Stateroom</text>
+</svg>

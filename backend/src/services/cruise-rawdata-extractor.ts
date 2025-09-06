@@ -89,16 +89,20 @@ export function extractItineraryFromRawData(rawData: any) {
   return rawData.itinerary.map((day: any, index: number) => ({
     id: `${rawData.codetocruiseid}-day-${index + 1}`,
     cruiseId: rawData.codetocruiseid,
-    dayNumber: day.daynumber || index + 1,
-    portName: day.portname || day.port?.name || 'At Sea',
+    dayNumber: day.daynumber || day.day || index + 1,
+    portName: day.name || day.itineraryname || day.portname || day.port?.name || 'At Sea',
     portId: day.portid,
-    arrivalTime: day.arrivaltime,
-    departureTime: day.departuretime,
+    arrivalTime: day.arrivetime || day.arrivaltime,
+    departureTime: day.departtime || day.departuretime,
     overnight: day.overnight === 'Y',
-    description: day.port?.description || day.description || '',
+    description: day.description || day.port?.description || '',
     isSeaDay:
-      day.portname?.toLowerCase().includes('sea') ||
-      day.portname?.toLowerCase().includes('cruising'),
+      day.name?.toLowerCase().includes('at sea') ||
+      day.name?.toLowerCase().includes('sea day') ||
+      day.name?.toLowerCase().includes('cruising') ||
+      day.itineraryname?.toLowerCase().includes('at sea') ||
+      day.itineraryname?.toLowerCase().includes('sea day') ||
+      day.itineraryname?.toLowerCase().includes('cruising'),
     port: day.port
       ? {
           id: day.port.portid,
@@ -140,22 +144,141 @@ export function extractCheapestPricingFromRawData(rawData: any) {
 }
 
 export function extractCabinCategoriesFromRawData(rawData: any) {
-  if (!rawData?.cabins || !Array.isArray(rawData.cabins)) {
-    return [];
+  const cabins = [];
+
+  // Extract from actual cabin data if available
+  if (rawData?.cabins && Array.isArray(rawData.cabins)) {
+    rawData.cabins.forEach((cabin: any) => {
+      cabins.push({
+        id: cabin.cabinid,
+        shipId: rawData.shipid,
+        category: cabin.category || cabin.cabintype,
+        name: cabin.name || cabin.cabinname,
+        description: cabin.description,
+        maxOccupancy: cabin.maxoccupancy,
+        imageUrl: cabin.imageurl,
+        imageUrlHd: cabin.imageurlhd,
+        deckPlan: cabin.deckplan,
+        amenities: cabin.amenities,
+      });
+    });
   }
 
-  return rawData.cabins.map((cabin: any) => ({
-    id: cabin.cabinid,
-    shipId: rawData.shipid,
-    category: cabin.category || cabin.cabintype,
-    name: cabin.name || cabin.cabinname,
-    description: cabin.description,
-    maxOccupancy: cabin.maxoccupancy,
-    imageUrl: cabin.imageurl,
-    imageUrlHd: cabin.imageurlhd,
-    deckPlan: cabin.deckplan,
-    amenities: cabin.amenities,
-  }));
+  // Also create cabin categories from pricing sources if available
+  const pricing = rawData?.cheapest?.combined;
+  if (pricing) {
+    // Helper to find cabin image by source
+    const findCabinImageBySource = (source: string, cabinType: string) => {
+      // If source is "prices", use default images based on cabin type
+      if (!source || source === 'prices') {
+        // Default cabin images based on type
+        const defaultImages: Record<string, string> = {
+          interior: '/images/cabins/interior-default.svg',
+          oceanview: '/images/cabins/oceanview-default.svg',
+          balcony: '/images/cabins/balcony-default.svg',
+          suite: '/images/cabins/suite-default.svg',
+        };
+        return defaultImages[cabinType] || null;
+      }
+
+      // Look for cabin with matching id or category
+      const matchingCabin = rawData?.cabins?.find(
+        (cabin: any) =>
+          cabin.cabinid === source ||
+          cabin.category === source ||
+          cabin.cabintype === source ||
+          cabin.name === source ||
+          cabin.cabinname === source
+      );
+
+      // Also check ship cabins if available
+      if (!matchingCabin && rawData?.shipcontent?.cabins) {
+        const shipCabin = rawData.shipcontent.cabins.find(
+          (cabin: any) =>
+            cabin.cabinid === source ||
+            cabin.category === source ||
+            cabin.cabintype === source ||
+            cabin.name === source ||
+            cabin.cabinname === source
+        );
+        if (shipCabin) {
+          return shipCabin.imageurlhd || shipCabin.imageurl;
+        }
+      }
+
+      return matchingCabin ? matchingCabin.imageurlhd || matchingCabin.imageurl : null;
+    };
+
+    // Add interior cabin if price exists
+    if (pricing.inside && pricing.insidesource) {
+      cabins.push({
+        id: `${rawData.codetocruiseid}-interior`,
+        shipId: rawData.shipid,
+        category: 'interior',
+        name: 'Interior Stateroom',
+        description: 'Interior cabin without windows',
+        maxOccupancy: null,
+        imageUrl: findCabinImageBySource(pricing.insidesource, 'interior'),
+        imageUrlHd: findCabinImageBySource(pricing.insidesource, 'interior'),
+        deckPlan: null,
+        amenities: null,
+        source: pricing.insidesource,
+      });
+    }
+
+    // Add oceanview cabin if price exists
+    if (pricing.outside && pricing.outsidesource) {
+      cabins.push({
+        id: `${rawData.codetocruiseid}-oceanview`,
+        shipId: rawData.shipid,
+        category: 'oceanview',
+        name: 'Ocean View Stateroom',
+        description: 'Cabin with ocean view window',
+        maxOccupancy: null,
+        imageUrl: findCabinImageBySource(pricing.outsidesource, 'oceanview'),
+        imageUrlHd: findCabinImageBySource(pricing.outsidesource, 'oceanview'),
+        deckPlan: null,
+        amenities: null,
+        source: pricing.outsidesource,
+      });
+    }
+
+    // Add balcony cabin if price exists
+    if (pricing.balcony && pricing.balconysource) {
+      cabins.push({
+        id: `${rawData.codetocruiseid}-balcony`,
+        shipId: rawData.shipid,
+        category: 'balcony',
+        name: 'Balcony Stateroom',
+        description: 'Cabin with private balcony',
+        maxOccupancy: null,
+        imageUrl: findCabinImageBySource(pricing.balconysource, 'balcony'),
+        imageUrlHd: findCabinImageBySource(pricing.balconysource, 'balcony'),
+        deckPlan: null,
+        amenities: null,
+        source: pricing.balconysource,
+      });
+    }
+
+    // Add suite cabin if price exists
+    if (pricing.suite && pricing.suitesource) {
+      cabins.push({
+        id: `${rawData.codetocruiseid}-suite`,
+        shipId: rawData.shipid,
+        category: 'suite',
+        name: 'Suite',
+        description: 'Luxury suite accommodation',
+        maxOccupancy: null,
+        imageUrl: findCabinImageBySource(pricing.suitesource, 'suite'),
+        imageUrlHd: findCabinImageBySource(pricing.suitesource, 'suite'),
+        deckPlan: null,
+        amenities: null,
+        source: pricing.suitesource,
+      });
+    }
+  }
+
+  return cabins;
 }
 
 export function extractCruiseLineFromRawData(rawData: any) {
