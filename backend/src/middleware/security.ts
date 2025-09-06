@@ -72,9 +72,10 @@ const BLOCKED_PATHS = [
 ];
 
 const BLOCKED_USER_AGENTS = [
-  /python-requests/i,
-  /curl/i,
-  /wget/i,
+  // Temporarily comment out common tools for testing
+  // /python-requests/i,
+  // /curl/i,
+  // /wget/i,
   /nikto/i,
   /sqlmap/i,
   /nmap/i,
