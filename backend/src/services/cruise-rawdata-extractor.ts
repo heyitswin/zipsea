@@ -86,32 +86,32 @@ export function extractItineraryFromRawData(rawData: any) {
     return [];
   }
 
-  return rawData.itinerary.map((day: any, index: number) => ({
-    id: `${rawData.codetocruiseid}-day-${index + 1}`,
-    cruiseId: rawData.codetocruiseid,
-    dayNumber: day.daynumber || day.day || index + 1,
-    portName: day.name || day.itineraryname || day.portname || day.port?.name || 'At Sea',
-    portId: day.portid,
-    arrivalTime: day.arrivetime || day.arrivaltime,
-    departureTime: day.departtime || day.departuretime,
-    overnight: day.overnight === 'Y',
-    description: day.description || day.port?.description || '',
-    isSeaDay:
-      day.name?.toLowerCase().includes('at sea') ||
-      day.name?.toLowerCase().includes('sea day') ||
-      day.name?.toLowerCase().includes('cruising') ||
-      day.itineraryname?.toLowerCase().includes('at sea') ||
-      day.itineraryname?.toLowerCase().includes('sea day') ||
-      day.itineraryname?.toLowerCase().includes('cruising'),
-    port: day.port
-      ? {
-          id: day.port.portid,
-          name: day.port.name,
-          country: day.port.country,
-          description: day.port.description,
-        }
-      : null,
-  }));
+  return rawData.itinerary.map((day: any, index: number) => {
+    // Use 'name' or 'itineraryname' fields, fallback to 'portname' for compatibility
+    const portName = day.name || day.itineraryname || day.portname || day.port?.name || 'At Sea';
+
+    return {
+      id: `${rawData.codetocruiseid || rawData.id}-day-${index + 1}`,
+      cruiseId: rawData.codetocruiseid || rawData.id,
+      dayNumber: day.day || day.daynumber || index + 1,
+      portName: portName,
+      portId: day.portid,
+      arrivalTime: day.arrivetime || day.arrivaltime,
+      departureTime: day.departtime || day.departuretime,
+      overnight: day.overnight === 'Y',
+      description: day.description || day.port?.description || '',
+      isSeaDay:
+        portName.toLowerCase().includes('at sea') || portName.toLowerCase().includes('cruising'),
+      port: day.port
+        ? {
+            id: day.port.portid,
+            name: day.port.name,
+            country: day.port.country,
+            description: day.port.description,
+          }
+        : null,
+    };
+  });
 }
 
 export function extractCheapestPricingFromRawData(rawData: any) {
@@ -144,141 +144,36 @@ export function extractCheapestPricingFromRawData(rawData: any) {
 }
 
 export function extractCabinCategoriesFromRawData(rawData: any) {
-  const cabins = [];
-
-  // Extract from actual cabin data if available
-  if (rawData?.cabins && Array.isArray(rawData.cabins)) {
-    rawData.cabins.forEach((cabin: any) => {
-      cabins.push({
-        id: cabin.cabinid,
-        shipId: rawData.shipid,
-        category: cabin.category || cabin.cabintype,
-        name: cabin.name || cabin.cabinname,
-        description: cabin.description,
-        maxOccupancy: cabin.maxoccupancy,
-        imageUrl: cabin.imageurl,
-        imageUrlHd: cabin.imageurlhd,
-        deckPlan: cabin.deckplan,
-        amenities: cabin.amenities,
-      });
-    });
+  if (!rawData?.cabins) {
+    return [];
   }
 
-  // Also create cabin categories from pricing sources if available
-  const pricing = rawData?.cheapest?.combined;
-  if (pricing) {
-    // Helper to find cabin image by source
-    const findCabinImageBySource = (source: string, cabinType: string) => {
-      // If source is "prices", use default images based on cabin type
-      if (!source || source === 'prices') {
-        // Default cabin images based on type
-        const defaultImages: Record<string, string> = {
-          interior: '/images/cabins/interior-default.svg',
-          oceanview: '/images/cabins/oceanview-default.svg',
-          balcony: '/images/cabins/balcony-default.svg',
-          suite: '/images/cabins/suite-default.svg',
-        };
-        return defaultImages[cabinType] || null;
-      }
+  // Handle both array and object formats
+  let cabinArray: any[] = [];
 
-      // Look for cabin with matching id or category
-      const matchingCabin = rawData?.cabins?.find(
-        (cabin: any) =>
-          cabin.cabinid === source ||
-          cabin.category === source ||
-          cabin.cabintype === source ||
-          cabin.name === source ||
-          cabin.cabinname === source
-      );
-
-      // Also check ship cabins if available
-      if (!matchingCabin && rawData?.shipcontent?.cabins) {
-        const shipCabin = rawData.shipcontent.cabins.find(
-          (cabin: any) =>
-            cabin.cabinid === source ||
-            cabin.category === source ||
-            cabin.cabintype === source ||
-            cabin.name === source ||
-            cabin.cabinname === source
-        );
-        if (shipCabin) {
-          return shipCabin.imageurlhd || shipCabin.imageurl;
-        }
-      }
-
-      return matchingCabin ? matchingCabin.imageurlhd || matchingCabin.imageurl : null;
-    };
-
-    // Add interior cabin if price exists
-    if (pricing.inside && pricing.insidesource) {
-      cabins.push({
-        id: `${rawData.codetocruiseid}-interior`,
-        shipId: rawData.shipid,
-        category: 'interior',
-        name: 'Interior Stateroom',
-        description: 'Interior cabin without windows',
-        maxOccupancy: null,
-        imageUrl: findCabinImageBySource(pricing.insidesource, 'interior'),
-        imageUrlHd: findCabinImageBySource(pricing.insidesource, 'interior'),
-        deckPlan: null,
-        amenities: null,
-        source: pricing.insidesource,
-      });
-    }
-
-    // Add oceanview cabin if price exists
-    if (pricing.outside && pricing.outsidesource) {
-      cabins.push({
-        id: `${rawData.codetocruiseid}-oceanview`,
-        shipId: rawData.shipid,
-        category: 'oceanview',
-        name: 'Ocean View Stateroom',
-        description: 'Cabin with ocean view window',
-        maxOccupancy: null,
-        imageUrl: findCabinImageBySource(pricing.outsidesource, 'oceanview'),
-        imageUrlHd: findCabinImageBySource(pricing.outsidesource, 'oceanview'),
-        deckPlan: null,
-        amenities: null,
-        source: pricing.outsidesource,
-      });
-    }
-
-    // Add balcony cabin if price exists
-    if (pricing.balcony && pricing.balconysource) {
-      cabins.push({
-        id: `${rawData.codetocruiseid}-balcony`,
-        shipId: rawData.shipid,
-        category: 'balcony',
-        name: 'Balcony Stateroom',
-        description: 'Cabin with private balcony',
-        maxOccupancy: null,
-        imageUrl: findCabinImageBySource(pricing.balconysource, 'balcony'),
-        imageUrlHd: findCabinImageBySource(pricing.balconysource, 'balcony'),
-        deckPlan: null,
-        amenities: null,
-        source: pricing.balconysource,
-      });
-    }
-
-    // Add suite cabin if price exists
-    if (pricing.suite && pricing.suitesource) {
-      cabins.push({
-        id: `${rawData.codetocruiseid}-suite`,
-        shipId: rawData.shipid,
-        category: 'suite',
-        name: 'Suite',
-        description: 'Luxury suite accommodation',
-        maxOccupancy: null,
-        imageUrl: findCabinImageBySource(pricing.suitesource, 'suite'),
-        imageUrlHd: findCabinImageBySource(pricing.suitesource, 'suite'),
-        deckPlan: null,
-        amenities: null,
-        source: pricing.suitesource,
-      });
-    }
+  if (Array.isArray(rawData.cabins)) {
+    cabinArray = rawData.cabins;
+  } else if (typeof rawData.cabins === 'object') {
+    // Convert object to array (cabins are stored as object with cabin IDs as keys)
+    cabinArray = Object.values(rawData.cabins);
   }
 
-  return cabins;
+  return cabinArray.map((cabin: any) => ({
+    id: cabin.id || cabin.cabinid,
+    shipId: rawData.shipid || rawData.ship_id,
+    category: cabin.codtype || cabin.category || cabin.cabintype,
+    name: cabin.name || cabin.cabinname,
+    description: cabin.description,
+    maxOccupancy: cabin.maxoccupancy,
+    imageUrl: cabin.imageurl,
+    imageUrl2k: cabin.imageurl2k,
+    imageUrlHd: cabin.imageurlhd,
+    deckPlan: cabin.deckplan,
+    amenities: cabin.amenities,
+    cabinCode: cabin.cabincode,
+    // Add a type field based on codtype for easier categorization
+    type: cabin.codtype || 'unknown',
+  }));
 }
 
 export function extractCruiseLineFromRawData(rawData: any) {
