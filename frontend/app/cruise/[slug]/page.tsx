@@ -384,28 +384,28 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     cruiseData?.cruise ||
     (fallbackData ? normalizeCruiseData(fallbackData) : null);
   const ship = cruiseData?.ship || {
-    name: fallbackData?.shipName || fallbackData?.ship?.name,
-    defaultShipImage: fallbackData?.ship?.defaultShipImage,
-    defaultShipImage2k: fallbackData?.ship?.defaultShipImage2k,
-    defaultShipImageHd: fallbackData?.ship?.defaultShipImageHd,
-    shortDescription: fallbackData?.ship?.shortDescription,
-    tonnage: fallbackData?.ship?.tonnage,
-    starRating: fallbackData?.ship?.starRating,
-    capacity: fallbackData?.ship?.capacity,
+    name: fallbackData?.shipName || fallbackData?.ship?.name || "",
+    defaultShipImage: fallbackData?.ship?.defaultShipImage || null,
+    defaultShipImage2k: fallbackData?.ship?.defaultShipImage2k || null,
+    defaultShipImageHd: fallbackData?.ship?.defaultShipImageHd || null,
+    shortDescription: fallbackData?.ship?.shortDescription || null,
+    tonnage: fallbackData?.ship?.tonnage || null,
+    starRating: fallbackData?.ship?.starRating || null,
+    capacity: fallbackData?.ship?.capacity || null,
     yearBuilt:
-      fallbackData?.ship?.yearBuilt || fallbackData?.ship?.launchedYear,
-    length: fallbackData?.ship?.length,
-    raw: fallbackData?.ship,
+      fallbackData?.ship?.yearBuilt || fallbackData?.ship?.launchedYear || null,
+    length: fallbackData?.ship?.length || null,
+    raw: fallbackData?.ship || null,
   };
   const cruiseLine = cruiseData?.cruiseLine || {
-    name: fallbackData?.cruiseLineName || fallbackData?.cruiseLine?.name,
-    raw: fallbackData?.cruiseLine,
+    name: fallbackData?.cruiseLineName || fallbackData?.cruiseLine?.name || "",
+    raw: fallbackData?.cruiseLine || null,
   };
   const embarkPort = cruiseData?.embarkPort || {
-    name: fallbackData?.departurePort || fallbackData?.embarkPort?.name,
+    name: fallbackData?.departurePort || fallbackData?.embarkPort?.name || "",
   };
   const disembarkPort = cruiseData?.disembarkPort || {
-    name: fallbackData?.arrivalPort || fallbackData?.disembarkPort?.name,
+    name: fallbackData?.arrivalPort || fallbackData?.disembarkPort?.name || "",
   };
   const pricing = cruiseData?.cheapestPricing;
 
