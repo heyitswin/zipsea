@@ -1414,7 +1414,7 @@ function HomeWithParams() {
                           balcony: deal.cheapest_price || deal.cheapest_pricing,
                           suite: deal.cheapest_price || deal.cheapest_pricing,
                         },
-                      } as Cruise;
+                      } as unknown as Cruise;
                       handleCruiseClick(cruiseForNavigation);
                     }}
                   >
