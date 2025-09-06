@@ -33,7 +33,7 @@ export function extractFromRawData(cruise: any) {
       raw.cheapest?.combined?.inside,
       raw.cheapest?.combined?.outside,
       raw.cheapest?.combined?.balcony,
-      raw.cheapest?.combined?.suite
+      raw.cheapest?.combined?.suite,
     ].filter(p => p && p > 0);
 
     if (prices.length > 0) {
@@ -96,14 +96,17 @@ export function extractItineraryFromRawData(rawData: any) {
     departureTime: day.departuretime,
     overnight: day.overnight === 'Y',
     description: day.port?.description || day.description || '',
-    isSeaDay: day.portname?.toLowerCase().includes('sea') ||
-              day.portname?.toLowerCase().includes('cruising'),
-    port: day.port ? {
-      id: day.port.portid,
-      name: day.port.name,
-      country: day.port.country,
-      description: day.port.description,
-    } : null,
+    isSeaDay:
+      day.portname?.toLowerCase().includes('sea') ||
+      day.portname?.toLowerCase().includes('cruising'),
+    port: day.port
+      ? {
+          id: day.port.portid,
+          name: day.port.name,
+          country: day.port.country,
+          description: day.port.description,
+        }
+      : null,
   }));
 }
 
@@ -113,22 +116,26 @@ export function extractCheapestPricingFromRawData(rawData: any) {
   const cheapest = rawData.cheapest;
   const combined = cheapest.combined || {};
 
+  const prices = [combined.inside, combined.outside, combined.balcony, combined.suite].filter(
+    p => p && p > 0
+  );
+
+  const cheapestPrice = prices.length > 0 ? Math.min(...prices) : null;
+
   return {
     cruiseId: rawData.codetocruiseid,
-    cheapestPrice: Math.min(
-      combined.inside || Infinity,
-      combined.outside || Infinity,
-      combined.balcony || Infinity,
-      combined.suite || Infinity
-    ),
+    cheapestPrice: cheapestPrice,
     interiorPrice: combined.inside,
     oceanviewPrice: combined.outside,
     balconyPrice: combined.balcony,
     suitePrice: combined.suite,
     currency: rawData.currency || 'USD',
-    cheapestCabinType: Object.entries(combined)
-      .filter(([_, price]) => price)
-      .sort(([_, a], [__, b]) => (a as number) - (b as number))[0]?.[0] || 'inside',
+    cheapestCabinType:
+      Object.entries(combined)
+        .filter(([_, price]) => price)
+        .sort(([_, a], [__, b]) => (a as number) - (b as number))[0]?.[0] || 'inside',
+    lastUpdated: new Date().toISOString(),
+    raw: rawData.cheapest,
   };
 }
 
