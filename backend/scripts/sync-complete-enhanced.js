@@ -498,7 +498,7 @@ async function processCruise(client, cruiseData) {
       cheapest_price, cheapest_price_raw, cheapest_inside, cheapest_inside_price_code,
       cheapest_outside, cheapest_outside_price_code, cheapest_balcony, cheapest_balcony_price_code,
       cheapest_suite, cheapest_suite_price_code,
-      interior_price, oceanview_price, balcony_price, suite_price,
+      interior_price, oceanview_price, balcony_price, suite_price, currency,
       last_cached, cached_date,
       raw_data, cheapest_pricing, cached_prices, prices_data,
       itinerary_data, cabins_data, ports_data, regions_data,
@@ -544,6 +544,7 @@ async function processCruise(client, cruiseData) {
       oceanview_price = EXCLUDED.oceanview_price,
       balcony_price = EXCLUDED.balcony_price,
       suite_price = EXCLUDED.suite_price,
+      currency = EXCLUDED.currency,
       last_cached = EXCLUDED.last_cached,
       cached_date = EXCLUDED.cached_date,
       raw_data = EXCLUDED.raw_data,
@@ -600,6 +601,7 @@ async function processCruise(client, cruiseData) {
     pricingData.oceanview_price, // oceanview_price
     pricingData.balcony_price, // balcony_price
     pricingData.suite_price, // suite_price
+    'USD', // currency (default)
     safeIntegerConvert(cruiseData.lastcached), // last_cached
     safeStringConvert(cruiseData.cacheddate), // cached_date
     JSON.stringify(cruiseData), // raw_data (COMPLETE JSON PRESERVATION)
