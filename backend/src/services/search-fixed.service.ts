@@ -11,7 +11,7 @@ const sql = postgres(env.DATABASE_URL, {
   max: 10,
   idle_timeout: 20,
   connect_timeout: 10,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
 });
 
 export interface SearchFilters {
@@ -28,7 +28,6 @@ export interface SearchFilters {
 }
 
 class SearchFixedService {
-  
   /**
    * Search cruises with the correct schema
    */
@@ -44,7 +43,7 @@ class SearchFixedService {
         shipId,
         embarkPortId,
         limit = 50,
-        offset = 0
+        offset = 0,
       } = filters;
 
       // Build WHERE conditions
@@ -104,7 +103,7 @@ class SearchFixedService {
       conditions.push(`LIMIT $${paramCount}`);
       params.push(limit);
       paramCount++;
-      
+
       conditions.push(`OFFSET $${paramCount}`);
       params.push(offset);
 
@@ -113,7 +112,7 @@ class SearchFixedService {
 
       // Query cruises with joins to get names
       const query = `
-        SELECT 
+        SELECT
           c.id,
           c.cruise_id,
           c.name,
@@ -166,10 +165,9 @@ class SearchFixedService {
           total,
           limit,
           offset,
-          hasMore: offset + results.length < total
-        }
+          hasMore: offset + results.length < total,
+        },
       };
-
     } catch (error) {
       logger.error('Search failed:', error);
       throw error;
@@ -182,7 +180,7 @@ class SearchFixedService {
   async getCruiseById(id: number) {
     try {
       const cruise = await sql`
-        SELECT 
+        SELECT
           c.*,
           cl.name as cruise_line_name,
           cl.code as cruise_line_code,
@@ -190,7 +188,7 @@ class SearchFixedService {
           s.code as ship_code,
           s.tonnage as ship_tonnage,
           s.total_cabins as ship_total_cabins,
-          s.occupancy as ship_occupancy,
+          s.max_passengers as ship_max_passengers,
           p1.name as embark_port_name,
           p2.name as disembark_port_name
         FROM cruises c
@@ -207,7 +205,7 @@ class SearchFixedService {
 
       // Get itinerary if it exists
       const itinerary = await sql`
-        SELECT 
+        SELECT
           i.*,
           p.name as port_name,
           p.code as port_code,
@@ -220,9 +218,8 @@ class SearchFixedService {
 
       return {
         ...cruise[0],
-        itinerary
+        itinerary,
       };
-
     } catch (error) {
       logger.error('Get cruise by ID failed:', error);
       throw error;
@@ -264,16 +261,15 @@ class SearchFixedService {
           FROM cruises
           WHERE is_active = true
           ORDER BY nights
-        `
+        `,
       ]);
 
       return {
         cruiseLines,
         ships,
         ports,
-        nights: nights.map(n => n.nights)
+        nights: nights.map(n => n.nights),
       };
-
     } catch (error) {
       logger.error('Get filters failed:', error);
       throw error;

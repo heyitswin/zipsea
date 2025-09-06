@@ -15,9 +15,9 @@ export interface ShipInfo {
   shipClass?: string;
   tonnage?: number;
   totalCabins?: number;
-  occupancy?: number;
+  maxPassengers?: number;
   starRating?: number;
-  shortDescription?: string;
+  description?: string;
   highlights?: string;
   defaultShipImage?: string;
   defaultShipImage2k?: string;
@@ -142,9 +142,9 @@ export class ShipService {
         shipClass: ship.shipClass,
         tonnage: ship.tonnage,
         totalCabins: ship.totalCabins,
-        occupancy: ship.occupancy,
+        maxPassengers: ship.maxPassengers,
         starRating: ship.starRating,
-        shortDescription: ship.shortDescription,
+        description: ship.description,
         highlights: ship.highlights,
         defaultShipImage: ship.defaultShipImage,
         defaultShipImage2k: ship.defaultShipImage2k,

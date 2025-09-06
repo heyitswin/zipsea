@@ -3,17 +3,17 @@ import { db } from '../db/connection';
 import { logger } from '../config/logger';
 import { cacheManager } from '../cache/cache-manager';
 import { CacheKeys } from '../cache/cache-keys';
-import { 
-  cruises, 
-  cruiseLines, 
-  ships, 
-  ports, 
-  regions, 
+import {
+  cruises,
+  cruiseLines,
+  ships,
+  ports,
+  regions,
   cheapestPricing,
   pricing,
   itineraries,
   cabinCategories,
-  alternativeSailings
+  alternativeSailings,
 } from '../db/schema';
 import { parseCruiseSlug, generateCruiseSlug, createSlugFromCruiseData } from '../utils/slug.utils';
 
@@ -76,7 +76,7 @@ export interface ComprehensiveCruiseData {
     // Raw database fields
     raw: any;
   };
-  
+
   // Cruise line details
   cruiseLine: {
     id: number;
@@ -88,7 +88,7 @@ export interface ComprehensiveCruiseData {
     // Raw database fields
     raw: any;
   } | null;
-  
+
   // Ship details with ALL fields
   ship: {
     id: number;
@@ -98,9 +98,9 @@ export interface ComprehensiveCruiseData {
     shipClass?: string;
     tonnage?: number;
     totalCabins?: number;
-    occupancy?: number;
+    maxPassengers?: number;
     starRating?: number;
-    shortDescription?: string;
+    description?: string;
     highlights?: string;
     defaultShipImage?: string;
     defaultShipImage2k?: string;
@@ -116,7 +116,7 @@ export interface ComprehensiveCruiseData {
     // Raw database fields
     raw: any;
   } | null;
-  
+
   // Port information
   embarkPort?: {
     id: number;
@@ -132,7 +132,7 @@ export interface ComprehensiveCruiseData {
     // Raw database fields
     raw: any;
   } | null;
-  
+
   disembarkPort?: {
     id: number;
     name: string;
@@ -147,7 +147,7 @@ export interface ComprehensiveCruiseData {
     // Raw database fields
     raw: any;
   } | null;
-  
+
   // Related data
   regions: Array<{
     id: number;
@@ -156,7 +156,7 @@ export interface ComprehensiveCruiseData {
     description?: string;
     raw: any;
   }>;
-  
+
   ports: Array<{
     id: number;
     name: string;
@@ -170,7 +170,7 @@ export interface ComprehensiveCruiseData {
     description?: string;
     raw: any;
   }>;
-  
+
   // Comprehensive pricing data
   pricing: {
     options: Array<{
@@ -205,12 +205,12 @@ export interface ComprehensiveCruiseData {
     summary: {
       totalOptions: number;
       availableOptions: number;
-      priceRange: { min?: number; max?: number; };
+      priceRange: { min?: number; max?: number };
       cabinTypes: string[];
       rateCodes: string[];
     };
   };
-  
+
   // Cheapest pricing
   cheapestPricing: {
     cruiseId: number;
@@ -225,7 +225,7 @@ export interface ComprehensiveCruiseData {
     // All raw pricing fields
     raw: any;
   } | null;
-  
+
   // Itinerary with all details
   itinerary: Array<{
     id: string;
@@ -244,7 +244,7 @@ export interface ComprehensiveCruiseData {
     // Raw database fields
     raw: any;
   }>;
-  
+
   // Cabin categories
   cabinCategories: Array<{
     shipId: number;
@@ -271,7 +271,7 @@ export interface ComprehensiveCruiseData {
     // Raw database fields
     raw: any;
   }>;
-  
+
   // Alternative sailings
   alternativeSailings: Array<{
     id: string;
@@ -283,7 +283,7 @@ export interface ComprehensiveCruiseData {
     // Raw database fields
     raw: any;
   }>;
-  
+
   // SEO and URL data
   seoData: {
     slug: string;
@@ -295,7 +295,7 @@ export interface ComprehensiveCruiseData {
       url?: string;
     }>;
   };
-  
+
   // Metadata about the request
   meta: {
     dataFetchedAt: string;
@@ -491,12 +491,11 @@ export interface AlternativeSailing {
 }
 
 export class CruiseService {
-
   /**
    * Get comprehensive cruise details by ID
    */
-  async getCruiseDetails(cruiseId: number): Promise<CruiseDetails | null> {
-    const cacheKey = CacheKeys.cruiseDetails(cruiseId.toString());
+  async getCruiseDetails(cruiseId: number | string): Promise<CruiseDetails | null> {
+    const cacheKey = CacheKeys.cruiseDetails(String(cruiseId));
 
     try {
       // Try cache first
@@ -509,7 +508,7 @@ export class CruiseService {
       // Create alias for disembark port
       const disembarkPort = aliasedTable(ports, 'disembark_port');
 
-      // Get main cruise data
+      // Get main cruise data - updated for new schema
       const cruiseResult = await db
         .select({
           cruise: cruises,
@@ -545,7 +544,7 @@ export class CruiseService {
         pricingData,
         cheapestPricingData,
         alternativeSailingsData,
-        cabinCategoriesData
+        cabinCategoriesData,
       ] = await Promise.all([
         this.getCruiseRegions(cruise),
         this.getCruisePorts(cruise),
@@ -553,7 +552,7 @@ export class CruiseService {
         this.getCruisePricing(cruiseId),
         this.getCheapestPricing(cruiseId),
         this.getAlternativeSailings(cruiseId),
-        this.getCabinCategories(cruise.shipId)
+        this.getCabinCategories(cruise.shipId),
       ]);
 
       const cruiseDetails: CruiseDetails = {
@@ -579,7 +578,9 @@ export class CruiseService {
         cabinCategories: cabinCategoriesData,
         currency: cruise.currency || 'USD',
         isActive: cruise.isActive,
-        lastCached: cruise.lastCached?.toISOString(),
+        lastCached: cruise.lastCached
+          ? new Date(Number(cruise.lastCached) * 1000).toISOString()
+          : undefined,
       };
 
       // Cache for 6 hours
@@ -587,7 +588,6 @@ export class CruiseService {
 
       logger.info(`Retrieved cruise details for ${cruiseId}`);
       return cruiseDetails;
-
     } catch (error) {
       logger.error(`Failed to get cruise details for ${cruiseId}:`, error);
       throw error;
@@ -597,7 +597,11 @@ export class CruiseService {
   /**
    * Get cruise pricing with filters
    */
-  async getCruisePricing(cruiseId: number | string, cabinType?: string, rateCode?: string): Promise<CruisePricing> {
+  async getCruisePricing(
+    cruiseId: number | string,
+    cabinType?: string,
+    rateCode?: string
+  ): Promise<CruisePricing> {
     const cacheKey = CacheKeys.pricing(String(cruiseId), cabinType || 'all');
 
     try {
@@ -674,7 +678,6 @@ export class CruiseService {
       await cacheManager.set(cacheKey, result, { ttl: 900 });
 
       return result;
-
     } catch (error) {
       logger.error(`Failed to get pricing for cruise ${cruiseId}:`, error);
       throw error;
@@ -702,55 +705,64 @@ export class CruiseService {
       const data = result[0];
 
       return {
-        overall: data.cheapestPrice ? {
-          price: parseFloat(data.cheapestPrice),
-          cabinType: data.cheapestCabinType,
-          taxes: data.cheapestTaxes ? parseFloat(data.cheapestTaxes) : undefined,
-          ncf: data.cheapestNcf ? parseFloat(data.cheapestNcf) : undefined,
-          gratuity: data.cheapestGratuity ? parseFloat(data.cheapestGratuity) : undefined,
-          fuel: data.cheapestFuel ? parseFloat(data.cheapestFuel) : undefined,
-          nonComm: data.cheapestNonComm ? parseFloat(data.cheapestNonComm) : undefined,
-        } : undefined,
-        interior: data.interiorPrice ? {
-          price: parseFloat(data.interiorPrice),
-          taxes: data.interiorTaxes ? parseFloat(data.interiorTaxes) : undefined,
-          ncf: data.interiorNcf ? parseFloat(data.interiorNcf) : undefined,
-          gratuity: data.interiorGratuity ? parseFloat(data.interiorGratuity) : undefined,
-          fuel: data.interiorFuel ? parseFloat(data.interiorFuel) : undefined,
-          nonComm: data.interiorNonComm ? parseFloat(data.interiorNonComm) : undefined,
-          priceCode: data.interiorPriceCode,
-        } : undefined,
-        oceanview: data.oceanviewPrice ? {
-          price: parseFloat(data.oceanviewPrice),
-          taxes: data.oceanviewTaxes ? parseFloat(data.oceanviewTaxes) : undefined,
-          ncf: data.oceanviewNcf ? parseFloat(data.oceanviewNcf) : undefined,
-          gratuity: data.oceanviewGratuity ? parseFloat(data.oceanviewGratuity) : undefined,
-          fuel: data.oceanviewFuel ? parseFloat(data.oceanviewFuel) : undefined,
-          nonComm: data.oceanviewNonComm ? parseFloat(data.oceanviewNonComm) : undefined,
-          priceCode: data.oceanviewPriceCode,
-        } : undefined,
-        balcony: data.balconyPrice ? {
-          price: parseFloat(data.balconyPrice),
-          taxes: data.balconyTaxes ? parseFloat(data.balconyTaxes) : undefined,
-          ncf: data.balconyNcf ? parseFloat(data.balconyNcf) : undefined,
-          gratuity: data.balconyGratuity ? parseFloat(data.balconyGratuity) : undefined,
-          fuel: data.balconyFuel ? parseFloat(data.balconyFuel) : undefined,
-          nonComm: data.balconyNonComm ? parseFloat(data.balconyNonComm) : undefined,
-          priceCode: data.balconyPriceCode,
-        } : undefined,
-        suite: data.suitePrice ? {
-          price: parseFloat(data.suitePrice),
-          taxes: data.suiteTaxes ? parseFloat(data.suiteTaxes) : undefined,
-          ncf: data.suiteNcf ? parseFloat(data.suiteNcf) : undefined,
-          gratuity: data.suiteGratuity ? parseFloat(data.suiteGratuity) : undefined,
-          fuel: data.suiteFuel ? parseFloat(data.suiteFuel) : undefined,
-          nonComm: data.suiteNonComm ? parseFloat(data.suiteNonComm) : undefined,
-          priceCode: data.suitePriceCode,
-        } : undefined,
+        overall: data.cheapestPrice
+          ? {
+              price: parseFloat(data.cheapestPrice),
+              cabinType: data.cheapestCabinType,
+              taxes: data.cheapestTaxes ? parseFloat(data.cheapestTaxes) : undefined,
+              ncf: data.cheapestNcf ? parseFloat(data.cheapestNcf) : undefined,
+              gratuity: data.cheapestGratuity ? parseFloat(data.cheapestGratuity) : undefined,
+              fuel: data.cheapestFuel ? parseFloat(data.cheapestFuel) : undefined,
+              nonComm: data.cheapestNonComm ? parseFloat(data.cheapestNonComm) : undefined,
+            }
+          : undefined,
+        interior: data.interiorPrice
+          ? {
+              price: parseFloat(data.interiorPrice),
+              taxes: data.interiorTaxes ? parseFloat(data.interiorTaxes) : undefined,
+              ncf: data.interiorNcf ? parseFloat(data.interiorNcf) : undefined,
+              gratuity: data.interiorGratuity ? parseFloat(data.interiorGratuity) : undefined,
+              fuel: data.interiorFuel ? parseFloat(data.interiorFuel) : undefined,
+              nonComm: data.interiorNonComm ? parseFloat(data.interiorNonComm) : undefined,
+              priceCode: data.interiorPriceCode,
+            }
+          : undefined,
+        oceanview: data.oceanviewPrice
+          ? {
+              price: parseFloat(data.oceanviewPrice),
+              taxes: data.oceanviewTaxes ? parseFloat(data.oceanviewTaxes) : undefined,
+              ncf: data.oceanviewNcf ? parseFloat(data.oceanviewNcf) : undefined,
+              gratuity: data.oceanviewGratuity ? parseFloat(data.oceanviewGratuity) : undefined,
+              fuel: data.oceanviewFuel ? parseFloat(data.oceanviewFuel) : undefined,
+              nonComm: data.oceanviewNonComm ? parseFloat(data.oceanviewNonComm) : undefined,
+              priceCode: data.oceanviewPriceCode,
+            }
+          : undefined,
+        balcony: data.balconyPrice
+          ? {
+              price: parseFloat(data.balconyPrice),
+              taxes: data.balconyTaxes ? parseFloat(data.balconyTaxes) : undefined,
+              ncf: data.balconyNcf ? parseFloat(data.balconyNcf) : undefined,
+              gratuity: data.balconyGratuity ? parseFloat(data.balconyGratuity) : undefined,
+              fuel: data.balconyFuel ? parseFloat(data.balconyFuel) : undefined,
+              nonComm: data.balconyNonComm ? parseFloat(data.balconyNonComm) : undefined,
+              priceCode: data.balconyPriceCode,
+            }
+          : undefined,
+        suite: data.suitePrice
+          ? {
+              price: parseFloat(data.suitePrice),
+              taxes: data.suiteTaxes ? parseFloat(data.suiteTaxes) : undefined,
+              ncf: data.suiteNcf ? parseFloat(data.suiteNcf) : undefined,
+              gratuity: data.suiteGratuity ? parseFloat(data.suiteGratuity) : undefined,
+              fuel: data.suiteFuel ? parseFloat(data.suiteFuel) : undefined,
+              nonComm: data.suiteNonComm ? parseFloat(data.suiteNonComm) : undefined,
+              priceCode: data.suitePriceCode,
+            }
+          : undefined,
         currency: data.currency,
         lastUpdated: data.lastUpdated.toISOString(),
       };
-
     } catch (error) {
       logger.error(`Failed to get cheapest pricing for cruise ${cruiseId}:`, error);
       throw error;
@@ -786,7 +798,6 @@ export class CruiseService {
         activities: [], // Not available in current schema
         shoreExcursions: [], // Not available in current schema
       }));
-
     } catch (error) {
       logger.error(`Failed to get itinerary for cruise ${cruiseId}:`, error);
       return []; // Return empty array instead of throwing
@@ -799,7 +810,9 @@ export class CruiseService {
   async getAlternativeSailings(cruiseId: number | string): Promise<AlternativeSailing[]> {
     try {
       // Temporarily return empty array to avoid schema issues
-      logger.warn(`Alternative sailings disabled temporarily for cruise ${cruiseId} - schema mismatch`);
+      logger.warn(
+        `Alternative sailings disabled temporarily for cruise ${cruiseId} - schema mismatch`
+      );
       return [];
 
       /* Original code disabled temporarily due to schema issues
@@ -817,7 +830,6 @@ export class CruiseService {
         createdAt: row.createdAt.toISOString(),
       }));
       */
-
     } catch (error) {
       logger.error(`Failed to get alternative sailings for cruise ${cruiseId}:`, error);
       return []; // Return empty array instead of throwing
@@ -832,10 +844,7 @@ export class CruiseService {
       const results = await db
         .select()
         .from(cabinCategories)
-        .where(and(
-          eq(cabinCategories.shipId, shipId),
-          eq(cabinCategories.isActive, true)
-        ))
+        .where(and(eq(cabinCategories.shipId, shipId), eq(cabinCategories.isActive, true)))
         .orderBy(asc(cabinCategories.name));
 
       return results.map(row => ({
@@ -860,7 +869,6 @@ export class CruiseService {
         amenities: [], // Not in current schema
         deckLocations: [], // Not in current schema
       }));
-
     } catch (error) {
       logger.error(`Failed to get cabin categories for ship ${shipId}:`, error);
       return []; // Return empty array instead of throwing
@@ -872,16 +880,17 @@ export class CruiseService {
    */
   private async getCruiseRegions(cruise: any): Promise<RegionInfo[]> {
     try {
-      const regionIds = Array.isArray(cruise.regionIds) ? 
-        cruise.regionIds : 
-        Array.isArray(cruise.regionIds) ? cruise.regionIds : (cruise.regionIds ? JSON.parse(cruise.regionIds) : []);
+      const regionIds = Array.isArray(cruise.regionIds)
+        ? cruise.regionIds
+        : Array.isArray(cruise.regionIds)
+          ? cruise.regionIds
+          : cruise.regionIds
+            ? JSON.parse(cruise.regionIds)
+            : [];
 
       if (regionIds.length === 0) return [];
 
-      const results = await db
-        .select()
-        .from(regions)
-        .where(inArray(regions.id, regionIds));
+      const results = await db.select().from(regions).where(inArray(regions.id, regionIds));
 
       return results.map(row => ({
         id: row.id,
@@ -889,7 +898,6 @@ export class CruiseService {
         code: row.code,
         description: row.description,
       }));
-
     } catch (error) {
       logger.warn('Failed to get cruise regions:', error);
       return [];
@@ -901,19 +909,19 @@ export class CruiseService {
    */
   private async getCruisePorts(cruise: any): Promise<PortInfo[]> {
     try {
-      const portIds = Array.isArray(cruise.portIds) ? 
-        cruise.portIds : 
-        Array.isArray(cruise.portIds) ? cruise.portIds : (cruise.portIds ? JSON.parse(cruise.portIds) : []);
+      const portIds = Array.isArray(cruise.portIds)
+        ? cruise.portIds
+        : Array.isArray(cruise.portIds)
+          ? cruise.portIds
+          : cruise.portIds
+            ? JSON.parse(cruise.portIds)
+            : [];
 
       if (portIds.length === 0) return [];
 
-      const results = await db
-        .select()
-        .from(ports)
-        .where(inArray(ports.id, portIds));
+      const results = await db.select().from(ports).where(inArray(ports.id, portIds));
 
       return results.map(row => this.transformPortInfo(row));
-
     } catch (error) {
       logger.warn('Failed to get cruise ports:', error);
       return [];
@@ -963,9 +971,9 @@ export class CruiseService {
       shipClass: ship?.shipClass,
       tonnage: ship?.tonnage,
       totalCabins: ship?.totalCabins,
-      passengerCapacity: ship?.occupancy,
+      passengerCapacity: ship?.maxPassengers,
       starRating: ship?.starRating,
-      description: ship?.shortDescription,
+      description: ship?.description,
       highlights: ship?.highlights,
       defaultImageUrl: ship?.defaultShipImage,
       defaultImage2kUrl: ship?.defaultShipImage2k,
@@ -982,7 +990,10 @@ export class CruiseService {
    */
   async checkCruiseAvailability(cruiseId: number): Promise<{
     available: boolean;
-    cabinAvailability: Record<string, { available: boolean; inventory?: number; waitlist: boolean }>;
+    cabinAvailability: Record<
+      string,
+      { available: boolean; inventory?: number; waitlist: boolean }
+    >;
   }> {
     try {
       const pricingResults = await db
@@ -995,7 +1006,10 @@ export class CruiseService {
         .from(pricing)
         .where(eq(pricing.cruiseId, String(cruiseId)));
 
-      const cabinAvailability: Record<string, { available: boolean; inventory?: number; waitlist: boolean }> = {};
+      const cabinAvailability: Record<
+        string,
+        { available: boolean; inventory?: number; waitlist: boolean }
+      > = {};
       let hasAvailability = false;
 
       pricingResults.forEach(row => {
@@ -1014,7 +1028,6 @@ export class CruiseService {
         available: hasAvailability,
         cabinAvailability,
       };
-
     } catch (error) {
       logger.error(`Failed to check availability for cruise ${cruiseId}:`, error);
       throw error;
@@ -1038,9 +1051,8 @@ export class CruiseService {
       // Get comprehensive cruise data
       return this.getComprehensiveCruiseData(cruiseId, {
         validateSlug: true,
-        expectedSlugData: { shipName, departureDate }
+        expectedSlugData: { shipName, departureDate },
       });
-
     } catch (error) {
       logger.error(`Failed to get cruise by slug ${slug}:`, error);
       throw error;
@@ -1051,7 +1063,7 @@ export class CruiseService {
    * Get comprehensive cruise data with ALL database fields
    */
   async getComprehensiveCruiseData(
-    cruiseId: number, 
+    cruiseId: number | string,
     options: {
       validateSlug?: boolean;
       expectedSlugData?: { shipName: string; departureDate: string };
@@ -1103,14 +1115,22 @@ export class CruiseService {
 
       // Validate slug if requested
       if (options.validateSlug && options.expectedSlugData) {
-        const actualShipName = ship?.name?.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-') || '';
+        const actualShipName =
+          ship?.name
+            ?.toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .replace(/\s+/g, '-') || '';
         const expectedShipName = options.expectedSlugData.shipName.toLowerCase();
         const actualSailingDate = cruise.sailingDate;
         const expectedSailingDate = options.expectedSlugData.departureDate;
 
-        if (!actualShipName.includes(expectedShipName.replace(/-/g, '')) && 
-            actualSailingDate !== expectedSailingDate) {
-          logger.warn(`Slug validation failed for cruise ${cruiseId}: expected ship ${expectedShipName} and date ${expectedSailingDate}, got ${actualShipName} and ${actualSailingDate}`);
+        if (
+          !actualShipName.includes(expectedShipName.replace(/-/g, '')) &&
+          actualSailingDate !== expectedSailingDate
+        ) {
+          logger.warn(
+            `Slug validation failed for cruise ${cruiseId}: expected ship ${expectedShipName} and date ${expectedSailingDate}, got ${actualShipName} and ${actualSailingDate}`
+          );
           return null;
         }
       }
@@ -1123,7 +1143,7 @@ export class CruiseService {
         allCabinCategories,
         allAlternativeSailings,
         regionsData,
-        portsData
+        portsData,
       ] = await Promise.all([
         this.getAllPricingData(cruiseId),
         this.getRawCheapestPricing(cruiseId),
@@ -1131,7 +1151,7 @@ export class CruiseService {
         this.getAllCabinCategories(cruise.shipId),
         this.getAllAlternativeSailings(cruiseId),
         this.getAllCruiseRegions(cruise),
-        this.getAllCruisePorts(cruise)
+        this.getAllCruisePorts(cruise),
       ]);
 
       // Generate SEO data
@@ -1161,73 +1181,93 @@ export class CruiseService {
           showCruise: cruise.showCruise,
           flyCruiseInfo: cruise.flyCruiseInfo,
           lastCached: cruise.lastCached,
-          cachedDate: cruise.cachedDate ? (typeof cruise.cachedDate === 'string' ? cruise.cachedDate : cruise.cachedDate.toISOString()) : null,
+          cachedDate: cruise.cachedDate
+            ? typeof cruise.cachedDate === 'string'
+              ? cruise.cachedDate
+              : cruise.cachedDate.toISOString()
+            : null,
           traveltekFilePath: cruise.traveltekFilePath,
           isActive: cruise.isActive,
-          createdAt: cruise.createdAt ? (typeof cruise.createdAt === 'string' ? cruise.createdAt : cruise.createdAt.toISOString()) : null,
-          updatedAt: cruise.updatedAt ? (typeof cruise.updatedAt === 'string' ? cruise.updatedAt : cruise.updatedAt.toISOString()) : null,
-          raw: cruise
+          createdAt: cruise.createdAt
+            ? typeof cruise.createdAt === 'string'
+              ? cruise.createdAt
+              : cruise.createdAt.toISOString()
+            : null,
+          updatedAt: cruise.updatedAt
+            ? typeof cruise.updatedAt === 'string'
+              ? cruise.updatedAt
+              : cruise.updatedAt.toISOString()
+            : null,
+          raw: cruise,
         },
-        cruiseLine: cruiseLine ? {
-          id: cruiseLine.id,
-          name: cruiseLine.name,
-          code: cruiseLine.code,
-          logoUrl: cruiseLine.logoUrl,
-          description: cruiseLine.description,
-          website: cruiseLine.website,
-          raw: cruiseLine
-        } : null,
-        ship: ship ? {
-          id: ship.id,
-          name: ship.name,
-          code: ship.code,
-          cruiseLineId: ship.cruiseLineId,
-          shipClass: ship.shipClass,
-          tonnage: ship.tonnage,
-          totalCabins: ship.totalCabins,
-          occupancy: ship.occupancy,
-          starRating: ship.starRating,
-          shortDescription: ship.shortDescription,
-          highlights: ship.highlights,
-          defaultShipImage: ship.defaultShipImage,
-          defaultShipImage2k: ship.defaultShipImage2k,
-          images: ship.images,
-          amenities: ship.amenities,
-          launchedYear: ship.launchedYear,
-          refurbishedYear: ship.refurbishedYear,
-          decks: ship.decks,
-          content: ship.content,
-          isActive: ship.isActive,
-          createdAt: ship.createdAt.toISOString(),
-          updatedAt: ship.updatedAt.toISOString(),
-          raw: ship
-        } : null,
-        embarkPort: embarkPort ? {
-          id: embarkPort.id,
-          name: embarkPort.name,
-          code: embarkPort.code,
-          country: embarkPort.country,
-          countryCode: embarkPort.countryCode,
-          city: embarkPort.city,
-          latitude: embarkPort.latitude,
-          longitude: embarkPort.longitude,
-          timezone: embarkPort.timezone,
-          description: embarkPort.description,
-          raw: embarkPort
-        } : null,
-        disembarkPort: disembarkPortData ? {
-          id: disembarkPortData.id,
-          name: disembarkPortData.name,
-          code: disembarkPortData.code,
-          country: disembarkPortData.country,
-          countryCode: disembarkPortData.countryCode,
-          city: disembarkPortData.city,
-          latitude: disembarkPortData.latitude,
-          longitude: disembarkPortData.longitude,
-          timezone: disembarkPortData.timezone,
-          description: disembarkPortData.description,
-          raw: disembarkPortData
-        } : null,
+        cruiseLine: cruiseLine
+          ? {
+              id: cruiseLine.id,
+              name: cruiseLine.name,
+              code: cruiseLine.code,
+              logoUrl: cruiseLine.logoUrl,
+              description: cruiseLine.description,
+              website: cruiseLine.website,
+              raw: cruiseLine,
+            }
+          : null,
+        ship: ship
+          ? {
+              id: ship.id,
+              name: ship.name,
+              code: ship.code,
+              cruiseLineId: ship.cruiseLineId,
+              shipClass: ship.shipClass,
+              tonnage: ship.tonnage,
+              totalCabins: ship.totalCabins,
+              maxPassengers: ship.maxPassengers,
+              starRating: ship.starRating,
+              description: ship.description,
+              highlights: ship.highlights,
+              defaultShipImage: ship.defaultShipImage,
+              defaultShipImage2k: ship.defaultShipImage2k,
+              images: ship.images,
+              amenities: ship.amenities,
+              launchedYear: ship.launchedYear,
+              refurbishedYear: ship.refurbishedYear,
+              decks: ship.decks,
+              content: ship.content,
+              isActive: ship.isActive,
+              createdAt: ship.createdAt.toISOString(),
+              updatedAt: ship.updatedAt.toISOString(),
+              raw: ship,
+            }
+          : null,
+        embarkPort: embarkPort
+          ? {
+              id: embarkPort.id,
+              name: embarkPort.name,
+              code: embarkPort.code,
+              country: embarkPort.country,
+              countryCode: embarkPort.countryCode,
+              city: embarkPort.city,
+              latitude: embarkPort.latitude,
+              longitude: embarkPort.longitude,
+              timezone: embarkPort.timezone,
+              description: embarkPort.description,
+              raw: embarkPort,
+            }
+          : null,
+        disembarkPort: disembarkPortData
+          ? {
+              id: disembarkPortData.id,
+              name: disembarkPortData.name,
+              code: disembarkPortData.code,
+              country: disembarkPortData.country,
+              countryCode: disembarkPortData.countryCode,
+              city: disembarkPortData.city,
+              latitude: disembarkPortData.latitude,
+              longitude: disembarkPortData.longitude,
+              timezone: disembarkPortData.timezone,
+              description: disembarkPortData.description,
+              raw: disembarkPortData,
+            }
+          : null,
         regions: regionsData,
         ports: portsData,
         pricing: allPricing,
@@ -1248,19 +1288,20 @@ export class CruiseService {
           },
           cacheStatus: {
             used: false,
-            ttl: 1800 // 30 minutes
-          }
-        }
+            ttl: 1800, // 30 minutes
+          },
+        },
       };
 
       // Cache for 30 minutes
       await cacheManager.set(cacheKey, comprehensiveData, { ttl: 1800 });
 
       const endTime = Date.now();
-      logger.info(`Retrieved comprehensive cruise data for ${cruiseId} in ${endTime - startTime}ms`);
-      
-      return comprehensiveData;
+      logger.info(
+        `Retrieved comprehensive cruise data for ${cruiseId} in ${endTime - startTime}ms`
+      );
 
+      return comprehensiveData;
     } catch (error) {
       logger.error(`Failed to get comprehensive cruise data for ${cruiseId}:`, error);
       throw error;
@@ -1303,7 +1344,7 @@ export class CruiseService {
       priceType: row.priceType,
       priceTimestamp: row.priceTimestamp?.toISOString(),
       currency: row.currency,
-      raw: row
+      raw: row,
     }));
 
     // Calculate summary statistics
@@ -1323,7 +1364,7 @@ export class CruiseService {
         },
         cabinTypes,
         rateCodes,
-      }
+      },
     };
   }
 
@@ -1352,7 +1393,7 @@ export class CruiseService {
       suitePrice: data.suitePrice,
       currency: data.currency,
       lastUpdated: data.lastUpdated.toISOString(),
-      raw: data
+      raw: data,
     };
   }
 
@@ -1385,7 +1426,7 @@ export class CruiseService {
         description: row.itinerary.description,
         activities: undefined,
         shoreExcursions: undefined,
-        raw: row.itinerary
+        raw: row.itinerary,
       }));
     } catch (error) {
       logger.warn(`Failed to get itinerary data for cruise ${cruiseId}:`, error);
@@ -1401,10 +1442,7 @@ export class CruiseService {
       const results = await db
         .select()
         .from(cabinCategories)
-        .where(and(
-          eq(cabinCategories.shipId, shipId),
-          eq(cabinCategories.isActive, true)
-        ))
+        .where(and(eq(cabinCategories.shipId, shipId), eq(cabinCategories.isActive, true)))
         .orderBy(asc(cabinCategories.name));
 
       return results.map(row => ({
@@ -1429,7 +1467,7 @@ export class CruiseService {
         amenities: undefined,
         deckLocations: undefined,
         isActive: row.isActive,
-        raw: row
+        raw: row,
       }));
     } catch (error) {
       logger.warn(`Failed to get cabin categories for ship ${shipId}:`, error);
@@ -1442,7 +1480,9 @@ export class CruiseService {
    */
   private async getAllAlternativeSailings(cruiseId: number | string) {
     // Temporarily return empty array to avoid schema issues
-    logger.warn(`Alternative sailings disabled temporarily for cruise ${cruiseId} - schema mismatch`);
+    logger.warn(
+      `Alternative sailings disabled temporarily for cruise ${cruiseId} - schema mismatch`
+    );
     return [];
 
     /* Original code disabled temporarily due to schema issues
@@ -1470,11 +1510,14 @@ export class CruiseService {
   private async getAllCruiseRegions(cruise: any) {
     try {
       let regionIds: number[] = [];
-      
+
       if (cruise.regionIds) {
         if (typeof cruise.regionIds === 'string') {
           // Handle comma-separated string format
-          regionIds = cruise.regionIds.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+          regionIds = cruise.regionIds
+            .split(',')
+            .map(id => parseInt(id.trim(), 10))
+            .filter(id => !isNaN(id));
         } else if (Array.isArray(cruise.regionIds)) {
           regionIds = cruise.regionIds;
         }
@@ -1482,19 +1525,15 @@ export class CruiseService {
 
       if (regionIds.length === 0) return [];
 
-      const results = await db
-        .select()
-        .from(regions)
-        .where(inArray(regions.id, regionIds));
+      const results = await db.select().from(regions).where(inArray(regions.id, regionIds));
 
       return results.map(row => ({
         id: row.id,
         name: row.name,
         code: row.code,
         description: row.description,
-        raw: row
+        raw: row,
       }));
-
     } catch (error) {
       logger.warn('Failed to get cruise regions:', error);
       return [];
@@ -1507,11 +1546,14 @@ export class CruiseService {
   private async getAllCruisePorts(cruise: any) {
     try {
       let portIds: number[] = [];
-      
+
       if (cruise.portIds) {
         if (typeof cruise.portIds === 'string') {
           // Handle comma-separated string format
-          portIds = cruise.portIds.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+          portIds = cruise.portIds
+            .split(',')
+            .map(id => parseInt(id.trim(), 10))
+            .filter(id => !isNaN(id));
         } else if (Array.isArray(cruise.portIds)) {
           portIds = cruise.portIds;
         }
@@ -1519,10 +1561,7 @@ export class CruiseService {
 
       if (portIds.length === 0) return [];
 
-      const results = await db
-        .select()
-        .from(ports)
-        .where(inArray(ports.id, portIds));
+      const results = await db.select().from(ports).where(inArray(ports.id, portIds));
 
       return results.map(row => ({
         id: row.id,
@@ -1535,9 +1574,8 @@ export class CruiseService {
         longitude: row.longitude,
         timezone: row.timezone,
         description: row.description,
-        raw: row
+        raw: row,
       }));
-
     } catch (error) {
       logger.warn('Failed to get cruise ports:', error);
       return [];
@@ -1551,7 +1589,7 @@ export class CruiseService {
     const slug = createSlugFromCruiseData({
       id: cruise.id,
       shipName: ship?.name || 'Unknown Ship',
-      sailingDate: cruise.sailingDate
+      sailingDate: cruise.sailingDate,
     });
 
     const shipName = ship?.name || 'Unknown Ship';
@@ -1559,7 +1597,7 @@ export class CruiseService {
     const sailingDate = new Date(cruise.sailingDate).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
     });
 
     const metaTitle = `${shipName} Cruise - ${sailingDate} | ${cruiseLineName} | Book Now`;
@@ -1570,24 +1608,30 @@ export class CruiseService {
       alternativeUrls: [
         `/cruise/${slug}`,
         `/cruises/${cruise.id}`,
-        `/ship/${ship?.name?.toLowerCase().replace(/\s+/g, '-')}/cruise/${cruise.id}`
+        `/ship/${ship?.name?.toLowerCase().replace(/\s+/g, '-')}/cruise/${cruise.id}`,
       ],
       metaTitle,
       metaDescription,
       breadcrumbs: [
         { label: 'Home', url: '/' },
         { label: 'Cruises', url: '/cruises' },
-        { label: cruiseLineName, url: `/cruise-lines/${cruiseLine?.name?.toLowerCase().replace(/\s+/g, '-')}` },
+        {
+          label: cruiseLineName,
+          url: `/cruise-lines/${cruiseLine?.name?.toLowerCase().replace(/\s+/g, '-')}`,
+        },
         { label: shipName, url: `/ships/${ship?.name?.toLowerCase().replace(/\s+/g, '-')}` },
-        { label: `${sailingDate} Cruise` }
-      ]
+        { label: `${sailingDate} Cruise` },
+      ],
     };
   }
 
   /**
    * Find cruise by ship and date for single result redirects
    */
-  async findCruiseByShipAndDate(shipName: string, sailingDate: string): Promise<{ id: number; slug: string } | null> {
+  async findCruiseByShipAndDate(
+    shipName: string,
+    sailingDate: string
+  ): Promise<{ id: number; slug: string } | null> {
     try {
       const results = await db
         .select({
@@ -1596,32 +1640,37 @@ export class CruiseService {
         })
         .from(cruises)
         .leftJoin(ships, eq(cruises.shipId, ships.id))
-        .where(
-          and(
-            eq(cruises.sailingDate, sailingDate),
-            eq(cruises.isActive, true)
-          )
-        )
+        .where(and(eq(cruises.sailingDate, sailingDate), eq(cruises.isActive, true)))
         .limit(10); // Get a few results to match ship name
 
       // Find the best matching ship name
-      const normalizedSearchName = shipName.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
-      
+      const normalizedSearchName = shipName
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
       for (const result of results) {
         if (result.ship) {
-          const normalizedShipName = result.ship.name.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
-          
-          if (normalizedShipName.includes(normalizedSearchName) || 
-              normalizedSearchName.includes(normalizedShipName)) {
+          const normalizedShipName = result.ship.name
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+          if (
+            normalizedShipName.includes(normalizedSearchName) ||
+            normalizedSearchName.includes(normalizedShipName)
+          ) {
             const slug = createSlugFromCruiseData({
               id: result.cruise.id,
               shipName: result.ship.name,
-              sailingDate: result.cruise.sailingDate
+              sailingDate: result.cruise.sailingDate,
             });
-            
+
             return {
               id: result.cruise.id,
-              slug
+              slug,
             };
           }
         }

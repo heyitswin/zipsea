@@ -4,7 +4,9 @@ import { cruises } from './cruises';
 // Main pricing table for static pricing data from FTP
 export const pricing = pgTable('pricing', {
   id: uuid('id').primaryKey().defaultRandom(),
-  cruiseId: varchar('cruise_id').references(() => cruises.id).notNull(), // Changed to varchar to match cruises.id type
+  cruiseId: varchar('cruise_id')
+    .references(() => cruises.id)
+    .notNull(), // Changed to varchar to match cruises.id type
   rateCode: varchar('rate_code', { length: 50 }).notNull(), // RATECODE1, BESTFARE, BROCHURE, etc
   cabinCode: varchar('cabin_code', { length: 10 }).notNull(), // IB, OV, BA, S1, etc
   occupancyCode: varchar('occupancy_code', { length: 10 }).notNull(), // 101, 102, 201, etc
@@ -37,9 +39,11 @@ export const pricing = pgTable('pricing', {
 // Denormalized cheapest pricing table for fast search
 export const cheapestPricing = pgTable('cheapest_pricing', {
   id: uuid('id').primaryKey().defaultRandom(),
-  cruiseId: varchar('cruise_id').references(() => cruises.id).unique().notNull(), // Changed to varchar to match cruises.id type
-  cruiseSailingId: uuid('cruise_sailing_id'), // Removed FK constraint since it may not exist in production
-  
+  cruiseId: varchar('cruise_id')
+    .references(() => cruises.id)
+    .unique()
+    .notNull(), // Changed to varchar to match cruises.id type
+
   // Overall cheapest pricing
   cheapestPrice: decimal('cheapest_price', { precision: 10, scale: 2 }), // cheapest.price
   cheapestCabinType: varchar('cheapest_cabin_type', { length: 50 }), // cheapest.cabintype
@@ -48,7 +52,7 @@ export const cheapestPricing = pgTable('cheapest_pricing', {
   cheapestGratuity: decimal('cheapest_gratuity', { precision: 10, scale: 2 }), // cheapest.gratuity
   cheapestFuel: decimal('cheapest_fuel', { precision: 10, scale: 2 }), // cheapest.fuel
   cheapestNonComm: decimal('cheapest_non_comm', { precision: 10, scale: 2 }), // cheapest.noncomm
-  
+
   // Interior pricing
   interiorPrice: decimal('interior_price', { precision: 10, scale: 2 }), // cheapestinside.price
   interiorTaxes: decimal('interior_taxes', { precision: 10, scale: 2 }), // cheapestinside.taxes
@@ -57,7 +61,7 @@ export const cheapestPricing = pgTable('cheapest_pricing', {
   interiorFuel: decimal('interior_fuel', { precision: 10, scale: 2 }), // cheapestinside.fuel
   interiorNonComm: decimal('interior_non_comm', { precision: 10, scale: 2 }), // cheapestinside.noncomm
   interiorPriceCode: varchar('interior_price_code', { length: 50 }), // cheapestinsidepricecode (RATECODE|CABIN|OCC)
-  
+
   // Oceanview pricing
   oceanviewPrice: decimal('oceanview_price', { precision: 10, scale: 2 }), // cheapestoutside.price
   oceanviewTaxes: decimal('oceanview_taxes', { precision: 10, scale: 2 }), // cheapestoutside.taxes
@@ -66,7 +70,7 @@ export const cheapestPricing = pgTable('cheapest_pricing', {
   oceanviewFuel: decimal('oceanview_fuel', { precision: 10, scale: 2 }), // cheapestoutside.fuel
   oceanviewNonComm: decimal('oceanview_non_comm', { precision: 10, scale: 2 }), // cheapestoutside.noncomm
   oceanviewPriceCode: varchar('oceanview_price_code', { length: 50 }), // cheapestoutsidepricecode
-  
+
   // Balcony pricing
   balconyPrice: decimal('balcony_price', { precision: 10, scale: 2 }), // cheapestbalcony.price
   balconyTaxes: decimal('balcony_taxes', { precision: 10, scale: 2 }), // cheapestbalcony.taxes
@@ -75,7 +79,7 @@ export const cheapestPricing = pgTable('cheapest_pricing', {
   balconyFuel: decimal('balcony_fuel', { precision: 10, scale: 2 }), // cheapestbalcony.fuel
   balconyNonComm: decimal('balcony_non_comm', { precision: 10, scale: 2 }), // cheapestbalcony.noncomm
   balconyPriceCode: varchar('balcony_price_code', { length: 50 }), // cheapestbalconypricecode
-  
+
   // Suite pricing
   suitePrice: decimal('suite_price', { precision: 10, scale: 2 }), // cheapestsuite.price
   suiteTaxes: decimal('suite_taxes', { precision: 10, scale: 2 }), // cheapestsuite.taxes
@@ -84,7 +88,7 @@ export const cheapestPricing = pgTable('cheapest_pricing', {
   suiteFuel: decimal('suite_fuel', { precision: 10, scale: 2 }), // cheapestsuite.fuel
   suiteNonComm: decimal('suite_non_comm', { precision: 10, scale: 2 }), // cheapestsuite.noncomm
   suitePriceCode: varchar('suite_price_code', { length: 50 }), // cheapestsuitepricecode
-  
+
   currency: varchar('currency', { length: 3 }).default('USD'), // From cruise record
   lastUpdated: timestamp('last_updated').defaultNow().notNull(),
 });
