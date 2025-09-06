@@ -86,28 +86,32 @@ export function extractItineraryFromRawData(rawData: any) {
     return [];
   }
 
-  return rawData.itinerary.map((day: any, index: number) => ({
-    id: `${rawData.codetocruiseid}-day-${index + 1}`,
-    cruiseId: rawData.codetocruiseid,
-    dayNumber: day.daynumber || index + 1,
-    portName: day.portname || day.port?.name || 'At Sea',
-    portId: day.portid,
-    arrivalTime: day.arrivaltime,
-    departureTime: day.departuretime,
-    overnight: day.overnight === 'Y',
-    description: day.port?.description || day.description || '',
-    isSeaDay:
-      day.portname?.toLowerCase().includes('sea') ||
-      day.portname?.toLowerCase().includes('cruising'),
-    port: day.port
-      ? {
-          id: day.port.portid,
-          name: day.port.name,
-          country: day.port.country,
-          description: day.port.description,
-        }
-      : null,
-  }));
+  return rawData.itinerary.map((day: any, index: number) => {
+    // Use 'name' or 'itineraryname' fields, fallback to 'portname' for compatibility
+    const portName = day.name || day.itineraryname || day.portname || day.port?.name || 'At Sea';
+
+    return {
+      id: `${rawData.codetocruiseid || rawData.id}-day-${index + 1}`,
+      cruiseId: rawData.codetocruiseid || rawData.id,
+      dayNumber: day.day || day.daynumber || index + 1,
+      portName: portName,
+      portId: day.portid,
+      arrivalTime: day.arrivetime || day.arrivaltime,
+      departureTime: day.departtime || day.departuretime,
+      overnight: day.overnight === 'Y',
+      description: day.description || day.port?.description || '',
+      isSeaDay:
+        portName.toLowerCase().includes('at sea') || portName.toLowerCase().includes('cruising'),
+      port: day.port
+        ? {
+            id: day.port.portid,
+            name: day.port.name,
+            country: day.port.country,
+            description: day.port.description,
+          }
+        : null,
+    };
+  });
 }
 
 export function extractCheapestPricingFromRawData(rawData: any) {
@@ -140,21 +144,35 @@ export function extractCheapestPricingFromRawData(rawData: any) {
 }
 
 export function extractCabinCategoriesFromRawData(rawData: any) {
-  if (!rawData?.cabins || !Array.isArray(rawData.cabins)) {
+  if (!rawData?.cabins) {
     return [];
   }
 
-  return rawData.cabins.map((cabin: any) => ({
-    id: cabin.cabinid,
-    shipId: rawData.shipid,
-    category: cabin.category || cabin.cabintype,
+  // Handle both array and object formats
+  let cabinArray: any[] = [];
+
+  if (Array.isArray(rawData.cabins)) {
+    cabinArray = rawData.cabins;
+  } else if (typeof rawData.cabins === 'object') {
+    // Convert object to array (cabins are stored as object with cabin IDs as keys)
+    cabinArray = Object.values(rawData.cabins);
+  }
+
+  return cabinArray.map((cabin: any) => ({
+    id: cabin.id || cabin.cabinid,
+    shipId: rawData.shipid || rawData.ship_id,
+    category: cabin.codtype || cabin.category || cabin.cabintype,
     name: cabin.name || cabin.cabinname,
     description: cabin.description,
     maxOccupancy: cabin.maxoccupancy,
     imageUrl: cabin.imageurl,
+    imageUrl2k: cabin.imageurl2k,
     imageUrlHd: cabin.imageurlhd,
     deckPlan: cabin.deckplan,
     amenities: cabin.amenities,
+    cabinCode: cabin.cabincode,
+    // Add a type field based on codtype for easier categorization
+    type: cabin.codtype || 'unknown',
   }));
 }
 
