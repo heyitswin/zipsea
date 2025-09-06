@@ -4,6 +4,15 @@ import { logger } from '../config/logger';
 import { cacheManager } from '../cache/cache-manager';
 import { CacheKeys } from '../cache/cache-keys';
 import {
+  extractFromRawData,
+  extractShipFromRawData,
+  extractItineraryFromRawData,
+  extractCheapestPricingFromRawData,
+  extractCabinCategoriesFromRawData,
+  extractCruiseLineFromRawData,
+  extractPortsFromRawData,
+} from './cruise-rawdata-extractor';
+import {
   cruises,
   cruiseLines,
   ships,
@@ -1107,11 +1116,22 @@ export class CruiseService {
       }
 
       const cruiseData = cruiseResult[0];
-      const cruise = cruiseData.cruise;
-      const cruiseLine = cruiseData.cruiseLine;
-      const ship = cruiseData.ship;
+      let cruise = cruiseData.cruise;
+      let cruiseLine = cruiseData.cruiseLine;
+      let ship = cruiseData.ship;
       const embarkPort = cruiseData.embarkPort;
       const disembarkPortData = cruiseData.disembarkPort;
+
+      // Extract data from raw_data if fields are missing
+      if (cruise.rawData) {
+        cruise = extractFromRawData(cruise);
+        ship = extractShipFromRawData(ship, cruise.rawData);
+
+        // Extract cruise line if missing
+        if (!cruiseLine) {
+          cruiseLine = extractCruiseLineFromRawData(cruise.rawData);
+        }
+      }
 
       // Validate slug if requested
       if (options.validateSlug && options.expectedSlugData) {
@@ -1136,7 +1156,7 @@ export class CruiseService {
       }
 
       // Get ALL related data in parallel
-      const [
+      let [
         allPricing,
         cheapestPricingData,
         allItinerary,
@@ -1154,6 +1174,22 @@ export class CruiseService {
         this.getAllCruisePorts(cruise),
       ]);
 
+      // If data is missing, extract from raw_data
+      if (cruise.rawData) {
+        if (!cheapestPricingData) {
+          cheapestPricingData = extractCheapestPricingFromRawData(cruise.rawData);
+        }
+        if (!allItinerary || allItinerary.length === 0) {
+          allItinerary = extractItineraryFromRawData(cruise.rawData);
+        }
+        if (!allCabinCategories || allCabinCategories.length === 0) {
+          allCabinCategories = extractCabinCategoriesFromRawData(cruise.rawData);
+        }
+        if (!portsData || portsData.length === 0) {
+          portsData = extractPortsFromRawData(cruise.rawData);
+        }
+      }
+
       // Generate SEO data
       const seoData = this.generateSeoData(cruise, ship, cruiseLine);
 
@@ -1168,6 +1204,11 @@ export class CruiseService {
           sailingDate: cruise.sailingDate,
           startDate: cruise.startDate,
           nights: cruise.nights,
+          interiorPrice: cruise.interiorPrice,
+          oceanviewPrice: cruise.oceanviewPrice,
+          balconyPrice: cruise.balconyPrice,
+          suitePrice: cruise.suitePrice,
+          cheapestPrice: cruise.cheapestPrice,
           sailNights: cruise.sailNights,
           seaDays: cruise.seaDays,
           embarkPortId: cruise.embarkPortId,

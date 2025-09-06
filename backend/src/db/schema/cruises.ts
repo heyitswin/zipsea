@@ -1,4 +1,15 @@
-import { pgTable, integer, varchar, text, timestamp, date, boolean, jsonb, uuid, decimal } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  integer,
+  varchar,
+  text,
+  timestamp,
+  date,
+  boolean,
+  jsonb,
+  uuid,
+  decimal,
+} from 'drizzle-orm/pg-core';
 import { cruiseLines } from './cruise-lines';
 import { ships } from './ships';
 import { ports } from './ports';
@@ -7,8 +18,12 @@ import { ports } from './ports';
 export const cruiseDefinitions = pgTable('cruise_definitions', {
   id: uuid('id').primaryKey().defaultRandom(),
   traveltekCruiseId: integer('traveltek_cruise_id').notNull(), // Original cruiseid from Traveltek
-  cruiseLineId: integer('cruise_line_id').references(() => cruiseLines.id).notNull(),
-  shipId: integer('ship_id').references(() => ships.id).notNull(),
+  cruiseLineId: integer('cruise_line_id')
+    .references(() => cruiseLines.id)
+    .notNull(),
+  shipId: integer('ship_id')
+    .references(() => ships.id)
+    .notNull(),
   name: varchar('name', { length: 255 }).notNull(),
   itineraryCode: varchar('itinerary_code', { length: 50 }),
   voyageCode: varchar('voyage_code', { length: 50 }),
@@ -35,7 +50,9 @@ export const cruiseDefinitions = pgTable('cruise_definitions', {
 // New table for individual sailings (specific sailing dates)
 export const cruiseSailings = pgTable('cruise_sailings', {
   id: uuid('id').primaryKey().defaultRandom(),
-  cruiseDefinitionId: uuid('cruise_definition_id').references(() => cruiseDefinitions.id).notNull(),
+  cruiseDefinitionId: uuid('cruise_definition_id')
+    .references(() => cruiseDefinitions.id)
+    .notNull(),
   codeToCruiseId: integer('code_to_cruise_id').notNull().unique(), // Unique identifier from Traveltek
   sailingDate: date('sailing_date').notNull(), // startdate/saildate
   returnDate: date('return_date'), // Calculated from sailing_date + nights
@@ -51,8 +68,12 @@ export const cruiseSailings = pgTable('cruise_sailings', {
 export const cruises = pgTable('cruises', {
   id: varchar('id').primaryKey(), // VARCHAR to store codetocruiseid from Traveltek
   cruiseId: varchar('cruise_id'), // Original cruiseid from Traveltek (can duplicate)
-  cruiseLineId: integer('cruise_line_id').references(() => cruiseLines.id).notNull(),
-  shipId: integer('ship_id').references(() => ships.id).notNull(),
+  cruiseLineId: integer('cruise_line_id')
+    .references(() => cruiseLines.id)
+    .notNull(),
+  shipId: integer('ship_id')
+    .references(() => ships.id)
+    .notNull(),
   name: varchar('name', { length: 500 }),
   voyageCode: varchar('voyage_code', { length: 50 }),
   itineraryCode: varchar('itinerary_code', { length: 50 }),
@@ -77,6 +98,7 @@ export const cruises = pgTable('cruises', {
   balconyPrice: decimal('balcony_price', { precision: 10, scale: 2 }),
   suitePrice: decimal('suite_price', { precision: 10, scale: 2 }),
   cheapestPrice: decimal('cheapest_price', { precision: 10, scale: 2 }),
+  rawData: jsonb('raw_data'), // Complete original JSON from Traveltek
   needsPriceUpdate: boolean('needs_price_update').default(false),
   processingStartedAt: timestamp('processing_started_at'),
   processingCompletedAt: timestamp('processing_completed_at'),
@@ -88,8 +110,12 @@ export const cruises = pgTable('cruises', {
 // Alternative sailings table for cross-references
 export const alternativeSailings = pgTable('alternative_sailings', {
   id: integer('id').primaryKey(),
-  baseCruiseId: integer('base_cruise_id').references(() => cruises.id).notNull(),
-  alternativeCruiseId: integer('alternative_cruise_id').references(() => cruises.id).notNull(),
+  baseCruiseId: integer('base_cruise_id')
+    .references(() => cruises.id)
+    .notNull(),
+  alternativeCruiseId: integer('alternative_cruise_id')
+    .references(() => cruises.id)
+    .notNull(),
   sailingDate: date('sailing_date').notNull(),
   price: decimal('price', { precision: 10, scale: 2 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -103,7 +129,7 @@ export const cruiseDefinitionsIndexes = {
   embarkPort: 'idx_cruise_definitions_embark_port',
   nights: 'idx_cruise_definitions_nights',
   regionIds: 'idx_cruise_definitions_region_ids',
-  isActive: 'idx_cruise_definitions_is_active'
+  isActive: 'idx_cruise_definitions_is_active',
 };
 
 export const cruiseSailingsIndexes = {
@@ -112,7 +138,7 @@ export const cruiseSailingsIndexes = {
   sailingDate: 'idx_cruise_sailings_sailing_date',
   sailingDateRange: 'idx_cruise_sailings_sailing_date_range',
   traveltekFilePath: 'idx_cruise_sailings_traveltek_file_path',
-  isActive: 'idx_cruise_sailings_is_active'
+  isActive: 'idx_cruise_sailings_is_active',
 };
 
 // Type definitions
