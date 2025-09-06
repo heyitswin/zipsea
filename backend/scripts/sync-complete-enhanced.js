@@ -20,12 +20,12 @@ const { Pool } = require('pg');
 const fs = require('fs').promises;
 const path = require('path');
 const { Writable } = require('stream');
-require('dotenv').config({ path: '.env.local' });
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 // Configuration
 const CONFIG = {
-  START_YEAR: 2025,
-  START_MONTH: 9, // Start from September
+  START_YEAR: 2026,
+  START_MONTH: 5, // Start from May 2026
   END_YEAR: 2028,
   END_MONTH: 12,
   BATCH_SIZE: 100, // Process files in batches
