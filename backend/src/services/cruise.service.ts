@@ -68,6 +68,12 @@ export interface ComprehensiveCruiseData {
     seaDays?: number;
     embarkPortId?: number;
     disembarkPortId?: number;
+    // Pricing fields
+    interiorPrice?: any;
+    oceanviewPrice?: any;
+    balconyPrice?: any;
+    suitePrice?: any;
+    cheapestPrice?: any;
     portIds?: string;
     regionIds?: string;
     marketId?: number;
@@ -1206,6 +1212,12 @@ export class CruiseService {
           nights: cruise.nights,
           sailNights: cruise.sailNights,
           seaDays: cruise.seaDays,
+          // Include pricing fields from database
+          interiorPrice: cruise.interiorPrice,
+          oceanviewPrice: cruise.oceanviewPrice,
+          balconyPrice: cruise.balconyPrice,
+          suitePrice: cruise.suitePrice,
+          cheapestPrice: cruise.cheapestPrice,
           embarkPortId: cruise.embarkPortId,
           disembarkPortId: cruise.disembarkPortId,
           portIds: cruise.portIds,
