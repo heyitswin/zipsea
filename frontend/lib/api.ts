@@ -507,7 +507,7 @@ export async function getCruiseDetailsById(
   try {
     // Try to find the cruise in the search results
     const cruises = await searchCruises({ limit: 1000 }); // Get a large batch
-    const cruise = cruises.find((c) => c.id === cruiseId);
+    const cruise = cruises.find((c) => c.id === String(cruiseId));
 
     if (!cruise) {
       return null;
