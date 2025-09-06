@@ -833,8 +833,8 @@ class CruiseController {
             ROW_NUMBER() OVER (ORDER BY c.sailing_date ASC) as rn
           FROM cruises c
           LEFT JOIN ships s ON c.ship_id = s.id
-          LEFT JOIN cruise_lines cl ON s.cruise_line_id = cl.id
-          LEFT JOIN ports ep ON c.embarkation_port_id = ep.id
+          LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
+          LEFT JOIN ports ep ON c.embark_port_id = ep.id
           LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
           WHERE
             c.is_active = true
@@ -899,8 +899,8 @@ class CruiseController {
             s.default_ship_image as ship_image
           FROM cruises c
           LEFT JOIN ships s ON c.ship_id = s.id
-          LEFT JOIN cruise_lines cl ON s.cruise_line_id = cl.id
-          LEFT JOIN ports ep ON c.embarkation_port_id = ep.id
+          LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
+          LEFT JOIN ports ep ON c.embark_port_id = ep.id
           LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
           WHERE ${whereClause}
           ORDER BY c.sailing_date ASC
@@ -966,8 +966,8 @@ class CruiseController {
             ROW_NUMBER() OVER (ORDER BY c.sailing_date ASC) as rn
           FROM cruises c
           LEFT JOIN ships s ON c.ship_id = s.id
-          LEFT JOIN cruise_lines cl ON s.cruise_line_id = cl.id
-          LEFT JOIN ports ep ON c.embarkation_port_id = ep.id
+          LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
+          LEFT JOIN ports ep ON c.embark_port_id = ep.id
           LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
           WHERE
             c.is_active = true
@@ -1023,8 +1023,8 @@ class CruiseController {
             s.default_ship_image as ship_image
           FROM cruises c
           LEFT JOIN ships s ON c.ship_id = s.id
-          LEFT JOIN cruise_lines cl ON s.cruise_line_id = cl.id
-          LEFT JOIN ports ep ON c.embarkation_port_id = ep.id
+          LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
+          LEFT JOIN ports ep ON c.embark_port_id = ep.id
           LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
           WHERE
             c.is_active = true

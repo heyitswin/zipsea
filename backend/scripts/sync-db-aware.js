@@ -63,12 +63,12 @@ async function getProcessedMonthsFromDB() {
     const result = await dbPool.query(
       `
       SELECT DISTINCT
-        EXTRACT(YEAR FROM departure_date)::int as year,
-        EXTRACT(MONTH FROM departure_date)::int as month,
+        EXTRACT(YEAR FROM sailing_date)::int as year,
+        EXTRACT(MONTH FROM sailing_date)::int as month,
         COUNT(*) as cruise_count
       FROM cruises
-      WHERE departure_date IS NOT NULL
-        AND EXTRACT(YEAR FROM departure_date) >= 2025
+      WHERE sailing_date IS NOT NULL
+        AND EXTRACT(YEAR FROM sailing_date) >= 2025
       GROUP BY year, month
       HAVING COUNT(*) >= $1
       ORDER BY year, month
@@ -134,8 +134,8 @@ async function shouldSkipMonth(year, month) {
       `
       SELECT COUNT(*) as count
       FROM cruises
-      WHERE EXTRACT(YEAR FROM departure_date) = $1
-        AND EXTRACT(MONTH FROM departure_date) = $2
+      WHERE EXTRACT(YEAR FROM sailing_date) = $1
+        AND EXTRACT(MONTH FROM sailing_date) = $2
     `,
       [year, month]
     );
@@ -250,7 +250,7 @@ async function processCruiseFile(fileContent, fileName) {
       `
       INSERT INTO cruises (
         cruise_id, cruise_line_id, ship_id, ship_name,
-        departure_date, arrival_date, departure_port, arrival_port,
+        sailing_date, return_date, embarkation_port_id, disembarkation_port_id,
         duration, name, cruise_name,
         interior_price, oceanview_price, balcony_price, suite_price,
         embarkation_time, disembarkation_time,

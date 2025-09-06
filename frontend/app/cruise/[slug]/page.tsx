@@ -630,19 +630,6 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           )}
 
           {/* Additional cruise details can be added here */}
-          {cruise.voyageCode && (
-            <div className="mb-8">
-              <div className="text-[11px] font-bold font-geograph tracking-[0.1em] text-[#2f2f2f] uppercase mb-1">
-                VOYAGE CODE
-              </div>
-              <div
-                className="text-[20px] font-geograph text-dark-blue"
-                style={{ letterSpacing: "-0.02em" }}
-              >
-                {cruise.voyageCode}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -739,7 +726,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           pricing?.interiorPrice || cruise?.interiorPrice,
                         )
                       }
-                      className="w-full md:w-auto bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors"
+                      disabled={
+                        !isPriceAvailable(
+                          pricing?.interiorPrice || cruise?.interiorPrice,
+                        )
+                      }
+                      className={`w-full md:w-auto font-geograph font-medium text-[16px] px-4 py-3 rounded-full transition-colors ${
+                        isPriceAvailable(
+                          pricing?.interiorPrice || cruise?.interiorPrice,
+                        )
+                          ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
+                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      }`}
                     >
                       Get quote
                     </button>
@@ -815,7 +813,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           pricing?.oceanviewPrice || cruise?.oceanviewPrice,
                         )
                       }
-                      className="w-full md:w-auto bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors"
+                      disabled={
+                        !isPriceAvailable(
+                          pricing?.oceanviewPrice || cruise?.oceanviewPrice,
+                        )
+                      }
+                      className={`w-full md:w-auto font-geograph font-medium text-[16px] px-4 py-3 rounded-full transition-colors ${
+                        isPriceAvailable(
+                          pricing?.oceanviewPrice || cruise?.oceanviewPrice,
+                        )
+                          ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
+                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      }`}
                     >
                       Get quote
                     </button>
@@ -891,7 +900,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           pricing?.balconyPrice || cruise?.balconyPrice,
                         )
                       }
-                      className="w-full md:w-auto bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors"
+                      disabled={
+                        !isPriceAvailable(
+                          pricing?.balconyPrice || cruise?.balconyPrice,
+                        )
+                      }
+                      className={`w-full md:w-auto font-geograph font-medium text-[16px] px-4 py-3 rounded-full transition-colors ${
+                        isPriceAvailable(
+                          pricing?.balconyPrice || cruise?.balconyPrice,
+                        )
+                          ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
+                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      }`}
                     >
                       Get quote
                     </button>
@@ -965,7 +985,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           pricing?.suitePrice || cruise?.suitePrice,
                         )
                       }
-                      className="w-full md:w-auto bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors"
+                      disabled={
+                        !isPriceAvailable(
+                          pricing?.suitePrice || cruise?.suitePrice,
+                        )
+                      }
+                      className={`w-full md:w-auto font-geograph font-medium text-[16px] px-4 py-3 rounded-full transition-colors ${
+                        isPriceAvailable(
+                          pricing?.suitePrice || cruise?.suitePrice,
+                        )
+                          ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
+                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      }`}
                     >
                       Get quote
                     </button>
@@ -1063,15 +1094,6 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           }`}
                         >
                           <div className="px-6 md:px-8 pb-4 md:pb-6 pt-2">
-                            {(day.arrivalTime || day.departureTime) && (
-                              <div className="font-geograph text-[14px] md:text-[16px] text-gray-600 mb-3">
-                                {day.arrivalTime &&
-                                  `Arrive: ${day.arrivalTime}`}
-                                {day.arrivalTime && day.departureTime && " | "}
-                                {day.departureTime &&
-                                  `Depart: ${day.departureTime}`}
-                              </div>
-                            )}
                             {day.description && (
                               <p
                                 className="font-geograph text-[14px] md:text-[18px]"
