@@ -389,7 +389,9 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     defaultShipImage: fallbackShip?.defaultShipImage || null,
     defaultShipImage2k: fallbackShip?.defaultShipImage2k || null,
     defaultShipImageHd: fallbackShip?.defaultShipImageHd || null,
-    shortDescription: fallbackShip?.shortDescription || null,
+    description: fallbackShip?.description || null,
+    shortDescription:
+      fallbackShip?.description || fallbackShip?.shortDescription || null,
     tonnage: fallbackShip?.tonnage || null,
     starRating: fallbackShip?.starRating || null,
     capacity: fallbackShip?.capacity || null,
@@ -586,41 +588,43 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       <div className="bg-sand py-16">
         <div className="max-w-7xl mx-auto px-6">
           {/* Description Section */}
-          {ship?.shortDescription && (
+          {(ship?.description || ship?.shortDescription) && (
             <div>
               <p
                 className="font-geograph text-[20px] md:text-[24px] leading-[1.5] text-dark-blue"
                 style={{ letterSpacing: "-0.02em" }}
               >
-                {ship.shortDescription.length > 1200 &&
-                !isDescriptionExpanded ? (
-                  <>
-                    {ship.shortDescription.substring(0, 1200)}...{" "}
-                    <button
-                      onClick={() => setIsDescriptionExpanded(true)}
-                      className="text-pink-500 hover:text-pink-600 underline font-medium transition-colors"
-                      style={{ letterSpacing: "-0.02em" }}
-                    >
-                      Read more
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    {ship.shortDescription}
-                    {ship.shortDescription.length > 1200 && (
-                      <>
-                        {" "}
-                        <button
-                          onClick={() => setIsDescriptionExpanded(false)}
-                          className="text-pink-500 hover:text-pink-600 underline font-medium transition-colors"
-                          style={{ letterSpacing: "-0.02em" }}
-                        >
-                          Read less
-                        </button>
-                      </>
-                    )}
-                  </>
-                )}
+                {(() => {
+                  const desc = ship.description || ship.shortDescription || "";
+                  return desc.length > 1200 && !isDescriptionExpanded ? (
+                    <>
+                      {desc.substring(0, 1200)}...{" "}
+                      <button
+                        onClick={() => setIsDescriptionExpanded(true)}
+                        className="text-pink-500 hover:text-pink-600 underline font-medium transition-colors"
+                        style={{ letterSpacing: "-0.02em" }}
+                      >
+                        Read more
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {desc}
+                      {desc.length > 1200 && (
+                        <>
+                          {" "}
+                          <button
+                            onClick={() => setIsDescriptionExpanded(false)}
+                            className="text-pink-500 hover:text-pink-600 underline font-medium transition-colors"
+                            style={{ letterSpacing: "-0.02em" }}
+                          >
+                            Read less
+                          </button>
+                        </>
+                      )}
+                    </>
+                  );
+                })()}
               </p>
             </div>
           )}
@@ -643,7 +647,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       </div>
 
       {/* Choose Your Room Section */}
-      {pricing && (
+      {(pricing ||
+        cruise?.interiorPrice ||
+        cruise?.oceanviewPrice ||
+        cruise?.balconyPrice ||
+        cruise?.suitePrice) && (
         <div className="bg-sand">
           <div className="max-w-7xl mx-auto px-6">
             <div className="mb-6">
@@ -705,11 +713,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       STARTING FROM
                     </div>
                     <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                      {formatPrice(pricing.interiorPrice)}
+                      {formatPrice(
+                        pricing?.interiorPrice || cruise?.interiorPrice,
+                      )}
                     </div>
-                    {isPriceAvailable(pricing.interiorPrice) && (
+                    {isPriceAvailable(
+                      pricing?.interiorPrice || cruise?.interiorPrice,
+                    ) && (
                       <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                        +${calculateOnboardCredit(pricing.interiorPrice)}{" "}
+                        +$
+                        {calculateOnboardCredit(
+                          pricing?.interiorPrice || cruise?.interiorPrice,
+                        )}{" "}
                         onboard credit
                       </div>
                     )}
@@ -719,7 +734,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   <div className="p-5 md:py-3 md:pr-5 md:pl-0">
                     <button
                       onClick={() =>
-                        handleGetQuote("Interior Cabin", pricing.interiorPrice)
+                        handleGetQuote(
+                          "Interior Cabin",
+                          pricing?.interiorPrice || cruise?.interiorPrice,
+                        )
                       }
                       className="w-full md:w-auto bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors"
                     >
@@ -771,11 +789,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       STARTING FROM
                     </div>
                     <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                      {formatPrice(pricing.oceanviewPrice)}
+                      {formatPrice(
+                        pricing?.oceanviewPrice || cruise?.oceanviewPrice,
+                      )}
                     </div>
-                    {isPriceAvailable(pricing.oceanviewPrice) && (
+                    {isPriceAvailable(
+                      pricing?.oceanviewPrice || cruise?.oceanviewPrice,
+                    ) && (
                       <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                        +${calculateOnboardCredit(pricing.oceanviewPrice)}{" "}
+                        +$
+                        {calculateOnboardCredit(
+                          pricing?.oceanviewPrice || cruise?.oceanviewPrice,
+                        )}{" "}
                         onboard credit
                       </div>
                     )}
@@ -785,7 +810,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   <div className="p-5 md:py-3 md:pr-5 md:pl-0">
                     <button
                       onClick={() =>
-                        handleGetQuote("Outside Cabin", pricing.oceanviewPrice)
+                        handleGetQuote(
+                          "Outside Cabin",
+                          pricing?.oceanviewPrice || cruise?.oceanviewPrice,
+                        )
                       }
                       className="w-full md:w-auto bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors"
                     >
@@ -837,12 +865,19 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       STARTING FROM
                     </div>
                     <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                      {formatPrice(pricing.balconyPrice)}
+                      {formatPrice(
+                        pricing?.balconyPrice || cruise?.balconyPrice,
+                      )}
                     </div>
-                    {isPriceAvailable(pricing.balconyPrice) && (
+                    {isPriceAvailable(
+                      pricing?.balconyPrice || cruise?.balconyPrice,
+                    ) && (
                       <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                        +${calculateOnboardCredit(pricing.balconyPrice)} onboard
-                        credit
+                        +$
+                        {calculateOnboardCredit(
+                          pricing?.balconyPrice || cruise?.balconyPrice,
+                        )}{" "}
+                        onboard credit
                       </div>
                     )}
                   </div>
@@ -851,7 +886,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   <div className="p-5 md:py-3 md:pr-5 md:pl-0">
                     <button
                       onClick={() =>
-                        handleGetQuote("Balcony Cabin", pricing.balconyPrice)
+                        handleGetQuote(
+                          "Balcony Cabin",
+                          pricing?.balconyPrice || cruise?.balconyPrice,
+                        )
                       }
                       className="w-full md:w-auto bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors"
                     >
@@ -903,12 +941,17 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       STARTING FROM
                     </div>
                     <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                      {formatPrice(pricing.suitePrice)}
+                      {formatPrice(pricing?.suitePrice || cruise?.suitePrice)}
                     </div>
-                    {isPriceAvailable(pricing.suitePrice) && (
+                    {isPriceAvailable(
+                      pricing?.suitePrice || cruise?.suitePrice,
+                    ) && (
                       <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                        +${calculateOnboardCredit(pricing.suitePrice)} onboard
-                        credit
+                        +$
+                        {calculateOnboardCredit(
+                          pricing?.suitePrice || cruise?.suitePrice,
+                        )}{" "}
+                        onboard credit
                       </div>
                     )}
                   </div>
@@ -917,7 +960,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   <div className="p-5 md:py-3 md:pr-5 md:pl-0">
                     <button
                       onClick={() =>
-                        handleGetQuote("Suite Cabin", pricing.suitePrice)
+                        handleGetQuote(
+                          "Suite Cabin",
+                          pricing?.suitePrice || cruise?.suitePrice,
+                        )
                       }
                       className="w-full md:w-auto bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-4 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors"
                     >
