@@ -383,7 +383,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const cruise =
     cruiseData?.cruise ||
     (fallbackData ? normalizeCruiseData(fallbackData) : null);
-  const fallbackShip = fallbackData?.ship;
+  const fallbackShip = fallbackData?.ship as any;
   const ship = cruiseData?.ship || {
     name: fallbackData?.shipName || fallbackShip?.name || "",
     defaultShipImage: fallbackShip?.defaultShipImage || null,
@@ -397,16 +397,16 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     length: fallbackShip?.length || null,
     raw: fallbackShip || null,
   };
-  const fallbackCruiseLine = fallbackData?.cruiseLine;
+  const fallbackCruiseLine = fallbackData?.cruiseLine as any;
   const cruiseLine = cruiseData?.cruiseLine || {
     name: fallbackData?.cruiseLineName || fallbackCruiseLine?.name || "",
     raw: fallbackCruiseLine || null,
   };
-  const fallbackEmbarkPort = fallbackData?.embarkPort;
+  const fallbackEmbarkPort = fallbackData?.embarkPort as any;
   const embarkPort = cruiseData?.embarkPort || {
     name: fallbackData?.departurePort || fallbackEmbarkPort?.name || "",
   };
-  const fallbackDisembarkPort = fallbackData?.disembarkPort;
+  const fallbackDisembarkPort = fallbackData?.disembarkPort as any;
   const disembarkPort = cruiseData?.disembarkPort || {
     name: fallbackData?.arrivalPort || fallbackDisembarkPort?.name || "",
   };
