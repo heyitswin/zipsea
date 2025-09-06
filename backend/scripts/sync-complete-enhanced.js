@@ -247,11 +247,27 @@ function getMonthsToProcess() {
   const endYear = CONFIG.END_YEAR;
   const endMonth = CONFIG.END_MONTH;
 
+  // Check if we should skip already processed months
+  let skipUntilYear = 0;
+  let skipUntilMonth = 0;
+
+  if (checkpoint.lastProcessedMonth) {
+    const [lastYear, lastMonth] = checkpoint.lastProcessedMonth.split('/');
+    skipUntilYear = parseInt(lastYear);
+    skipUntilMonth = parseInt(lastMonth);
+    console.log(`📋 Resuming from month after ${checkpoint.lastProcessedMonth}`);
+  }
+
   for (let year = startYear; year <= endYear; year++) {
     const monthStart = year === startYear ? startMonth : 1;
     const monthEnd = year === endYear ? endMonth : 12;
 
     for (let month = monthStart; month <= monthEnd; month++) {
+      // Skip months that have already been processed
+      if (year < skipUntilYear || (year === skipUntilYear && month <= skipUntilMonth)) {
+        continue;
+      }
+
       months.push({ year, month: month.toString().padStart(2, '0') });
     }
   }

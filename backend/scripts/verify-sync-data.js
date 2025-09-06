@@ -1,175 +1,204 @@
 #!/usr/bin/env node
 
 /**
- * Verification script to check that all data from Traveltek JSON is being stored
+ * Verify Enhanced Sync Data
+ * Tests that all data is being captured correctly from Traveltek JSON
  */
 
-require('dotenv').config();
-const { drizzle } = require('drizzle-orm/postgres-js');
-const postgres = require('postgres');
-const { eq, sql: sqlHelper } = require('drizzle-orm');
+const { Pool } = require('pg');
+require('dotenv').config({ path: '.env.local' });
 
-// Import schema
-const schema = require('../dist/db/schema');
-
-console.log('🔍 Traveltek Data Sync Verification');
-console.log('=====================================\n');
-
-// Create database connection
-const dbSql = postgres(process.env.DATABASE_URL, {
-  max: 10,
-  idle_timeout: 20,
-  connect_timeout: 10,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 1,
 });
 
-const db = drizzle(dbSql, { schema });
-
 async function verifyData() {
+  console.log('🔍 VERIFYING ENHANCED SYNC DATA');
+  console.log('================================\n');
+
   try {
-    // Check a specific cruise ID that we know was just processed
-    const cruiseId = 345235; // First cruise from the sync output
-    
-    console.log(`📋 Checking data for Cruise ID: ${cruiseId}\n`);
-    
-    // 1. Check cruise record
-    console.log('1️⃣ CRUISE RECORD:');
-    const cruise = await db.select().from(schema.cruises).where(eq(schema.cruises.id, cruiseId)).limit(1);
-    
-    if (cruise.length > 0) {
-      const c = cruise[0];
-      console.log(`   ✅ Found cruise: ${c.name}`);
-      console.log(`   • Sailing Date: ${c.sailingDate}`);
-      console.log(`   • Nights: ${c.nights}`);
-      console.log(`   • Ship ID: ${c.shipId}`);
-      console.log(`   • Line ID: ${c.cruiseLineId}`);
-      console.log(`   • Market ID: ${c.marketId}`);
-      console.log(`   • Owner ID: ${c.ownerId}`);
-      console.log(`   • Sail Nights: ${c.sailNights}`);
-      console.log(`   • Sea Days: ${c.seaDays}`);
-      console.log(`   • No Fly: ${c.noFly}`);
-      console.log(`   • Depart UK: ${c.departUk}`);
-      console.log(`   • Currency: ${c.currency}`);
-      console.log(`   • Port IDs: ${JSON.stringify(c.portIds)}`);
-      console.log(`   • Region IDs: ${JSON.stringify(c.regionIds)}`);
-      console.log(`   • File Path: ${c.traveltekFilePath}`);
-    } else {
-      console.log('   ❌ Cruise not found');
+    // 1. Check basic counts
+    console.log('📊 Data Counts:');
+    const counts = await pool.query(`
+      SELECT
+        (SELECT COUNT(*) FROM cruises) as cruises,
+        (SELECT COUNT(*) FROM cruise_lines) as lines,
+        (SELECT COUNT(*) FROM ships) as ships,
+        (SELECT COUNT(*) FROM ports) as ports,
+        (SELECT COUNT(*) FROM regions) as regions
+    `);
+    console.table(counts.rows[0]);
+
+    // 2. Sample a cruise to check all fields
+    console.log('\n🚢 Sample Cruise Data:');
+    const cruise = await pool.query(`
+      SELECT
+        id,
+        cruise_id,
+        name,
+        sailing_date,
+        nights,
+        cheapest_price,
+        interior_price,
+        oceanview_price,
+        balcony_price,
+        suite_price,
+        currency,
+        CASE
+          WHEN raw_data IS NOT NULL THEN 'Yes (' || pg_size_pretty(length(raw_data::text)::bigint) || ')'
+          ELSE 'No'
+        END as has_raw_data,
+        CASE
+          WHEN cheapest_pricing IS NOT NULL THEN 'Yes'
+          ELSE 'No'
+        END as has_cheapest_pricing,
+        CASE
+          WHEN itinerary_data IS NOT NULL THEN 'Yes'
+          ELSE 'No'
+        END as has_itinerary,
+        CASE
+          WHEN cabins_data IS NOT NULL THEN 'Yes'
+          ELSE 'No'
+        END as has_cabins
+      FROM cruises
+      LIMIT 1
+    `);
+
+    if (cruise.rows.length > 0) {
+      console.table(cruise.rows[0]);
     }
-    
-    // 2. Check itinerary
-    console.log('\n2️⃣ ITINERARY:');
-    const itinerary = await db.select().from(schema.itineraries).where(eq(schema.itineraries.cruiseId, cruiseId));
-    console.log(`   • Found ${itinerary.length} days`);
-    if (itinerary.length > 0) {
-      itinerary.forEach(day => {
-        console.log(`   Day ${day.dayNumber}: ${day.portName} (Port ID: ${day.portId})`);
-      });
+
+    // 3. Check nested JSON data preservation
+    console.log('\n🔍 Checking Nested JSON Data:');
+    const jsonData = await pool.query(`
+      SELECT
+        id,
+        raw_data->>'codetocruiseid' as json_id,
+        raw_data->>'name' as json_name,
+        raw_data->'shipcontent'->>'name' as json_ship_name,
+        raw_data->'linecontent'->>'name' as json_line_name,
+        raw_data->'cheapest'->'combined'->>'balcony' as json_balcony_price,
+        jsonb_array_length(COALESCE(raw_data->'itinerary', '[]'::jsonb)) as itinerary_days,
+        raw_data->'cabins' IS NOT NULL as has_cabin_data,
+        raw_data->'ports' IS NOT NULL as has_port_data
+      FROM cruises
+      WHERE raw_data IS NOT NULL
+      LIMIT 5
+    `);
+
+    if (jsonData.rows.length > 0) {
+      console.table(jsonData.rows);
     }
-    
-    // 3. Check pricing
-    console.log('\n3️⃣ DETAILED PRICING:');
-    const pricing = await db.select().from(schema.pricing).where(eq(schema.pricing.cruiseId, cruiseId)).limit(5);
-    console.log(`   • Found ${pricing.length} pricing records (showing first 5)`);
-    if (pricing.length > 0) {
-      pricing.forEach(p => {
-        console.log(`   ${p.rateCode}/${p.cabinCode}/${p.occupancyCode}: $${p.basePrice}`);
-        if (p.taxes) console.log(`     - Taxes: $${p.taxes}`);
-        if (p.ncf) console.log(`     - NCF: $${p.ncf}`);
-        if (p.gratuity) console.log(`     - Gratuity: $${p.gratuity}`);
-        if (p.fuel) console.log(`     - Fuel: $${p.fuel}`);
-        if (p.totalPrice) console.log(`     - Total: $${p.totalPrice}`);
-      });
+
+    // 4. Check 3-level nested data
+    console.log('\n🔍 Testing 3-Level Nested Data Access:');
+    const deepNested = await pool.query(`
+      SELECT
+        id,
+        raw_data->'shipcontent'->'shipdecks'->>'38' IS NOT NULL as has_deck_38,
+        raw_data->'cheapest'->'cachedprices'->>'outside' as cached_outside_price,
+        raw_data#>>'{shipcontent,shipimages,0,imageurl}' as first_ship_image,
+        raw_data#>>'{itinerary,0,name}' as first_port_name,
+        jsonb_typeof(raw_data->'cabins') as cabins_type,
+        jsonb_typeof(raw_data->'ports') as ports_type,
+        jsonb_typeof(raw_data->'regions') as regions_type
+      FROM cruises
+      WHERE raw_data IS NOT NULL
+      LIMIT 3
+    `);
+
+    if (deepNested.rows.length > 0) {
+      console.table(deepNested.rows);
     }
-    
-    // Count total pricing records
-    const pricingCount = await db.select({ count: sqlHelper`count(*)::int` })
-      .from(schema.pricing)
-      .where(eq(schema.pricing.cruiseId, cruiseId));
-    console.log(`   • Total pricing records: ${pricingCount[0].count}`);
-    
-    // 4. Check cheapest pricing
-    console.log('\n4️⃣ CHEAPEST PRICING:');
-    const cheapest = await db.select().from(schema.cheapestPricing).where(eq(schema.cheapestPricing.cruiseId, cruiseId)).limit(1);
-    if (cheapest.length > 0) {
-      const cp = cheapest[0];
-      console.log(`   • Interior: ${cp.interiorPrice ? '$' + cp.interiorPrice : 'N/A'}`);
-      console.log(`   • Oceanview: ${cp.oceanviewPrice ? '$' + cp.oceanviewPrice : 'N/A'}`);
-      console.log(`   • Balcony: ${cp.balconyPrice ? '$' + cp.balconyPrice : 'N/A'}`);
-      console.log(`   • Suite: ${cp.suitePrice ? '$' + cp.suitePrice : 'N/A'}`);
+
+    // 5. Check foreign key relationships
+    console.log('\n🔗 Foreign Key Relationships:');
+    const relationships = await pool.query(`
+      SELECT
+        c.id as cruise_id,
+        c.name as cruise_name,
+        cl.name as line_name,
+        s.name as ship_name,
+        p1.name as embark_port,
+        p2.name as disembark_port
+      FROM cruises c
+      LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
+      LEFT JOIN ships s ON c.ship_id = s.id
+      LEFT JOIN ports p1 ON c.embarkation_port_id = p1.id
+      LEFT JOIN ports p2 ON c.disembarkation_port_id = p2.id
+      LIMIT 3
+    `);
+
+    if (relationships.rows.length > 0) {
+      console.table(relationships.rows);
     }
-    
-    // 5. Check ship details
-    console.log('\n5️⃣ SHIP DETAILS:');
-    let ship = [];
-    if (cruise.length > 0) {
-      ship = await db.select().from(schema.ships).where(eq(schema.ships.id, cruise[0].shipId)).limit(1);
-      if (ship.length > 0) {
-        const s = ship[0];
-        console.log(`   ✅ Ship: ${s.name}`);
-        console.log(`   • Class: ${s.shipClass || 'N/A'}`);
-        console.log(`   • Tonnage: ${s.tonnage || 'N/A'}`);
-        console.log(`   • Capacity: ${s.capacity || 'N/A'}`);
-        console.log(`   • Total Cabins: ${s.totalCabins || 'N/A'}`);
-        console.log(`   • Rating: ${s.rating || 'N/A'}`);
-        console.log(`   • Has Description: ${s.description ? 'Yes' : 'No'}`);
-        console.log(`   • Has Images: ${s.images && s.images.length > 0 ? `Yes (${s.images.length})` : 'No'}`);
+
+    // 6. Check data completeness
+    console.log('\n✅ Data Completeness Check:');
+    const completeness = await pool.query(`
+      SELECT
+        COUNT(*) as total_cruises,
+        COUNT(raw_data) as has_raw_data,
+        COUNT(cheapest_pricing) as has_cheapest_pricing,
+        COUNT(itinerary_data) as has_itinerary,
+        COUNT(cabins_data) as has_cabins,
+        COUNT(CASE WHEN interior_price IS NOT NULL OR oceanview_price IS NOT NULL
+                   OR balcony_price IS NOT NULL OR suite_price IS NOT NULL
+              THEN 1 END) as has_any_price
+      FROM cruises
+    `);
+
+    const stats = completeness.rows[0];
+    console.log(`   Total Cruises: ${stats.total_cruises}`);
+    console.log(
+      `   With Raw JSON: ${stats.has_raw_data} (${((stats.has_raw_data / stats.total_cruises) * 100).toFixed(1)}%)`
+    );
+    console.log(
+      `   With Pricing: ${stats.has_any_price} (${((stats.has_any_price / stats.total_cruises) * 100).toFixed(1)}%)`
+    );
+    console.log(
+      `   With Itinerary: ${stats.has_itinerary} (${((stats.has_itinerary / stats.total_cruises) * 100).toFixed(1)}%)`
+    );
+    console.log(
+      `   With Cabins: ${stats.has_cabins} (${((stats.has_cabins / stats.total_cruises) * 100).toFixed(1)}%)`
+    );
+
+    // 7. Sample actual JSON to verify structure
+    console.log('\n📄 Sample Raw JSON Structure:');
+    const rawJson = await pool.query(`
+      SELECT
+        id,
+        raw_data
+      FROM cruises
+      WHERE raw_data IS NOT NULL
+      LIMIT 1
+    `);
+
+    if (rawJson.rows.length > 0) {
+      const data = rawJson.rows[0].raw_data;
+      console.log('   Top-level keys:', Object.keys(data).slice(0, 10).join(', '), '...');
+      if (data.shipcontent) {
+        console.log('   Ship keys:', Object.keys(data.shipcontent).slice(0, 5).join(', '), '...');
+      }
+      if (data.cheapest) {
+        console.log('   Cheapest keys:', Object.keys(data.cheapest).join(', '));
+      }
+      if (data.itinerary && data.itinerary[0]) {
+        console.log(
+          '   Itinerary[0] keys:',
+          Object.keys(data.itinerary[0]).slice(0, 5).join(', '),
+          '...'
+        );
       }
     }
-    
-    // 6. Check price history
-    console.log('\n6️⃣ PRICE HISTORY SNAPSHOTS:');
-    const priceHistory = await db.select().from(schema.priceHistory).where(eq(schema.priceHistory.cruiseId, cruiseId));
-    console.log(`   • Found ${priceHistory.length} snapshots`);
-    
-    // 7. Overall statistics
-    console.log('\n📊 OVERALL DATABASE STATISTICS:');
-    const stats = await Promise.all([
-      db.select({ count: sqlHelper`count(*)::int` }).from(schema.cruises),
-      db.select({ count: sqlHelper`count(*)::int` }).from(schema.cruiseLines),
-      db.select({ count: sqlHelper`count(*)::int` }).from(schema.ships),
-      db.select({ count: sqlHelper`count(*)::int` }).from(schema.ports),
-      db.select({ count: sqlHelper`count(*)::int` }).from(schema.regions),
-      db.select({ count: sqlHelper`count(*)::int` }).from(schema.itineraries),
-      db.select({ count: sqlHelper`count(*)::int` }).from(schema.pricing),
-      db.select({ count: sqlHelper`count(*)::int` }).from(schema.cheapestPricing),
-      db.select({ count: sqlHelper`count(*)::int` }).from(schema.priceHistory),
-    ]);
-    
-    console.log(`   • Total Cruises: ${stats[0][0].count}`);
-    console.log(`   • Total Cruise Lines: ${stats[1][0].count}`);
-    console.log(`   • Total Ships: ${stats[2][0].count}`);
-    console.log(`   • Total Ports: ${stats[3][0].count}`);
-    console.log(`   • Total Regions: ${stats[4][0].count}`);
-    console.log(`   • Total Itinerary Days: ${stats[5][0].count}`);
-    console.log(`   • Total Pricing Records: ${stats[6][0].count}`);
-    console.log(`   • Total Cheapest Pricing: ${stats[7][0].count}`);
-    console.log(`   • Total Price History: ${stats[8][0].count}`);
-    
-    // Check if data is complete
-    console.log('\n✅ DATA COMPLETENESS CHECK:');
-    const checks = {
-      'Cruise has all fields': cruise.length > 0 && cruise[0].traveltekFilePath && cruise[0].currency,
-      'Itinerary exists': itinerary.length > 0,
-      'Pricing exists': pricing.length > 0,
-      'Pricing has fee details': pricing.some(p => p.taxes || p.ncf || p.gratuity),
-      'Cheapest pricing exists': cheapest.length > 0,
-      'Ship details exist': cruise.length > 0 && ship.length > 0,
-    };
-    
-    Object.entries(checks).forEach(([check, passed]) => {
-      console.log(`   ${passed ? '✅' : '❌'} ${check}`);
-    });
-    
-    const allPassed = Object.values(checks).every(v => v);
-    console.log(`\n${allPassed ? '🎉 ALL CHECKS PASSED!' : '⚠️ Some checks failed - review data'}`);
-    
+
+    console.log('\n✅ Verification Complete!');
   } catch (error) {
-    console.error('❌ Verification failed:', error);
+    console.error('❌ Error:', error.message);
   } finally {
-    await dbSql.end();
+    await pool.end();
   }
 }
 
-// Run verification
 verifyData();
