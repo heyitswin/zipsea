@@ -70,18 +70,24 @@ export class EnhancedWebhookService {
     const lockKey = `webhook:line:${lineId}:lock`;
 
     try {
-      // Try to acquire lock with NX (only if not exists) and EX (expire)
-      const acquired = await redisClient.set(lockKey, webhookId, {
-        NX: true,
-        EX: this.lineLockTTL,
-      });
+      // Check if lock already exists
+      const currentHolder = await redisClient.get(lockKey);
 
-      if (acquired) {
+      if (currentHolder) {
+        logger.info(`🔒 Line ${lineId} already locked by webhook ${currentHolder}, deferring`);
+        return false;
+      }
+
+      // Try to acquire lock with TTL
+      await redisClient.set(lockKey, webhookId, this.lineLockTTL);
+
+      // Double-check we got the lock (race condition protection)
+      const verifyHolder = await redisClient.get(lockKey);
+      if (verifyHolder === webhookId) {
         logger.info(`🔒 Acquired line lock for line ${lineId}, webhook ${webhookId}`);
         return true;
       } else {
-        const currentHolder = await redisClient.get(lockKey);
-        logger.info(`🔒 Line ${lineId} already locked by webhook ${currentHolder}, deferring`);
+        logger.info(`🔒 Lost race for line ${lineId} lock to webhook ${verifyHolder}`);
         return false;
       }
     } catch (error) {

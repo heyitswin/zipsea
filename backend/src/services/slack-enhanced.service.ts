@@ -191,7 +191,7 @@ export class EnhancedSlackService {
     const emoji = status === 'started' ? '🚀' : status === 'completed' ? '✅' : '❌';
     const color = status === 'started' ? undefined : status === 'completed' ? 'good' : 'danger';
 
-    const blocks = [
+    const blocks: any[] = [
       {
         type: 'header',
         text: {
@@ -208,14 +208,15 @@ export class EnhancedSlackService {
         text: `*${key}:*\n${value}`,
       }));
 
-      blocks.push({
+      const sectionBlock: any = {
         type: 'section',
         fields: fields.slice(0, 10), // Slack limits to 10 fields
-      });
+      };
+      blocks.push(sectionBlock);
     }
 
     if (status === 'started') {
-      blocks.push({
+      const contextBlock: any = {
         type: 'context',
         elements: [
           {
@@ -223,7 +224,8 @@ export class EnhancedSlackService {
             text: '⏸️ *Note:* Webhooks are automatically paused during sync operations',
           },
         ],
-      });
+      };
+      blocks.push(contextBlock);
     }
 
     await this.sendMessage({ blocks });
