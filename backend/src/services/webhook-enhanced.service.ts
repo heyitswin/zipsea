@@ -449,8 +449,15 @@ export class EnhancedWebhookService {
         `cruise:*:line:${lineId}`, // Clear individual cruise caches for this line
       ];
 
+      // Clear cache entries
       for (const pattern of patterns) {
-        await cacheManager.deletePattern(pattern);
+        if (pattern === 'search:*') {
+          // Clear all search caches
+          await searchCache.invalidateAllSearchCaches();
+        } else {
+          // Use deletePattern for other patterns
+          await cacheManager.deletePattern(pattern);
+        }
       }
 
       logger.info(`Cleared cache for cruise line ${lineId}`);
@@ -525,7 +532,7 @@ export class EnhancedWebhookService {
 
       logger.info(`Cruise pricing update completed: ${successful} successful, ${failed} failed`);
 
-      await slackService.notifyCruisePricingUpdate(data, { successful, failed });
+      await slackService.notifyCruiseLinePricingUpdate(data, { successful, failed });
     } catch (error) {
       logger.error('Failed to process cruise pricing update:', error);
       throw error;
