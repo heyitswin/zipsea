@@ -7,7 +7,7 @@ import { logger } from '../config/logger';
 import { db } from '../db/connection';
 import { sql } from 'drizzle-orm';
 import { ftpConnectionPool } from './ftp-connection-pool.service';
-import { slackService } from './slack.service';
+import { enhancedSlackService } from './slack-enhanced.service';
 import { v4 as uuidv4 } from 'uuid';
 import { Writable } from 'stream';
 
@@ -74,20 +74,26 @@ export class PriceSyncBatchServiceV6 {
       const linesToProcess = linesToSync.slice(0, this.MAX_LINES_PER_RUN);
       result.skippedLines = linesToSync.length - linesToProcess.length;
 
+      // Get total pending count for notification
+      const pendingResult = await db.execute(sql`
+        SELECT COUNT(*) as total
+        FROM cruises
+        WHERE needs_price_update = true
+      `);
+      const totalPending = Number(pendingResult[0]?.total || 0);
+
       logger.info(`📋 Processing ${linesToProcess.length} cruise lines`, {
         cruiseLines: linesToProcess,
         skipped: result.skippedLines,
+        totalPending,
       });
 
       // Send Slack notification
-      await slackService.notifyCustomMessage({
-        title: `🔄 Batch Sync Started`,
-        message: `Processing flagged cruises from ${linesToProcess.length} line${linesToProcess.length > 1 ? 's' : ''}`,
-        details: {
-          cruiseLines: linesToProcess,
-          batchSize: this.MAX_FILES_PER_BATCH,
-          note: 'Processing cruises that were flagged by recent webhooks',
-        },
+      await enhancedSlackService.notifySyncStatus('Batch Price Sync', 'started', {
+        totalLines: linesToProcess.length,
+        totalCruises: totalPending,
+        lineNames: linesToProcess.map(id => `Line ${id}`),
+        syncId: `batch_${Date.now()}`,
       });
 
       // Process each cruise line
@@ -130,18 +136,20 @@ export class PriceSyncBatchServiceV6 {
           ? `Batch complete - ${result.remainingCruises} cruises still pending`
           : 'All flagged cruises processed!';
 
-      await slackService.notifyCustomMessage({
-        title: `${statusIcon} Batch Sync Complete`,
-        message: statusMessage,
-        details: {
-          processed: result.processedCruiseIds.length,
-          updated: result.totalCruisesUpdated,
-          remaining: result.remainingCruises,
+      await enhancedSlackService.notifySyncStatus(
+        'Batch Price Sync',
+        result.totalErrors > 0 ? 'failed' : 'completed',
+        {
+          syncId: `batch_${startTime}`,
+          totalLines: result.linesProcessed,
+          totalCruises: result.processedCruiseIds.length,
+          successfulUpdates: result.totalCruisesUpdated,
+          newCruisesCreated: result.totalCruisesCreated,
           errors: result.totalErrors,
-          duration: `${Math.round(result.duration / 1000)}s`,
-          nextRun: result.remainingCruises > 0 ? 'In 15 minutes' : 'When new webhooks arrive',
-        },
-      });
+          duration: Math.round(result.duration / 1000),
+          remainingCruises: result.remainingCruises,
+        }
+      );
 
       logger.info(`✅ Batch sync V6 completed in ${Math.round(result.duration / 1000)}s`, result);
     } catch (error) {

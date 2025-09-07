@@ -22,16 +22,16 @@ const http = require('http');
 const ENVIRONMENTS = {
   staging: {
     url: 'https://zipsea-backend.onrender.com',
-    name: 'Staging'
+    name: 'Staging',
   },
   production: {
     url: 'https://zipsea-production.onrender.com',
-    name: 'Production'
+    name: 'Production',
   },
   local: {
     url: 'http://localhost:3000',
-    name: 'Local'
-  }
+    name: 'Local',
+  },
 };
 
 // Common cruise line IDs from Traveltek
@@ -44,7 +44,7 @@ const CRUISE_LINES = {
   7: 'Holland America Line',
   25: 'MSC Cruises',
   29: 'Virgin Voyages',
-  19: 'Disney Cruise Line'
+  19: 'Disney Cruise Line',
 };
 
 // Parse command line arguments
@@ -83,8 +83,8 @@ function createWebhookPayload(type, lineId) {
       metadata: {
         webhook_version: '2.0',
         batch_id: `batch_${timestamp}`,
-        total_cruises_affected: Math.floor(Math.random() * 500) + 100
-      }
+        total_cruises_affected: Math.floor(Math.random() * 500) + 100,
+      },
     },
 
     // Specific cruise pricing update
@@ -100,8 +100,8 @@ function createWebhookPayload(type, lineId) {
         interior: { old: 1299, new: 1199 },
         oceanview: { old: 1599, new: 1499 },
         balcony: { old: 1899, new: 1799 },
-        suite: { old: 2999, new: 2899 }
-      }
+        suite: { old: 2999, new: 2899 },
+      },
     },
 
     // Availability change
@@ -114,22 +114,20 @@ function createWebhookPayload(type, lineId) {
       inventory: Math.floor(Math.random() * 20),
       waitlist: false,
       timestamp: timestamp,
-      source: 'traveltek_webhook'
+      source: 'traveltek_webhook',
     },
 
     // Batch update (multiple cruises)
     batch: {
       event: 'batch_pricing_update',
       lineid: lineId,
-      cruiseids: Array.from({ length: 10 }, () =>
-        1234567 + Math.floor(Math.random() * 100000)
-      ),
+      cruiseids: Array.from({ length: 10 }, () => 1234567 + Math.floor(Math.random() * 100000)),
       currency: 'USD',
       timestamp: timestamp,
       source: 'traveltek_webhook',
       batch_size: 10,
-      priority: 'high'
-    }
+      priority: 'high',
+    },
   };
 
   return payloads[type] || payloads.pricing;
@@ -153,8 +151,8 @@ async function sendWebhook(payload, endpoint) {
         'Content-Length': data.length,
         'User-Agent': 'TravelTek-Webhook/2.0 (Test)',
         'X-Webhook-Source': 'test-script',
-        'X-Webhook-Version': '2.0'
-      }
+        'X-Webhook-Version': '2.0',
+      },
     };
 
     // Use http or https based on protocol
@@ -163,10 +161,10 @@ async function sendWebhook(payload, endpoint) {
     console.log(`\n📤 Sending webhook to ${url.href}`);
     console.log(`📦 Payload size: ${data.length} bytes`);
 
-    const req = client.request(options, (res) => {
+    const req = client.request(options, res => {
       let responseData = '';
 
-      res.on('data', (chunk) => {
+      res.on('data', chunk => {
         responseData += chunk;
       });
 
@@ -184,7 +182,7 @@ async function sendWebhook(payload, endpoint) {
       });
     });
 
-    req.on('error', (error) => {
+    req.on('error', error => {
       console.error('❌ Request failed:', error.message);
       reject(error);
     });
@@ -221,10 +219,10 @@ async function runWebhookTest() {
   try {
     // Test different endpoints based on webhook type
     const endpoints = {
-      pricing: '/api/webhooks/traveltek/cruiseline-pricing-updated',
-      cruise_pricing: '/api/webhooks/traveltek/cruise-pricing-updated',
-      availability: '/api/webhooks/traveltek/availability-changed',
-      batch: '/api/webhooks/traveltek/batch-update'
+      pricing: '/api/webhooks/cruiseline-pricing-updated',
+      cruise_pricing: '/api/webhooks/cruise-pricing-updated',
+      availability: '/api/webhooks/availability-changed',
+      batch: '/api/webhooks/batch-update',
     };
 
     const endpoint = endpoints[testType] || endpoints.pricing;
@@ -245,7 +243,9 @@ async function runWebhookTest() {
       if (response.webhookId) {
         console.log(`📌 Webhook ID: ${response.webhookId}`);
         console.log('\n💡 Track processing with:');
-        console.log(`   SELECT * FROM webhook_processing_log WHERE webhook_id = '${response.webhookId}';`);
+        console.log(
+          `   SELECT * FROM webhook_processing_log WHERE webhook_id = '${response.webhookId}';`
+        );
       }
     } else {
       console.log('\n⚠️ Webhook processed but may have issues');
@@ -253,14 +253,15 @@ async function runWebhookTest() {
 
     // Provide monitoring commands
     console.log('\n📊 Monitor Results:');
-    console.log(`1. Check Render logs: ${config.url.replace('https://', 'https://dashboard.render.com/web/')}`);
-    console.log(`2. Check webhook health: curl ${config.url}/api/webhooks/traveltek/health`);
-    console.log(`3. Check processing stats: curl ${config.url}/api/webhooks/traveltek/stats`);
+    console.log(
+      `1. Check Render logs: ${config.url.replace('https://', 'https://dashboard.render.com/web/')}`
+    );
+    console.log(`2. Check webhook health: curl ${config.url}/api/webhooks/health`);
+    console.log(`3. Check processing stats: curl ${config.url}/api/webhooks/stats`);
     console.log(`4. Check database for updates:`);
     console.log(`   - Cruises with needs_price_update = true`);
     console.log(`   - Recent entries in webhook_processing_log`);
     console.log(`   - Price history snapshots created`);
-
   } catch (error) {
     console.error('\n❌ Test failed:', error.message);
     process.exit(1);
@@ -275,7 +276,7 @@ async function runComprehensiveTest() {
     { type: 'pricing', lineId: 22, name: 'Royal Caribbean Pricing' },
     { type: 'cruise_pricing', lineId: 22, name: 'Specific Cruise Pricing' },
     { type: 'availability', lineId: 22, name: 'Availability Change' },
-    { type: 'batch', lineId: 22, name: 'Batch Update' }
+    { type: 'batch', lineId: 22, name: 'Batch Update' },
   ];
 
   for (const test of tests) {
@@ -283,7 +284,7 @@ async function runComprehensiveTest() {
     console.log('-----------------------------------');
 
     const payload = createWebhookPayload(test.type, test.lineId);
-    const endpoint = `/api/webhooks/traveltek/${test.type.replace('_', '-')}-updated`;
+    const endpoint = `/api/webhooks/${test.type.replace('_', '-')}-updated`;
 
     try {
       await sendWebhook(payload, endpoint);
