@@ -12,6 +12,15 @@ import { getDatabaseLineId } from '../config/cruise-line-mapping';
 import redisClient from '../cache/redis';
 import { priceHistoryService } from './price-history.service';
 
+console.log('🚨🚨🚨 [MODULE INIT] EnhancedWebhookService loading...');
+console.log('🚨🚨🚨 [MODULE INIT] redisClient type:', typeof redisClient);
+console.log('🚨🚨🚨 [MODULE INIT] redisClient exists:', !!redisClient);
+if (redisClient && typeof redisClient.get === 'function') {
+  console.log('🚨🚨🚨 [MODULE INIT] redisClient.get is a function');
+} else {
+  console.error('🚨🚨🚨 [MODULE INIT] redisClient.get is NOT a function or redisClient is null!');
+}
+
 export interface WebhookPricingData {
   cruiseId?: number;
   cruiseIds?: number[];
@@ -68,32 +77,45 @@ export class EnhancedWebhookService {
    * Acquire line-level lock for webhook processing
    */
   private async acquireLineLock(lineId: number, webhookId: string): Promise<boolean> {
+    console.log('🚨🚨🚨 [LOCK] acquireLineLock called for line:', lineId, 'webhook:', webhookId);
     const lockKey = `webhook:line:${lineId}:lock`;
+    console.log('🚨🚨🚨 [LOCK] Lock key:', lockKey);
 
     try {
+      console.log('🚨🚨🚨 [LOCK] Checking if lock already exists...');
       // Check if lock already exists
       const currentHolder = await redisClient.get(lockKey);
+      console.log('🚨🚨🚨 [LOCK] Current lock holder:', currentHolder);
 
       if (currentHolder) {
         logger.info(`🔒 Line ${lineId} already locked by webhook ${currentHolder}, deferring`);
         return false;
       }
 
+      console.log('🚨🚨🚨 [LOCK] No existing lock, attempting to acquire...');
       // Try to acquire lock with TTL
       await redisClient.set(lockKey, webhookId, this.lineLockTTL);
+      console.log('🚨🚨🚨 [LOCK] Lock set in Redis');
 
       // Double-check we got the lock (race condition protection)
+      console.log('🚨🚨🚨 [LOCK] Verifying lock acquisition...');
       const verifyHolder = await redisClient.get(lockKey);
+      console.log('🚨🚨🚨 [LOCK] Verification result:', verifyHolder);
+
       if (verifyHolder === webhookId) {
+        console.log('🚨🚨🚨 [LOCK] Lock successfully acquired!');
         logger.info(`🔒 Acquired line lock for line ${lineId}, webhook ${webhookId}`);
         return true;
       } else {
+        console.log('🚨🚨🚨 [LOCK] Lost race condition to:', verifyHolder);
         logger.info(`🔒 Lost race for line ${lineId} lock to webhook ${verifyHolder}`);
         return false;
       }
     } catch (error) {
+      console.error('🚨🚨🚨 [LOCK] ERROR in acquireLineLock:', error);
       logger.error('Failed to acquire line lock:', error);
       // On error, proceed without lock (fail-open)
+      console.log('🚨🚨🚨 [LOCK] Returning true due to error (fail-open)');
       return true;
     }
   }
@@ -157,13 +179,24 @@ export class EnhancedWebhookService {
       console.log('🚨🚨🚨 [ENHANCED SERVICE] Database line ID:', databaseLineId);
 
       // 3. Acquire line-level lock to prevent concurrent processing
-      const lockAcquired = await this.acquireLineLock(databaseLineId, webhookId);
+      console.log('🚨🚨🚨 [ENHANCED SERVICE] About to acquire lock for line:', databaseLineId);
+      let lockAcquired = false;
+      try {
+        lockAcquired = await this.acquireLineLock(databaseLineId, webhookId);
+        console.log('🚨🚨🚨 [ENHANCED SERVICE] Lock acquisition result:', lockAcquired);
+      } catch (lockError) {
+        console.error('🚨🚨🚨 [ENHANCED SERVICE] ERROR acquiring lock:', lockError);
+        throw lockError;
+      }
+
       if (!lockAcquired) {
+        console.log('🚨🚨🚨 [ENHANCED SERVICE] Lock not acquired, deferring webhook');
         // Another webhook is processing this line, defer
         logger.info(`📅 Deferring webhook for line ${databaseLineId} as another is in progress`);
         // Could re-queue with delay here if using a queue system
         return;
       }
+      console.log('🚨🚨🚨 [ENHANCED SERVICE] Lock acquired successfully');
 
       try {
         logger.info('🚀 Starting enhanced cruiseline pricing update', {
