@@ -120,11 +120,25 @@ export class EnhancedWebhookService {
    * Process cruiseline pricing updated webhook with all improvements
    */
   async processCruiselinePricingUpdate(data: WebhookPricingData): Promise<void> {
+    console.log('🚨🚨🚨 [ENHANCED SERVICE] processCruiselinePricingUpdate CALLED');
+    console.log('🚨🚨🚨 [ENHANCED SERVICE] data:', JSON.stringify(data));
+
     const webhookId = `webhook_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    console.log('🚨🚨🚨 [ENHANCED SERVICE] webhookId generated:', webhookId);
 
     try {
+      console.log('🚨🚨🚨 [ENHANCED SERVICE] Checking if webhooks are paused...');
       // 1. Check if webhooks are paused during sync
-      if (await this.areWebhooksPaused()) {
+      let paused = false;
+      try {
+        paused = await this.areWebhooksPaused();
+        console.log('🚨🚨🚨 [ENHANCED SERVICE] Webhooks paused check result:', paused);
+      } catch (pauseError) {
+        console.error('🚨🚨🚨 [ENHANCED SERVICE] Error checking webhook pause:', pauseError);
+        throw pauseError;
+      }
+
+      if (paused) {
         logger.info('⏸️ Webhooks are paused during sync operation, skipping processing', {
           lineId: data.lineId,
           eventType: data.eventType,
@@ -133,11 +147,14 @@ export class EnhancedWebhookService {
       }
 
       if (!data.lineId) {
+        console.error('🚨🚨🚨 [ENHANCED SERVICE] No line ID provided!');
         throw new Error('Line ID is required for cruiseline pricing updates');
       }
 
+      console.log('🚨🚨🚨 [ENHANCED SERVICE] Mapping webhook line ID to database line ID...');
       // 2. Map webhook line ID to database line ID
       const databaseLineId = getDatabaseLineId(data.lineId);
+      console.log('🚨🚨🚨 [ENHANCED SERVICE] Database line ID:', databaseLineId);
 
       // 3. Acquire line-level lock to prevent concurrent processing
       const lockAcquired = await this.acquireLineLock(databaseLineId, webhookId);
