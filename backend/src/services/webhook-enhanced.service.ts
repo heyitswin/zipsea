@@ -1,21 +1,15 @@
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { db } from '../db/connection';
 import { logger } from '../config/logger';
-import {
-  cruises,
-  pricing,
-  cheapestPricing,
-  ships,
-  cruiseLines
-} from '../db/schema';
+import { cruises, pricing, cheapestPricing, ships, cruiseLines } from '../db/schema';
 import { traveltekFTPService } from './traveltek-ftp.service';
 import { dataSyncService } from './data-sync.service';
 import { cacheManager, searchCache, cruiseCache } from '../cache/cache-manager';
 import { CacheKeys } from '../cache/cache-keys';
-import { slackService } from './slack.service';
+import { enhancedSlackService as slackService } from './slack-enhanced.service';
 import { bulkFtpDownloader } from './bulk-ftp-downloader.service';
 import { getDatabaseLineId } from '../config/cruise-line-mapping';
-import redis from '../config/redis';
+import redisClient from '../cache/redis';
 import { priceHistoryService } from './price-history.service';
 
 export interface WebhookPricingData {
@@ -77,13 +71,13 @@ export class EnhancedWebhookService {
 
     try {
       // Try to acquire lock with NX (only if not exists) and EX (expire)
-      const acquired = await redis.set(lockKey, webhookId, 'NX', 'EX', this.lineLockTTL);
+      const acquired = await redisClient.setNX(lockKey, webhookId, this.lineLockTTL);
 
-      if (acquired === 'OK') {
+      if (acquired) {
         logger.info(`🔒 Acquired line lock for line ${lineId}, webhook ${webhookId}`);
         return true;
       } else {
-        const currentHolder = await redis.get(lockKey);
+        const currentHolder = await redisClient.get(lockKey);
         logger.info(`🔒 Line ${lineId} already locked by webhook ${currentHolder}, deferring`);
         return false;
       }
@@ -102,9 +96,9 @@ export class EnhancedWebhookService {
 
     try {
       // Only delete if we own the lock
-      const currentHolder = await redis.get(lockKey);
+      const currentHolder = await redisClient.get(lockKey);
       if (currentHolder === webhookId) {
-        await redis.del(lockKey);
+        await redisClient.del(lockKey);
         logger.info(`🔓 Released line lock for line ${lineId}`);
       }
     } catch (error) {
@@ -123,7 +117,7 @@ export class EnhancedWebhookService {
       if (await this.areWebhooksPaused()) {
         logger.info('⏸️ Webhooks are paused during sync operation, skipping processing', {
           lineId: data.lineId,
-          eventType: data.eventType
+          eventType: data.eventType,
         });
         return;
       }
@@ -150,7 +144,7 @@ export class EnhancedWebhookService {
           databaseLineId,
           webhookId,
           eventType: data.eventType,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
 
         // 4. Get ALL future cruises for the line (no date limit)
@@ -159,7 +153,7 @@ export class EnhancedWebhookService {
         logger.info(`🎯 Found ${cruiseInfos.length} future cruises for bulk download`, {
           originalLineId: data.lineId,
           databaseLineId,
-          cruiseCount: cruiseInfos.length
+          cruiseCount: cruiseInfos.length,
         });
 
         if (cruiseInfos.length === 0) {
@@ -168,7 +162,10 @@ export class EnhancedWebhookService {
         }
 
         // 5. Perform bulk FTP download with enhanced processing
-        const downloadResult = await bulkFtpDownloader.downloadLineUpdates(databaseLineId, cruiseInfos);
+        const downloadResult = await bulkFtpDownloader.downloadLineUpdates(
+          databaseLineId,
+          cruiseInfos
+        );
 
         logger.info(`Bulk download completed`, {
           lineId: data.lineId,
@@ -176,17 +173,20 @@ export class EnhancedWebhookService {
           totalFiles: downloadResult.totalFiles,
           successful: downloadResult.successfulDownloads,
           failed: downloadResult.failedDownloads,
-          duration: `${(downloadResult.duration / 1000).toFixed(2)}s`
+          duration: `${(downloadResult.duration / 1000).toFixed(2)}s`,
         });
 
         // 6. Process downloaded data with comprehensive updates
-        const processingResult = await this.processEnhancedCruiseUpdates(databaseLineId, downloadResult);
+        const processingResult = await this.processEnhancedCruiseUpdates(
+          databaseLineId,
+          downloadResult
+        );
 
         logger.info('✅ Enhanced processing completed', {
           created: processingResult.created,
           updated: processingResult.updated,
           actuallyUpdated: processingResult.actuallyUpdated,
-          errors: processingResult.errors.length
+          errors: processingResult.errors.length,
         });
 
         // 7. Clear relevant cache entries
@@ -195,14 +195,12 @@ export class EnhancedWebhookService {
         // 8. Send success notification
         await slackService.notifyCruiseLinePricingUpdate(data, {
           successful: processingResult.actuallyUpdated,
-          failed: processingResult.failed
+          failed: processingResult.failed,
         });
-
       } finally {
         // Always release the lock
         await this.releaseLineLock(databaseLineId, webhookId);
       }
-
     } catch (error) {
       logger.error('Failed to process enhanced cruiseline pricing update:', error);
 
@@ -227,7 +225,7 @@ export class EnhancedWebhookService {
           cruiseCode: cruises.cruiseId,
           shipId: cruises.shipId,
           shipName: sql<string>`COALESCE(ships.name, 'Unknown_Ship')`,
-          sailingDate: cruises.sailingDate
+          sailingDate: cruises.sailingDate,
         })
         .from(cruises)
         .leftJoin(ships, sql`${ships.id} = ${cruises.shipId}`)
@@ -243,7 +241,7 @@ export class EnhancedWebhookService {
         cruiseCode: cruise.cruiseCode,
         shipId: cruise.shipId,
         shipName: cruise.shipName || `Ship_${cruise.id}`,
-        sailingDate: new Date(cruise.sailingDate)
+        sailingDate: new Date(cruise.sailingDate),
       }));
     } catch (error) {
       logger.error(`Failed to get cruise info for line ${lineId}:`, error);
@@ -260,7 +258,7 @@ export class EnhancedWebhookService {
       updated: 0,
       actuallyUpdated: 0,
       failed: 0,
-      errors: [] as string[]
+      errors: [] as string[],
     };
 
     for (const [cruiseId, data] of downloadResult.downloadedData) {
@@ -317,7 +315,7 @@ export class EnhancedWebhookService {
         regionId: data.regionid,
         isActive: true,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       // Insert cruise
@@ -347,7 +345,7 @@ export class EnhancedWebhookService {
           embarkationPortId: data.embarkportid,
           disembarkationPortId: data.disembarkportid,
           regionId: data.regionid,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(cruises.id, cruiseId));
 
@@ -412,7 +410,7 @@ export class EnhancedWebhookService {
                 isAvailable: pricing.available !== false,
                 currency: data.currency || 'USD',
                 createdAt: new Date(),
-                updatedAt: new Date()
+                updatedAt: new Date(),
               });
             }
           }
@@ -434,9 +432,17 @@ export class EnhancedWebhookService {
    */
   private async clearCacheForCruiseLine(lineId: number): Promise<void> {
     try {
-      const pattern = `${CacheKeys.CRUISE_LINE}:${lineId}:*`;
-      await cacheManager.clearPattern(pattern);
-      await searchCache.clear();
+      // Clear all cache entries for this cruise line
+      const patterns = [
+        `${CacheKeys.CRUISE_LINE}:${lineId}:*`,
+        `search:*`, // Clear search cache as cruise data changed
+        `cruise:*:line:${lineId}`, // Clear individual cruise caches for this line
+      ];
+
+      for (const pattern of patterns) {
+        await cacheManager.deletePattern(pattern);
+      }
+
       logger.info(`Cleared cache for cruise line ${lineId}`);
     } catch (error) {
       logger.error(`Failed to clear cache for cruise line ${lineId}:`, error);
@@ -478,10 +484,10 @@ export class EnhancedWebhookService {
       logger.info('Processing cruise pricing update', {
         cruiseId: data.cruiseId,
         cruiseIds: data.cruiseIds?.length,
-        eventType: data.eventType
+        eventType: data.eventType,
       });
 
-      const cruiseIds = data.cruiseId ? [data.cruiseId] : (data.cruiseIds || []);
+      const cruiseIds = data.cruiseId ? [data.cruiseId] : data.cruiseIds || [];
       if (cruiseIds.length === 0) {
         throw new Error('Cruise ID(s) required for pricing updates');
       }
@@ -530,8 +536,12 @@ export class EnhancedWebhookService {
    */
   private async clearCacheForCruise(cruiseId: number): Promise<void> {
     try {
-      const pattern = `${CacheKeys.CRUISE}:${cruiseId}:*`;
-      await cacheManager.clearPattern(pattern);
+      const patterns = [`${CacheKeys.CRUISE}:${cruiseId}:*`, `cruise:${cruiseId}:*`];
+
+      for (const pattern of patterns) {
+        await cacheManager.deletePattern(pattern);
+      }
+
       logger.info(`Cleared cache for cruise ${cruiseId}`);
     } catch (error) {
       logger.error(`Failed to clear cache for cruise ${cruiseId}:`, error);
