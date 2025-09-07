@@ -21,25 +21,42 @@ async function applyWebhookImprovements() {
 
   const client = new Client({
     connectionString: databaseUrl,
-    ssl: databaseUrl.includes('render.com') ? { rejectUnauthorized: false } : false
+    ssl: databaseUrl.includes('render.com') ? { rejectUnauthorized: false } : false,
   });
 
   try {
     await client.connect();
     console.log('✅ Connected to database\n');
 
-    // 1. Create system_flags table
-    console.log('1️⃣ Creating system_flags table...');
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS system_flags (
-        key VARCHAR(100) PRIMARY KEY,
-        value TEXT,
-        description TEXT,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_by VARCHAR(100)
-      )
+    // 1. Check and fix system_flags table
+    console.log('1️⃣ Checking system_flags table...');
+
+    // Check if table exists and has correct structure
+    const columnCheck = await client.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_name = 'system_flags'
+      AND column_name = 'key'
     `);
-    console.log('✅ system_flags table created\n');
+
+    if (columnCheck.rows.length === 0) {
+      // Table doesn't exist or has wrong structure
+      console.log('Table missing or has wrong structure, recreating...');
+      await client.query('DROP TABLE IF EXISTS system_flags CASCADE');
+
+      await client.query(`
+        CREATE TABLE system_flags (
+          key VARCHAR(100) PRIMARY KEY,
+          value TEXT,
+          description TEXT,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_by VARCHAR(100)
+        )
+      `);
+      console.log('✅ system_flags table created with correct structure\n');
+    } else {
+      console.log('✅ system_flags table structure verified\n');
+    }
 
     // 2. Insert default flags
     console.log('2️⃣ Inserting system flags...');
@@ -47,39 +64,44 @@ async function applyWebhookImprovements() {
       {
         key: 'webhooks_paused',
         value: 'false',
-        description: 'Controls whether webhooks are processed. Set to true during large sync operations.'
+        description:
+          'Controls whether webhooks are processed. Set to true during large sync operations.',
       },
       {
         key: 'batch_sync_paused',
         value: 'false',
-        description: 'Controls whether batch sync cron job processes. Set to true during initial FTP sync.'
+        description:
+          'Controls whether batch sync cron job processes. Set to true during initial FTP sync.',
       },
       {
         key: 'sync_in_progress',
         value: 'false',
-        description: 'Indicates if a large sync operation is currently running.'
+        description: 'Indicates if a large sync operation is currently running.',
       },
       {
         key: 'webhook_deduplication_window',
         value: '300',
-        description: 'Seconds to prevent duplicate webhook processing (default 5 minutes)'
+        description: 'Seconds to prevent duplicate webhook processing (default 5 minutes)',
       },
       {
         key: 'max_cruises_per_webhook',
         value: '500',
-        description: 'Maximum cruises to process per webhook batch'
-      }
+        description: 'Maximum cruises to process per webhook batch',
+      },
     ];
 
     for (const flag of flags) {
-      await client.query(`
+      await client.query(
+        `
         INSERT INTO system_flags (key, value, description, updated_by)
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (key) DO UPDATE
         SET value = EXCLUDED.value,
             description = EXCLUDED.description,
             updated_at = CURRENT_TIMESTAMP
-      `, [flag.key, flag.value, flag.description, 'system']);
+      `,
+        [flag.key, flag.value, flag.description, 'system']
+      );
     }
     console.log('✅ System flags configured\n');
 
@@ -92,16 +114,19 @@ async function applyWebhookImprovements() {
       { name: 'last_webhook_at', type: 'TIMESTAMP' },
       { name: 'webhook_source', type: 'VARCHAR(50)' },
       { name: 'last_price_snapshot_at', type: 'TIMESTAMP' },
-      { name: 'price_change_count', type: 'INTEGER DEFAULT 0' }
+      { name: 'price_change_count', type: 'INTEGER DEFAULT 0' },
     ];
 
     for (const column of columnsToAdd) {
-      const checkResult = await client.query(`
+      const checkResult = await client.query(
+        `
         SELECT column_name
         FROM information_schema.columns
         WHERE table_name = 'cruises'
         AND column_name = $1
-      `, [column.name]);
+      `,
+        [column.name]
+      );
 
       if (checkResult.rows.length === 0) {
         await client.query(`
@@ -142,20 +167,24 @@ async function applyWebhookImprovements() {
     const indexes = [
       {
         name: 'idx_cruises_needs_price_update',
-        query: 'CREATE INDEX IF NOT EXISTS idx_cruises_needs_price_update ON cruises(needs_price_update) WHERE needs_price_update = true'
+        query:
+          'CREATE INDEX IF NOT EXISTS idx_cruises_needs_price_update ON cruises(needs_price_update) WHERE needs_price_update = true',
       },
       {
         name: 'idx_cruises_webhook_priority',
-        query: 'CREATE INDEX IF NOT EXISTS idx_cruises_webhook_priority ON cruises(webhook_priority DESC, last_webhook_at ASC)'
+        query:
+          'CREATE INDEX IF NOT EXISTS idx_cruises_webhook_priority ON cruises(webhook_priority DESC, last_webhook_at ASC)',
       },
       {
         name: 'idx_cruises_sailing_date_future',
-        query: 'CREATE INDEX IF NOT EXISTS idx_cruises_sailing_date_future ON cruises(sailing_date) WHERE sailing_date >= CURRENT_DATE'
+        query:
+          'CREATE INDEX IF NOT EXISTS idx_cruises_sailing_date_future ON cruises(sailing_date) WHERE sailing_date >= CURRENT_DATE',
       },
       {
         name: 'idx_webhook_log_created',
-        query: 'CREATE INDEX IF NOT EXISTS idx_webhook_log_created ON webhook_processing_log(created_at DESC)'
-      }
+        query:
+          'CREATE INDEX IF NOT EXISTS idx_webhook_log_created ON webhook_processing_log(created_at DESC)',
+      },
     ];
 
     for (const index of indexes) {
@@ -233,7 +262,6 @@ async function applyWebhookImprovements() {
     console.log('   2. Update webhook routes to use enhancedWebhookService');
     console.log('   3. Test with a small webhook before full deployment');
     console.log('   4. Monitor webhook_processing_log table for results');
-
   } catch (error) {
     console.error('❌ Error applying improvements:', error.message);
     console.error(error.stack);
