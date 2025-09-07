@@ -24,6 +24,7 @@ const router = Router();
 router.post(
   '/traveltek/cruiseline-pricing-updated',
   async (req: Request, res: Response, next: NextFunction) => {
+    console.log('🚨 WEBHOOK HANDLER CALLED - /traveltek/cruiseline-pricing-updated');
     const startTime = Date.now();
     const webhookId = `webhook_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const receivedAt = new Date().toISOString();
@@ -226,6 +227,7 @@ router.post(
 // Generic Traveltek webhook endpoint (keep for other events)
 // Note: Traveltek doesn't send signatures, so no validation needed
 router.post('/traveltek', async (req: Request, res: Response, next: NextFunction) => {
+  console.log('🚨 GENERIC WEBHOOK HANDLER CALLED - /traveltek');
   const webhookId = `generic_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   try {
