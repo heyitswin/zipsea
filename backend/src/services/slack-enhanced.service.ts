@@ -54,59 +54,125 @@ export class EnhancedSlackService {
 
     const lineDetails = data.lineId ? await this.getCruiseLineDetails(data.lineId) : 'Unknown';
     const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
-    const successRate = results.successful > 0
-      ? Math.round((results.successful / (results.successful + results.failed)) * 100)
-      : 0;
+    const successRate =
+      results.successful > 0
+        ? Math.round((results.successful / (results.successful + results.failed)) * 100)
+        : 0;
 
     const emoji = successRate >= 90 ? '✅' : successRate >= 70 ? '⚠️' : '❌';
 
-    const blocks = [
+    const blocks: any[] = [
       {
-        type: "header",
+        type: 'header',
         text: {
-          type: "plain_text",
+          type: 'plain_text',
           text: `${emoji} Enhanced Webhook Processing Complete`,
-          emoji: true
-        }
+          emoji: true,
+        },
       },
       {
-        type: "section",
+        type: 'section',
         fields: [
           {
-            type: "mrkdwn",
-            text: `*Cruise Line:*\n${lineDetails}`
+            type: 'mrkdwn',
+            text: `*Cruise Line:*\n${lineDetails}`,
           },
           {
-            type: "mrkdwn",
-            text: `*Success Rate:*\n${successRate}%`
+            type: 'mrkdwn',
+            text: `*Success Rate:*\n${successRate}%`,
           },
           {
-            type: "mrkdwn",
-            text: `*Updated:*\n${results.actuallyUpdated || results.successful} cruises`
+            type: 'mrkdwn',
+            text: `*Updated:*\n${results.actuallyUpdated || results.successful} cruises`,
           },
           {
-            type: "mrkdwn",
-            text: `*Created:*\n${results.created || 0} new cruises`
+            type: 'mrkdwn',
+            text: `*Created:*\n${results.created || 0} new cruises`,
           },
           {
-            type: "mrkdwn",
-            text: `*Failed:*\n${results.failed} cruises`
+            type: 'mrkdwn',
+            text: `*Failed:*\n${results.failed} cruises`,
           },
           {
-            type: "mrkdwn",
-            text: `*Timestamp:*\n${timestamp}`
-          }
-        ]
+            type: 'mrkdwn',
+            text: `*Timestamp:*\n${timestamp}`,
+          },
+        ],
       },
       {
-        type: "context",
+        type: 'context',
         elements: [
           {
-            type: "mrkdwn",
-            text: "🔧 *Improvements Active:* Price snapshots captured | ALL future sailings processed | Line-level locking | Complete data updates"
-          }
-        ]
-      }
+            type: 'mrkdwn',
+            text: '🔧 *Improvements Active:* Price snapshots captured | ALL future sailings processed | Line-level locking | Complete data updates',
+          },
+        ],
+      },
+    ];
+
+    await this.sendMessage({ blocks });
+  }
+
+  /**
+   * Send notification for specific cruise pricing updates
+   */
+  async notifyCruisePricingUpdate(
+    data: SlackWebhookData,
+    results: {
+      successful: number;
+      failed: number;
+    }
+  ): Promise<void> {
+    if (!this.enabled) return;
+
+    const cruiseIds = data.cruiseId ? [data.cruiseId] : data.cruiseIds || [];
+    const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+    const successRate =
+      results.successful > 0
+        ? Math.round((results.successful / (results.successful + results.failed)) * 100)
+        : 0;
+
+    const emoji = successRate >= 90 ? '✅' : successRate >= 70 ? '⚠️' : '❌';
+
+    const blocks: any[] = [
+      {
+        type: 'header',
+        text: {
+          type: 'plain_text',
+          text: `${emoji} Cruise Pricing Update`,
+          emoji: true,
+        },
+      },
+      {
+        type: 'section',
+        fields: [
+          {
+            type: 'mrkdwn',
+            text: `*Cruises Updated:*\n${results.successful}/${cruiseIds.length}`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Success Rate:*\n${successRate}%`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Failed:*\n${results.failed}`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Timestamp:*\n${timestamp}`,
+          },
+        ],
+      },
+      {
+        type: 'context',
+        elements: [
+          {
+            type: 'mrkdwn',
+            text: `Cruise IDs: ${cruiseIds.slice(0, 5).join(', ')}${cruiseIds.length > 5 ? '...' : ''}`,
+          },
+        ],
+      },
     ];
 
     await this.sendMessage({ blocks });
@@ -127,36 +193,36 @@ export class EnhancedSlackService {
 
     const blocks = [
       {
-        type: "header",
+        type: 'header',
         text: {
-          type: "plain_text",
+          type: 'plain_text',
           text: `${emoji} ${operation}`,
-          emoji: true
-        }
-      }
+          emoji: true,
+        },
+      },
     ];
 
     if (details) {
       const fields = Object.entries(details).map(([key, value]) => ({
-        type: "mrkdwn",
-        text: `*${key}:*\n${value}`
+        type: 'mrkdwn',
+        text: `*${key}:*\n${value}`,
       }));
 
       blocks.push({
-        type: "section",
-        fields: fields.slice(0, 10) // Slack limits to 10 fields
+        type: 'section',
+        fields: fields.slice(0, 10), // Slack limits to 10 fields
       });
     }
 
     if (status === 'started') {
       blocks.push({
-        type: "context",
+        type: 'context',
         elements: [
           {
-            type: "mrkdwn",
-            text: "⏸️ *Note:* Webhooks are automatically paused during sync operations"
-          }
-        ]
+            type: 'mrkdwn',
+            text: '⏸️ *Note:* Webhooks are automatically paused during sync operations',
+          },
+        ],
       });
     }
 
@@ -171,29 +237,29 @@ export class EnhancedSlackService {
 
     const blocks = [
       {
-        type: "header",
+        type: 'header',
         text: {
-          type: "plain_text",
-          text: "🚨 Sync Error",
-          emoji: true
-        }
+          type: 'plain_text',
+          text: '🚨 Sync Error',
+          emoji: true,
+        },
       },
       {
-        type: "section",
+        type: 'section',
         text: {
-          type: "mrkdwn",
-          text: `*Context:* ${context}\n*Error:* ${error}`
-        }
+          type: 'mrkdwn',
+          text: `*Context:* ${context}\n*Error:* ${error}`,
+        },
       },
       {
-        type: "context",
+        type: 'context',
         elements: [
           {
-            type: "mrkdwn",
-            text: `Timestamp: ${new Date().toISOString()}`
-          }
-        ]
-      }
+            type: 'mrkdwn',
+            text: `Timestamp: ${new Date().toISOString()}`,
+          },
+        ],
+      },
     ];
 
     await this.sendMessage({ blocks });
@@ -207,33 +273,34 @@ export class EnhancedSlackService {
 
     const blocks: any[] = [
       {
-        type: "header",
+        type: 'header',
         text: {
-          type: "plain_text",
+          type: 'plain_text',
           text: options.title,
-          emoji: true
-        }
-      }
+          emoji: true,
+        },
+      },
     ];
 
     if (options.message) {
       blocks.push({
-        type: "section",
+        type: 'section',
         text: {
-          type: "mrkdwn",
-          text: options.message
-        }
+          type: 'mrkdwn',
+          text: options.message,
+        },
       });
     }
 
     if (options.fields && options.fields.length > 0) {
-      blocks.push({
-        type: "section",
+      const sectionBlock: any = {
+        type: 'section',
         fields: options.fields.map(f => ({
-          type: "mrkdwn",
-          text: `*${f.title}:*\n${f.value}`
-        }))
-      });
+          type: 'mrkdwn',
+          text: `*${f.title}:*\n${f.value}`,
+        })),
+      };
+      blocks.push(sectionBlock);
     }
 
     if (options.details) {
@@ -242,13 +309,13 @@ export class EnhancedSlackService {
         .join('\n');
 
       blocks.push({
-        type: "context",
+        type: 'context',
         elements: [
           {
-            type: "mrkdwn",
-            text: detailsText
-          }
-        ]
+            type: 'mrkdwn',
+            text: detailsText,
+          },
+        ],
       });
     }
 
@@ -272,13 +339,17 @@ export class EnhancedSlackService {
       message: `Processed ${processedCount} cruises in ${(duration / 1000).toFixed(1)}s`,
       fields: [
         { title: 'Remaining', value: String(pendingCount), short: true },
-        { title: 'Rate', value: `${(processedCount / (duration / 1000)).toFixed(1)}/sec`, short: true }
+        {
+          title: 'Rate',
+          value: `${(processedCount / (duration / 1000)).toFixed(1)}/sec`,
+          short: true,
+        },
       ],
       details: {
         'Flag Clearing': 'Only processed cruises cleared (bug fixed)',
         'Price History': 'Captured before all updates',
-        'Date Range': 'ALL future sailings (no 2-year limit)'
-      }
+        'Date Range': 'ALL future sailings (no 2-year limit)',
+      },
     });
   }
 
@@ -290,7 +361,7 @@ export class EnhancedSlackService {
       const result = await db
         .select({ name: cruiseLines.name })
         .from(cruiseLines)
-        .where(eq(cruiseLines.id, String(lineId)))
+        .where(eq(cruiseLines.id, lineId))
         .limit(1);
 
       return result[0]?.name || `Line ID: ${lineId}`;
@@ -308,7 +379,7 @@ export class EnhancedSlackService {
       const result = await db
         .select({
           name: cruises.name,
-          sailingDate: cruises.sailingDate
+          sailingDate: cruises.sailingDate,
         })
         .from(cruises)
         .where(eq(cruises.id, String(cruiseId)))
@@ -334,7 +405,7 @@ export class EnhancedSlackService {
     try {
       await axios.post(this.webhookUrl, payload, {
         headers: { 'Content-Type': 'application/json' },
-        timeout: 5000
+        timeout: 5000,
       });
     } catch (error) {
       logger.error('Failed to send Slack notification:', error);

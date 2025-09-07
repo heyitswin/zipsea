@@ -71,7 +71,10 @@ export class EnhancedWebhookService {
 
     try {
       // Try to acquire lock with NX (only if not exists) and EX (expire)
-      const acquired = await redisClient.setNX(lockKey, webhookId, this.lineLockTTL);
+      const acquired = await redisClient.set(lockKey, webhookId, {
+        NX: true,
+        EX: this.lineLockTTL,
+      });
 
       if (acquired) {
         logger.info(`🔒 Acquired line lock for line ${lineId}, webhook ${webhookId}`);
