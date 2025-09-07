@@ -172,10 +172,12 @@ export class EnhancedWebhookService {
         }
 
         // 5. Perform bulk FTP download with enhanced processing
+        console.log('🚨 [DEBUG] About to call bulkFtpDownloader.downloadLineUpdates');
         const downloadResult = await bulkFtpDownloader.downloadLineUpdates(
           databaseLineId,
           cruiseInfos
         );
+        console.log('🚨 [DEBUG] Download result:', downloadResult);
 
         logger.info(`Bulk download completed`, {
           lineId: data.lineId,
@@ -203,22 +205,47 @@ export class EnhancedWebhookService {
         await this.clearCacheForCruiseLine(databaseLineId);
 
         // 8. Send success notification
-        await slackService.notifyCruiseLinePricingUpdate(data, {
+        console.log('🚨 [DEBUG] About to send Slack notification');
+        console.log('🚨 [DEBUG] slackService exists:', !!slackService);
+        console.log(
+          '🚨 [DEBUG] notifyCruiseLinePricingUpdate method exists:',
+          !!slackService?.notifyCruiseLinePricingUpdate
+        );
+        console.log('🚨 [DEBUG] Notification data:', {
+          data,
           successful: processingResult.actuallyUpdated,
           failed: processingResult.failed,
         });
+
+        try {
+          await slackService.notifyCruiseLinePricingUpdate(data, {
+            successful: processingResult.actuallyUpdated,
+            failed: processingResult.failed,
+          });
+          console.log('🚨 [DEBUG] Slack notification sent successfully');
+        } catch (slackError) {
+          console.error('🚨 [DEBUG] Slack notification error:', slackError);
+          throw slackError;
+        }
       } finally {
         // Always release the lock
         await this.releaseLineLock(databaseLineId, webhookId);
       }
     } catch (error) {
       logger.error('Failed to process enhanced cruiseline pricing update:', error);
+      console.error('🚨 [DEBUG] Enhanced webhook processing error:', error);
 
       // Send error notification
-      await slackService.notifySyncError(
-        error instanceof Error ? error.message : 'Unknown error',
-        `Enhanced webhook processing for line ${data.lineId}`
-      );
+      console.log('🚨 [DEBUG] About to send Slack error notification');
+      try {
+        await slackService.notifySyncError(
+          error instanceof Error ? error.message : 'Unknown error',
+          `Enhanced webhook processing for line ${data.lineId}`
+        );
+        console.log('🚨 [DEBUG] Slack error notification sent');
+      } catch (slackError) {
+        console.error('🚨 [DEBUG] Failed to send Slack error notification:', slackError);
+      }
 
       throw error;
     }
