@@ -178,7 +178,7 @@ async function applyWebhookImprovements() {
       {
         name: 'idx_cruises_sailing_date_future',
         query:
-          'CREATE INDEX IF NOT EXISTS idx_cruises_sailing_date_future ON cruises(sailing_date) WHERE sailing_date >= CURRENT_DATE',
+          'CREATE INDEX IF NOT EXISTS idx_cruises_sailing_date_future ON cruises(sailing_date)',
       },
       {
         name: 'idx_webhook_log_created',
@@ -209,13 +209,13 @@ async function applyWebhookImprovements() {
     console.log(`   System flags: ${flagCheck.rows[0].count}`);
 
     // Check cruise columns
-    const columnCheck = await client.query(`
+    const cruiseColumnCheck = await client.query(`
       SELECT column_name
       FROM information_schema.columns
       WHERE table_name = 'cruises'
       AND column_name IN ('webhook_priority', 'last_webhook_at', 'webhook_source')
     `);
-    console.log(`   Webhook tracking columns: ${columnCheck.rows.length}/3`);
+    console.log(`   Webhook tracking columns: ${cruiseColumnCheck.rows.length}/3`);
 
     // Check tables
     const tableCheck = await client.query(`
