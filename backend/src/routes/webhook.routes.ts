@@ -98,31 +98,56 @@ router.post(
         queueAttemptAt: new Date().toISOString(),
       });
 
-      enhancedWebhookService
-        .processCruiselinePricingUpdate({
+      // Add debug logging
+      logger.info(
+        '🔍 [DEBUG] About to call enhancedWebhookService.processCruiselinePricingUpdate',
+        {
+          serviceExists: !!enhancedWebhookService,
+          methodExists: !!enhancedWebhookService?.processCruiselinePricingUpdate,
+          payloadLineId: payload.lineid,
+        }
+      );
+
+      try {
+        const promise = enhancedWebhookService.processCruiselinePricingUpdate({
           eventType: payload.event,
           lineId: payload.lineid,
           timestamp: String(payload.timestamp),
           webhookId,
-        })
-        .then(() => {
-          logger.info('📨 [WEBHOOK-PROCESSED] Enhanced webhook processing completed', {
-            webhookId,
-            lineId: payload.lineid,
-            processedAt: new Date().toISOString(),
-            processingTime: Date.now() - startTime,
-            stage: 'PROCESSING_COMPLETED',
-          });
-        })
-        .catch(error => {
-          logger.error('❌ [WEBHOOK-PROCESSING-FAILED] Enhanced processing failed', {
-            webhookId,
-            lineId: payload.lineid,
-            error: error instanceof Error ? error.message : 'Unknown error',
-            failedAt: new Date().toISOString(),
-            stage: 'PROCESSING_FAILED',
-          });
         });
+
+        logger.info('🔍 [DEBUG] Promise created from enhanced service', {
+          promiseType: typeof promise,
+          isPromise: promise instanceof Promise,
+        });
+
+        promise
+          .then(() => {
+            logger.info('📨 [WEBHOOK-PROCESSED] Enhanced webhook processing completed', {
+              webhookId,
+              lineId: payload.lineid,
+              processedAt: new Date().toISOString(),
+              processingTime: Date.now() - startTime,
+              stage: 'PROCESSING_COMPLETED',
+            });
+          })
+          .catch(error => {
+            logger.error('❌ [WEBHOOK-PROCESSING-FAILED] Enhanced processing failed', {
+              webhookId,
+              lineId: payload.lineid,
+              error: error instanceof Error ? error.message : 'Unknown error',
+              errorStack: error instanceof Error ? error.stack : undefined,
+              failedAt: new Date().toISOString(),
+              stage: 'PROCESSING_FAILED',
+            });
+          });
+      } catch (syncError) {
+        logger.error('❌ [WEBHOOK-SYNC-ERROR] Synchronous error calling enhanced service', {
+          webhookId,
+          error: syncError instanceof Error ? syncError.message : 'Unknown error',
+          errorStack: syncError instanceof Error ? syncError.stack : undefined,
+        });
+      }
 
       logger.info('✅ [WEBHOOK-ACKNOWLEDGED] Webhook acknowledged to sender', {
         webhookId,
