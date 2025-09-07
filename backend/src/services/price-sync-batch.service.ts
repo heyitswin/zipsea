@@ -401,6 +401,7 @@ export class PriceSyncBatchService {
 
   /**
    * Mark cruises as processed
+   * CRITICAL FIX: Only clear flags for specific cruise IDs that were successfully processed
    */
   private async markCruisesAsProcessed(processed: CruiseToSync[]): Promise<void> {
     if (processed.length === 0) return;
@@ -408,7 +409,8 @@ export class PriceSyncBatchService {
     const ids = processed.map(c => c.id).filter(id => id > 0);
 
     if (ids.length > 0) {
-      await db
+      // CRITICAL: Use IN clause with specific IDs to avoid clearing all flags
+      const result = await db
         .update(cruises)
         .set({
           needsPriceUpdate: false,
@@ -416,6 +418,10 @@ export class PriceSyncBatchService {
           updatedAt: new Date(),
         })
         .where(inArray(cruises.id, ids.map(String)));
+
+      logger.info(
+        `✅ Cleared flags for ${ids.length} specific cruises: ${ids.slice(0, 10).join(', ')}${ids.length > 10 ? '...' : ''}`
+      );
     }
   }
 

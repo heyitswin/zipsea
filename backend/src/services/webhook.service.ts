@@ -1,11 +1,7 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { db } from '../db/connection';
 import { logger } from '../config/logger';
-import { 
-  cruises, 
-  pricing, 
-  cheapestPricing 
-} from '../db/schema';
+import { cruises, pricing, cheapestPricing } from '../db/schema';
 import { traveltekFTPService } from './traveltek-ftp.service';
 import { dataSyncService } from './data-sync.service';
 import { cacheManager, searchCache, cruiseCache } from '../cache/cache-manager';
@@ -40,18 +36,20 @@ export interface WebhookBookingData {
 }
 
 export class WebhookService {
-
   /**
    * Process cruiseline pricing updated webhook
    * Uses bulk FTP downloader for efficient processing of entire cruise lines
    */
   async processCruiselinePricingUpdate(data: WebhookPricingData): Promise<void> {
     try {
-      logger.info('🚀 WEBHOOK DEBUG: Starting cruiseline pricing update using bulk FTP downloader', { 
-        lineId: data.lineId, 
-        eventType: data.eventType,
-        timestamp: new Date().toISOString()
-      });
+      logger.info(
+        '🚀 WEBHOOK DEBUG: Starting cruiseline pricing update using bulk FTP downloader',
+        {
+          lineId: data.lineId,
+          eventType: data.eventType,
+          timestamp: new Date().toISOString(),
+        }
+      );
 
       if (!data.lineId) {
         throw new Error('Line ID is required for cruiseline pricing updates');
@@ -59,48 +57,55 @@ export class WebhookService {
 
       // Map webhook line ID to database line ID
       const databaseLineId = getDatabaseLineId(data.lineId);
-      
+
       if (databaseLineId !== data.lineId) {
         logger.info(`Mapping webhook line ${data.lineId} to database line ${databaseLineId}`);
       }
 
       // Get cruise information for bulk download with timeout and retry
       logger.info('🔍 WEBHOOK DEBUG: Getting cruise info for line', { databaseLineId });
-      
+
       let cruiseInfos;
       const maxRetries = 3;
       const timeoutMs = 15000; // 15 seconds
-      
+
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          logger.info(`🔄 WEBHOOK DEBUG: Database query attempt ${attempt}/${maxRetries}`, { databaseLineId });
-          
+          logger.info(`🔄 WEBHOOK DEBUG: Database query attempt ${attempt}/${maxRetries}`, {
+            databaseLineId,
+          });
+
           // Add timeout wrapper for database query
           const queryPromise = bulkFtpDownloader.getCruiseInfoForLine(databaseLineId);
           const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error(`Database query timeout after ${timeoutMs}ms`)), timeoutMs);
+            setTimeout(
+              () => reject(new Error(`Database query timeout after ${timeoutMs}ms`)),
+              timeoutMs
+            );
           });
-          
+
           cruiseInfos = await Promise.race([queryPromise, timeoutPromise]);
           logger.info(`✅ WEBHOOK DEBUG: Database query succeeded on attempt ${attempt}`);
           break;
-          
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : 'Unknown error';
           logger.error(`❌ WEBHOOK DEBUG: Database query attempt ${attempt}/${maxRetries} failed`, {
             error: errorMsg,
             databaseLineId,
-            attempt
+            attempt,
           });
-          
+
           if (attempt === maxRetries) {
-            logger.error(`🚨 WEBHOOK DEBUG: All database attempts failed for line ${databaseLineId}`, {
-              error: errorMsg,
-              totalAttempts: maxRetries
-            });
+            logger.error(
+              `🚨 WEBHOOK DEBUG: All database attempts failed for line ${databaseLineId}`,
+              {
+                error: errorMsg,
+                totalAttempts: maxRetries,
+              }
+            );
             throw new Error(`Failed to get cruise info after ${maxRetries} attempts: ${errorMsg}`);
           }
-          
+
           // Wait before retry with exponential backoff
           const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
           logger.info(`⏳ WEBHOOK DEBUG: Waiting ${delay}ms before retry ${attempt + 1}`);
@@ -112,61 +117,72 @@ export class WebhookService {
         originalLineId: data.lineId,
         databaseLineId,
         cruiseCount: cruiseInfos.length,
-        sampleCruises: cruiseInfos.slice(0, 3).map(c => ({ id: c.id, shipName: c.shipName }))
+        sampleCruises: cruiseInfos.slice(0, 3).map(c => ({ id: c.id, shipName: c.shipName })),
       });
 
       if (cruiseInfos.length === 0) {
-        logger.warn(`No active cruises found for cruise line ${data.lineId} (database line ${databaseLineId})`);
+        logger.warn(
+          `No active cruises found for cruise line ${data.lineId} (database line ${databaseLineId})`
+        );
         return;
       }
 
       // Perform bulk FTP download
       logger.info('📥 WEBHOOK DEBUG: Starting bulk FTP download', {
         databaseLineId,
-        cruiseCount: cruiseInfos.length
+        cruiseCount: cruiseInfos.length,
       });
-      const downloadResult = await bulkFtpDownloader.downloadLineUpdates(databaseLineId, cruiseInfos);
-      
+      const downloadResult = await bulkFtpDownloader.downloadLineUpdates(
+        databaseLineId,
+        cruiseInfos
+      );
+
       logger.info('📦 WEBHOOK DEBUG: Bulk download result received', {
         totalFiles: downloadResult.totalFiles,
         successfulDownloads: downloadResult.successfulDownloads,
         failedDownloads: downloadResult.failedDownloads,
         downloadedDataSize: downloadResult.downloadedData.size,
         errors: downloadResult.errors.slice(0, 3),
-        connectionFailures: downloadResult.connectionFailures
+        connectionFailures: downloadResult.connectionFailures,
       });
-      
+
       logger.info(`Bulk download completed`, {
         lineId: data.lineId,
         databaseLineId,
         totalFiles: downloadResult.totalFiles,
         successful: downloadResult.successfulDownloads,
         failed: downloadResult.failedDownloads,
-        duration: `${(downloadResult.duration / 1000).toFixed(2)}s`
+        duration: `${(downloadResult.duration / 1000).toFixed(2)}s`,
       });
 
       // Process downloaded data to update database
       logger.info('💽 WEBHOOK DEBUG: Starting database processing', {
         downloadedDataSize: downloadResult.downloadedData.size,
-        hasDownloadedData: downloadResult.downloadedData.size > 0
+        hasDownloadedData: downloadResult.downloadedData.size > 0,
       });
-      
+
       if (downloadResult.downloadedData.size === 0) {
-        logger.error('🚨 WEBHOOK DEBUG: No data was downloaded! This explains the 0% success rate', {
-          totalFiles: downloadResult.totalFiles,
-          successfulDownloads: downloadResult.successfulDownloads,
-          failedDownloads: downloadResult.failedDownloads,
-          errors: downloadResult.errors
-        });
+        logger.error(
+          '🚨 WEBHOOK DEBUG: No data was downloaded! This explains the 0% success rate',
+          {
+            totalFiles: downloadResult.totalFiles,
+            successfulDownloads: downloadResult.successfulDownloads,
+            failedDownloads: downloadResult.failedDownloads,
+            errors: downloadResult.errors,
+          }
+        );
       }
-      
-      const processingResult = await bulkFtpDownloader.processCruiseUpdates(databaseLineId, downloadResult);
-      
+
+      const processingResult = await bulkFtpDownloader.processCruiseUpdates(
+        databaseLineId,
+        downloadResult
+      );
+
       logger.info('✅ WEBHOOK DEBUG: Database processing result', {
         successful: processingResult.successful,
         failed: processingResult.failed,
         actuallyUpdated: processingResult.actuallyUpdated,
-        errors: processingResult.errors.slice(0, 3)
+        errors: processingResult.errors.slice(0, 3),
       });
 
       // Clear relevant cache entries
@@ -178,7 +194,7 @@ export class WebhookService {
         failed: processingResult.failed + downloadResult.failedDownloads,
         actuallyUpdated: processingResult.actuallyUpdated,
         ftpConnectionFailures: downloadResult.connectionFailures,
-        processingTimeMs: downloadResult.duration
+        processingTimeMs: downloadResult.duration,
       };
 
       logger.info(`Bulk FTP processing completed for line ${data.lineId}`, {
@@ -189,24 +205,23 @@ export class WebhookService {
         actuallyUpdated: finalResult.actuallyUpdated,
         ftpConnectionFailures: finalResult.ftpConnectionFailures,
         duration: `${(downloadResult.duration / 1000).toFixed(2)}s`,
-        successRate: `${Math.round((finalResult.actuallyUpdated / downloadResult.totalFiles) * 100)}%`
+        successRate: `${Math.round((finalResult.actuallyUpdated / downloadResult.totalFiles) * 100)}%`,
       });
-      
+
       // Send Slack notification using existing method
       await slackService.notifyCruiseLinePricingUpdate(data, {
         successful: finalResult.actuallyUpdated,
-        failed: finalResult.failed
+        failed: finalResult.failed,
       });
-
     } catch (error) {
       logger.error('Failed to process cruiseline pricing update with bulk FTP:', error);
-      
+
       // Send error notification
       await slackService.notifySyncError(
         error instanceof Error ? error.message : 'Unknown bulk FTP error',
         `Bulk FTP processing for line ${data.lineId}`
       );
-      
+
       throw error;
     }
   }
@@ -217,13 +232,13 @@ export class WebhookService {
    */
   async processCruisePricingUpdate(data: WebhookPricingData): Promise<void> {
     try {
-      logger.info('Processing cruise pricing update', { 
-        cruiseId: data.cruiseId, 
-        cruiseIds: data.cruiseIds?.length, 
-        eventType: data.eventType 
+      logger.info('Processing cruise pricing update', {
+        cruiseId: data.cruiseId,
+        cruiseIds: data.cruiseIds?.length,
+        eventType: data.eventType,
       });
 
-      const cruiseIds = data.cruiseId ? [data.cruiseId] : (data.cruiseIds || []);
+      const cruiseIds = data.cruiseId ? [data.cruiseId] : data.cruiseIds || [];
 
       if (cruiseIds.length === 0) {
         throw new Error('Cruise ID(s) required for pricing updates');
@@ -237,9 +252,9 @@ export class WebhookService {
         try {
           // Get cruise details
           const cruise = await db
-            .select({ 
-              id: cruises.id, 
-              cruiseLineId: cruises.cruiseLineId 
+            .select({
+              id: cruises.id,
+              cruiseLineId: cruises.cruiseLineId,
             })
             .from(cruises)
             .where(eq(cruises.id, String(cruiseId)))
@@ -251,10 +266,10 @@ export class WebhookService {
           }
 
           await this.updateCruisePricing(cruiseId);
-          
+
           // Clear cache for this specific cruise
           await this.clearCacheForCruise(cruiseId);
-          
+
           successful++;
         } catch (error) {
           failed++;
@@ -263,10 +278,9 @@ export class WebhookService {
       }
 
       logger.info(`Cruise pricing update completed: ${successful} successful, ${failed} failed`);
-      
+
       // Send Slack notification
       await slackService.notifyCruisePricingUpdate(data, { successful, failed });
-
     } catch (error) {
       logger.error('Failed to process cruise pricing update:', error);
       throw error;
@@ -290,10 +304,9 @@ export class WebhookService {
             waitlist: data.availabilityData?.waitlist ?? false,
             updatedAt: new Date(),
           })
-          .where(and(
-            eq(pricing.cruiseId, String(data.cruiseId)),
-            eq(pricing.cabinCode, data.cabinCode)
-          ));
+          .where(
+            and(eq(pricing.cruiseId, String(data.cruiseId)), eq(pricing.cabinCode, data.cabinCode))
+          );
       } else {
         // Update availability for all cabins on this cruise
         await db
@@ -309,13 +322,12 @@ export class WebhookService {
       await this.clearCacheForCruise(data.cruiseId);
 
       logger.info(`Availability updated for cruise ${data.cruiseId}`);
-      
+
       // Send Slack notification
       await slackService.notifyAvailabilityChange({
         ...data,
-        eventType: 'availability_change'
+        eventType: 'availability_change',
       });
-
     } catch (error) {
       logger.error('Failed to process availability change:', error);
       throw error;
@@ -327,20 +339,19 @@ export class WebhookService {
    */
   async processBookingConfirmation(data: WebhookBookingData): Promise<void> {
     try {
-      logger.info('Processing booking confirmation', { 
-        bookingId: data.bookingId, 
-        cruiseId: data.cruiseId 
+      logger.info('Processing booking confirmation', {
+        bookingId: data.bookingId,
+        cruiseId: data.cruiseId,
       });
 
       // Update inventory counts (if we have specific cabin information)
       // For now, just log the booking - actual inventory management would require
       // more detailed cabin/booking information
-      
+
       logger.info(`Booking confirmed: ${data.bookingId} for cruise ${data.cruiseId}`);
 
       // Clear cache to ensure fresh availability data
       await this.clearCacheForCruise(data.cruiseId);
-
     } catch (error) {
       logger.error('Failed to process booking confirmation:', error);
       throw error;
@@ -352,19 +363,18 @@ export class WebhookService {
    */
   async processBookingCancellation(data: WebhookBookingData): Promise<void> {
     try {
-      logger.info('Processing booking cancellation', { 
-        bookingId: data.bookingId, 
-        cruiseId: data.cruiseId 
+      logger.info('Processing booking cancellation', {
+        bookingId: data.bookingId,
+        cruiseId: data.cruiseId,
       });
 
       // Update inventory counts (if we have specific cabin information)
       // For now, just log the cancellation
-      
+
       logger.info(`Booking cancelled: ${data.bookingId} for cruise ${data.cruiseId}`);
 
       // Clear cache to ensure fresh availability data
       await this.clearCacheForCruise(data.cruiseId);
-
     } catch (error) {
       logger.error('Failed to process booking cancellation:', error);
       throw error;
@@ -382,7 +392,7 @@ export class WebhookService {
 
     try {
       logger.info(`Attempting to update pricing for cruise ${cruiseId} from ${filePath}`);
-      
+
       // Add timeout and retry logic for FTP operations
       const maxRetries = 3;
       let attempt = 0;
@@ -392,15 +402,15 @@ export class WebhookService {
         try {
           attempt++;
           logger.info(`FTP download attempt ${attempt}/${maxRetries} for cruise ${cruiseId}`);
-          
+
           // Download latest data from FTP with timeout
-          const cruiseData = await Promise.race([
+          const cruiseData = (await Promise.race([
             traveltekFTPService.getCruiseDataFile(filePath),
-            new Promise((_, reject) => 
+            new Promise((_, reject) =>
               setTimeout(() => reject(new Error('FTP download timeout')), 30000)
-            )
-          ]) as any;
-          
+            ),
+          ])) as any;
+
           // Parse file path info
           const fileInfo = traveltekFTPService.parseCruiseFilePath(filePath);
           if (!fileInfo) {
@@ -410,22 +420,25 @@ export class WebhookService {
           // Sync the updated data with error handling
           await dataSyncService.syncCruiseDataFile(fileInfo, cruiseData);
 
-          logger.info(`Successfully updated pricing for cruise ${cruiseId} from ${filePath} (attempt ${attempt})`);
+          logger.info(
+            `Successfully updated pricing for cruise ${cruiseId} from ${filePath} (attempt ${attempt})`
+          );
           return; // Success, exit retry loop
-
         } catch (error) {
           lastError = error instanceof Error ? error : new Error('Unknown error');
           logger.warn(`FTP attempt ${attempt} failed for cruise ${cruiseId}: ${lastError.message}`);
-          
+
           // Don't retry on certain errors
-          if (lastError.message.includes('Invalid file path') || 
-              lastError.message.includes('not found') ||
-              lastError.message.includes('403') ||
-              lastError.message.includes('401')) {
+          if (
+            lastError.message.includes('Invalid file path') ||
+            lastError.message.includes('not found') ||
+            lastError.message.includes('403') ||
+            lastError.message.includes('401')
+          ) {
             logger.error(`Non-retryable error for cruise ${cruiseId}: ${lastError.message}`);
             throw lastError;
           }
-          
+
           // Wait before retry (exponential backoff)
           if (attempt < maxRetries) {
             const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
@@ -436,13 +449,14 @@ export class WebhookService {
       }
 
       // All retries failed
-      throw new Error(`Failed to update pricing for cruise ${cruiseId} after ${maxRetries} attempts. Last error: ${lastError?.message}`);
-
+      throw new Error(
+        `Failed to update pricing for cruise ${cruiseId} after ${maxRetries} attempts. Last error: ${lastError?.message}`
+      );
     } catch (error) {
       logger.error(`Failed to update pricing for cruise ${cruiseId}:`, {
         error: error instanceof Error ? error.message : 'Unknown error',
         filePath,
-        cruiseId
+        cruiseId,
       });
       throw error;
     }
@@ -454,25 +468,24 @@ export class WebhookService {
   private async clearCacheForCruise(cruiseId: number): Promise<void> {
     try {
       logger.info(`Clearing cache for cruise ${cruiseId}`);
-      
+
       // Use specialized cache managers for better invalidation
       await Promise.allSettled([
         // Clear specific cruise data
         cruiseCache.invalidateCruise(cruiseId),
-        
+
         // Clear search caches that might include this cruise
         searchCache.invalidateAllSearchCaches(),
-        
+
         // Clear popular cruises cache since pricing changed
         cacheManager.del('popular:cruises:10'),
         cacheManager.del('popular:cruises:20'),
-        
+
         // Clear search filters cache since pricing ranges might have changed
         searchCache.del('search:filters'),
       ]);
 
       logger.info(`Cache cleared successfully for cruise ${cruiseId}`);
-
     } catch (error) {
       logger.warn(`Failed to clear cache for cruise ${cruiseId}:`, error);
       // Don't throw - cache clearing shouldn't fail the webhook processing
@@ -485,28 +498,27 @@ export class WebhookService {
   private async clearCacheForCruiseLine(lineId: number): Promise<void> {
     try {
       logger.info(`Clearing cache for cruise line ${lineId}`);
-      
+
       // For cruise line updates, we need to clear everything as prices for
       // multiple cruises may have changed
       await Promise.allSettled([
         // Clear all search-related caches
         searchCache.invalidateAllSearchCaches(),
-        
+
         // Clear all cruise and pricing caches (aggressive but safe)
         cacheManager.invalidatePattern('cruise:*'),
         cacheManager.invalidatePattern('pricing:*'),
         cacheManager.invalidatePattern('itinerary:*'),
         cacheManager.invalidatePattern('alternatives:*'),
-        
+
         // Clear popular cruises
         cacheManager.invalidatePattern('popular:*'),
-        
+
         // Clear filters as pricing ranges may have changed significantly
         cacheManager.del('search:filters'),
       ]);
 
       logger.info(`Cache cleared successfully for cruise line ${lineId}`);
-
     } catch (error) {
       logger.warn(`Failed to clear cache for cruise line ${lineId}:`, error);
       // Don't throw - cache clearing shouldn't fail the webhook processing
@@ -520,19 +532,20 @@ export class WebhookService {
     switch (eventType) {
       case 'cruiseline_pricing_updated':
         return data.lineId && typeof data.lineId === 'number';
-        
+
       case 'cruises_pricing_updated':
-        return (data.cruiseId && typeof data.cruiseId === 'number') || 
-               (data.cruiseIds && Array.isArray(data.cruiseIds));
-               
+        return (
+          (data.cruiseId && typeof data.cruiseId === 'number') ||
+          (data.cruiseIds && Array.isArray(data.cruiseIds))
+        );
+
       case 'availability_change':
         return data.cruiseId && typeof data.cruiseId === 'number';
-        
+
       case 'booking_confirmation':
       case 'booking_cancellation':
-        return data.bookingId && data.cruiseId && 
-               typeof data.cruiseId === 'number';
-               
+        return data.bookingId && data.cruiseId && typeof data.cruiseId === 'number';
+
       default:
         return true; // Allow unknown event types
     }
@@ -603,7 +616,6 @@ export class WebhookService {
           logger.warn(`Unknown webhook event type: ${eventType}`, { payload });
           break;
       }
-
     } catch (error) {
       logger.error(`Failed to process webhook event ${eventType}:`, error);
       throw error;
