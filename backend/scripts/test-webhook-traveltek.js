@@ -219,10 +219,10 @@ async function runWebhookTest() {
   try {
     // Test different endpoints based on webhook type
     const endpoints = {
-      pricing: '/api/webhooks/cruiseline-pricing-updated',
-      cruise_pricing: '/api/webhooks/cruise-pricing-updated',
-      availability: '/api/webhooks/availability-changed',
-      batch: '/api/webhooks/batch-update',
+      pricing: '/api/webhooks/traveltek/cruiseline-pricing-updated',
+      cruise_pricing: '/api/webhooks/traveltek/cruise-pricing-updated',
+      availability: '/api/webhooks/traveltek/availability-changed',
+      batch: '/api/webhooks/traveltek/batch-update',
     };
 
     const endpoint = endpoints[testType] || endpoints.pricing;
@@ -256,8 +256,8 @@ async function runWebhookTest() {
     console.log(
       `1. Check Render logs: ${config.url.replace('https://', 'https://dashboard.render.com/web/')}`
     );
-    console.log(`2. Check webhook health: curl ${config.url}/api/webhooks/health`);
-    console.log(`3. Check processing stats: curl ${config.url}/api/webhooks/stats`);
+    console.log(`2. Check webhook health: curl ${config.url}/api/webhooks/traveltek/health`);
+    console.log(`3. Check processing stats: curl ${config.url}/api/webhooks/traveltek/status`);
     console.log(`4. Check database for updates:`);
     console.log(`   - Cruises with needs_price_update = true`);
     console.log(`   - Recent entries in webhook_processing_log`);
@@ -284,7 +284,7 @@ async function runComprehensiveTest() {
     console.log('-----------------------------------');
 
     const payload = createWebhookPayload(test.type, test.lineId);
-    const endpoint = `/api/webhooks/${test.type.replace('_', '-')}-updated`;
+    const endpoint = `/api/webhooks/traveltek/${test.type.replace('_', '-')}-updated`;
 
     try {
       await sendWebhook(payload, endpoint);
