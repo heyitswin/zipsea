@@ -16,11 +16,11 @@ const consoleFormat = winston.format.combine(
   winston.format.timestamp({ format: 'HH:mm:ss' }),
   winston.format.printf(({ timestamp, level, message, ...meta }) => {
     let log = `${timestamp} [${level}]: ${message}`;
-    
+
     if (Object.keys(meta).length > 0) {
       log += ` ${JSON.stringify(meta, null, 2)}`;
     }
-    
+
     return log;
   })
 );
@@ -47,23 +47,18 @@ const logger = winston.createLogger({
       maxFiles: 5,
     }),
   ],
-  exceptionHandlers: [
-    new winston.transports.File({ filename: 'logs/exceptions.log' }),
-  ],
-  rejectionHandlers: [
-    new winston.transports.File({ filename: 'logs/rejections.log' }),
-  ],
+  exceptionHandlers: [new winston.transports.File({ filename: 'logs/exceptions.log' })],
+  rejectionHandlers: [new winston.transports.File({ filename: 'logs/rejections.log' })],
 });
 
-// Add console transport for development
-if (isDevelopment || isTest) {
-  logger.add(
-    new winston.transports.Console({
-      format: consoleFormat,
-      silent: isTest, // Silent in test environment
-    })
-  );
-}
+// Add console transport for all environments (needed for cloud logging)
+// In production, cloud providers like Render capture console output
+logger.add(
+  new winston.transports.Console({
+    format: isDevelopment ? consoleFormat : logFormat,
+    silent: isTest, // Silent in test environment
+  })
+);
 
 // Create specialized loggers for different modules
 export const traveltekLogger = logger.child({ module: 'traveltek' });
