@@ -79,67 +79,57 @@ router.post(
         receivedAt,
       });
 
-      try {
-        logger.info('🔄 [WEBHOOK-QUEUING] Starting webhook queue process', {
-          webhookId,
-          lineId: payload.lineid,
-          stage: 'QUEUING_STARTED',
-          queueAttemptAt: new Date().toISOString(),
-        });
+      // Immediate acknowledgment - don't wait for processing
+      res.status(200).json({
+        success: true,
+        message: 'Webhook received and queued for processing',
+        timestamp: new Date().toISOString(),
+        webhookId,
+        lineId: payload.lineid,
+        processingMode: 'async_enhanced',
+        note: 'Processing will happen asynchronously',
+      });
 
-        // Process webhook using enhanced service with all improvements
-        const processingResult = await enhancedWebhookService.processCruiselinePricingUpdate({
+      // Process webhook asynchronously (don't await)
+      logger.info('🔄 [WEBHOOK-QUEUING] Starting async webhook processing', {
+        webhookId,
+        lineId: payload.lineid,
+        stage: 'QUEUING_STARTED',
+        queueAttemptAt: new Date().toISOString(),
+      });
+
+      enhancedWebhookService
+        .processCruiselinePricingUpdate({
           eventType: payload.event,
           lineId: payload.lineid,
           timestamp: String(payload.timestamp),
           webhookId,
+        })
+        .then(() => {
+          logger.info('📨 [WEBHOOK-PROCESSED] Enhanced webhook processing completed', {
+            webhookId,
+            lineId: payload.lineid,
+            processedAt: new Date().toISOString(),
+            processingTime: Date.now() - startTime,
+            stage: 'PROCESSING_COMPLETED',
+          });
+        })
+        .catch(error => {
+          logger.error('❌ [WEBHOOK-PROCESSING-FAILED] Enhanced processing failed', {
+            webhookId,
+            lineId: payload.lineid,
+            error: error instanceof Error ? error.message : 'Unknown error',
+            failedAt: new Date().toISOString(),
+            stage: 'PROCESSING_FAILED',
+          });
         });
 
-        logger.info('📨 [WEBHOOK-PROCESSED] Cruises flagged for batch processing', {
-          webhookId,
-          lineId: payload.lineid,
-          processedAt: new Date().toISOString(),
-          processingTime: Date.now() - startTime,
-          stage: 'FLAGGED_FOR_BATCH',
-        });
-
-        // Immediate acknowledgment
-        res.status(200).json({
-          success: true,
-          message: 'Webhook received and cruises flagged for batch processing',
-          timestamp: new Date().toISOString(),
-          webhookId,
-          lineId: payload.lineid,
-          processingMode: 'batch_flagging_v5',
-          note: 'Cruises will be updated in the next batch sync run',
-        });
-
-        logger.info('✅ [WEBHOOK-ACKNOWLEDGED] Webhook acknowledged to sender', {
-          webhookId,
-          lineId: payload.lineid,
-          responseTime: Date.now() - startTime,
-          stage: 'WEBHOOK_ACKNOWLEDGED',
-        });
-      } catch (processingError) {
-        logger.error('❌ [WEBHOOK-FLAG-FAILED] Failed to flag cruises for batch processing', {
-          webhookId,
-          lineId: payload.lineid,
-          error: processingError instanceof Error ? processingError.message : 'Unknown error',
-          flagFailedAt: new Date().toISOString(),
-          stage: 'FLAG_FAILED',
-        });
-
-        // Still acknowledge webhook to prevent retries, but note the error
-        res.status(200).json({
-          success: false,
-          message: 'Webhook received but failed to flag cruises for processing',
-          timestamp: new Date().toISOString(),
-          webhookId,
-          lineId: payload.lineid,
-          error: processingError instanceof Error ? processingError.message : 'Unknown error',
-          note: 'Check system logs and database connection',
-        });
-      }
+      logger.info('✅ [WEBHOOK-ACKNOWLEDGED] Webhook acknowledged to sender', {
+        webhookId,
+        lineId: payload.lineid,
+        responseTime: Date.now() - startTime,
+        stage: 'WEBHOOK_ACKNOWLEDGED',
+      });
     } catch (error) {
       logger.error('❌ Error in cruiseline pricing webhook handler', {
         webhookId,
