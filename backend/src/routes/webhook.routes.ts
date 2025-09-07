@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import logger from '../config/logger';
-import { webhookSimpleService } from '../services/webhook-simple.service';
+import { enhancedWebhookService } from '../services/webhook-enhanced.service';
 import { db } from '../db/connection';
 import { sql } from 'drizzle-orm';
 
@@ -87,11 +87,12 @@ router.post(
           queueAttemptAt: new Date().toISOString(),
         });
 
-        // Process webhook using simple flagging service
-        const processingResult = await webhookSimpleService.processCruiselinePricingUpdate({
+        // Process webhook using enhanced service with all improvements
+        const processingResult = await enhancedWebhookService.processCruiselinePricingUpdate({
           eventType: payload.event,
           lineId: payload.lineid,
           timestamp: String(payload.timestamp),
+          webhookId,
         });
 
         logger.info('📨 [WEBHOOK-PROCESSED] Cruises flagged for batch processing', {
@@ -245,11 +246,12 @@ router.post('/traveltek', async (req: Request, res: Response, next: NextFunction
       };
 
       try {
-        // Process webhook using simple flagging
-        await webhookSimpleService.processCruiselinePricingUpdate({
+        // Process webhook using enhanced service
+        await enhancedWebhookService.processCruiselinePricingUpdate({
           eventType: payload.event,
           lineId: payload.lineid,
           timestamp: String(payload.timestamp),
+          webhookId,
         });
 
         logger.info('📨 Generic webhook processed - cruises flagged', {
@@ -708,11 +710,12 @@ router.post('/test-simulate', async (req: Request, res: Response) => {
       testEndpoint: '/test-simulate',
     });
 
-    // Process the webhook using simple flagging service
-    await webhookSimpleService.processCruiselinePricingUpdate({
+    // Process the webhook using enhanced service
+    await enhancedWebhookService.processCruiselinePricingUpdate({
       eventType: simulatedPayload.event,
       lineId: simulatedPayload.lineid,
       timestamp: String(simulatedPayload.timestamp),
+      webhookId: `test_${Date.now()}`,
     });
 
     res.status(200).json({

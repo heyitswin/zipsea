@@ -20,6 +20,7 @@ export interface WebhookPricingData {
   priceData?: any;
   timestamp?: string;
   eventType: string;
+  webhookId?: string;
 }
 
 export interface WebhookAvailabilityData {
