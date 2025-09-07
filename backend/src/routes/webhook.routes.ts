@@ -4,6 +4,12 @@ import { enhancedWebhookService } from '../services/webhook-enhanced.service';
 import { db } from '../db/connection';
 import { sql } from 'drizzle-orm';
 
+console.log('🚨 WEBHOOK ROUTES LOADING - logger type:', typeof logger);
+console.log(
+  '🚨 WEBHOOK ROUTES LOADING - enhancedWebhookService type:',
+  typeof enhancedWebhookService
+);
+
 const router = Router();
 
 /**
@@ -30,18 +36,27 @@ router.post(
     const receivedAt = new Date().toISOString();
 
     try {
-      logger.info('🚀 [WEBHOOK-RECEIVED] Cruiseline pricing updated webhook received (REAL-TIME)', {
-        webhookId,
-        receivedAt,
-        bodySize: JSON.stringify(req.body).length,
-        lineId: req.body.lineid || req.body.lineId || req.body.line_id,
-        currency: req.body.currency,
-        timestamp: req.body.timestamp,
-        processingMode: 'realtime_parallel',
-        userAgent: req.headers['user-agent'],
-        sourceIP: req.ip || req.connection.remoteAddress,
-        stage: 'WEBHOOK_RECEIVED',
-      });
+      console.log('🚨 About to call logger.info...');
+      try {
+        logger.info(
+          '🚀 [WEBHOOK-RECEIVED] Cruiseline pricing updated webhook received (REAL-TIME)',
+          {
+            webhookId,
+            receivedAt,
+            bodySize: JSON.stringify(req.body).length,
+            lineId: req.body.lineid || req.body.lineId || req.body.line_id,
+            currency: req.body.currency,
+            timestamp: req.body.timestamp,
+            processingMode: 'realtime_parallel',
+            userAgent: req.headers['user-agent'],
+            sourceIP: req.ip || req.connection.remoteAddress,
+            stage: 'WEBHOOK_RECEIVED',
+          }
+        );
+        console.log('🚨 After logger.info call');
+      } catch (logError) {
+        console.error('🚨 ERROR calling logger.info:', logError);
+      }
 
       // Validate required fields
       if (!req.body.lineid && !req.body.lineId && !req.body.line_id) {
@@ -100,6 +115,13 @@ router.post(
       });
 
       // Add debug logging
+      console.log('🚨 [DEBUG] About to check enhancedWebhookService...');
+      console.log('🚨 [DEBUG] enhancedWebhookService exists:', !!enhancedWebhookService);
+      console.log(
+        '🚨 [DEBUG] processCruiselinePricingUpdate method exists:',
+        !!enhancedWebhookService?.processCruiselinePricingUpdate
+      );
+
       logger.info(
         '🔍 [DEBUG] About to call enhancedWebhookService.processCruiselinePricingUpdate',
         {
@@ -110,12 +132,14 @@ router.post(
       );
 
       try {
+        console.log('🚨 [DEBUG] Calling enhancedWebhookService.processCruiselinePricingUpdate...');
         const promise = enhancedWebhookService.processCruiselinePricingUpdate({
           eventType: payload.event,
           lineId: payload.lineid,
           timestamp: String(payload.timestamp),
           webhookId,
         });
+        console.log('🚨 [DEBUG] Enhanced service method called, promise:', !!promise);
 
         logger.info('🔍 [DEBUG] Promise created from enhanced service', {
           promiseType: typeof promise,
