@@ -1235,12 +1235,7 @@ router.get('/traveltek/test-simple', async (req: Request, res: Response) => {
 
     // Start processing asynchronously
     simpleWebhookService
-      .processCruiselinePricingUpdate({
-        eventType: 'cruiseline_pricing_updated',
-        lineId: testLineId,
-        timestamp: new Date().toISOString(),
-        webhookId,
-      })
+      .processWebhook(testLineId)
       .then(result => {
         logger.info('✅ Simple webhook processing completed', {
           webhookId,
