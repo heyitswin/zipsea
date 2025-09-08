@@ -2,21 +2,6 @@
  07/28
  525
 
- node scripts/simple-ftp-sync-quickfix.js
- Commands to Run After Deploy:
-
-  # 1. Recreate schema with all fixes
-  cd backend
-  node scripts/recreate-complete-schema.js
-
-  # 2. Sync all data with pricing
-  FORCE_UPDATE=true SYNC_YEARS=2026 SYNC_MONTH=06 node scripts/sync-complete-data.js
-
-  # 3. Test critical features
-  node scripts/test-critical-features.js
-
-  # 4. Test specific direct search
-  curl "https://zipsea-production.onrender.com/api/v1/search/by-ship?shipName=Symphony%20of%20the%20Seas&departureDate=2025-10-5"
 
 curl -X POST "https://zipsea-production.onrender.com/api/webhooks/traveltek/cruiseline-pricing-updated" \
   -H "Content-Type: application/json" \
@@ -30,16 +15,54 @@ curl -X POST "https://zipsea-production.onrender.com/api/webhooks/traveltek/crui
     "timestamp": 1234567890
   }'
 
-  First, recreate the database schema with enhanced fields:**
-```bash
-node scripts/schema-enhanced.js
-```
+psql $DATABASE_URL -c "SELECT MIN(sailing_date), MAX(sailing_date) FROM cruises;"
+SYNC_YEAR=2027 SYNC_MONTH=03 node scripts/sync-complete-enhanced.js
 
-2. **Test the sync process:**
-```bash
-node scripts/test-initial-sync.js
-```
+  TRAVELTEK_FTP_HOST=ftpeu1prod.traveltek.net
+TRAVELTEK_FTP_PASSWORD=m#?jRSY3K$y!9r3?
+TRAVELTEK_FTP_USER=CEP_9_USD
 
-3. **Run the full initial sync:**
-```bash
-node scripts/initial-ftp-sync.js
+# 1. Check data counts
+psql $DATABASE_URL -c "
+SELECT
+  (SELECT COUNT(*) FROM cruises) as cruises,
+  (SELECT COUNT(*) FROM cruise_lines) as lines,
+  (SELECT COUNT(*) FROM ships) as ships,
+  (SELECT COUNT(*) FROM ports) as ports,
+  (SELECT COUNT(*) FROM regions) as regions;"
+
+# 2. Verify raw JSON is being stored (MOST IMPORTANT)
+psql $DATABASE_URL -c "
+SELECT
+  COUNT(*) as total_cruises,
+  COUNT(raw_data) as has_complete_json,
+  AVG(LENGTH(raw_data::text)) as avg_json_size
+FROM cruises;"
+
+# 3. Check nested data preservation (2-3 levels deep)
+psql $DATABASE_URL -c "
+SELECT
+  id,
+  raw_data->>'name' as name,
+  raw_data->'shipcontent'->>'name' as ship_name,
+  raw_data->'cheapest'->'combined' IS NOT NULL as has_pricing,
+  jsonb_array_length(raw_data->'itinerary') as itinerary_days
+FROM cruises
+WHERE raw_data IS NOT NULL
+LIMIT 3;"
+
+# 4. Verify foreign keys are working
+psql $DATABASE_URL -c "
+SELECT
+  c.id, c.name, cl.name as line, s.name as ship, p.name as port
+FROM cruises c
+JOIN cruise_lines cl ON c.cruise_line_id = cl.id
+JOIN ships s ON c.ship_id = s.id
+LEFT JOIN ports p ON c.embarkation_port_id = p.id
+LIMIT 3;"
+
+
+
+node scripts/test-webhook-batching.js
+node scripts/test-webhook-traveltek.js 21 production
+curl https://zipsea-production.onrender.com/api/admin/pending-syncs

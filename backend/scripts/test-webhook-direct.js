@@ -1,72 +1,101 @@
 #!/usr/bin/env node
 
+/**
+ * Direct webhook test - triggers actual webhook processing
+ * This sends a real webhook to the cruiseline-pricing-updated endpoint
+ */
+
 const axios = require('axios');
 
-const BASE_URL = process.env.BASE_URL || 'https://zipsea-production.onrender.com';
+// Configuration
+const API_BASE_URL = process.env.API_URL || 'https://zipsea-backend.onrender.com';
 
-async function testWebhookEndpoint() {
-  console.log('🔍 Testing webhook endpoint directly...');
-  console.log(`📍 Target: ${BASE_URL}/api/webhooks/traveltek/cruiseline-pricing-updated`);
+// Test cruise lines with their webhook line IDs
+const TEST_LINES = [
+  { id: 14, name: 'Holland America', expectedCruises: 1228 },
+  { id: 104, name: 'Viking', expectedCruises: 6861 },
+  { id: 24, name: 'MSC Cruises', expectedCruises: 6428 },
+  { id: 32, name: 'Royal Caribbean', expectedCruises: 3449 },
+];
 
-  const webhookPayload = {
-    event: 'cruiseline_pricing_updated',
-    lineid: 22, // Royal Caribbean
-    marketid: 1,
-    currency: 'USD',
-    description: 'Direct test of webhook endpoint',
-    source: 'test_script',
-    timestamp: Math.floor(Date.now() / 1000)
-  };
+async function sendWebhook(lineId, lineName) {
+  console.log(`\n📤 Sending webhook for ${lineName} (Line ID: ${lineId})`);
 
   try {
-    console.log('\n📤 Sending webhook payload:', JSON.stringify(webhookPayload, null, 2));
+    const webhookPayload = {
+      event: 'cruiseline_pricing_updated',
+      lineid: lineId,
+      currency: 'USD',
+      timestamp: new Date().toISOString(),
+    };
 
     const response = await axios.post(
-      `${BASE_URL}/api/webhooks/traveltek/cruiseline-pricing-updated`,
+      `${API_BASE_URL}/api/webhooks/traveltek/cruiseline-pricing-updated`,
       webhookPayload,
       {
         headers: {
           'Content-Type': 'application/json',
-          'X-Test-Webhook': 'direct-test'
+          'User-Agent': 'Webhook-Test-Direct',
         },
-        timeout: 10000
+        timeout: 10000,
       }
     );
 
-    console.log('\n✅ Response received:');
-    console.log('Status:', response.status);
-    console.log('Data:', JSON.stringify(response.data, null, 2));
-
-    if (response.data.webhookId) {
-      console.log('\n🔑 Webhook ID:', response.data.webhookId);
-      console.log('⏱️ Processing mode:', response.data.processingMode);
+    console.log(`✅ Response: ${response.status}`);
+    if (response.data) {
+      console.log(`   Message: ${response.data.message || 'Processing started'}`);
+      if (response.data.jobId) {
+        console.log(`   Job ID: ${response.data.jobId}`);
+      }
     }
-
-    // Also test the generic endpoint
-    console.log('\n📤 Testing generic /traveltek endpoint...');
-    const genericResponse = await axios.post(
-      `${BASE_URL}/api/webhooks/traveltek`,
-      webhookPayload,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Test-Webhook': 'direct-test-generic'
-        },
-        timeout: 10000
-      }
-    );
-
-    console.log('\n✅ Generic endpoint response:');
-    console.log('Status:', genericResponse.status);
-    console.log('Data:', JSON.stringify(genericResponse.data, null, 2));
-
+    return true;
   } catch (error) {
-    console.error('\n❌ Error testing webhook:', error.message);
+    console.error(`❌ Error: ${error.message}`);
     if (error.response) {
-      console.error('Response status:', error.response.status);
-      console.error('Response data:', error.response.data);
+      console.error(`   Status: ${error.response.status}`);
+      if (error.response.data) {
+        console.error(`   Response:`, error.response.data);
+      }
     }
+    return false;
   }
 }
 
-testWebhookEndpoint();
+async function main() {
+  console.log('='.repeat(60));
+  console.log('🚀 Direct Webhook Test');
+  console.log(`📍 Target: ${API_BASE_URL}`);
+  console.log('='.repeat(60));
+
+  // Get line ID from command line or use default
+  const lineIdArg = process.argv[2];
+
+  if (lineIdArg) {
+    const lineId = parseInt(lineIdArg);
+    const line = TEST_LINES.find(l => l.id === lineId);
+    const name = line ? line.name : `Line ${lineId}`;
+    await sendWebhook(lineId, name);
+  } else {
+    console.log('\nUsage: node test-webhook-direct.js [lineId]');
+    console.log('\nAvailable test lines:');
+    TEST_LINES.forEach(line => {
+      console.log(`  ${line.id}: ${line.name} (~${line.expectedCruises} cruises)`);
+    });
+    console.log('\nTesting Holland America (small) and Viking (large)...\n');
+
+    // Test small line
+    await sendWebhook(14, 'Holland America');
+
+    // Wait a bit
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Test large line
+    await sendWebhook(104, 'Viking');
+  }
+
+  console.log('\n' + '='.repeat(60));
+  console.log('✅ Test complete - check Slack for processing updates');
+  console.log('='.repeat(60));
+}
+
+main().catch(console.error);

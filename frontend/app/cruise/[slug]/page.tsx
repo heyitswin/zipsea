@@ -692,7 +692,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Title and Description */}
-                  <div className="md:w-80 px-5 py-4 md:py-3">
+                  <div
+                    className="px-5 py-4 md:py-3"
+                    style={{ minWidth: "480px", maxWidth: "520px" }}
+                  >
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       Inside Cabin
                     </h3>
@@ -703,7 +706,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block */}
-                  <div className="px-5 md:px-0 md:pr-5 md:-ml-5 text-center md:text-left">
+                  <div className="flex-1 px-5 md:px-8 text-center md:text-center">
                     <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                       STARTING FROM
                     </div>
@@ -779,7 +782,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Title and Description */}
-                  <div className="md:w-80 px-5 py-4 md:py-3">
+                  <div
+                    className="px-5 py-4 md:py-3"
+                    style={{ minWidth: "480px", maxWidth: "520px" }}
+                  >
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       Outside Cabin
                     </h3>
@@ -790,7 +796,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block */}
-                  <div className="px-5 md:px-0 md:pr-5 md:-ml-5 text-center md:text-left">
+                  <div className="flex-1 px-5 md:px-8 text-center md:text-center">
                     <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                       STARTING FROM
                     </div>
@@ -866,7 +872,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Title and Description */}
-                  <div className="md:w-80 px-5 py-4 md:py-3">
+                  <div
+                    className="px-5 py-4 md:py-3"
+                    style={{ minWidth: "480px", maxWidth: "520px" }}
+                  >
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       Balcony Cabin
                     </h3>
@@ -877,7 +886,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block */}
-                  <div className="px-5 md:px-0 md:pr-5 md:-ml-5 text-center md:text-left">
+                  <div className="flex-1 px-5 md:px-8 text-center md:text-center">
                     <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                       STARTING FROM
                     </div>
@@ -953,7 +962,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Title and Description */}
-                  <div className="md:w-80 px-5 py-4 md:py-3">
+                  <div
+                    className="px-5 py-4 md:py-3"
+                    style={{ minWidth: "480px", maxWidth: "520px" }}
+                  >
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       Suite Cabin
                     </h3>
@@ -964,7 +976,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block */}
-                  <div className="px-5 md:px-0 md:pr-5 md:-ml-5 text-center md:text-left">
+                  <div className="flex-1 px-5 md:px-8 text-center md:text-center">
                     <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                       STARTING FROM
                     </div>
