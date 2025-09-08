@@ -1363,9 +1363,10 @@ function HomeWithParams() {
           {!isLoadingDeals && lastMinuteDeals.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {lastMinuteDeals.slice(0, 6).map((deal) => {
-                // Calculate OBC as 8% of cheapest pricing, rounded down to nearest $10
+                // Use OBC from backend (10% of cheapest pricing) or calculate if missing
                 const obc =
-                  Math.floor((deal.cheapest_pricing * 0.08) / 10) * 10;
+                  deal.onboard_credit ||
+                  Math.floor((deal.cheapest_pricing * 0.1) / 10) * 10;
 
                 // Calculate return date from sailing_date + nights
                 const sailingDate = new Date(deal.sailing_date);

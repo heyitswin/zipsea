@@ -220,14 +220,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   };
 
   // Helper function to check if an itinerary day should be non-interactive
-  const isSeaDayWithoutContent = (day: any) => {
-    if (!day) return false;
-
-    // Check if port name indicates it's a sea day
-    const isSeaDay =
-      day.portName?.toLowerCase().includes("at sea") ||
-      day.portName?.toLowerCase().includes("sea day") ||
-      day.portName?.toLowerCase().includes("cruising");
+  const isDayWithoutContent = (day: any) => {
+    if (!day) return true;
 
     // Check if there's meaningful content to show
     const hasContent =
@@ -236,7 +230,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       (day.departureTime && day.departureTime.trim().length > 0) ||
       day.overnight;
 
-    return isSeaDay && !hasContent;
+    return !hasContent;
   };
 
   const calculateReturnDate = (
@@ -1024,7 +1018,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             {/* Accordion Itinerary */}
             <div className="space-y-3 md:space-y-4">
               {cruiseData.itinerary.map((day, index) => {
-                const isNonInteractive = isSeaDayWithoutContent(day);
+                const isNonInteractive = isDayWithoutContent(day);
 
                 return (
                   <div
@@ -1032,7 +1026,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200"
                   >
                     {isNonInteractive ? (
-                      /* Non-interactive sea day header */
+                      /* Non-interactive day header (no content to expand) */
                       <div className="w-full px-6 md:px-8 py-4 md:py-6 text-left">
                         <h3
                           className="font-geograph font-medium text-[16px] md:text-[20px]"
