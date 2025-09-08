@@ -1,5 +1,7 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { cruiseController } from '../controllers/cruise.controller';
+import { db } from '../db/connection';
+import { sql } from 'drizzle-orm';
 
 const router = Router();
 
@@ -8,6 +10,63 @@ const router = Router();
  * List cruises with pagination and basic filters
  */
 router.get('/', cruiseController.listCruises.bind(cruiseController));
+
+/**
+ * GET /api/v1/cruises/available-dates
+ * Get available sailing dates for a specific ship
+ */
+router.get('/available-dates', async (req: Request, res: Response) => {
+  try {
+    const shipId = parseInt(req.query.shipId as string);
+
+    if (!shipId || isNaN(shipId)) {
+      return res.status(400).json({
+        error: 'Invalid shipId parameter',
+        message: 'Please provide a valid numeric shipId',
+      });
+    }
+
+    const result = await db.execute(sql`
+      SELECT DISTINCT
+        c.id,
+        c.cruise_id,
+        c.name,
+        c.sailing_date,
+        c.nights,
+        ep.name as embark_port_name,
+        dp.name as disembark_port_name,
+        MIN(CAST(p.price AS DECIMAL)) as min_price
+      FROM cruises c
+      LEFT JOIN pricing p ON c.id = p.cruise_id
+      LEFT JOIN ports ep ON c.embarkation_port_id = ep.id
+      LEFT JOIN ports dp ON c.disembarkation_port_id = dp.id
+      WHERE c.ship_id = ${shipId}
+        AND c.sailing_date >= CURRENT_DATE
+        AND c.is_active = true
+      GROUP BY
+        c.id,
+        c.cruise_id,
+        c.name,
+        c.sailing_date,
+        c.nights,
+        ep.name,
+        dp.name
+      ORDER BY c.sailing_date ASC
+    `);
+
+    return res.json({
+      shipId,
+      dates: result.rows || [],
+      count: result.rows?.length || 0,
+    });
+  } catch (error) {
+    console.error('Error fetching available dates:', error);
+    return res.status(500).json({
+      error: 'Failed to fetch available dates',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
 
 /**
  * GET /api/v1/cruises/last-minute-deals
@@ -63,7 +122,10 @@ router.get('/slug/:slug', cruiseController.getCruiseBySlug.bind(cruiseController
  * GET /api/v1/cruises/:id/comprehensive
  * Get comprehensive cruise data with ALL database fields
  */
-router.get('/:id/comprehensive', cruiseController.getComprehensiveCruiseData.bind(cruiseController));
+router.get(
+  '/:id/comprehensive',
+  cruiseController.getComprehensiveCruiseData.bind(cruiseController)
+);
 
 /**
  * GET /api/v1/cruises/:id/dump
