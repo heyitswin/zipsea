@@ -266,9 +266,9 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     return Math.floor(rawCredit / 10) * 10; // Round down to nearest $10
   };
 
-  // Helper function to get cabin image based on cabin type
-  const getCabinImage = (cabinType: string) => {
-    if (!cruiseData?.cabinCategories) return null;
+  // Helper function to get cabin data (image and description) based on cabin type
+  const getCabinData = (cabinType: string) => {
+    if (!cruiseData?.cabinCategories) return { image: null, description: null };
 
     const normalizedType = cabinType.toLowerCase();
     let targetCategory = "";
@@ -297,10 +297,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         cabin.name.toLowerCase().includes(targetCategory),
     );
 
-    return cabinCategory
-      ? cabinCategory.imageUrlHd || cabinCategory.imageUrl
-      : null;
+    return {
+      image: cabinCategory
+        ? cabinCategory.imageUrlHd || cabinCategory.imageUrl
+        : null,
+      description: cabinCategory?.description || null,
+    };
   };
+
+  // Convenience functions for backward compatibility
+  const getCabinImage = (cabinType: string) => getCabinData(cabinType).image;
+  const getCabinDescription = (cabinType: string) =>
+    getCabinData(cabinType).description;
 
   if (isLoading) {
     return (
@@ -683,8 +691,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       Inside Cabin
                     </h3>
                     <p className="font-geograph text-[14px] text-gray-600 leading-relaxed">
-                      Comfortable interior stateroom with twin beds that can
-                      convert to queen
+                      {getCabinDescription("interior") ||
+                        "Comfortable interior stateroom with twin beds that can convert to queen"}
                     </p>
                   </div>
 
@@ -770,8 +778,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       Outside Cabin
                     </h3>
                     <p className="font-geograph text-[14px] text-gray-600 leading-relaxed">
-                      Ocean view stateroom with window and twin beds that can
-                      convert to queen
+                      {getCabinDescription("oceanview") ||
+                        "Ocean view stateroom with window and twin beds that can convert to queen"}
                     </p>
                   </div>
 
@@ -857,8 +865,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       Balcony Cabin
                     </h3>
                     <p className="font-geograph text-[14px] text-gray-600 leading-relaxed">
-                      Private balcony stateroom with sliding glass door and
-                      ocean views
+                      {getCabinDescription("balcony") ||
+                        "Private balcony stateroom with sliding glass door and ocean views"}
                     </p>
                   </div>
 
@@ -944,8 +952,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       Suite Cabin
                     </h3>
                     <p className="font-geograph text-[14px] text-gray-600 leading-relaxed">
-                      Spacious suite with separate living area, private balcony,
-                      and premium amenities
+                      {getCabinDescription("suite") ||
+                        "Spacious suite with separate living area, private balcony, and premium amenities"}
                     </p>
                   </div>
 

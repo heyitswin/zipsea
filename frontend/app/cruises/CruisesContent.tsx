@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { useAdmin } from "../hooks/useAdmin";
+import { useUser } from "../hooks/useClerkHooks";
 
 interface Cruise {
   id: string;
@@ -48,6 +50,8 @@ interface FilterState {
 export default function CruisesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isAdmin, loading: adminLoading } = useAdmin();
+  const { isLoaded } = useUser();
   const [cruises, setCruises] = useState<Cruise[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -62,6 +66,13 @@ export default function CruisesContent() {
     Array<{ id: string; name: string }>
   >([]);
 
+  // Check admin access
+  useEffect(() => {
+    if (isLoaded && !adminLoading && !isAdmin) {
+      router.push("/");
+    }
+  }, [isLoaded, adminLoading, isAdmin, router]);
+
   // Filter state
   const [filters, setFilters] = useState<FilterState>({
     cruiseLine: [],
@@ -69,7 +80,7 @@ export default function CruisesContent() {
     price: {},
     sailingDate: {},
     embarkPort: [],
-    sort: "recommended",
+    sort: "price",
     sortDirection: "asc",
   });
 
@@ -130,7 +141,7 @@ export default function CruisesContent() {
         ...(sailingEnd && { end: sailingEnd }),
       },
       embarkPort: embarkPort ? embarkPort.split(",") : [],
-      sort: (sort as FilterState["sort"]) || "recommended",
+      sort: (sort as FilterState["sort"]) || "price",
       sortDirection: (sortDirection as FilterState["sortDirection"]) || "asc",
     }));
   }, [searchParams]);
@@ -240,6 +251,20 @@ export default function CruisesContent() {
     return prices.length > 0 ? Math.min(...prices) : cruise.cheapestPrice;
   };
 
+  // Show loading while checking admin status
+  if (!isLoaded || adminLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render content if not admin (redirect will happen)
+  if (!isAdmin) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -288,7 +313,6 @@ export default function CruisesContent() {
                   }}
                   className="w-full px-3 py-2 border rounded-lg"
                 >
-                  <option value="recommended-asc">Recommended</option>
                   <option value="price-asc">Price: Low to High</option>
                   <option value="price-desc">Price: High to Low</option>
                   <option value="date-asc">Date: Soonest First</option>
@@ -298,23 +322,25 @@ export default function CruisesContent() {
                 </select>
               </div>
 
-              {/* Cruise Lines */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-2">Cruise Lines</h3>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {availableCruiseLines.map((line) => (
-                    <label key={line.id} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={filters.cruiseLine.includes(line.id)}
-                        onChange={() => toggleCruiseLine(line.id)}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">{line.name}</span>
-                    </label>
-                  ))}
+              {/* Cruise Lines - Only show if we have data */}
+              {availableCruiseLines.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-medium mb-2">Cruise Lines</h3>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {availableCruiseLines.map((line) => (
+                      <label key={line.id} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={filters.cruiseLine.includes(line.id)}
+                          onChange={() => toggleCruiseLine(line.id)}
+                          className="mr-2"
+                        />
+                        <span className="text-sm">{line.name}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Nights Range */}
               <div className="mb-6">
@@ -419,23 +445,25 @@ export default function CruisesContent() {
                 </div>
               </div>
 
-              {/* Embark Ports */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-2">Departure Port</h3>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {availablePorts.map((port) => (
-                    <label key={port.id} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={filters.embarkPort.includes(port.id)}
-                        onChange={() => togglePort(port.id)}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">{port.name}</span>
-                    </label>
-                  ))}
+              {/* Embark Ports - Only show if we have data */}
+              {availablePorts.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-medium mb-2">Departure Port</h3>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {availablePorts.map((port) => (
+                      <label key={port.id} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={filters.embarkPort.includes(port.id)}
+                          onChange={() => togglePort(port.id)}
+                          className="mr-2"
+                        />
+                        <span className="text-sm">{port.name}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Clear Filters */}
               <button
@@ -446,7 +474,7 @@ export default function CruisesContent() {
                     price: {},
                     sailingDate: {},
                     embarkPort: [],
-                    sort: "recommended",
+                    sort: "price",
                     sortDirection: "asc",
                   });
                 }}
