@@ -1,7 +1,7 @@
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { db } from '../db/connection';
 import { logger } from '../config/logger';
-import { cruises, pricing, cheapestPricing, ships, cruiseLines } from '../db/schema';
+import { cruises, pricing, cheapestPricing, ships, cruiseLines, ports } from '../db/schema';
 import { traveltekFTPService } from './traveltek-ftp.service';
 import { dataSyncService } from './data-sync.service';
 import { cacheManager, searchCache, cruiseCache } from '../cache/cache-manager';
@@ -49,6 +49,94 @@ export interface WebhookBookingData {
 
 export class EnhancedWebhookService {
   private lineLockTTL = 600; // 10 minutes lock timeout
+
+  /**
+   * Validate foreign key constraints before insert/update
+   */
+  private async validateForeignKeys(data: any): Promise<{
+    valid: boolean;
+    errors: string[];
+    fixedData: any;
+  }> {
+    const errors: string[] = [];
+    const fixedData = { ...data };
+
+    try {
+      // 1. Validate ship belongs to the correct line
+      if (data.shipid && data.lineid) {
+        const shipCheck = await db
+          .select({ cruiseLineId: ships.cruiseLineId })
+          .from(ships)
+          .where(eq(ships.id, data.shipid))
+          .limit(1);
+
+        if (shipCheck.length > 0) {
+          if (shipCheck[0].cruiseLineId !== data.lineid) {
+            // Ship belongs to different line - use ship's actual line
+            logger.warn(
+              `⚠️ Ship ${data.shipid} belongs to line ${shipCheck[0].cruiseLineId}, not ${data.lineid}. Using ship's line.`
+            );
+            fixedData.lineid = shipCheck[0].cruiseLineId;
+          }
+        } else {
+          errors.push(`Ship ${data.shipid} does not exist`);
+        }
+      }
+
+      // 2. Validate ports exist, set to null if not
+      if (data.startportid) {
+        const portCheck = await db
+          .select({ id: ports.id })
+          .from(ports)
+          .where(eq(ports.id, data.startportid))
+          .limit(1);
+
+        if (portCheck.length === 0) {
+          logger.warn(`⚠️ Start port ${data.startportid} does not exist, setting to null`);
+          fixedData.startportid = null;
+        }
+      }
+
+      if (data.endportid) {
+        const portCheck = await db
+          .select({ id: ports.id })
+          .from(ports)
+          .where(eq(ports.id, data.endportid))
+          .limit(1);
+
+        if (portCheck.length === 0) {
+          logger.warn(`⚠️ End port ${data.endportid} does not exist, setting to null`);
+          fixedData.endportid = null;
+        }
+      }
+
+      // 3. Validate cruise line exists
+      if (fixedData.lineid) {
+        const lineCheck = await db
+          .select({ id: cruiseLines.id })
+          .from(cruiseLines)
+          .where(eq(cruiseLines.id, fixedData.lineid))
+          .limit(1);
+
+        if (lineCheck.length === 0) {
+          errors.push(`Cruise line ${fixedData.lineid} does not exist`);
+        }
+      }
+
+      return {
+        valid: errors.length === 0,
+        errors,
+        fixedData,
+      };
+    } catch (error) {
+      logger.error('Error validating foreign keys:', error);
+      return {
+        valid: false,
+        errors: ['Foreign key validation failed'],
+        fixedData,
+      };
+    }
+  }
 
   /**
    * Check if webhooks are paused system-wide
