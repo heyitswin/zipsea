@@ -1037,6 +1037,68 @@ router.get('/traveltek/ftp-status', async (req: Request, res: Response) => {
 });
 
 /**
+ * Minimal test endpoint to verify webhook processing
+ * Usage: POST /api/webhooks/traveltek/test-minimal
+ */
+router.post('/traveltek/test-minimal', async (req: Request, res: Response) => {
+  const testLineId = req.body.lineId || 41;
+  const webhookId = `minimal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  logger.info('🧪 Minimal test webhook triggered', {
+    lineId: testLineId,
+    webhookId,
+  });
+
+  // Immediately return success
+  res.json({
+    success: true,
+    message: 'Minimal test webhook accepted',
+    lineId: testLineId,
+    webhookId,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Process in background
+  setTimeout(async () => {
+    try {
+      logger.info(`📦 Processing minimal webhook ${webhookId} for line ${testLineId}`);
+
+      // Get cruise count
+      const cruiseCount = await db.execute(sql`
+        SELECT COUNT(*) as count
+        FROM cruises
+        WHERE cruise_line_id = ${testLineId}
+          AND sailing_date >= CURRENT_DATE
+      `);
+
+      logger.info(`✅ Line ${testLineId} has ${cruiseCount[0].count} future cruises`, {
+        webhookId,
+      });
+
+      // For testing, just update the first cruise
+      if (parseInt(cruiseCount[0].count as string) > 0) {
+        const updateResult = await db.execute(sql`
+          UPDATE cruises
+          SET updated_at = NOW()
+          WHERE cruise_line_id = ${testLineId}
+            AND sailing_date >= CURRENT_DATE
+          LIMIT 1
+        `);
+
+        logger.info(`✅ Updated 1 cruise for line ${testLineId}`, {
+          webhookId,
+        });
+      }
+    } catch (error) {
+      logger.error(`❌ Minimal webhook processing failed`, {
+        webhookId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }, 100);
+});
+
+/**
  * Get queue status for V2 processor
  * Usage: GET /api/webhooks/traveltek/queue-status
  */
