@@ -1037,48 +1037,109 @@ router.get('/traveltek/ftp-status', async (req: Request, res: Response) => {
 });
 
 /**
+ * Get queue status for V2 processor
+ * Usage: GET /api/webhooks/traveltek/queue-status
+ */
+router.get('/traveltek/queue-status', async (req: Request, res: Response) => {
+  try {
+    const { webhookProcessorV2 } = await import('../services/webhook-processor-v2.service');
+    const stats = await webhookProcessorV2.getQueueStats();
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      queue: stats || { message: 'Queue not available' },
+    });
+  } catch (error) {
+    logger.error('Error getting queue status:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+/**
  * Test webhook endpoint for triggering webhook processing
  * Usage: POST /api/webhooks/traveltek/test with { "lineId": 22 }
  */
 router.post('/traveltek/test', async (req: Request, res: Response) => {
   const testLineId = req.body.lineId || 22; // Default to Royal Caribbean for testing
+  const useV2 = req.body.useV2 !== false; // Default to V2 processor
   const webhookId = `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
   logger.info('🧪 Test webhook triggered', {
     lineId: testLineId,
     webhookId,
+    useV2,
     requestBody: req.body,
   });
 
-  // Send immediate response
-  res.json({
-    success: true,
-    message: 'Test webhook triggered successfully',
-    lineId: testLineId,
-    webhookId,
-    note: 'Processing started - check logs and Slack for progress updates',
-    timestamp: new Date().toISOString(),
-  });
-
-  // Trigger test processing asynchronously
   try {
-    await enhancedWebhookService.processCruiselinePricingUpdate({
-      eventType: 'test_cruiseline_pricing_updated',
-      lineId: testLineId,
-      timestamp: String(Date.now()),
-      webhookId,
-    });
+    if (useV2) {
+      // Use new V2 queue-based processor
+      const { webhookProcessorV2 } = await import('../services/webhook-processor-v2.service');
+      const jobId = await webhookProcessorV2.queueWebhook({
+        eventType: 'test_cruiseline_pricing_updated',
+        lineId: testLineId,
+        timestamp: String(Date.now()),
+        testMode: true,
+      });
 
-    logger.info('✅ Test webhook processing initiated', {
-      webhookId,
-      lineId: testLineId,
-    });
+      logger.info('✅ Test webhook queued with V2 processor', {
+        webhookId,
+        jobId,
+        lineId: testLineId,
+      });
+
+      res.json({
+        success: true,
+        message: 'Test webhook queued for processing (V2)',
+        lineId: testLineId,
+        webhookId,
+        jobId,
+        processor: 'v2-queue-based',
+        note: 'Processing in background queue - check /api/webhooks/traveltek/queue-status for progress',
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      // Use old enhanced processor (for comparison)
+      res.json({
+        success: true,
+        message: 'Test webhook triggered successfully',
+        lineId: testLineId,
+        webhookId,
+        processor: 'v1-enhanced',
+        note: 'Processing started - check logs and Slack for progress updates',
+        timestamp: new Date().toISOString(),
+      });
+
+      // Trigger old processing asynchronously
+      await enhancedWebhookService.processCruiselinePricingUpdate({
+        eventType: 'test_cruiseline_pricing_updated',
+        lineId: testLineId,
+        timestamp: String(Date.now()),
+        webhookId,
+      });
+
+      logger.info('✅ Test webhook processing initiated', {
+        webhookId,
+        lineId: testLineId,
+      });
+    }
   } catch (error) {
     logger.error('❌ Test webhook processing failed:', {
       webhookId,
       lineId: testLineId,
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
     });
   }
 });
