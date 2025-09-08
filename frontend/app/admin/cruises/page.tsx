@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 
 interface Cruise {
   id: string;
@@ -27,6 +27,7 @@ interface Cruise {
 export default function AdminCruises() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
   const [cruises, setCruises] = useState<Cruise[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,9 +75,9 @@ export default function AdminCruises() {
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/admin/cruises?${params.toString()}`,
         {
           headers: {
-            Authorization: `Bearer ${await user?.getToken()}`,
+            Authorization: `Bearer ${await getToken()}`,
           },
-        }
+        },
       );
 
       if (!response.ok) throw new Error("Failed to fetch cruises");
@@ -86,8 +87,16 @@ export default function AdminCruises() {
       setTotalPages(Math.ceil(data.data.total / itemsPerPage));
 
       // Extract unique cruise lines and ships for filters
-      const uniqueCruiseLines = [...new Set(data.data.cruises.map((c: Cruise) => c.cruise_line_name))].filter(Boolean).sort();
-      const uniqueShips = [...new Set(data.data.cruises.map((c: Cruise) => c.ship_name))].filter(Boolean).sort();
+      const uniqueCruiseLines = [
+        ...new Set(data.data.cruises.map((c: Cruise) => c.cruise_line_name)),
+      ]
+        .filter(Boolean)
+        .sort();
+      const uniqueShips = [
+        ...new Set(data.data.cruises.map((c: Cruise) => c.ship_name)),
+      ]
+        .filter(Boolean)
+        .sort();
       setCruiseLines(uniqueCruiseLines);
       setShips(uniqueShips);
     } catch (error) {
@@ -141,7 +150,9 @@ export default function AdminCruises() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900">Cruise Management</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Cruise Management
+            </h1>
           </div>
 
           {/* Filters */}
@@ -219,43 +230,57 @@ export default function AdminCruises() {
                     onClick={() => handleSort("cruise_id")}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
-                    ID {sortField === "cruise_id" && (sortDirection === "asc" ? "↑" : "↓")}
+                    ID{" "}
+                    {sortField === "cruise_id" &&
+                      (sortDirection === "asc" ? "↑" : "↓")}
                   </th>
                   <th
                     onClick={() => handleSort("name")}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
-                    Name {sortField === "name" && (sortDirection === "asc" ? "↑" : "↓")}
+                    Name{" "}
+                    {sortField === "name" &&
+                      (sortDirection === "asc" ? "↑" : "↓")}
                   </th>
                   <th
                     onClick={() => handleSort("cruise_line_name")}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
-                    Cruise Line {sortField === "cruise_line_name" && (sortDirection === "asc" ? "↑" : "↓")}
+                    Cruise Line{" "}
+                    {sortField === "cruise_line_name" &&
+                      (sortDirection === "asc" ? "↑" : "↓")}
                   </th>
                   <th
                     onClick={() => handleSort("ship_name")}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
-                    Ship {sortField === "ship_name" && (sortDirection === "asc" ? "↑" : "↓")}
+                    Ship{" "}
+                    {sortField === "ship_name" &&
+                      (sortDirection === "asc" ? "↑" : "↓")}
                   </th>
                   <th
                     onClick={() => handleSort("sailing_date")}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
-                    Sailing Date {sortField === "sailing_date" && (sortDirection === "asc" ? "↑" : "↓")}
+                    Sailing Date{" "}
+                    {sortField === "sailing_date" &&
+                      (sortDirection === "asc" ? "↑" : "↓")}
                   </th>
                   <th
                     onClick={() => handleSort("nights")}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
-                    Nights {sortField === "nights" && (sortDirection === "asc" ? "↑" : "↓")}
+                    Nights{" "}
+                    {sortField === "nights" &&
+                      (sortDirection === "asc" ? "↑" : "↓")}
                   </th>
                   <th
                     onClick={() => handleSort("cheapest_price")}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   >
-                    Price {sortField === "cheapest_price" && (sortDirection === "asc" ? "↑" : "↓")}
+                    Price{" "}
+                    {sortField === "cheapest_price" &&
+                      (sortDirection === "asc" ? "↑" : "↓")}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
@@ -319,7 +344,9 @@ export default function AdminCruises() {
                 Previous
               </button>
               <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                onClick={() =>
+                  setCurrentPage(Math.min(totalPages, currentPage + 1))
+                }
                 disabled={currentPage === totalPages}
                 className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
