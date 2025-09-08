@@ -7,7 +7,7 @@ import { dataSyncService } from './data-sync.service';
 import { cacheManager, searchCache, cruiseCache } from '../cache/cache-manager';
 import { CacheKeys } from '../cache/cache-keys';
 import { enhancedSlackService as slackService } from './slack-enhanced.service';
-import { bulkFtpDownloader } from './bulk-ftp-downloader.service';
+import { bulkFtpDownloaderFixed as bulkFtpDownloader } from './bulk-ftp-downloader-fixed.service';
 import { getDatabaseLineId } from '../config/cruise-line-mapping';
 import redisClient from '../cache/redis';
 import { priceHistoryService } from './price-history.service';
@@ -254,28 +254,40 @@ export class EnhancedWebhookService {
         // 7. Clear relevant cache entries
         await this.clearCacheForCruiseLine(databaseLineId);
 
-        // 8. Send success notification
+        // 8. Send enhanced success notification with detailed metrics
         console.log('🚨 [DEBUG] About to send Slack notification');
-        console.log('🚨 [DEBUG] slackService exists:', !!slackService);
-        console.log(
-          '🚨 [DEBUG] notifyCruiseLinePricingUpdate method exists:',
-          !!slackService?.notifyCruiseLinePricingUpdate
-        );
-        console.log('🚨 [DEBUG] Notification data:', {
-          data,
+
+        // Calculate success rate
+        const totalAttempted = downloadResult.totalFiles;
+        const successRate =
+          totalAttempted > 0
+            ? Math.round((downloadResult.successfulDownloads / totalAttempted) * 100)
+            : 0;
+
+        // Prepare enhanced notification data
+        const notificationData = {
+          lineId: data.lineId,
+          databaseLineId,
           successful: processingResult.actuallyUpdated,
           failed: processingResult.failed,
-        });
+          created: processingResult.created,
+          totalFiles: downloadResult.totalFiles,
+          successfulDownloads: downloadResult.successfulDownloads,
+          failedDownloads: downloadResult.failedDownloads,
+          corruptedFiles: downloadResult.corruptedFiles || 0,
+          fileNotFoundErrors: downloadResult.fileNotFoundErrors,
+          parseErrors: downloadResult.parseErrors,
+          successRate,
+          duration: downloadResult.duration,
+        };
 
         try {
-          await slackService.notifyCruiseLinePricingUpdate(data, {
-            successful: processingResult.actuallyUpdated,
-            failed: processingResult.failed,
-          });
+          // Send enhanced notification with corruption details
+          await slackService.notifyEnhancedWebhookUpdate(notificationData);
           console.log('🚨 [DEBUG] Slack notification sent successfully');
         } catch (slackError) {
           console.error('🚨 [DEBUG] Slack notification error:', slackError);
-          throw slackError;
+          // Don't throw - we don't want notification failures to break the webhook
         }
       } finally {
         // Always release the lock
@@ -461,12 +473,181 @@ export class EnhancedWebhookService {
   }
 
   /**
+   * Extract and update cheapest pricing from webhook data
+   * This is critical for search and display functionality
+   */
+  private async extractAndUpdateCheapestPricing(cruiseId: string, data: any): Promise<void> {
+    try {
+      logger.info(`🏷️ Extracting cheapest pricing for cruise ${cruiseId}`);
+
+      // Check if data has cheapest field (preferred)
+      if (data.cheapest && data.cheapest.combined) {
+        const combined = data.cheapest.combined;
+
+        // Find the actual cheapest price across all cabin types
+        const prices = [combined.inside, combined.outside, combined.balcony, combined.suite].filter(
+          p => p && p > 0
+        );
+
+        const cheapestPrice = prices.length > 0 ? Math.min(...prices) : null;
+
+        // Determine which cabin type is cheapest
+        let cheapestCabinType = 'inside';
+        if (cheapestPrice) {
+          if (cheapestPrice === combined.inside) cheapestCabinType = 'inside';
+          else if (cheapestPrice === combined.outside) cheapestCabinType = 'oceanview';
+          else if (cheapestPrice === combined.balcony) cheapestCabinType = 'balcony';
+          else if (cheapestPrice === combined.suite) cheapestCabinType = 'suite';
+        }
+
+        // Delete existing cheapest pricing record
+        await db.execute(sql`DELETE FROM cheapest_pricing WHERE cruise_id = ${cruiseId}`);
+
+        // Insert new cheapest pricing record
+        await db.insert(cheapestPricing).values({
+          cruiseId,
+          cheapestPrice,
+          interiorPrice: combined.inside || null,
+          oceanviewPrice: combined.outside || null,
+          balconyPrice: combined.balcony || null,
+          suitePrice: combined.suite || null,
+          currency: data.currency || 'USD',
+          cheapestCabinType,
+          lastUpdated: new Date(),
+          priceCode: data.cheapest.ratecode || null,
+          isComplete: true,
+        });
+
+        logger.info(`✅ Updated cheapest pricing for cruise ${cruiseId}`, {
+          cheapestPrice,
+          cabinType: cheapestCabinType,
+          hasAllTypes:
+            !!combined.inside && !!combined.outside && !!combined.balcony && !!combined.suite,
+        });
+      } else if (data.prices && typeof data.prices === 'object') {
+        // Fallback: Calculate cheapest from detailed prices
+        logger.info(`📊 Calculating cheapest pricing from detailed prices for cruise ${cruiseId}`);
+
+        let lowestPrice = null;
+        let cabinPrices = {
+          inside: null as number | null,
+          oceanview: null as number | null,
+          balcony: null as number | null,
+          suite: null as number | null,
+        };
+
+        // Iterate through all rate codes and cabin types to find cheapest
+        for (const [rateCode, cabins] of Object.entries(data.prices)) {
+          if (typeof cabins !== 'object') continue;
+
+          for (const [cabinCode, occupancies] of Object.entries(cabins as any)) {
+            if (typeof occupancies !== 'object') continue;
+
+            // Get the cabin type from the code (usually first character)
+            const cabinTypeCode = cabinCode.charAt(0).toUpperCase();
+            let cabinType: keyof typeof cabinPrices | null = null;
+
+            if (cabinTypeCode === 'I') cabinType = 'inside';
+            else if (cabinTypeCode === 'O' || cabinTypeCode === 'E') cabinType = 'oceanview';
+            else if (cabinTypeCode === 'B') cabinType = 'balcony';
+            else if (cabinTypeCode === 'S' || cabinTypeCode === 'P') cabinType = 'suite';
+
+            for (const [occupancyCode, pricingData] of Object.entries(occupancies as any)) {
+              if (typeof pricingData !== 'object') continue;
+
+              const pricing = pricingData as any;
+              const price = this.parseDecimal(pricing.price || pricing.adultprice);
+
+              if (price && price > 0) {
+                // Update lowest overall price
+                if (!lowestPrice || price < lowestPrice) {
+                  lowestPrice = price;
+                }
+
+                // Update cabin type specific price
+                if (cabinType && (!cabinPrices[cabinType] || price < cabinPrices[cabinType]!)) {
+                  cabinPrices[cabinType] = price;
+                }
+              }
+            }
+          }
+        }
+
+        if (lowestPrice) {
+          // Determine cheapest cabin type
+          let cheapestCabinType = 'inside';
+          if (lowestPrice === cabinPrices.inside) cheapestCabinType = 'inside';
+          else if (lowestPrice === cabinPrices.oceanview) cheapestCabinType = 'oceanview';
+          else if (lowestPrice === cabinPrices.balcony) cheapestCabinType = 'balcony';
+          else if (lowestPrice === cabinPrices.suite) cheapestCabinType = 'suite';
+
+          // Delete existing and insert new
+          await db.execute(sql`DELETE FROM cheapest_pricing WHERE cruise_id = ${cruiseId}`);
+
+          await db.insert(cheapestPricing).values({
+            cruiseId,
+            cheapestPrice: lowestPrice,
+            interiorPrice: cabinPrices.inside,
+            oceanviewPrice: cabinPrices.oceanview,
+            balconyPrice: cabinPrices.balcony,
+            suitePrice: cabinPrices.suite,
+            currency: data.currency || 'USD',
+            cheapestCabinType,
+            lastUpdated: new Date(),
+            priceCode: null,
+            isComplete: false, // Mark as incomplete since we calculated it
+          });
+
+          logger.info(`✅ Calculated and updated cheapest pricing for cruise ${cruiseId}`, {
+            cheapestPrice: lowestPrice,
+            cabinType: cheapestCabinType,
+            method: 'calculated_from_detailed',
+          });
+        } else {
+          logger.warn(`⚠️ No valid pricing found for cruise ${cruiseId}`);
+        }
+      } else {
+        logger.warn(`⚠️ No pricing data available for cruise ${cruiseId}`);
+      }
+
+      // Also update the cruise record with cheapest price for quick access
+      if (data.cheapest?.combined) {
+        const prices = [
+          data.cheapest.combined.inside,
+          data.cheapest.combined.outside,
+          data.cheapest.combined.balcony,
+          data.cheapest.combined.suite,
+        ].filter(p => p && p > 0);
+
+        const cheapestPrice = prices.length > 0 ? Math.min(...prices) : null;
+
+        if (cheapestPrice) {
+          await db.execute(sql`
+            UPDATE cruises
+            SET
+              cheapest_price = ${cheapestPrice},
+              has_pricing = true,
+              pricing_updated_at = NOW()
+            WHERE id = ${cruiseId}
+          `);
+        }
+      }
+    } catch (error) {
+      logger.error(`Failed to extract cheapest pricing for cruise ${cruiseId}:`, error);
+      // Don't throw - we want to continue processing even if cheapest pricing fails
+    }
+  }
+
+  /**
    * Update pricing data from cached cruise data
    */
   private async updatePricingFromCachedData(cruiseId: string, data: any): Promise<void> {
     try {
       // Delete existing pricing
       await db.execute(sql`DELETE FROM pricing WHERE cruise_id = ${cruiseId}`);
+
+      // Extract and update cheapest pricing FIRST (most important)
+      await this.extractAndUpdateCheapestPricing(cruiseId, data);
 
       // Process and insert new pricing data
       if (data.prices && typeof data.prices === 'object') {

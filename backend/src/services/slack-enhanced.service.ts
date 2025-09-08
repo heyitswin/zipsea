@@ -38,6 +38,169 @@ export class EnhancedSlackService {
   }
 
   /**
+   * Send enhanced notification with detailed FTP download metrics
+   */
+  async notifyEnhancedWebhookUpdate(data: {
+    lineId: number;
+    databaseLineId: number;
+    successful: number;
+    failed: number;
+    created: number;
+    totalFiles: number;
+    successfulDownloads: number;
+    failedDownloads: number;
+    corruptedFiles: number;
+    fileNotFoundErrors: number;
+    parseErrors: number;
+    successRate: number;
+    duration: number;
+  }): Promise<void> {
+    if (!this.enabled) return;
+
+    const lineDetails = data.lineId
+      ? await this.getCruiseLineDetails(data.databaseLineId)
+      : 'Unknown';
+    const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+
+    // Determine overall status
+    const emoji = data.successRate >= 90 ? '✅' : data.successRate >= 70 ? '⚠️' : '❌';
+    const status =
+      data.successRate >= 90 ? 'Successful' : data.successRate >= 70 ? 'Partial Success' : 'Failed';
+
+    // Calculate detailed metrics
+    const durationSec = (data.duration / 1000).toFixed(1);
+    const filesPerSec =
+      data.duration > 0 ? (data.successfulDownloads / (data.duration / 1000)).toFixed(1) : '0';
+
+    const blocks: any[] = [
+      {
+        type: 'header',
+        text: {
+          type: 'plain_text',
+          text: `${emoji} Webhook Processing: ${status}`,
+          emoji: true,
+        },
+      },
+      {
+        type: 'section',
+        fields: [
+          {
+            type: 'mrkdwn',
+            text: `*Cruise Line:*\n${lineDetails}`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Overall Success Rate:*\n${data.successRate}%`,
+          },
+        ],
+      },
+      {
+        type: 'divider',
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: '*📊 Download Statistics*',
+        },
+        fields: [
+          {
+            type: 'mrkdwn',
+            text: `*Total Files:*\n${data.totalFiles}`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Downloaded:*\n${data.successfulDownloads}`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Failed:*\n${data.failedDownloads}`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Duration:*\n${durationSec}s (${filesPerSec} files/sec)`,
+          },
+        ],
+      },
+    ];
+
+    // Add error breakdown if there are issues
+    if (data.corruptedFiles > 0 || data.fileNotFoundErrors > 0 || data.parseErrors > 0) {
+      blocks.push({
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: '*⚠️ Error Breakdown*',
+        },
+        fields: [
+          {
+            type: 'mrkdwn',
+            text: `*Corrupted JSON:*\n${data.corruptedFiles} files`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Not Found on FTP:*\n${data.fileNotFoundErrors} files`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Parse Errors:*\n${data.parseErrors} files`,
+          },
+        ],
+      });
+    }
+
+    // Add database update statistics
+    blocks.push({
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: '*💾 Database Updates*',
+      },
+      fields: [
+        {
+          type: 'mrkdwn',
+          text: `*Updated:*\n${data.successful} cruises`,
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Created:*\n${data.created} new cruises`,
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Failed:*\n${data.failed} updates`,
+        },
+      ],
+    });
+
+    // Add improvements notice
+    blocks.push({
+      type: 'context',
+      elements: [
+        {
+          type: 'mrkdwn',
+          text: `🔧 *Improvements Active:* JSON error recovery | Cheapest pricing extraction | Corrupted file handling | Enhanced error reporting`,
+        },
+      ],
+    });
+
+    blocks.push({
+      type: 'context',
+      elements: [
+        {
+          type: 'mrkdwn',
+          text: `⏰ ${timestamp}`,
+        },
+      ],
+    });
+
+    try {
+      await this.sendMessage({ blocks });
+    } catch (error) {
+      logger.error('Failed to send enhanced webhook notification to Slack:', error);
+    }
+  }
+
+  /**
    * Send enhanced notification for cruise line pricing update
    * Reflects all the new improvements
    */
