@@ -101,12 +101,12 @@ router.post(
       // Immediate acknowledgment - don't wait for processing
       res.status(200).json({
         success: true,
-        message: 'Webhook received and queued for processing',
+        message: 'Webhook received and queued for comprehensive processing',
         timestamp: new Date().toISOString(),
         webhookId,
         lineId: payload.lineid,
-        processingMode: 'async_enhanced',
-        note: 'Processing will happen asynchronously',
+        processingMode: 'comprehensive_all_cruises',
+        note: 'Processing ALL cruises for this line asynchronously',
       });
 
       // Process webhook asynchronously (don't await)
@@ -135,34 +135,32 @@ router.post(
       );
 
       try {
-        console.log(
-          '🚨 [DEBUG] Calling enhancedWebhookServiceV2.processCruiselinePricingUpdate...'
-        );
-        const promise = enhancedWebhookService.processCruiselinePricingUpdate({
-          eventType: payload.event,
-          lineId: payload.lineid,
-          timestamp: String(payload.timestamp),
-          webhookId,
-        });
-        console.log('🚨 [DEBUG] Enhanced service method called, promise:', !!promise);
+        console.log('🚨 [DEBUG] Calling comprehensiveWebhookService.processWebhook...');
 
-        logger.info('🔍 [DEBUG] Promise created from enhanced service', {
+        // Use comprehensive service for ALL cruises processing
+        const promise = comprehensiveWebhookService.processWebhook(payload.lineid);
+        console.log('🚨 [DEBUG] Comprehensive service method called, promise:', !!promise);
+
+        logger.info('🔍 [DEBUG] Promise created from comprehensive service', {
           promiseType: typeof promise,
           isPromise: promise instanceof Promise,
         });
 
         promise
-          .then(() => {
-            logger.info('📨 [WEBHOOK-PROCESSED] Enhanced webhook processing completed', {
+          .then(result => {
+            logger.info('📨 [WEBHOOK-PROCESSED] Comprehensive webhook processing completed', {
               webhookId,
               lineId: payload.lineid,
               processedAt: new Date().toISOString(),
               processingTime: Date.now() - startTime,
+              totalCruises: result.totalCruises,
+              successfulUpdates: result.successfulUpdates,
+              failedUpdates: result.failedUpdates,
               stage: 'PROCESSING_COMPLETED',
             });
           })
           .catch(error => {
-            logger.error('❌ [WEBHOOK-PROCESSING-FAILED] Enhanced processing failed', {
+            logger.error('❌ [WEBHOOK-PROCESSING-FAILED] Comprehensive processing failed', {
               webhookId,
               lineId: payload.lineid,
               error: error instanceof Error ? error.message : 'Unknown error',
@@ -172,7 +170,7 @@ router.post(
             });
           });
       } catch (syncError) {
-        logger.error('❌ [WEBHOOK-SYNC-ERROR] Synchronous error calling enhanced service', {
+        logger.error('❌ [WEBHOOK-SYNC-ERROR] Synchronous error calling comprehensive service', {
           webhookId,
           error: syncError instanceof Error ? syncError.message : 'Unknown error',
           errorStack: syncError instanceof Error ? syncError.stack : undefined,
