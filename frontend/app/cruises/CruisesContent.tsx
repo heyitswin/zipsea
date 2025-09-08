@@ -50,7 +50,7 @@ interface FilterState {
 export default function CruisesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  const { isAdmin, isLoading: adminLoading } = useAdmin();
   const { isLoaded } = useUser();
   const [cruises, setCruises] = useState<Cruise[]>([]);
   const [loading, setLoading] = useState(true);
