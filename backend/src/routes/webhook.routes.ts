@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import logger from '../config/logger';
 import { enhancedWebhookService } from '../services/webhook-enhanced.service';
 import { SimpleWebhookService } from '../services/webhook-simple.service';
+import { comprehensiveWebhookService } from '../services/webhook-comprehensive.service';
 import { db } from '../db/connection';
 import { sql } from 'drizzle-orm';
 
@@ -290,47 +291,34 @@ router.post('/traveltek', async (req: Request, res: Response, next: NextFunction
         timestamp: body.timestamp || Math.floor(Date.now() / 1000),
       };
 
-      try {
-        // Process webhook using enhanced service
-        await enhancedWebhookService.processCruiselinePricingUpdate({
-          eventType: payload.event,
-          lineId: payload.lineid,
-          timestamp: String(payload.timestamp),
-          webhookId,
-        });
+      // Return success immediately
+      res.status(200).json({
+        success: true,
+        message: 'Webhook received and queued for comprehensive processing',
+        timestamp: new Date().toISOString(),
+        event: webhookEvent,
+        webhookId,
+        lineId: payload.lineid,
+        processingMode: 'comprehensive_all_cruises',
+      });
 
-        logger.info('📨 Generic webhook processed - cruises flagged', {
-          webhookId,
-          lineId: payload.lineid,
+      // Process asynchronously using comprehensive service
+      comprehensiveWebhookService
+        .processWebhook(payload.lineid)
+        .then(result => {
+          logger.info('✅ Comprehensive webhook processing completed', {
+            webhookId,
+            lineId: payload.lineid,
+            result,
+          });
+        })
+        .catch(error => {
+          logger.error('❌ Comprehensive webhook processing failed', {
+            webhookId,
+            lineId: payload.lineid,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
         });
-
-        res.status(200).json({
-          success: true,
-          message:
-            'Generic cruise line pricing webhook received and cruises flagged for batch processing',
-          timestamp: new Date().toISOString(),
-          event: webhookEvent,
-          webhookId,
-          lineId: payload.lineid,
-          processingMode: 'batch_flagging_v6',
-        });
-      } catch (processingError) {
-        logger.error('❌ Failed to flag cruises from generic webhook', {
-          webhookId,
-          lineId: payload.lineid,
-          error: processingError instanceof Error ? processingError.message : 'Unknown error',
-        });
-
-        res.status(200).json({
-          success: false,
-          message: 'Generic webhook received but failed to flag cruises',
-          timestamp: new Date().toISOString(),
-          event: webhookEvent,
-          webhookId,
-          lineId: payload.lineid,
-          error: processingError instanceof Error ? processingError.message : 'Unknown error',
-        });
-      }
     } else if (
       webhookEvent === 'cruises_live_pricing_updated' ||
       body.event === 'cruises_live_pricing_updated'
@@ -1263,6 +1251,63 @@ router.get('/traveltek/test-simple', async (req: Request, res: Response) => {
     });
   } catch (error) {
     logger.error('❌ Failed to start simple webhook processing:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+/**
+ * Test Comprehensive Webhook Service
+ * Processes ALL cruises for a line with robust error handling
+ * Usage: POST /api/webhooks/traveltek/test-comprehensive
+ */
+router.post('/traveltek/test-comprehensive', async (req: Request, res: Response) => {
+  try {
+    const testLineId = req.body.lineId || 22; // Default to Royal Caribbean
+    const webhookId = `test_comprehensive_${Date.now()}`;
+
+    logger.info('🚀 Testing Comprehensive Webhook Service', {
+      webhookId,
+      lineId: testLineId,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Return immediately
+    res.status(200).json({
+      success: true,
+      message: 'Comprehensive webhook processing started',
+      webhookId,
+      lineId: testLineId,
+      processor: 'ComprehensiveWebhookService',
+      timestamp: new Date().toISOString(),
+      note: 'Processing ALL cruises for this line - check logs and Slack for progress',
+    });
+
+    // Start processing asynchronously
+    comprehensiveWebhookService
+      .processWebhook(testLineId)
+      .then(result => {
+        logger.info('✅ Comprehensive webhook processing completed', {
+          webhookId,
+          lineId: testLineId,
+          totalCruises: result.totalCruises,
+          successfulUpdates: result.successfulUpdates,
+          failedUpdates: result.failedUpdates,
+          duration: `${(result.duration / 1000).toFixed(2)}s`,
+        });
+      })
+      .catch(error => {
+        logger.error('❌ Comprehensive webhook processing failed', {
+          webhookId,
+          lineId: testLineId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      });
+  } catch (error) {
+    logger.error('❌ Failed to start comprehensive webhook processing:', error);
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
