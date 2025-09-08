@@ -802,4 +802,51 @@ router.post('/test', (req: Request, res: Response) => {
   });
 });
 
+/**
+ * Test webhook endpoint for triggering webhook processing
+ * Usage: POST /api/webhooks/traveltek/test with { "lineId": 22 }
+ */
+router.post('/traveltek/test', async (req: Request, res: Response) => {
+  const testLineId = req.body.lineId || 22; // Default to Royal Caribbean for testing
+  const webhookId = `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  logger.info('🧪 Test webhook triggered', {
+    lineId: testLineId,
+    webhookId,
+    requestBody: req.body,
+  });
+
+  // Send immediate response
+  res.json({
+    success: true,
+    message: 'Test webhook triggered successfully',
+    lineId: testLineId,
+    webhookId,
+    note: 'Processing started - check logs and Slack for progress updates',
+    timestamp: new Date().toISOString(),
+  });
+
+  // Trigger test processing asynchronously
+  try {
+    await enhancedWebhookService.processCruiselinePricingUpdate({
+      eventType: 'test_cruiseline_pricing_updated',
+      lineId: testLineId,
+      timestamp: String(Date.now()),
+      webhookId,
+    });
+
+    logger.info('✅ Test webhook processing initiated', {
+      webhookId,
+      lineId: testLineId,
+    });
+  } catch (error) {
+    logger.error('❌ Test webhook processing failed:', {
+      webhookId,
+      lineId: testLineId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+  }
+});
+
 export default router;

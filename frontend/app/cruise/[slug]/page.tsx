@@ -223,12 +223,21 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const isDayWithoutContent = (day: any) => {
     if (!day) return true;
 
-    // Check if there's meaningful content to show
+    // For "At Sea" days, only show as interactive if there's a description
+    const isAtSea =
+      day.portName &&
+      (day.portName.toLowerCase() === "at sea" ||
+        day.portName.toLowerCase() === "day at sea" ||
+        day.portName.toLowerCase() === "sea day");
+
+    if (isAtSea) {
+      // At Sea days should only be expandable if they have a description
+      return !(day.description && day.description.trim().length > 0);
+    }
+
+    // For port days, check if there's meaningful content to show
     const hasContent =
-      (day.description && day.description.trim().length > 0) ||
-      (day.arrivalTime && day.arrivalTime.trim().length > 0) ||
-      (day.departureTime && day.departureTime.trim().length > 0) ||
-      day.overnight;
+      (day.description && day.description.trim().length > 0) || day.overnight;
 
     return !hasContent;
   };
