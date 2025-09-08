@@ -1,6 +1,6 @@
 /**
  * Real-Time Webhook Processing Service
- * 
+ *
  * This service replaces the old batch sync approach with immediate parallel processing.
  * When webhooks are received, they are processed in real-time using BullMQ workers.
  * No more needs_price_update flags or deferred batch processing.
@@ -59,11 +59,11 @@ export class RealtimeWebhookService {
   private cruiseQueue: Queue<CruiseProcessingJobData>;
   private webhookWorker: Worker<WebhookJobData>;
   private cruiseWorker: Worker<CruiseProcessingJobData>;
-  
+
   // Track recent webhooks to prevent duplicates
   private recentWebhooks = new Map<string, Date>();
   private readonly DUPLICATE_PREVENTION_WINDOW = 5 * 60 * 1000; // 5 minutes
-  
+
   private readonly MAX_RETRIES = 3;
   private readonly FTP_TIMEOUT = 30000; // 30 seconds - increased from 15s
   private readonly PARALLEL_CRUISE_WORKERS = 5; // Reduced from 10 to 5 to avoid overwhelming FTP
@@ -146,7 +146,9 @@ export class RealtimeWebhookService {
       useBulkDownloader: this.USE_BULK_DOWNLOADER,
       maxCruisesPerMegaBatch: this.MAX_CRUISES_PER_MEGA_BATCH,
       parallelCruiseWorkers: this.PARALLEL_CRUISE_WORKERS,
-      optimization: this.USE_BULK_DOWNLOADER ? 'Bulk FTP Downloader enabled - optimized for large cruise lines' : 'Legacy individual processing'
+      optimization: this.USE_BULK_DOWNLOADER
+        ? 'Bulk FTP Downloader enabled - optimized for large cruise lines'
+        : 'Legacy individual processing',
     });
   }
 
@@ -157,42 +159,45 @@ export class RealtimeWebhookService {
     const webhookId = `wh_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const duplicateKey = `line_${payload.lineid}`;
     const startTime = Date.now();
-    
+
     logger.info('🔄 [REDIS-QUEUE] Starting webhook processing service', {
       webhookId,
       lineId: payload.lineid,
       stage: 'SERVICE_ENTRY',
-      entryTime: new Date().toISOString()
+      entryTime: new Date().toISOString(),
     });
-    
+
     // Check for duplicate webhooks
     const now = new Date();
     const lastProcessed = this.recentWebhooks.get(duplicateKey);
-    
-    if (lastProcessed && (now.getTime() - lastProcessed.getTime()) < this.DUPLICATE_PREVENTION_WINDOW) {
+
+    if (
+      lastProcessed &&
+      now.getTime() - lastProcessed.getTime() < this.DUPLICATE_PREVENTION_WINDOW
+    ) {
       const timeSinceLastMs = now.getTime() - lastProcessed.getTime();
       const timeSinceLastSec = Math.round(timeSinceLastMs / 1000);
-      
+
       logger.warn('🔄 [DUPLICATE-DETECTED] Duplicate webhook detected - ignoring', {
         webhookId,
         lineId: payload.lineid,
         timeSinceLastProcessing: `${timeSinceLastSec}s`,
         lastProcessedAt: lastProcessed.toISOString(),
-        stage: 'DUPLICATE_DETECTED'
+        stage: 'DUPLICATE_DETECTED',
       });
-      
+
       return {
         jobId: `duplicate_${webhookId}`,
-        message: `Duplicate webhook ignored - Line ${payload.lineid} processed ${timeSinceLastSec}s ago`
+        message: `Duplicate webhook ignored - Line ${payload.lineid} processed ${timeSinceLastSec}s ago`,
       };
     }
-    
+
     // Clean up old entries
     this.cleanupOldWebhookEntries();
-    
+
     // Record this webhook
     this.recentWebhooks.set(duplicateKey, now);
-    
+
     logger.info('🚀 [REDIS-QUEUE] Processing webhook in real-time', {
       webhookId,
       eventType: payload.event,
@@ -202,8 +207,8 @@ export class RealtimeWebhookService {
       queueConfig: {
         useBulkDownloader: this.USE_BULK_DOWNLOADER,
         maxCruisesPerMegaBatch: this.MAX_CRUISES_PER_MEGA_BATCH,
-        parallelWorkers: this.PARALLEL_CRUISE_WORKERS
-      }
+        parallelWorkers: this.PARALLEL_CRUISE_WORKERS,
+      },
     });
 
     // Add webhook job to queue for immediate processing
@@ -212,20 +217,24 @@ export class RealtimeWebhookService {
       lineId: payload.lineid,
       priority: this.determinePriority(payload.lineid),
       stage: 'ADDING_TO_QUEUE',
-      addingAt: new Date().toISOString()
+      addingAt: new Date().toISOString(),
     });
 
-    const job = await this.webhookQueue.add('process-webhook', {
-      webhookId,
-      eventType: payload.event || 'cruiseline_pricing_updated',
-      lineId: payload.lineid,
-      payload,
-      timestamp: new Date().toISOString(),
-      priority: this.determinePriority(payload.lineid)
-    }, {
-      priority: this.determinePriority(payload.lineid),
-      jobId: webhookId,
-    });
+    const job = await this.webhookQueue.add(
+      'process-webhook',
+      {
+        webhookId,
+        eventType: payload.event || 'cruiseline_pricing_updated',
+        lineId: payload.lineid,
+        payload,
+        timestamp: new Date().toISOString(),
+        priority: this.determinePriority(payload.lineid),
+      },
+      {
+        priority: this.determinePriority(payload.lineid),
+        jobId: webhookId,
+      }
+    );
 
     logger.info('✅ [REDIS-QUEUE] Job successfully added to webhook queue', {
       webhookId,
@@ -234,12 +243,12 @@ export class RealtimeWebhookService {
       priority: this.determinePriority(payload.lineid),
       queueTime: Date.now() - startTime,
       stage: 'ADDED_TO_QUEUE',
-      addedAt: new Date().toISOString()
+      addedAt: new Date().toISOString(),
     });
 
     return {
       jobId: job.id!,
-      message: `Webhook queued for real-time processing (Priority: ${this.determinePriority(payload.lineid)})`
+      message: `Webhook queued for real-time processing (Priority: ${this.determinePriority(payload.lineid)})`,
     };
   }
 
@@ -249,7 +258,7 @@ export class RealtimeWebhookService {
   private async processWebhookJob(job: Job<WebhookJobData>): Promise<ProcessingResult> {
     const { webhookId, lineId, payload } = job.data;
     const startTime = new Date();
-    
+
     logger.info('📊 [JOB-START] Starting webhook orchestration', {
       webhookId,
       lineId,
@@ -257,7 +266,7 @@ export class RealtimeWebhookService {
       stage: 'JOB_PROCESSING_START',
       jobStartTime: startTime.toISOString(),
       jobPriority: job.opts.priority,
-      jobAttempts: job.attemptsMade + 1
+      jobAttempts: job.attemptsMade + 1,
     });
 
     const result: ProcessingResult = {
@@ -268,24 +277,26 @@ export class RealtimeWebhookService {
       errors: [],
       startTime,
       endTime: new Date(),
-      processingTimeMs: 0
+      processingTimeMs: 0,
     };
 
     try {
       // Map webhook line ID to database line ID
       const databaseLineId = getDatabaseLineId(lineId);
-      
+
       if (databaseLineId !== lineId) {
         logger.info(`📋 Mapping webhook line ${lineId} to database line ${databaseLineId}`);
       }
 
       // Get all active cruises for this line using the bulk downloader
       let cruisesToProcess;
-      
+
       if (this.USE_BULK_DOWNLOADER) {
-        // Use bulk FTP downloader to get cruise information (with mega-batch limit)
-        cruisesToProcess = await bulkFtpDownloader.getCruiseInfoForLine(databaseLineId, this.MAX_CRUISES_PER_MEGA_BATCH);
-        logger.info(`📈 Using bulk FTP downloader for ${cruisesToProcess.length} cruises (line ${lineId})`);
+        // Use bulk FTP downloader to get cruise information - NO LIMIT to get ALL cruises
+        cruisesToProcess = await bulkFtpDownloader.getCruiseInfoForLine(databaseLineId);
+        logger.info(
+          `📈 Using bulk FTP downloader for ${cruisesToProcess.length} cruises (line ${lineId})`
+        );
       } else {
         // Legacy individual processing (fallback only)
         const legacyCruises = await db
@@ -293,12 +304,12 @@ export class RealtimeWebhookService {
             id: cruises.id,
             cruiseCode: cruises.cruiseId,
             sailingDate: cruises.sailingDate,
-            name: cruises.name
+            name: cruises.name,
           })
           .from(cruises)
           .where(
-            sql`${cruises.cruiseLineId} = ${databaseLineId} 
-                AND ${cruises.sailingDate} >= CURRENT_DATE 
+            sql`${cruises.cruiseLineId} = ${databaseLineId}
+                AND ${cruises.sailingDate} >= CURRENT_DATE
                 AND ${cruises.sailingDate} <= CURRENT_DATE + INTERVAL '2 years'
                 AND ${cruises.isActive} = true`
           );
@@ -306,9 +317,11 @@ export class RealtimeWebhookService {
           id: c.id,
           cruiseCode: c.cruiseCode,
           shipName: 'Unknown_Ship',
-          sailingDate: new Date(c.sailingDate)
+          sailingDate: new Date(c.sailingDate),
         }));
-        logger.warn(`⚠️ Using legacy individual processing for ${cruisesToProcess.length} cruises (line ${lineId})`);
+        logger.warn(
+          `⚠️ Using legacy individual processing for ${cruisesToProcess.length} cruises (line ${lineId})`
+        );
       }
 
       const totalCruises = cruisesToProcess.length;
@@ -316,15 +329,18 @@ export class RealtimeWebhookService {
 
       // Handle large cruise lines with mega-batching
       if (totalCruises > this.MAX_CRUISES_PER_MEGA_BATCH) {
-        logger.warn(`⚠️ Large cruise line detected: ${totalCruises} cruises for line ${lineId}. Will process in mega-batches of ${this.MAX_CRUISES_PER_MEGA_BATCH}`, {
-          webhookId,
-          lineId,
-          totalCruises,
-          megaBatchSize: this.MAX_CRUISES_PER_MEGA_BATCH
-        });
-        
+        logger.warn(
+          `⚠️ Large cruise line detected: ${totalCruises} cruises for line ${lineId}. Will process in mega-batches of ${this.MAX_CRUISES_PER_MEGA_BATCH}`,
+          {
+            webhookId,
+            lineId,
+            totalCruises,
+            megaBatchSize: this.MAX_CRUISES_PER_MEGA_BATCH,
+          }
+        );
+
         const megaBatches = Math.ceil(totalCruises / this.MAX_CRUISES_PER_MEGA_BATCH);
-        
+
         await this.sendSlackUpdate({
           title: '📦 Large Cruise Line Detected - Using Mega-Batching',
           message: `${this.getCruiseLineName(databaseLineId)} (Line ${lineId}): ${totalCruises} cruises will be processed in ${megaBatches} mega-batches to prevent FTP overload`,
@@ -337,14 +353,16 @@ export class RealtimeWebhookService {
             cruisesPerBatch: this.MAX_CRUISES_PER_MEGA_BATCH,
             ftpConnections: `${megaBatches} (vs ${totalCruises} without batching)`,
             estimatedTime: `${Math.round((totalCruises * 0.3) / 60)}-${Math.round((totalCruises * 0.5) / 60)} minutes`,
-            processingStrategy: 'Persistent FTP connections with bulk downloads'
-          }
+            processingStrategy: 'Persistent FTP connections with bulk downloads',
+          },
         });
       }
 
       if (totalCruises === 0) {
-        logger.warn(`⚠️ No active cruises found for line ${lineId} (database line ${databaseLineId})`);
-        
+        logger.warn(
+          `⚠️ No active cruises found for line ${lineId} (database line ${databaseLineId})`
+        );
+
         // Send accurate Slack message
         await this.sendSlackUpdate({
           title: '⚠️ No Active Cruises to Update',
@@ -354,8 +372,8 @@ export class RealtimeWebhookService {
             webhookLineId: lineId,
             databaseLineId,
             reason: 'All cruises have sailed or are inactive',
-            action: 'No processing needed'
-          }
+            action: 'No processing needed',
+          },
         });
 
         result.endTime = new Date();
@@ -372,89 +390,158 @@ export class RealtimeWebhookService {
           webhookLineId: lineId,
           databaseLineId,
           totalCruises,
-          processingMethod: this.USE_BULK_DOWNLOADER ? 'Bulk FTP Downloader (3-5 persistent connections)' : 'Individual FTP connections',
-          maxConnectionsUsed: this.USE_BULK_DOWNLOADER ? '3-5 persistent connections' : `${totalCruises} individual connections`,
-          estimatedDuration: this.USE_BULK_DOWNLOADER ? 
-            `${Math.round((totalCruises * 0.1) / 60)}-${Math.round((totalCruises * 0.2) / 60)} minutes (bulk optimized)` :
-            `${Math.round((totalCruises * 0.3) / 60)}-${Math.round((totalCruises * 0.5) / 60)} minutes (individual)`,
+          processingMethod: this.USE_BULK_DOWNLOADER
+            ? 'Bulk FTP Downloader (3-5 persistent connections)'
+            : 'Individual FTP connections',
+          maxConnectionsUsed: this.USE_BULK_DOWNLOADER
+            ? '3-5 persistent connections'
+            : `${totalCruises} individual connections`,
+          estimatedDuration: this.USE_BULK_DOWNLOADER
+            ? `${Math.round((totalCruises * 0.1) / 60)}-${Math.round((totalCruises * 0.2) / 60)} minutes (bulk optimized)`
+            : `${Math.round((totalCruises * 0.3) / 60)}-${Math.round((totalCruises * 0.5) / 60)} minutes (individual)`,
           webhookId,
           timestamp: new Date().toISOString(),
-          optimization: this.USE_BULK_DOWNLOADER ? '✅ Using bulk download optimization - much faster!' : '⚠️ Using legacy method'
-        }
+          optimization: this.USE_BULK_DOWNLOADER
+            ? '✅ Using bulk download optimization - much faster!'
+            : '⚠️ Using legacy method',
+        },
       });
 
       if (this.USE_BULK_DOWNLOADER) {
-        // Use bulk FTP downloader - download ALL files first, then process from memory
+        // Use bulk FTP downloader - process in batches to handle ALL cruises
         logger.info(`🚀 Starting bulk FTP download for ${totalCruises} cruises (line ${lineId})`);
-        
+
         try {
-          // Bulk download all files using persistent FTP connections
-          const downloadResult = await bulkFtpDownloader.downloadLineUpdates(databaseLineId, cruisesToProcess);
-          
-          logger.info(`📊 Bulk download completed`, {
-            lineId,
-            totalFiles: downloadResult.totalFiles,
-            successful: downloadResult.successfulDownloads,
-            failed: downloadResult.failedDownloads,
-            duration: `${(downloadResult.duration / 1000).toFixed(2)}s`,
-            successRate: `${Math.round((downloadResult.successfulDownloads / downloadResult.totalFiles) * 100)}%`,
-            ftpConnectionFailures: downloadResult.connectionFailures
-          });
-          
-          // Process all downloaded data from memory (no FTP connections needed)
-          const processingResult = await bulkFtpDownloader.processCruiseUpdates(databaseLineId, downloadResult);
-          
+          // Process cruises in batches to avoid overwhelming FTP
+          const BATCH_SIZE = 500; // Process 500 cruises at a time
+          const totalBatches = Math.ceil(totalCruises / BATCH_SIZE);
+
+          let totalSuccessful = 0;
+          let totalFailed = 0;
+          let totalActuallyUpdated = 0;
+          let totalConnectionFailures = 0;
+          const allErrors: any[] = [];
+
+          for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+            const startIdx = batchIndex * BATCH_SIZE;
+            const endIdx = Math.min(startIdx + BATCH_SIZE, totalCruises);
+            const batchCruises = cruisesToProcess.slice(startIdx, endIdx);
+
+            logger.info(`📦 Processing batch ${batchIndex + 1}/${totalBatches}`, {
+              lineId,
+              batchSize: batchCruises.length,
+              startIdx,
+              endIdx,
+              progress: `${Math.round((startIdx / totalCruises) * 100)}%`,
+            });
+
+            // Bulk download this batch using persistent FTP connections
+            const downloadResult = await bulkFtpDownloader.downloadLineUpdates(
+              databaseLineId,
+              batchCruises
+            );
+
+            logger.info(`📊 Batch ${batchIndex + 1} download completed`, {
+              lineId,
+              batchNumber: batchIndex + 1,
+              totalFiles: downloadResult.totalFiles,
+              successful: downloadResult.successfulDownloads,
+              failed: downloadResult.failedDownloads,
+              duration: `${(downloadResult.duration / 1000).toFixed(2)}s`,
+              successRate: `${Math.round((downloadResult.successfulDownloads / downloadResult.totalFiles) * 100)}%`,
+              ftpConnectionFailures: downloadResult.connectionFailures,
+            });
+
+            // Process this batch's downloaded data from memory
+            const processingResult = await bulkFtpDownloader.processCruiseUpdates(
+              databaseLineId,
+              downloadResult
+            );
+
+            // Accumulate results
+            totalSuccessful += processingResult.successful;
+            totalFailed += processingResult.failed + downloadResult.failedDownloads;
+            totalActuallyUpdated += processingResult.actuallyUpdated;
+            totalConnectionFailures += downloadResult.connectionFailures;
+
+            // Collect errors
+            allErrors.push(...downloadResult.errors);
+            allErrors.push(...processingResult.errors);
+
+            // Send progress update for large cruise lines
+            if (totalBatches > 1 && batchIndex < totalBatches - 1) {
+              await this.sendSlackUpdate({
+                title: `📊 Batch ${batchIndex + 1}/${totalBatches} Complete`,
+                message: `${this.getCruiseLineName(databaseLineId)}: Processed ${endIdx}/${totalCruises} cruises`,
+                details: {
+                  cruiseLine: this.getCruiseLineName(databaseLineId),
+                  batchNumber: batchIndex + 1,
+                  totalBatches,
+                  cruisesProcessed: endIdx,
+                  totalCruises,
+                  progress: `${Math.round((endIdx / totalCruises) * 100)}%`,
+                  successfulSoFar: totalSuccessful,
+                  failedSoFar: totalFailed,
+                  updatedSoFar: totalActuallyUpdated,
+                },
+              });
+            }
+          }
+
           // Map bulk results to standard format
-          result.successful = processingResult.successful;
-          result.failed = processingResult.failed + downloadResult.failedDownloads;
-          result.actuallyUpdated = processingResult.actuallyUpdated;
-          result.ftpConnectionFailures = downloadResult.connectionFailures;
-          
-          // Convert download errors to standard format
-          for (const error of downloadResult.errors) {
-            if (error.includes('FTP connection') || error.includes('timeout') || error.includes('connection')) {
+          result.successful = totalSuccessful;
+          result.failed = totalFailed;
+          result.actuallyUpdated = totalActuallyUpdated;
+          result.ftpConnectionFailures = totalConnectionFailures;
+
+          // Convert all errors to standard format
+          for (const error of allErrors) {
+            if (
+              error.includes('FTP connection') ||
+              error.includes('timeout') ||
+              error.includes('connection')
+            ) {
               result.errors.push({
                 error,
-                type: 'ftp_connection'
+                type: 'ftp_connection',
               });
             } else if (error.includes('not found') || error.includes('404')) {
               result.errors.push({
                 error,
-                type: 'file_not_found'
+                type: 'file_not_found',
+              });
+            } else if (error.includes('database') || error.includes('DB')) {
+              result.errors.push({
+                error,
+                type: 'database_error',
               });
             } else {
               result.errors.push({
                 error,
-                type: 'parse_error'
+                type: 'parse_error',
               });
             }
           }
-          
-          // Add processing errors
-          for (const error of processingResult.errors) {
-            result.errors.push({
-              error,
-              type: 'database_error'
-            });
-          }
-          
-          logger.info(`✅ Bulk processing completed`, {
+
+          logger.info(`✅ Bulk processing completed for ALL batches`, {
             lineId,
-            totalProcessed: downloadResult.downloadedData.size,
-            databaseUpdates: processingResult.actuallyUpdated,
-            processingErrors: processingResult.errors.length
+            totalCruises,
+            totalBatches,
+            totalSuccessful,
+            totalFailed,
+            totalActuallyUpdated,
+            totalErrors: allErrors.length,
           });
-          
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : 'Unknown bulk download error';
           logger.error(`❌ Bulk FTP download failed for line ${lineId}:`, error);
-          
+
           result.failed = totalCruises;
           result.errors.push({
             error: `Bulk download failed: ${errorMsg}`,
-            type: 'ftp_connection'
+            type: 'ftp_connection',
           });
-          
+
           // Fallback notification
           await this.sendSlackUpdate({
             title: '🔴 Bulk FTP Download Failed',
@@ -463,29 +550,32 @@ export class RealtimeWebhookService {
               cruiseLine: this.getCruiseLineName(databaseLineId),
               error: errorMsg,
               fallbackAction: 'Consider using legacy individual processing',
-              affectedCruises: totalCruises
-            }
+              affectedCruises: totalCruises,
+            },
           });
         }
-        
       } else {
         // Legacy fallback - individual cruise processing (should rarely be used)
         logger.warn(`⚠️ Using legacy individual cruise processing for line ${lineId}`);
-        
+
         const cruiseJobs = [];
-        
+
         // Process cruises individually (old method)
         for (const cruise of cruisesToProcess) {
-          const cruiseJob = await this.cruiseQueue.add('process-cruise', {
-            cruiseId: cruise.id,
-            lineId: databaseLineId,
-            webhookId,
-            retryCount: 0
-          }, {
-            priority: this.determinePriority(lineId),
-            delay: cruiseJobs.length * 100, // Stagger to avoid FTP overload
-          });
-          
+          const cruiseJob = await this.cruiseQueue.add(
+            'process-cruise',
+            {
+              cruiseId: cruise.id,
+              lineId: databaseLineId,
+              webhookId,
+              retryCount: 0,
+            },
+            {
+              priority: this.determinePriority(lineId),
+              delay: cruiseJobs.length * 100, // Stagger to avoid FTP overload
+            }
+          );
+
           cruiseJobs.push(cruiseJob);
         }
 
@@ -493,7 +583,9 @@ export class RealtimeWebhookService {
 
         // Wait for all jobs to complete
         const PROCESSING_TIMEOUT = Math.max(10 * 60 * 1000, cruiseJobs.length * 2000); // Longer timeout for individual processing
-        logger.info(`⏱️ Using timeout of ${Math.round(PROCESSING_TIMEOUT / 1000)}s for ${cruiseJobs.length} individual cruise jobs`);
+        logger.info(
+          `⏱️ Using timeout of ${Math.round(PROCESSING_TIMEOUT / 1000)}s for ${cruiseJobs.length} individual cruise jobs`
+        );
         const jobResults = await this.waitForJobsCompletion(cruiseJobs, PROCESSING_TIMEOUT);
 
         // Aggregate results from individual jobs
@@ -505,31 +597,33 @@ export class RealtimeWebhookService {
             }
           } else {
             result.failed++;
-            
+
             const errorMessage = this.formatErrorMessage(jobResult.error);
-            
-            if (errorMessage.includes('FTP connection') || 
-                errorMessage.includes('timeout') || 
-                errorMessage.includes('ECONNREFUSED') ||
-                errorMessage.includes('ENOTFOUND') ||
-                errorMessage.includes('connection closed')) {
+
+            if (
+              errorMessage.includes('FTP connection') ||
+              errorMessage.includes('timeout') ||
+              errorMessage.includes('ECONNREFUSED') ||
+              errorMessage.includes('ENOTFOUND') ||
+              errorMessage.includes('connection closed')
+            ) {
               result.ftpConnectionFailures++;
               result.errors.push({
                 cruiseId: jobResult.cruiseId,
                 error: errorMessage,
-                type: 'ftp_connection'
+                type: 'ftp_connection',
               });
             } else if (errorMessage.includes('not found') || errorMessage.includes('404')) {
               result.errors.push({
                 cruiseId: jobResult.cruiseId,
                 error: errorMessage,
-                type: 'file_not_found'
+                type: 'file_not_found',
               });
             } else {
               result.errors.push({
                 cruiseId: jobResult.cruiseId,
                 error: errorMessage,
-                type: 'database_error'
+                type: 'database_error',
               });
             }
           }
@@ -549,20 +643,19 @@ export class RealtimeWebhookService {
         successful: result.successful,
         actuallyUpdated: result.actuallyUpdated,
         ftpFailures: result.ftpConnectionFailures,
-        processingTimeMs: result.processingTimeMs
+        processingTimeMs: result.processingTimeMs,
       });
-
     } catch (error) {
       result.failed = 1;
       result.errors.push({
         error: `Fatal webhook processing error: ${error instanceof Error ? error.message : 'Unknown'}`,
-        type: 'database_error'
+        type: 'database_error',
       });
-      
+
       logger.error('❌ Fatal error in webhook processing', {
         webhookId,
         error: error instanceof Error ? error.message : 'Unknown',
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       // Send error notification
@@ -580,18 +673,18 @@ export class RealtimeWebhookService {
    */
   private async processCruiseJob(job: Job<CruiseProcessingJobData>): Promise<any> {
     const { cruiseId, lineId, webhookId, retryCount = 0 } = job.data;
-    
+
     try {
       // Try to fetch and update cruise data from FTP
       const updateResult = await this.updateCruiseFromFTP(cruiseId, lineId);
-      
+
       if (updateResult.success) {
         logger.debug(`✅ Successfully updated cruise ${cruiseId}`);
         return {
           success: true,
           cruiseId,
           actuallyUpdated: updateResult.actuallyUpdated,
-          error: null
+          error: null,
         };
       } else {
         logger.warn(`⚠️ Failed to update cruise ${cruiseId}: ${updateResult.error}`);
@@ -599,19 +692,18 @@ export class RealtimeWebhookService {
           success: false,
           cruiseId,
           actuallyUpdated: false,
-          error: updateResult.error
+          error: updateResult.error,
         };
       }
-
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
       logger.error(`❌ Error processing cruise ${cruiseId}:`, error);
-      
+
       return {
         success: false,
         cruiseId,
         actuallyUpdated: false,
-        error: errorMsg
+        error: errorMsg,
       };
     }
   }
@@ -619,7 +711,10 @@ export class RealtimeWebhookService {
   /**
    * Update cruise data from FTP (with timeout and retry logic)
    */
-  private async updateCruiseFromFTP(cruiseId: string, lineId: number): Promise<{
+  private async updateCruiseFromFTP(
+    cruiseId: string,
+    lineId: number
+  ): Promise<{
     success: boolean;
     actuallyUpdated: boolean;
     error?: string;
@@ -630,7 +725,7 @@ export class RealtimeWebhookService {
         .select({
           shipId: cruises.shipId,
           sailingDate: cruises.sailingDate,
-          name: cruises.name
+          name: cruises.name,
         })
         .from(cruises)
         .where(eq(cruises.id, cruiseId))
@@ -640,7 +735,7 @@ export class RealtimeWebhookService {
         return {
           success: false,
           actuallyUpdated: false,
-          error: `Cruise ${cruiseId} not found in database`
+          error: `Cruise ${cruiseId} not found in database`,
         };
       }
 
@@ -653,7 +748,7 @@ export class RealtimeWebhookService {
       const possiblePaths = [
         `${year}/${month}/${lineId}/${cruise.shipId}/${cruiseId}.json`,
         `isell_json/${year}/${month}/${lineId}/${cruise.shipId}/${cruiseId}.json`,
-        `${year}/${month}/${lineId}/${cruiseId}.json`
+        `${year}/${month}/${lineId}/${cruiseId}.json`,
       ];
 
       let cruiseData = null;
@@ -678,25 +773,24 @@ export class RealtimeWebhookService {
         return {
           success: false,
           actuallyUpdated: false,
-          error: `FTP connection failed or file not found. Last error: ${ftpError}`
+          error: `FTP connection failed or file not found. Last error: ${ftpError}`,
         };
       }
 
       // Update pricing in database
       await this.updatePricingData(cruiseId, cruiseData);
-      
+
       logger.debug(`✅ Updated cruise ${cruiseId} from ${usedPath}`);
 
       return {
         success: true,
-        actuallyUpdated: true
+        actuallyUpdated: true,
       };
-
     } catch (error) {
       return {
         success: false,
         actuallyUpdated: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -720,7 +814,7 @@ export class RealtimeWebhookService {
             if (typeof pricingData !== 'object') continue;
 
             const pricing = pricingData as any;
-            
+
             // Skip if no valid price
             if (!pricing.price && !pricing.adultprice) continue;
 
@@ -761,30 +855,30 @@ export class RealtimeWebhookService {
     const results: any[] = [];
     const startTime = Date.now();
     const POLLING_INTERVAL = 1000; // Check every second
-    
+
     logger.info(`⏳ Waiting for ${jobs.length} jobs to complete (timeout: ${timeoutMs}ms)`);
-    
+
     // Keep track of completed jobs
     const completedJobs = new Set<string>();
-    
+
     while (Date.now() - startTime < timeoutMs) {
       let allCompleted = true;
-      
+
       for (const job of jobs) {
         if (completedJobs.has(job.id!)) {
           continue; // Already processed
         }
-        
+
         try {
           // Check job state
           const state = await job.getState();
-          
+
           if (state === 'completed') {
             const returnValue = job.returnvalue || {
               success: true,
               cruiseId: 'unknown',
               actuallyUpdated: true,
-              error: null
+              error: null,
             };
             results.push(returnValue);
             completedJobs.add(job.id!);
@@ -794,7 +888,7 @@ export class RealtimeWebhookService {
               success: false,
               cruiseId: 'unknown',
               actuallyUpdated: false,
-              error: failedReason
+              error: failedReason,
             });
             completedJobs.add(job.id!);
           } else {
@@ -807,21 +901,21 @@ export class RealtimeWebhookService {
             success: false,
             cruiseId: 'unknown',
             actuallyUpdated: false,
-            error: `Error checking job state: ${error instanceof Error ? error.message : 'Unknown error'}`
+            error: `Error checking job state: ${error instanceof Error ? error.message : 'Unknown error'}`,
           });
           completedJobs.add(job.id!);
         }
       }
-      
+
       if (allCompleted) {
         logger.info(`✅ All ${jobs.length} jobs completed in ${Date.now() - startTime}ms`);
         break;
       }
-      
+
       // Wait before next poll
       await new Promise(resolve => setTimeout(resolve, POLLING_INTERVAL));
     }
-    
+
     // Handle any remaining incomplete jobs (timeout)
     for (const job of jobs) {
       if (!completedJobs.has(job.id!)) {
@@ -829,27 +923,35 @@ export class RealtimeWebhookService {
           success: false,
           cruiseId: 'unknown',
           actuallyUpdated: false,
-          error: 'Job timeout - exceeded maximum wait time'
+          error: 'Job timeout - exceeded maximum wait time',
         });
       }
     }
-    
-    logger.info(`⏰ Job completion check finished: ${results.length} results after ${Date.now() - startTime}ms`);
+
+    logger.info(
+      `⏰ Job completion check finished: ${results.length} results after ${Date.now() - startTime}ms`
+    );
     return results;
   }
 
   /**
    * Send accurate Slack update with bulk processing details
    */
-  private async sendAccurateSlackUpdate(result: ProcessingResult, lineId: number, totalCruises: number): Promise<void> {
-    const successRate = totalCruises > 0 ? Math.round((result.actuallyUpdated / totalCruises) * 100) : 0;
-    const ftpFailureRate = totalCruises > 0 ? Math.round((result.ftpConnectionFailures / totalCruises) * 100) : 0;
+  private async sendAccurateSlackUpdate(
+    result: ProcessingResult,
+    lineId: number,
+    totalCruises: number
+  ): Promise<void> {
+    const successRate =
+      totalCruises > 0 ? Math.round((result.actuallyUpdated / totalCruises) * 100) : 0;
+    const ftpFailureRate =
+      totalCruises > 0 ? Math.round((result.ftpConnectionFailures / totalCruises) * 100) : 0;
     const databaseLineId = getDatabaseLineId(lineId);
-    
+
     let statusIcon = '✅';
     let title = 'Bulk FTP Processing Complete';
     let statusDescription = 'Successfully bulk downloaded and updated pricing';
-    
+
     if (result.ftpConnectionFailures > result.actuallyUpdated) {
       statusIcon = '🔴';
       title = 'Bulk FTP Processing Failed';
@@ -866,7 +968,10 @@ export class RealtimeWebhookService {
 
     const processingMinutes = Math.round(result.processingTimeMs / 60000);
     const processingSeconds = Math.round((result.processingTimeMs % 60000) / 1000);
-    const timeString = processingMinutes > 0 ? `${processingMinutes}m ${processingSeconds}s` : `${processingSeconds}s`;
+    const timeString =
+      processingMinutes > 0
+        ? `${processingMinutes}m ${processingSeconds}s`
+        : `${processingSeconds}s`;
 
     await this.sendSlackUpdate({
       title: `${statusIcon} ${title}`,
@@ -883,17 +988,24 @@ export class RealtimeWebhookService {
         ftpFailureRate: `${ftpFailureRate}%`,
         processingTime: timeString,
         throughput: `${Math.round(totalCruises / (result.processingTimeMs / 1000))} cruises/second`,
-        processingMethod: this.USE_BULK_DOWNLOADER ? 'Bulk FTP Downloader' : 'Legacy Individual Processing',
-        ftpConnectionsUsed: this.USE_BULK_DOWNLOADER ? '3-5 persistent connections' : `${totalCruises} individual connections`,
-        optimization: this.USE_BULK_DOWNLOADER ? '🚀 Bulk download optimization used - much faster and more reliable!' : '⚠️ Legacy method used',
+        processingMethod: this.USE_BULK_DOWNLOADER
+          ? 'Bulk FTP Downloader'
+          : 'Legacy Individual Processing',
+        ftpConnectionsUsed: this.USE_BULK_DOWNLOADER
+          ? '3-5 persistent connections'
+          : `${totalCruises} individual connections`,
+        optimization: this.USE_BULK_DOWNLOADER
+          ? '🚀 Bulk download optimization used - much faster and more reliable!'
+          : '⚠️ Legacy method used',
         errorBreakdown: this.summarizeErrors(result.errors),
         timestamp: new Date().toISOString(),
-        result: result.ftpConnectionFailures === 0 ? 
-          '✅ All pricing data successfully synchronized via bulk download' : 
-          result.ftpConnectionFailures > totalCruises * 0.5 ?
-          '❌ FTP server issues prevented most bulk downloads' :
-          `⚠️ ${result.ftpConnectionFailures} cruises could not be downloaded during bulk operation`
-      }
+        result:
+          result.ftpConnectionFailures === 0
+            ? '✅ All pricing data successfully synchronized via bulk download'
+            : result.ftpConnectionFailures > totalCruises * 0.5
+              ? '❌ FTP server issues prevented most bulk downloads'
+              : `⚠️ ${result.ftpConnectionFailures} cruises could not be downloaded during bulk operation`,
+      },
     });
   }
 
@@ -921,11 +1033,11 @@ export class RealtimeWebhookService {
       123: 'Norwegian Cruise Line',
       186: 'AIDA',
       643: 'Regent Seven Seas',
-      848: 'Ambassador Cruise Line'
+      848: 'Ambassador Cruise Line',
     };
     return cruiseLineNames[lineId] || `Line ${lineId}`;
   }
-  
+
   private determinePriority(lineId: number): number {
     // Higher priority for lines that frequently have issues
     const highPriorityLines = [5, 21, 22, 46, 118, 123, 643];
@@ -937,7 +1049,7 @@ export class RealtimeWebhookService {
       ftpConnection: 0,
       fileNotFound: 0,
       parseError: 0,
-      databaseError: 0
+      databaseError: 0,
     };
 
     for (const error of errors) {
@@ -947,7 +1059,11 @@ export class RealtimeWebhookService {
     return summary;
   }
 
-  private async sendSlackUpdate(data: { title: string; message: string; details: any }): Promise<void> {
+  private async sendSlackUpdate(data: {
+    title: string;
+    message: string;
+    details: any;
+  }): Promise<void> {
     try {
       await slackService.notifyCustomMessage(data);
     } catch (error) {
@@ -963,7 +1079,7 @@ export class RealtimeWebhookService {
     const fuel = this.parseDecimal(pricing.fuel) || 0;
     const portCharges = this.parseDecimal(pricing.portcharges) || 0;
     const governmentFees = this.parseDecimal(pricing.governmentfees) || 0;
-    
+
     return base + taxes + ncf + gratuity + fuel + portCharges + governmentFees;
   }
 
@@ -989,21 +1105,21 @@ export class RealtimeWebhookService {
    */
   private formatErrorMessage(error: any): string {
     if (!error) return 'Unknown error';
-    
+
     if (typeof error === 'string') {
       return error;
     }
-    
+
     if (error instanceof Error) {
       return error.message;
     }
-    
+
     if (typeof error === 'object') {
       // Try to extract meaningful information from error object
       if (error.message) return error.message;
       if (error.code) return `Error code: ${error.code}`;
       if (error.name) return `${error.name}: ${error.message || 'Unknown'}`;
-      
+
       // Last resort - stringify but make it readable
       try {
         return JSON.stringify(error);
@@ -1011,7 +1127,7 @@ export class RealtimeWebhookService {
         return String(error);
       }
     }
-    
+
     return String(error);
   }
 
@@ -1031,7 +1147,7 @@ export class RealtimeWebhookService {
       useBulkDownloader: this.USE_BULK_DOWNLOADER,
       maxCruisesPerMegaBatch: this.MAX_CRUISES_PER_MEGA_BATCH,
       parallelCruiseWorkers: this.PARALLEL_CRUISE_WORKERS,
-      bulkDownloaderStats: this.USE_BULK_DOWNLOADER ? bulkFtpDownloader.getStats() : null
+      bulkDownloaderStats: this.USE_BULK_DOWNLOADER ? bulkFtpDownloader.getStats() : null,
     };
   }
 
@@ -1050,28 +1166,28 @@ export class RealtimeWebhookService {
   private cleanupOldWebhookEntries(): void {
     const now = Date.now();
     const entriesToRemove: string[] = [];
-    
+
     for (const [key, timestamp] of this.recentWebhooks.entries()) {
       if (now - timestamp.getTime() > this.DUPLICATE_PREVENTION_WINDOW) {
         entriesToRemove.push(key);
       }
     }
-    
+
     for (const key of entriesToRemove) {
       this.recentWebhooks.delete(key);
     }
-    
+
     if (entriesToRemove.length > 0) {
       logger.debug(`🧹 Cleaned up ${entriesToRemove.length} old webhook entries`);
     }
   }
 
   private setupErrorHandlers(): void {
-    this.webhookWorker.on('error', (error) => {
+    this.webhookWorker.on('error', error => {
       logger.error('❌ Webhook worker error:', error);
     });
 
-    this.cruiseWorker.on('error', (error) => {
+    this.cruiseWorker.on('error', error => {
       logger.error('❌ Cruise worker error:', error);
     });
 
