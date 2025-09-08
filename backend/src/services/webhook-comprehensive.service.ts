@@ -8,7 +8,7 @@ import { db } from '../db/connection';
 import { sql } from 'drizzle-orm';
 import logger from '../config/logger';
 import { traveltekFTPService } from './traveltek-ftp.service';
-// import { slackService } from './slack.service'; // TODO: Add proper Slack integration
+import { slackWebhookService } from './slack-webhook.service';
 import { getDatabaseLineId } from '../config/cruise-line-mapping';
 import redisClient from '../cache/redis';
 import * as ftp from 'basic-ftp';
