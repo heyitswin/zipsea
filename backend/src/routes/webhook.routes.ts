@@ -803,6 +803,61 @@ router.post('/test', (req: Request, res: Response) => {
 });
 
 /**
+ * Check FTP configuration status
+ * Usage: GET /api/webhooks/traveltek/ftp-status
+ */
+router.get('/traveltek/ftp-status', async (req: Request, res: Response) => {
+  try {
+    const ftpConfig = {
+      host: process.env.TRAVELTEK_FTP_HOST || 'Not configured',
+      user: process.env.TRAVELTEK_FTP_USER
+        ? `${process.env.TRAVELTEK_FTP_USER.substring(0, 3)}***`
+        : 'Not configured',
+      hasPassword: !!process.env.TRAVELTEK_FTP_PASSWORD,
+      environment: process.env.NODE_ENV || 'unknown',
+    };
+
+    // Try to test FTP connection if credentials exist
+    let connectionStatus = 'unchecked';
+    if (
+      process.env.TRAVELTEK_FTP_HOST &&
+      process.env.TRAVELTEK_FTP_USER &&
+      process.env.TRAVELTEK_FTP_PASSWORD
+    ) {
+      try {
+        const { traveltekFTPService } = await import('../services/traveltek-ftp.service');
+        // Try to connect and list root directory
+        await traveltekFTPService.connect();
+        connectionStatus = 'connected';
+        await traveltekFTPService.disconnect();
+      } catch (ftpError) {
+        connectionStatus = `failed: ${ftpError instanceof Error ? ftpError.message : 'Unknown error'}`;
+      }
+    } else {
+      connectionStatus = 'missing_credentials';
+    }
+
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      ftpConfig,
+      connectionStatus,
+      recommendation:
+        connectionStatus === 'connected'
+          ? 'FTP is properly configured'
+          : 'FTP credentials need to be configured in Render environment variables',
+    });
+  } catch (error) {
+    logger.error('Error checking FTP status:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+/**
  * Test webhook endpoint for triggering webhook processing
  * Usage: POST /api/webhooks/traveltek/test with { "lineId": 22 }
  */
