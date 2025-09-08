@@ -260,8 +260,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     if (!isPriceAvailable(price)) return 0;
     const numPrice = typeof price === "string" ? parseFloat(price) : price;
     if (!numPrice || isNaN(numPrice)) return 0;
-    // Calculate 8% of the price as onboard credit, rounded down to nearest $10
-    const creditPercent = 0.08; // 8%
+    // Calculate 10% of the price as onboard credit, rounded down to nearest $10
+    const creditPercent = 0.1; // 10%
     const rawCredit = numPrice * creditPercent;
     return Math.floor(rawCredit / 10) * 10; // Round down to nearest $10
   };
@@ -692,7 +692,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Title and Description */}
-                  <div className="flex-1 px-5 py-4 md:py-3">
+                  <div className="md:w-80 px-5 py-4 md:py-3">
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       Inside Cabin
                     </h3>
@@ -779,7 +779,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Title and Description */}
-                  <div className="flex-1 px-5 py-4 md:py-3">
+                  <div className="md:w-80 px-5 py-4 md:py-3">
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       Outside Cabin
                     </h3>
@@ -866,7 +866,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Title and Description */}
-                  <div className="flex-1 px-5 py-4 md:py-3">
+                  <div className="md:w-80 px-5 py-4 md:py-3">
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       Balcony Cabin
                     </h3>
@@ -953,7 +953,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Title and Description */}
-                  <div className="flex-1 px-5 py-4 md:py-3">
+                  <div className="md:w-80 px-5 py-4 md:py-3">
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       Suite Cabin
                     </h3>

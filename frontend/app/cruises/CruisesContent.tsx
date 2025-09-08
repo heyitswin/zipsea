@@ -175,7 +175,7 @@ export default function CruisesContent() {
       params.append("sortDirection", filters.sortDirection);
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/search/cruises?${params.toString()}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/search/cruises?${params.toString()}`,
       );
 
       if (!response.ok) {
