@@ -1115,18 +1115,27 @@ router.post('/traveltek/test', async (req: Request, res: Response) => {
         timestamp: new Date().toISOString(),
       });
 
-      // Trigger old processing asynchronously
-      await enhancedWebhookService.processCruiselinePricingUpdate({
-        eventType: 'test_cruiseline_pricing_updated',
-        lineId: testLineId,
-        timestamp: String(Date.now()),
-        webhookId,
-      });
-
-      logger.info('✅ Test webhook processing initiated', {
-        webhookId,
-        lineId: testLineId,
-      });
+      // Trigger old processing asynchronously (don't await)
+      enhancedWebhookService
+        .processCruiselinePricingUpdate({
+          eventType: 'test_cruiseline_pricing_updated',
+          lineId: testLineId,
+          timestamp: String(Date.now()),
+          webhookId,
+        })
+        .then(() => {
+          logger.info('✅ Test webhook processing completed', {
+            webhookId,
+            lineId: testLineId,
+          });
+        })
+        .catch(error => {
+          logger.error('❌ Test webhook processing failed', {
+            webhookId,
+            lineId: testLineId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        });
     }
   } catch (error) {
     logger.error('❌ Test webhook processing failed:', {
