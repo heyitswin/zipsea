@@ -377,7 +377,12 @@ export class EnhancedWebhookService {
         } else {
           // Capture pricing snapshot before update
           const batchId = `webhook_${Date.now()}`;
-          await priceHistoryService.captureSnapshot(cruiseId, 'webhook_update', batchId);
+          try {
+            await priceHistoryService.captureSnapshot(cruiseId, 'webhook_update', batchId);
+          } catch (snapshotError) {
+            logger.warn(`Failed to capture price snapshot for ${cruiseId}:`, snapshotError);
+            // Continue with update even if snapshot fails
+          }
 
           // Update ALL cruise data, not just pricing
           await this.updateAllCruiseData(cruiseId, data);
@@ -388,7 +393,16 @@ export class EnhancedWebhookService {
         result.failed++;
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         result.errors.push(`${cruiseId}: ${errorMsg}`);
-        logger.error(`Failed to process cruise ${cruiseId}:`, error);
+
+        // Log detailed error information
+        logger.error(`❌ Failed to process cruise ${cruiseId}:`, {
+          cruiseId,
+          error: errorMsg,
+          stack: error instanceof Error ? error.stack : undefined,
+          dataKeys: data ? Object.keys(data).slice(0, 10) : [],
+          hasName: data ? !!data.name : false,
+          hasPricing: data ? !!data.cheapest : false,
+        });
       }
     }
 
@@ -400,22 +414,44 @@ export class EnhancedWebhookService {
    */
   private async createCruiseFromWebhookData(cruiseId: string, data: any): Promise<void> {
     try {
-      // Extract all necessary fields from the data
-      const cruiseData = {
+      logger.info(`🆕 Creating cruise ${cruiseId} with field mapping:`, {
+        cruiseId,
+        dataKeys: Object.keys(data).slice(0, 15),
+        name: data.name,
+        lineid: data.lineid,
+        shipid: data.shipid,
+      });
+
+      // Extract all necessary fields from the data with CORRECT field names
+      const cruiseData: any = {
         id: cruiseId,
         cruiseId: data.cruiseid || cruiseId,
         cruiseLineId: data.lineid,
         shipId: data.shipid,
-        name: data.cruisename || 'Unknown Cruise',
+        name: data.name || 'Unknown Cruise', // Use 'name' not 'cruisename'
         sailingDate: new Date(data.saildate),
         nights: parseInt(data.nights) || 0,
-        embarkationPortId: data.embarkportid,
-        disembarkationPortId: data.disembarkportid,
-        regionId: data.regionid,
+        embarkationPortId: data.startportid, // Use 'startportid' not 'embarkportid'
+        disembarkationPortId: data.endportid, // Use 'endportid' not 'disembarkportid'
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
+
+      // Add optional fields if present
+      if (data.voyagecode) cruiseData.voyageCode = data.voyagecode;
+      if (data.itinerarycode) cruiseData.itineraryCode = data.itinerarycode;
+      if (data.seadays !== undefined) cruiseData.seaDays = parseInt(data.seadays) || null;
+      if (data.regionids) {
+        cruiseData.regionIds = Array.isArray(data.regionids)
+          ? data.regionids.join(',')
+          : data.regionids;
+      }
+      if (data.marketid !== undefined) cruiseData.marketId = data.marketid;
+      if (data.ownerid !== undefined) cruiseData.ownerId = data.ownerid;
+      if (data.nofly !== undefined) cruiseData.noFly = data.nofly === 'Y' || data.nofly === true;
+      if (data.departuk !== undefined) cruiseData.departUk = data.departuk;
+      if (data.showcruise !== undefined) cruiseData.showCruise = data.showcruise;
 
       // Insert cruise
       await db.insert(cruises).values(cruiseData);
@@ -435,18 +471,60 @@ export class EnhancedWebhookService {
    */
   private async updateAllCruiseData(cruiseId: string, data: any): Promise<void> {
     try {
-      // Update cruise details
-      await db
-        .update(cruises)
-        .set({
-          name: data.cruisename,
-          nights: parseInt(data.nights) || null,
-          embarkationPortId: data.embarkportid,
-          disembarkationPortId: data.disembarkportid,
-          regionId: data.regionid,
-          updatedAt: new Date(),
-        })
-        .where(eq(cruises.id, cruiseId));
+      // Log the actual data structure for debugging
+      logger.debug(`📝 Updating cruise ${cruiseId} with data keys:`, {
+        cruiseId,
+        dataKeys: Object.keys(data).slice(0, 20),
+        hasName: !!data.name,
+        hasCruisename: !!data.cruisename,
+        name: data.name,
+        nights: data.nights,
+        startportid: data.startportid,
+        endportid: data.endportid,
+      });
+
+      // Update cruise details with CORRECT field names from Traveltek JSON
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+
+      // Map the correct field names from Traveltek JSON
+      if (data.name) updateData.name = data.name;
+      if (data.nights !== undefined) updateData.nights = parseInt(data.nights) || null;
+      if (data.startportid !== undefined) updateData.embarkationPortId = data.startportid;
+      if (data.endportid !== undefined) updateData.disembarkationPortId = data.endportid;
+
+      // Handle region IDs - can be array or comma-separated string
+      if (data.regionids) {
+        if (Array.isArray(data.regionids)) {
+          updateData.regionIds = data.regionids.join(',');
+        } else {
+          updateData.regionIds = data.regionids;
+        }
+      }
+
+      // Additional fields from Traveltek
+      if (data.saildate) updateData.sailingDate = new Date(data.saildate);
+      if (data.voyagecode) updateData.voyageCode = data.voyagecode;
+      if (data.itinerarycode) updateData.itineraryCode = data.itinerarycode;
+      if (data.seadays !== undefined) updateData.seaDays = parseInt(data.seadays) || null;
+      if (data.marketid !== undefined) updateData.marketId = data.marketid;
+      if (data.ownerid !== undefined) updateData.ownerId = data.ownerid;
+      if (data.nofly !== undefined) updateData.noFly = data.nofly === 'Y' || data.nofly === true;
+      if (data.departuk !== undefined) updateData.departUk = data.departuk;
+      if (data.showcruise !== undefined) updateData.showCruise = data.showcruise;
+
+      // Only update if we have fields to update
+      if (Object.keys(updateData).length > 1) {
+        // More than just updatedAt
+        await db.update(cruises).set(updateData).where(eq(cruises.id, cruiseId));
+
+        logger.debug(`✅ Updated cruise fields for ${cruiseId}`, {
+          fieldsUpdated: Object.keys(updateData),
+        });
+      } else {
+        logger.warn(`⚠️ No fields to update for cruise ${cruiseId}`);
+      }
 
       // Update pricing
       await this.updatePricingFromCachedData(cruiseId, data);
