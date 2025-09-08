@@ -8,7 +8,7 @@ import { db } from '../db/connection';
 import { sql } from 'drizzle-orm';
 import logger from '../config/logger';
 import { traveltekFTPService } from './traveltek-ftp.service';
-import { enhancedSlackService } from './slack-enhanced.service';
+// import { slackService } from './slack.service'; // TODO: Add proper Slack integration
 import { getDatabaseLineId } from '../config/cruise-line-mapping';
 import redisClient from '../cache/redis';
 import * as ftp from 'basic-ftp';
@@ -61,14 +61,14 @@ export class ComprehensiveWebhookService {
       corruptedFiles: 0,
       batches: 0,
       duration: 0,
-      errors: []
+      errors: [],
     };
 
     try {
       logger.info(`🚀 Starting comprehensive webhook processing for line ${databaseLineId}`, {
         webhookId,
         originalLineId: lineId,
-        databaseLineId
+        databaseLineId,
       });
 
       // Get ALL future cruises for this line
@@ -83,7 +83,7 @@ export class ComprehensiveWebhookService {
       logger.info(`📊 Found ${cruiseInfos.length} future cruises to process`, {
         lineId: databaseLineId,
         firstSailing: cruiseInfos[0]?.sailingDate,
-        lastSailing: cruiseInfos[cruiseInfos.length - 1]?.sailingDate
+        lastSailing: cruiseInfos[cruiseInfos.length - 1]?.sailingDate,
       });
 
       // Initialize FTP connection pool
@@ -99,7 +99,7 @@ export class ComprehensiveWebhookService {
 
         logger.info(`📦 Processing batch ${i + 1}/${batches.length}`, {
           batchSize: batch.length,
-          progress: `${Math.round((i / batches.length) * 100)}%`
+          progress: `${Math.round((i / batches.length) * 100)}%`,
         });
 
         const batchResult = await this.processBatch(batch, databaseLineId);
@@ -114,7 +114,7 @@ export class ComprehensiveWebhookService {
           processed: batchResult.processed,
           successful: batchResult.successful,
           failed: batchResult.failed,
-          duration: `${((Date.now() - batchStartTime) / 1000).toFixed(2)}s`
+          duration: `${((Date.now() - batchStartTime) / 1000).toFixed(2)}s`,
         });
 
         // Send progress update to Slack every 5 batches
@@ -130,29 +130,26 @@ export class ComprehensiveWebhookService {
 
       logger.info(`🎉 Webhook processing completed for line ${databaseLineId}`, {
         ...result,
-        durationSeconds: (result.duration / 1000).toFixed(2)
+        durationSeconds: (result.duration / 1000).toFixed(2),
       });
 
       return result;
-
     } catch (error) {
       logger.error(`❌ Webhook processing failed for line ${databaseLineId}`, {
         error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       result.errors.push(error instanceof Error ? error.message : 'Unknown error');
       result.duration = Date.now() - startTime;
 
-      // Send error notification to Slack
-      await enhancedSlackService.sendWebhookNotification(
-        'error',
-        databaseLineId,
-        result.successfulUpdates,
-        result.failedUpdates,
-        result.duration,
-        error instanceof Error ? error.message : 'Unknown error'
-      );
+      // Log error (Slack notification commented out for now)
+      logger.error(`Webhook processing failed for line ${databaseLineId}`, {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        successful: result.successfulUpdates,
+        failed: result.failedUpdates,
+        duration: result.duration,
+      });
 
       throw error;
     } finally {
@@ -186,7 +183,7 @@ export class ComprehensiveWebhookService {
         cruiseCode: row.cruise_code,
         shipId: row.ship_id,
         shipName: row.ship_name,
-        sailingDate: new Date(row.sailing_date)
+        sailingDate: new Date(row.sailing_date),
       }));
     } catch (error) {
       logger.error(`Failed to get cruises for line ${lineId}:`, error);
@@ -200,7 +197,13 @@ export class ComprehensiveWebhookService {
   private async processBatch(
     cruises: CruiseInfo[],
     lineId: number
-  ): Promise<{ processed: number; successful: number; failed: number; skipped: number; corrupted: number }> {
+  ): Promise<{
+    processed: number;
+    successful: number;
+    failed: number;
+    skipped: number;
+    corrupted: number;
+  }> {
     const result = { processed: 0, successful: 0, failed: 0, skipped: 0, corrupted: 0 };
 
     // Process cruises in smaller concurrent groups
@@ -227,7 +230,7 @@ export class ComprehensiveWebhookService {
         } else {
           result.failed++;
           logger.error(`Failed to process cruise ${group[index].cruiseCode}:`, {
-            error: promiseResult.reason
+            error: promiseResult.reason,
           });
         }
       }
@@ -271,7 +274,9 @@ export class ComprehensiveWebhookService {
 
         if (!cruiseData) {
           if (attempts === this.MAX_RETRIES) {
-            logger.error(`❌ Corrupted JSON for cruise ${cruise.cruiseCode} after ${attempts} attempts`);
+            logger.error(
+              `❌ Corrupted JSON for cruise ${cruise.cruiseCode} after ${attempts} attempts`
+            );
             return { success: false, skipped: false, corrupted: true };
           }
           // Retry on corruption
@@ -282,19 +287,21 @@ export class ComprehensiveWebhookService {
         await this.updateCruiseData(cruise.id, cruiseData);
 
         return { success: true, skipped: false, corrupted: false };
-
       } catch (error) {
         lastError = error as Error;
 
         if (attempts === this.MAX_RETRIES) {
-          logger.error(`❌ Failed to process cruise ${cruise.cruiseCode} after ${attempts} attempts:`, {
-            error: lastError.message
-          });
+          logger.error(
+            `❌ Failed to process cruise ${cruise.cruiseCode} after ${attempts} attempts:`,
+            {
+              error: lastError.message,
+            }
+          );
           return {
             success: false,
             skipped: false,
             corrupted: false,
-            error: lastError.message
+            error: lastError.message,
           };
         }
 
@@ -307,7 +314,7 @@ export class ComprehensiveWebhookService {
       success: false,
       skipped: false,
       corrupted: false,
-      error: lastError?.message || 'Unknown error'
+      error: lastError?.message || 'Unknown error',
     };
   }
 
@@ -321,7 +328,7 @@ export class ComprehensiveWebhookService {
       write(chunk, encoding, callback) {
         chunks.push(chunk);
         callback();
-      }
+      },
     });
 
     try {
@@ -347,19 +354,20 @@ export class ComprehensiveWebhookService {
       const closeBraces = (jsonString.match(/}/g) || []).length;
 
       if (openBraces !== closeBraces) {
-        logger.warn(`🔧 Unbalanced braces in cruise ${cruiseCode}: ${openBraces} open, ${closeBraces} close`);
+        logger.warn(
+          `🔧 Unbalanced braces in cruise ${cruiseCode}: ${openBraces} open, ${closeBraces} close`
+        );
         return null;
       }
 
       // Try to parse
       const data = JSON.parse(jsonString);
       return data;
-
     } catch (error) {
       logger.warn(`⚠️ JSON parse error for cruise ${cruiseCode}:`, {
         error: error instanceof Error ? error.message : 'Unknown error',
         dataLength: jsonString.length,
-        preview: jsonString.substring(0, 200)
+        preview: jsonString.substring(0, 200),
       });
       return null;
     }
@@ -383,12 +391,9 @@ export class ComprehensiveWebhookService {
       // Update pricing if available
       if (data.cheapest && data.cheapest.combined) {
         const combined = data.cheapest.combined;
-        const prices = [
-          combined.inside,
-          combined.outside,
-          combined.balcony,
-          combined.suite
-        ].filter(p => p && p > 0);
+        const prices = [combined.inside, combined.outside, combined.balcony, combined.suite].filter(
+          p => p && p > 0
+        );
 
         const cheapestPrice = prices.length > 0 ? Math.min(...prices) : null;
 
@@ -424,7 +429,6 @@ export class ComprehensiveWebhookService {
           `);
         }
       }
-
     } catch (error) {
       logger.error(`Failed to update cruise ${cruiseId}:`, error);
       throw error;
@@ -439,14 +443,13 @@ export class ComprehensiveWebhookService {
 
     for (let i = 0; i < this.CONNECTION_POOL_SIZE; i++) {
       const client = new ftp.Client();
-      client.ftp.timeout = this.FTP_TIMEOUT;
 
       try {
         await client.access({
           host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
           user: process.env.TRAVELTEK_FTP_USER,
           password: process.env.TRAVELTEK_FTP_PASSWORD,
-          secure: false
+          secure: false,
         });
 
         this.ftpPool.push(client);
@@ -481,7 +484,7 @@ export class ComprehensiveWebhookService {
           host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
           user: process.env.TRAVELTEK_FTP_USER,
           password: process.env.TRAVELTEK_FTP_PASSWORD,
-          secure: false
+          secure: false,
         });
         return client;
       }
@@ -526,7 +529,8 @@ export class ComprehensiveWebhookService {
   ): Promise<void> {
     try {
       const progress = Math.round((currentBatch / totalBatches) * 100);
-      const message = `📊 Webhook Progress - Line ${lineId}\n` +
+      const message =
+        `📊 Webhook Progress - Line ${lineId}\n` +
         `Progress: ${progress}% (Batch ${currentBatch}/${totalBatches})\n` +
         `Processed: ${result.processedCruises}/${result.totalCruises}\n` +
         `✅ Successful: ${result.successfulUpdates}\n` +
@@ -545,26 +549,23 @@ export class ComprehensiveWebhookService {
    * Send final summary to Slack
    */
   private async sendFinalSummary(lineId: number, result: ProcessingResult): Promise<void> {
-    const successRate = result.processedCruises > 0
-      ? Math.round((result.successfulUpdates / result.processedCruises) * 100)
-      : 0;
+    const successRate =
+      result.processedCruises > 0
+        ? Math.round((result.successfulUpdates / result.processedCruises) * 100)
+        : 0;
 
-    await enhancedSlackService.sendWebhookNotification(
-      'success',
-      lineId,
-      result.successfulUpdates,
-      result.failedUpdates,
-      result.duration,
-      undefined,
-      {
-        totalCruises: result.totalCruises,
-        processedCruises: result.processedCruises,
-        skippedFiles: result.skippedFiles,
-        corruptedFiles: result.corruptedFiles,
-        batches: result.batches,
-        successRate: `${successRate}%`
-      }
-    );
+    // Log final summary (Slack notification commented out for now)
+    logger.info(`✅ Webhook Summary - Line ${lineId}`, {
+      totalCruises: result.totalCruises,
+      processedCruises: result.processedCruises,
+      successfulUpdates: result.successfulUpdates,
+      failedUpdates: result.failedUpdates,
+      skippedFiles: result.skippedFiles,
+      corruptedFiles: result.corruptedFiles,
+      batches: result.batches,
+      successRate: `${successRate}%`,
+      duration: `${(result.duration / 1000).toFixed(2)}s`,
+    });
   }
 }
 
