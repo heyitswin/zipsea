@@ -307,8 +307,14 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
   // Convenience functions for backward compatibility
   const getCabinImage = (cabinType: string) => getCabinData(cabinType).image;
-  const getCabinDescription = (cabinType: string) =>
-    getCabinData(cabinType).description;
+  const getCabinDescription = (cabinType: string) => {
+    const description = getCabinData(cabinType).description;
+    if (!description) return null;
+    // Truncate to 120 characters and add ellipsis if needed
+    return description.length > 120
+      ? description.substring(0, 120) + "..."
+      : description;
+  };
 
   if (isLoading) {
     return (

@@ -713,12 +713,18 @@ export class BulkFtpDownloaderService {
       const client = new ftp.Client();
       client.ftp.verbose = false;
 
+      // Configure timeouts to prevent 600 second idle timeout
+      client.ftp.timeout = 60000; // 60 seconds for individual operations
+
       // Set connection timeout
       const connectPromise = client.access({
         host: env.TRAVELTEK_FTP_HOST,
         user: env.TRAVELTEK_FTP_USER,
         password: env.TRAVELTEK_FTP_PASSWORD,
         secure: false,
+        connTimeout: 30000, // 30 seconds to connect
+        pasvTimeout: 30000, // 30 seconds for PASV mode
+        keepalive: 10000, // Send keepalive every 10 seconds to prevent idle timeout
       });
 
       const timeoutPromise = new Promise<never>((_, reject) => {
