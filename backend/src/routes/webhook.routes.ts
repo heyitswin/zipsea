@@ -803,6 +803,140 @@ router.post('/test', (req: Request, res: Response) => {
 });
 
 /**
+ * Get recent webhook processing diagnostics
+ * Usage: GET /api/webhooks/traveltek/diagnostics
+ */
+router.get('/traveltek/diagnostics', async (req: Request, res: Response) => {
+  try {
+    // Collect diagnostic information
+    const diagnostics: any = {
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV,
+      ftpConfig: {
+        host: process.env.TRAVELTEK_FTP_HOST || 'Not configured',
+        user: process.env.TRAVELTEK_FTP_USER
+          ? `${process.env.TRAVELTEK_FTP_USER.substring(0, 3)}***`
+          : 'Not configured',
+        hasPassword: !!process.env.TRAVELTEK_FTP_PASSWORD,
+      },
+      redisStatus: 'unknown',
+      recentErrors: [],
+      recentProcessing: [],
+    };
+
+    // Check Redis connection
+    try {
+      const redisClient = (await import('../cache/redis')).default;
+      if (redisClient) {
+        await redisClient.ping();
+        diagnostics.redisStatus = 'connected';
+
+        // Try to get recent processing locks
+        const locks = await redisClient.keys('webhook:line:*:lock');
+        diagnostics.activeLocks = locks.length;
+      }
+    } catch (redisError) {
+      diagnostics.redisStatus = `error: ${redisError instanceof Error ? redisError.message : 'Unknown'}`;
+    }
+
+    // Check recent webhook processing
+    try {
+      const result = await db.execute(sql`
+        SELECT
+          cruise_line_id,
+          COUNT(*) as count,
+          MAX(updated_at) as last_update
+        FROM cruises
+        WHERE updated_at > NOW() - INTERVAL '10 minutes'
+        GROUP BY cruise_line_id
+        ORDER BY last_update DESC
+        LIMIT 5
+      `);
+
+      diagnostics.recentProcessing = result.map((row: any) => ({
+        lineId: row.cruise_line_id,
+        cruisesUpdated: row.count,
+        lastUpdate: row.last_update,
+      }));
+    } catch (dbError) {
+      diagnostics.dbError = dbError instanceof Error ? dbError.message : 'Unknown error';
+    }
+
+    // Check if webhook service is loaded
+    try {
+      const serviceCheck = await import('../services/webhook-enhanced.service');
+      diagnostics.webhookServiceLoaded = !!serviceCheck.enhancedWebhookService;
+    } catch (serviceError) {
+      diagnostics.webhookServiceError =
+        serviceError instanceof Error ? serviceError.message : 'Unknown error';
+    }
+
+    // Test FTP connection if configured
+    if (
+      process.env.TRAVELTEK_FTP_HOST &&
+      process.env.TRAVELTEK_FTP_USER &&
+      process.env.TRAVELTEK_FTP_PASSWORD
+    ) {
+      try {
+        const { traveltekFTPService } = await import('../services/traveltek-ftp.service');
+        await traveltekFTPService.connect();
+        diagnostics.ftpConnection = 'success';
+
+        // Connection successful
+        diagnostics.ftpTestPath = 'Connection verified';
+
+        await traveltekFTPService.disconnect();
+      } catch (ftpError) {
+        diagnostics.ftpConnection = `failed: ${ftpError instanceof Error ? ftpError.message : 'Unknown'}`;
+      }
+    } else {
+      diagnostics.ftpConnection = 'missing_credentials';
+    }
+
+    res.json({
+      success: true,
+      diagnostics,
+      recommendations: generateRecommendations(diagnostics),
+    });
+  } catch (error) {
+    logger.error('Error generating diagnostics:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+function generateRecommendations(diagnostics: any): string[] {
+  const recommendations = [];
+
+  if (diagnostics.ftpConnection !== 'success') {
+    recommendations.push('FTP connection is failing - check credentials and network access');
+  }
+
+  if (diagnostics.redisStatus !== 'connected') {
+    recommendations.push('Redis is not connected - webhook locks may not work properly');
+  }
+
+  if (diagnostics.recentProcessing.length === 0) {
+    recommendations.push('No recent cruise updates - webhook processing may be failing');
+  }
+
+  if (diagnostics.activeLocks > 0) {
+    recommendations.push(
+      `${diagnostics.activeLocks} webhook locks are active - may be blocking processing`
+    );
+  }
+
+  if (recommendations.length === 0) {
+    recommendations.push('All systems appear operational');
+  }
+
+  return recommendations;
+}
+
+/**
  * Check FTP configuration status
  * Usage: GET /api/webhooks/traveltek/ftp-status
  */
