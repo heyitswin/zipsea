@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import logger from '../config/logger';
 import { enhancedWebhookService } from '../services/webhook-enhanced.service';
+import { SimpleWebhookService } from '../services/webhook-simple.service';
 import { db } from '../db/connection';
 import { sql } from 'drizzle-orm';
 
@@ -11,6 +12,7 @@ console.log(
 );
 
 const router = Router();
+const simpleWebhookService = new SimpleWebhookService();
 
 /**
  * Traveltek Webhook Endpoint
@@ -1207,6 +1209,65 @@ router.post('/traveltek/test', async (req: Request, res: Response) => {
       stack: error instanceof Error ? error.stack : undefined,
     });
 
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+/**
+ * Test Simple Webhook Service
+ * Uses the simplified webhook processor with graceful FTP failure handling
+ * Usage: GET /api/webhooks/traveltek/test-simple?lineId=41
+ */
+router.get('/traveltek/test-simple', async (req: Request, res: Response) => {
+  try {
+    const testLineId = parseInt(req.query.lineId as string) || 41; // Default to Line 41 (American Cruise Lines - 1 cruise)
+    const webhookId = `test_simple_${Date.now()}`;
+
+    logger.info('🧪 Testing Simple Webhook Service', {
+      webhookId,
+      lineId: testLineId,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Start processing asynchronously
+    simpleWebhookService
+      .processCruiselinePricingUpdate({
+        eventType: 'cruiseline_pricing_updated',
+        lineId: testLineId,
+        timestamp: new Date().toISOString(),
+        webhookId,
+      })
+      .then(result => {
+        logger.info('✅ Simple webhook processing completed', {
+          webhookId,
+          lineId: testLineId,
+          result,
+        });
+      })
+      .catch(error => {
+        logger.error('❌ Simple webhook processing failed', {
+          webhookId,
+          lineId: testLineId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      });
+
+    // Return immediately
+    res.status(200).json({
+      success: true,
+      message: 'Simple webhook processing started',
+      webhookId,
+      lineId: testLineId,
+      processor: 'SimpleWebhookService',
+      timestamp: new Date().toISOString(),
+      note: 'Check logs for processing results',
+    });
+  } catch (error) {
+    logger.error('❌ Failed to start simple webhook processing:', error);
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
