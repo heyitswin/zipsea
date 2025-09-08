@@ -1,13 +1,13 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import logger from '../config/logger';
-import { enhancedWebhookServiceV2 } from '../services/webhook-enhanced-v2.service';
+import { enhancedWebhookService } from '../services/webhook-enhanced.service';
 import { db } from '../db/connection';
 import { sql } from 'drizzle-orm';
 
 console.log('🚨 WEBHOOK ROUTES LOADING - logger type:', typeof logger);
 console.log(
   '🚨 WEBHOOK ROUTES LOADING - enhancedWebhookServiceV2 type:',
-  typeof enhancedWebhookServiceV2
+  typeof enhancedWebhookService
 );
 
 const router = Router();
@@ -116,17 +116,17 @@ router.post(
 
       // Add debug logging
       console.log('🚨 [DEBUG] About to check enhancedWebhookServiceV2...');
-      console.log('🚨 [DEBUG] enhancedWebhookServiceV2 exists:', !!enhancedWebhookServiceV2);
+      console.log('🚨 [DEBUG] enhancedWebhookService exists:', !!enhancedWebhookService);
       console.log(
         '🚨 [DEBUG] processCruiselinePricingUpdate method exists:',
-        !!enhancedWebhookServiceV2?.processCruiselinePricingUpdate
+        !!enhancedWebhookService?.processCruiselinePricingUpdate
       );
 
       logger.info(
         '🔍 [DEBUG] About to call enhancedWebhookServiceV2.processCruiselinePricingUpdate',
         {
-          serviceExists: !!enhancedWebhookServiceV2,
-          methodExists: !!enhancedWebhookServiceV2?.processCruiselinePricingUpdate,
+          serviceExists: !!enhancedWebhookService,
+          methodExists: !!enhancedWebhookService?.processCruiselinePricingUpdate,
           payloadLineId: payload.lineid,
         }
       );
@@ -135,7 +135,7 @@ router.post(
         console.log(
           '🚨 [DEBUG] Calling enhancedWebhookServiceV2.processCruiselinePricingUpdate...'
         );
-        const promise = enhancedWebhookServiceV2.processCruiselinePricingUpdate({
+        const promise = enhancedWebhookService.processCruiselinePricingUpdate({
           eventType: payload.event,
           lineId: payload.lineid,
           timestamp: String(payload.timestamp),
@@ -290,7 +290,7 @@ router.post('/traveltek', async (req: Request, res: Response, next: NextFunction
 
       try {
         // Process webhook using enhanced service
-        await enhancedWebhookServiceV2.processCruiselinePricingUpdate({
+        await enhancedWebhookService.processCruiselinePricingUpdate({
           eventType: payload.event,
           lineId: payload.lineid,
           timestamp: String(payload.timestamp),
@@ -754,7 +754,7 @@ router.post('/test-simulate', async (req: Request, res: Response) => {
     });
 
     // Process the webhook using enhanced service
-    await enhancedWebhookServiceV2.processCruiselinePricingUpdate({
+    await enhancedWebhookService.processCruiselinePricingUpdate({
       eventType: simulatedPayload.event,
       lineId: simulatedPayload.lineid,
       timestamp: String(simulatedPayload.timestamp),
