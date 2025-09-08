@@ -803,6 +803,51 @@ router.post('/test', (req: Request, res: Response) => {
 });
 
 /**
+ * Clear stuck webhook locks
+ * Usage: POST /api/webhooks/traveltek/clear-locks
+ */
+router.post('/traveltek/clear-locks', async (req: Request, res: Response) => {
+  try {
+    const redisClient = (await import('../cache/redis')).default;
+
+    if (!redisClient) {
+      return res.status(500).json({
+        success: false,
+        error: 'Redis not available',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Find all webhook locks
+    const lockKeys = await redisClient.keys('webhook:line:*:lock');
+    const cleared = [];
+
+    for (const key of lockKeys) {
+      const value = await redisClient.get(key);
+      const lineId = key.match(/webhook:line:(\d+):lock/)?.[1];
+      await redisClient.del(key);
+      cleared.push({ lineId, webhookId: value });
+    }
+
+    logger.info(`Cleared ${cleared.length} webhook locks`, { cleared });
+
+    res.json({
+      success: true,
+      message: `Cleared ${cleared.length} webhook lock(s)`,
+      cleared,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error clearing webhook locks:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+/**
  * Get recent webhook processing diagnostics
  * Usage: GET /api/webhooks/traveltek/diagnostics
  */
