@@ -95,6 +95,10 @@ export class EnhancedSlackService {
           },
           {
             type: 'mrkdwn',
+            text: `*Skipped:*\n${results.skipped || 0} (not on FTP)`,
+          },
+          {
+            type: 'mrkdwn',
             text: `*Timestamp:*\n${timestamp}`,
           },
         ],
@@ -105,6 +109,85 @@ export class EnhancedSlackService {
           {
             type: 'mrkdwn',
             text: '🔧 *Improvements Active:* Price snapshots captured | ALL future sailings processed | Line-level locking | Complete data updates',
+          },
+        ],
+      },
+    ];
+
+    await this.sendMessage({ blocks });
+  }
+
+  /**
+   * Send notification for enhanced webhook completion
+   */
+  async notifyEnhancedWebhookComplete(
+    data: SlackWebhookData,
+    results: {
+      successful: number;
+      failed: number;
+      created?: number;
+      actuallyUpdated?: number;
+      skipped?: number;
+    }
+  ): Promise<void> {
+    if (!this.enabled) return;
+
+    const lineDetails = data.lineId ? await this.getCruiseLineDetails(data.lineId) : 'Unknown';
+    const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+    const totalProcessed = results.successful + results.failed + (results.skipped || 0);
+    const successRate =
+      totalProcessed > 0 ? Math.round((results.successful / totalProcessed) * 100) : 0;
+
+    const emoji = successRate >= 90 ? '✅' : successRate >= 70 ? '⚠️' : '❌';
+
+    const blocks: any[] = [
+      {
+        type: 'header',
+        text: {
+          type: 'plain_text',
+          text: `${emoji} Enhanced Webhook Processing Complete V2`,
+          emoji: true,
+        },
+      },
+      {
+        type: 'section',
+        fields: [
+          {
+            type: 'mrkdwn',
+            text: `*Cruise Line:*\n${lineDetails}`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Success Rate:*\n${successRate}%`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Updated:*\n${results.actuallyUpdated || results.successful} cruises`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Created:*\n${results.created || 0} new cruises`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Failed:*\n${results.failed} cruises`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Skipped:*\n${results.skipped || 0} (not on FTP or recently updated)`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*Timestamp:*\n${timestamp}`,
+          },
+        ],
+      },
+      {
+        type: 'context',
+        elements: [
+          {
+            type: 'mrkdwn',
+            text: '🔧 *V2 Improvements:* Intelligent filtering | Skip recently updated | Limited batch size | Better FTP handling',
           },
         ],
       },
