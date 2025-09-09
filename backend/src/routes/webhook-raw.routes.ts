@@ -120,10 +120,14 @@ router.post('/traveltek/test', async (req: Request, res: Response) => {
   try {
     const { lineId = 22 } = req.body;
 
-    logger.info('📨 Test webhook triggered', {
+    logger.info('📨 Test webhook triggered (RAW SQL ROUTE)', {
       lineId: lineId,
       timestamp: new Date().toISOString(),
+      route: 'webhook-raw.routes.ts',
     });
+
+    // Add immediate response to verify route is hit
+    console.log('RAW SQL ROUTE HIT - /traveltek/test');
 
     // Store test webhook event using raw SQL
     const insertQuery = `
@@ -176,12 +180,14 @@ router.post('/traveltek/test', async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    logger.error('Test webhook failed:', error);
+    logger.error('Test webhook failed (RAW SQL):', error);
+    console.error('RAW SQL ERROR:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Test webhook failed (RAW SQL)',
+      message: 'Test webhook failed (RAW SQL ROUTE)',
       error: error instanceof Error ? error.message : 'Unknown error',
       route: 'webhook-raw.routes.ts',
+      stack: error instanceof Error ? error.stack : undefined,
     });
   }
 });
