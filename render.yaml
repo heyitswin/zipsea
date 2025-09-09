@@ -16,7 +16,6 @@ databases:
     ipAllowList: []
 
 services:
-
   # Staging Redis Cache
   - type: redis
     name: zipsea-redis-staging
@@ -43,8 +42,8 @@ services:
     env: node
     region: oregon
     plan: starter
-    branch: main  # Deploy from main branch
-    rootDir: backend  # Only deploy when backend changes
+    branch: main # Deploy from main branch
+    rootDir: backend # Only deploy when backend changes
     buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /health
@@ -89,8 +88,8 @@ services:
     env: node
     region: oregon
     plan: standard
-    branch: production  # Deploy from production branch only
-    rootDir: backend  # Only deploy when backend changes
+    branch: production # Deploy from production branch only
+    rootDir: backend # Only deploy when backend changes
     buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /health
@@ -127,12 +126,12 @@ services:
       # - key: TRAVELTEK_FTP_HOST
       # - key: TRAVELTEK_FTP_USER
       # - key: TRAVELTEK_FTP_PASSWORD
-    autoDeploy: true  # Auto-deploy when production branch updates
+    autoDeploy: true # Auto-deploy when production branch updates
 
   # ===========================================
   # FRONTEND SERVICES (NEW)
   # ===========================================
-  
+
   # Frontend - Staging Environment
   - type: web
     name: zipsea-frontend-staging
@@ -140,7 +139,7 @@ services:
     region: oregon
     plan: starter
     branch: main
-    rootDir: frontend  # Only deploy when frontend changes
+    rootDir: frontend # Only deploy when frontend changes
     buildCommand: npm ci && npm run build
     startCommand: npm run start
     healthCheckPath: /
@@ -164,7 +163,7 @@ services:
     region: oregon
     plan: starter
     branch: production
-    rootDir: frontend  # Only deploy when frontend changes
+    rootDir: frontend # Only deploy when frontend changes
     buildCommand: npm ci && npm run build
     startCommand: npm run start
     healthCheckPath: /
@@ -184,68 +183,62 @@ services:
   # ===========================================
   # CRON JOBS
   # ===========================================
-  
-  # Price Sync Cron Job - Staging (Every 5 minutes)
-  - type: cron
-    name: price-sync-staging
-    env: node
-    region: oregon
-    plan: starter
-    branch: main
-    rootDir: backend
-    buildCommand: npm ci && npm run build
-    startCommand: node scripts/trigger-batch-sync.js
-    schedule: "*/5 * * * *"  # Every 5 minutes
-    envVars:
-      - key: NODE_ENV
-        value: staging
-      - key: API_URL
-        value: https://zipsea-backend.onrender.com
-      - key: DATABASE_URL
-        fromDatabase:
-          name: zipsea-postgres-staging
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: zipsea-redis-staging
-          property: connectionString
-      # These will be added manually in Render Dashboard
-      # - key: TRAVELTEK_FTP_HOST
-      # - key: TRAVELTEK_FTP_USER
-      # - key: TRAVELTEK_FTP_PASSWORD
-      # - key: SLACK_WEBHOOK_URL
 
-  # Price Sync Cron Job - Production (Every 5 minutes)
-  - type: cron
-    name: price-sync-production
-    env: node
-    region: oregon
-    plan: starter
-    branch: production
-    rootDir: backend
-    buildCommand: npm ci && npm run build
-    startCommand: node scripts/trigger-batch-sync.js
-    schedule: "*/5 * * * *"  # Every 5 minutes
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: API_URL
-        value: https://zipsea-production.onrender.com
-      - key: DATABASE_URL
-        fromDatabase:
-          name: zipsea-postgres-production
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: zipsea-redis-production
-          property: connectionString
-      # These will be added manually in Render Dashboard
-      # - key: TRAVELTEK_FTP_HOST
-      # - key: TRAVELTEK_FTP_USER
-      # - key: TRAVELTEK_FTP_PASSWORD
-      # - key: SLACK_WEBHOOK_URL
+  # DEPRECATED: Price Sync Cron Jobs - No longer needed with optimized webhook processor
+  # Webhook processing is now handled automatically by webhook-processor-optimized.service
+  # These cron jobs can be removed from Render dashboard
+
+  # # Price Sync Cron Job - Staging (Every 5 minutes) - DEPRECATED
+  # - type: cron
+  #   name: price-sync-staging
+  #   env: node
+  #   region: oregon
+  #   plan: starter
+  #   branch: main
+  #   rootDir: backend
+  #   buildCommand: npm ci && npm run build
+  #   startCommand: node scripts/trigger-batch-sync.js
+  #   schedule: "*/5 * * * *"  # Every 5 minutes
+  #   envVars:
+  #     - key: NODE_ENV
+  #       value: staging
+  #     - key: API_URL
+  #       value: https://zipsea-backend.onrender.com
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: zipsea-postgres-staging
+  #         property: connectionString
+  #     - key: REDIS_URL
+  #       fromService:
+  #         type: redis
+  #         name: zipsea-redis-staging
+  #         property: connectionString
+
+  # # Price Sync Cron Job - Production (Every 5 minutes) - DEPRECATED
+  # - type: cron
+  #   name: price-sync-production
+  #   env: node
+  #   region: oregon
+  #   plan: starter
+  #   branch: production
+  #   rootDir: backend
+  #   buildCommand: npm ci && npm run build
+  #   startCommand: node scripts/trigger-batch-sync.js
+  #   schedule: "*/5 * * * *"  # Every 5 minutes
+  #   envVars:
+  #     - key: NODE_ENV
+  #       value: production
+  #     - key: API_URL
+  #       value: https://zipsea-production.onrender.com
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: zipsea-postgres-production
+  #         property: connectionString
+  #     - key: REDIS_URL
+  #       fromService:
+  #         type: redis
+  #         name: zipsea-redis-production
+  #         property: connectionString
 
   # Daily Full Sync - Commented out as webhooks handle all updates
   # Uncomment if you need a comprehensive sync safety net

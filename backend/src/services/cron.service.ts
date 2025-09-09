@@ -4,7 +4,6 @@ import { env } from '../config/environment';
 import { dataSyncService } from './data-sync.service';
 import { traveltekFTPService } from './traveltek-ftp.service';
 import { priceHistoryService } from './price-history.service';
-import { priceSyncBatchServiceV6 } from './price-sync-batch-v6.service';
 
 export class CronService {
   private jobs: Map<string, cron.ScheduledTask> = new Map();
@@ -37,17 +36,11 @@ export class CronService {
 
   /**
    * Setup batch sync jobs for webhook-flagged cruises
+   * DEPRECATED: Webhook processing is now handled by webhook-processor-optimized.service
    */
   private setupBatchSyncJobs(): void {
-    // Process flagged cruises every 15 minutes
-    const batchSyncJob = cron.schedule(
-      '*/15 * * * *',
-      async () => {
-        try {
-          logger.info('🔄 Starting batch sync for flagged cruises...');
-          const result = await priceSyncBatchServiceV6.syncBatch();
-          logger.info(
-            `✅ Batch sync completed: ${result.processedCruiseIds.length} processed, ${result.remainingCruises} remaining`
+    // This method is deprecated - webhook processing is now handled automatically
+    logger.info('⚠️ Batch sync jobs are deprecated - using optimized webhook processor instead');
           );
         } catch (error) {
           logger.error('❌ Batch sync failed:', error);
