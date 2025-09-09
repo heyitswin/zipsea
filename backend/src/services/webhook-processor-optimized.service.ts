@@ -1,5 +1,7 @@
 import { Queue, Worker, QueueEvents } from 'bullmq';
 import Redis from 'ioredis';
+import { Queue, Worker, QueueEvents } from 'bullmq';
+import Redis from 'ioredis';
 import * as path from 'path';
 import { db } from '../db/connection';
 import { webhookEvents, systemFlags, priceSnapshots, syncLocks } from '../db/schema/webhook-events';
