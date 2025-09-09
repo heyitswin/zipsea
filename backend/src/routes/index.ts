@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { apiConfig } from '../config/environment';
 import healthRoutes from './health.routes';
-import webhookRoutes from './webhook.routes';
+// Using minimal webhook routes to fix FTP connection issues
+import webhookRoutes from './webhook-minimal.routes';
 import searchRoutes from './search.routes';
 import searchOptimizedRoutes from './search-optimized.routes';
 import cruiseRoutes from './cruise.routes';
@@ -18,7 +19,7 @@ router.get('/', (req, res) => {
   res.json({
     status: 'ok',
     service: 'zipsea-backend',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 });
 
