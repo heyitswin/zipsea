@@ -1,1 +1,18 @@
 # Force rebuild Sat Sep  6 13:08:00 EDT 2025
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Backup files
+*.backup
+
+# Logs
+*.log
+
+# Build output (keep dist for deployment)
+# dist/
+
+# Node modules (handled by root .gitignore)
+# node_modules/
