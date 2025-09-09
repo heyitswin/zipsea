@@ -4,6 +4,7 @@ import { WebhookProcessorOptimized } from '../services/webhook-processor-optimiz
 import { db } from '../db/connection';
 import { webhookEvents } from '../db/schema/webhook-events';
 import { eq, sql } from 'drizzle-orm';
+import { sql as pgSql } from '../db/connection';
 
 const router = Router();
 
@@ -34,15 +35,13 @@ router.post('/traveltek', async (req: Request, res: Response) => {
     });
 
     // Store webhook event in database
-    const [webhookEvent] = await db
-      .insert(webhookEvents)
-      .values({
-        lineId: lineId,
-        webhookType: payload.event || 'update',
-        status: 'pending',
-        metadata: payload,
-      })
-      .returning();
+    // Using raw SQL temporarily due to Drizzle caching issue
+    const result = await pgSql`
+      INSERT INTO webhook_events (line_id, webhook_type, status, metadata)
+      VALUES (${lineId}, ${payload.event || 'update'}, 'pending', ${JSON.stringify(payload)})
+      RETURNING *
+    `;
+    const webhookEvent = result[0];
 
     // Immediately acknowledge webhook to prevent timeout
     res.status(200).json({
@@ -105,15 +104,13 @@ router.post('/traveltek/test', async (req: Request, res: Response) => {
     });
 
     // Store test webhook event
-    const [webhookEvent] = await db
-      .insert(webhookEvents)
-      .values({
-        lineId: lineId,
-        webhookType: 'test',
-        status: 'pending',
-        metadata: { test: true, lineId },
-      })
-      .returning();
+    // Using raw SQL temporarily due to Drizzle caching issue
+    const result = await pgSql`
+      INSERT INTO webhook_events (line_id, webhook_type, status, metadata)
+      VALUES (${lineId}, 'test', 'pending', ${JSON.stringify({ test: true, lineId })})
+      RETURNING *
+    `;
+    const webhookEvent = result[0];
 
     res.json({
       status: 'accepted',
