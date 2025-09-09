@@ -241,4 +241,43 @@ router.get('/health', async (req: Request, res: Response) => {
   });
 });
 
+/**
+ * Simple test endpoint - direct SQL without helper
+ * GET /api/webhooks/traveltek/simple-test
+ */
+router.get('/traveltek/simple-test', async (req: Request, res: Response) => {
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL?.includes('render.com') ? { rejectUnauthorized: false } : false,
+  });
+
+  try {
+    await client.connect();
+
+    const result = await client.query(
+      'INSERT INTO webhook_events (line_id, webhook_type, status, metadata) VALUES ($1, $2, $3, $4) RETURNING *',
+      [99, 'simple_test', 'pending', JSON.stringify({ test: true, direct: true })]
+    );
+
+    // Clean up
+    await client.query('DELETE FROM webhook_events WHERE id = $1', [result.rows[0].id]);
+
+    res.json({
+      status: 'success',
+      message: 'Simple test successful',
+      route: 'webhook-raw.routes.ts',
+      insertedAndDeleted: result.rows[0],
+    });
+  } catch (error) {
+    res.json({
+      status: 'error',
+      message: 'Simple test failed',
+      route: 'webhook-raw.routes.ts',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  } finally {
+    await client.end();
+  }
+});
+
 export default router;
