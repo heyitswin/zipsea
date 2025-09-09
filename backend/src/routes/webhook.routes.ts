@@ -206,4 +206,40 @@ router.get('/health', async (req: Request, res: Response) => {
   });
 });
 
+/**
+ * Debug endpoint - test direct SQL insert
+ * GET /api/webhooks/traveltek/debug
+ */
+router.get('/traveltek/debug', async (req: Request, res: Response) => {
+  try {
+    // Test what Drizzle is actually generating
+    const testInsert = {
+      lineId: 99,
+      webhookType: 'debug_test',
+      status: 'pending',
+      metadata: { debug: true, timestamp: new Date().toISOString() },
+    };
+
+    // Try the insert
+    const [result] = await db.insert(webhookEvents).values(testInsert).returning();
+
+    // Clean up
+    await db.delete(webhookEvents).where(eq(webhookEvents.id, result.id));
+
+    res.json({
+      status: 'success',
+      message: 'Debug insert successful',
+      insertedAndDeleted: result,
+      testData: testInsert,
+    });
+  } catch (error) {
+    res.json({
+      status: 'error',
+      message: 'Debug insert failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+  }
+});
+
 export default router;
