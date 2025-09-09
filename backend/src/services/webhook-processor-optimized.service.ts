@@ -254,7 +254,7 @@ export class WebhookProcessorOptimized {
         .from(webhookEvents)
         .where(
           and(
-            eq(webhookEvents.eventType, 'file_processed'),
+            eq(webhookEvents.webhookType, 'file_processed'),
             eq(webhookEvents.metadata, sql`${file.path}`)
           )
         )
@@ -299,15 +299,14 @@ export class WebhookProcessorOptimized {
 
       // Record processed event
       await db.insert(webhookEvents).values({
-        eventType: 'file_processed',
+        webhookType: 'file_processed',
         lineId: file.lineId,
-        payload: {
+        metadata: {
           path: file.path,
           size: file.size,
           cruisesProcessed,
           pricesProcessed,
         },
-        metadata: file.path,
         status: 'completed',
         processedAt: new Date(),
       });
@@ -318,14 +317,14 @@ export class WebhookProcessorOptimized {
       console.error(`Failed to process file ${file.path}:`, error);
 
       await db.insert(webhookEvents).values({
-        eventType: 'file_error',
+        webhookType: 'file_error',
         lineId: file.lineId,
-        payload: {
+        metadata: {
           path: file.path,
           error: (error as Error).message,
         },
-        metadata: file.path,
         status: 'failed',
+        errorMessage: (error as Error).message,
         processedAt: new Date(),
       });
 
