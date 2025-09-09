@@ -82,11 +82,11 @@ export class FTPComprehensiveSyncService {
       pricesUpdated: 0,
       errors: 0,
       duration: 0,
-      monthsProcessed: []
+      monthsProcessed: [],
     };
 
     logger.info(`🚀 Starting comprehensive FTP sync for cruise line ${lineId}`);
-    
+
     let connection: any = null;
 
     try {
@@ -102,11 +102,11 @@ export class FTPComprehensiveSyncService {
       for (const monthPath of pathsToCheck) {
         try {
           logger.info(`📅 Processing ${monthPath}...`);
-          
+
           // Get all ship directories for this month
           const shipDirs = await connection.list(monthPath);
           const directories = shipDirs.filter((item: any) => item.type === 2);
-          
+
           if (directories.length === 0) {
             logger.debug(`  No ships found in ${monthPath}`);
             continue;
@@ -118,14 +118,14 @@ export class FTPComprehensiveSyncService {
           for (const shipDir of directories) {
             const shipPath = `${monthPath}/${shipDir.name}`;
             const shipId = parseInt(shipDir.name);
-            
+
             logger.info(`  🚢 Ship ${shipId}: checking ${shipPath}...`);
 
             try {
               // Get all cruise files for this ship
               const files = await connection.list(shipPath);
               const jsonFiles = files.filter((f: any) => f.name.endsWith('.json'));
-              
+
               result.filesFound += jsonFiles.length;
               logger.info(`    Found ${jsonFiles.length} cruise files`);
 
@@ -163,7 +163,6 @@ export class FTPComprehensiveSyncService {
         SET last_sync_at = CURRENT_TIMESTAMP
         WHERE id = ${lineId}
       `);
-
     } catch (error) {
       logger.error(`❌ Error during comprehensive sync for line ${lineId}:`, error);
       result.errors++;
@@ -171,12 +170,12 @@ export class FTPComprehensiveSyncService {
       if (connection) {
         ftpConnectionPool.releaseConnection(connection);
       }
-      
+
       result.duration = Date.now() - startTime;
-      
+
       logger.info(`✅ Comprehensive sync completed for line ${lineId}:`, {
         ...result,
-        durationSeconds: Math.round(result.duration / 1000)
+        durationSeconds: Math.round(result.duration / 1000),
       });
     }
 
@@ -189,7 +188,7 @@ export class FTPComprehensiveSyncService {
   private generateFTPPaths(lineId: number): string[] {
     const paths: string[] = [];
     const now = new Date();
-    
+
     for (let monthOffset = 0; monthOffset < this.MONTHS_TO_SYNC; monthOffset++) {
       const checkDate = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
       const year = checkDate.getFullYear();
@@ -221,7 +220,7 @@ export class FTPComprehensiveSyncService {
       created: 0,
       updated: 0,
       pricesUpdated: 0,
-      errors: 0
+      errors: 0,
     };
 
     // Download all files in the batch
@@ -233,28 +232,28 @@ export class FTPComprehensiveSyncService {
 
       try {
         logger.debug(`      ⬇️ Downloading ${file.name}...`);
-        
+
         // Download file content
         const chunks: Buffer[] = [];
         const writableStream = new Writable({
           write(chunk: Buffer, encoding: string, callback: Function) {
             chunks.push(chunk);
             callback();
-          }
+          },
         });
 
         await Promise.race([
           connection.downloadTo(writableStream, filePath),
-          new Promise((_, reject) => 
+          new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Download timeout')), 30000)
-          )
+          ),
         ]);
 
         // Parse JSON
         const buffer = Buffer.concat(chunks);
         const content = buffer.toString();
         const data = JSON.parse(content) as CruiseData;
-        
+
         downloads.push({ file, data });
       } catch (err) {
         logger.error(`      ❌ Failed to download/parse ${file.name}:`, err);
@@ -268,11 +267,7 @@ export class FTPComprehensiveSyncService {
       if (!download.data) continue;
 
       try {
-        const processed = await this.upsertCruise(
-          download.data,
-          lineId,
-          shipId
-        );
+        const processed = await this.upsertCruise(download.data, lineId, shipId);
 
         result.processed++;
         if (processed.created) {
@@ -302,26 +297,35 @@ export class FTPComprehensiveSyncService {
   ): Promise<{ created: boolean; priceUpdated: boolean }> {
     const cruiseId = String(data.codetocruiseid);
     const sailingDate = data.saildate || data.startdate;
-    
+
     // Extract prices
     const prices = {
       interior: data.cheapestinside ? parseFloat(String(data.cheapestinside)) : null,
       oceanview: data.cheapestoutside ? parseFloat(String(data.cheapestoutside)) : null,
       balcony: data.cheapestbalcony ? parseFloat(String(data.cheapestbalcony)) : null,
-      suite: data.cheapestsuite ? parseFloat(String(data.cheapestsuite)) : null
+      suite: data.cheapestsuite ? parseFloat(String(data.cheapestsuite)) : null,
     };
 
     // Check cached prices as fallback
     if (data.cachedprices) {
-      prices.interior = prices.interior || (data.cachedprices.inside ? parseFloat(String(data.cachedprices.inside)) : null);
-      prices.oceanview = prices.oceanview || (data.cachedprices.outside ? parseFloat(String(data.cachedprices.outside)) : null);
-      prices.balcony = prices.balcony || (data.cachedprices.balcony ? parseFloat(String(data.cachedprices.balcony)) : null);
-      prices.suite = prices.suite || (data.cachedprices.suite ? parseFloat(String(data.cachedprices.suite)) : null);
+      prices.interior =
+        prices.interior ||
+        (data.cachedprices.inside ? parseFloat(String(data.cachedprices.inside)) : null);
+      prices.oceanview =
+        prices.oceanview ||
+        (data.cachedprices.outside ? parseFloat(String(data.cachedprices.outside)) : null);
+      prices.balcony =
+        prices.balcony ||
+        (data.cachedprices.balcony ? parseFloat(String(data.cachedprices.balcony)) : null);
+      prices.suite =
+        prices.suite ||
+        (data.cachedprices.suite ? parseFloat(String(data.cachedprices.suite)) : null);
     }
 
     // Calculate cheapest price
-    const validPrices = [prices.interior, prices.oceanview, prices.balcony, prices.suite]
-      .filter(p => p !== null && p > 0) as number[];
+    const validPrices = [prices.interior, prices.oceanview, prices.balcony, prices.suite].filter(
+      p => p !== null && p > 0
+    ) as number[];
     const cheapestPrice = validPrices.length > 0 ? Math.min(...validPrices) : null;
 
     // First, ensure cruise line exists
@@ -485,7 +489,7 @@ export class FTPComprehensiveSyncService {
 
     return {
       created,
-      priceUpdated: cheapestPrice !== null
+      priceUpdated: cheapestPrice !== null,
     };
   }
 

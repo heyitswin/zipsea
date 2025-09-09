@@ -56,10 +56,12 @@ export class CronService {
           const startDate = new Date();
           startDate.setMonth(startDate.getMonth() - 1);
 
-          const result = await dataSyncService.syncRecentData(startDate);
-          logger.info(
-            `✅ Recent data sync completed: ${result.cruisesProcessed} cruises processed, ${result.cruisesCreated} created, ${result.cruisesUpdated} updated`
-          );
+          // TODO: Implement syncRecentData method
+          logger.info('📌 Recent data sync - method not yet implemented');
+          // const result = await dataSyncService.syncRecentData(startDate);
+          // logger.info(
+          //   `✅ Recent data sync completed: ${result.cruisesProcessed} cruises processed, ${result.cruisesCreated} created, ${result.cruisesUpdated} updated`
+          // );
         } catch (error) {
           logger.error('❌ Recent data sync failed:', error);
         }
@@ -169,10 +171,12 @@ export class CronService {
       async () => {
         try {
           logger.info('📊 Starting weekly price trend analysis...');
-          const result = await priceHistoryService.analyzePriceTrends();
-          logger.info(
-            `✅ Price trend analysis completed: ${result.cruisesAnalyzed} cruises analyzed`
-          );
+          // TODO: Implement analyzePriceTrends method
+          logger.info('📌 Price trend analysis - method not yet implemented');
+          // const result = await priceHistoryService.analyzePriceTrends();
+          // logger.info(
+          //   `✅ Price trend analysis completed: ${result.cruisesAnalyzed} cruises analyzed`
+          // );
         } catch (error) {
           logger.error('❌ Price trend analysis failed:', error);
         }
@@ -211,10 +215,12 @@ export class CronService {
 
     // Check FTP connection
     try {
-      const ftpHealthy = await traveltekFTPService.testConnection();
-      if (!ftpHealthy) {
-        issues.push('FTP connection failed');
-      }
+      // TODO: Implement testConnection method
+      // const ftpHealthy = await traveltekFTPService.testConnection();
+      // if (!ftpHealthy) {
+      //   issues.push('FTP connection failed');
+      // }
+      issues.push('FTP health check not implemented');
     } catch (error) {
       issues.push('FTP health check failed');
     }
@@ -261,7 +267,7 @@ export class CronService {
 
     for (const [name, job] of this.jobs) {
       status[name] = {
-        running: job.running ?? false,
+        running: (job as any).running ?? false,
         // nextRun would need to be calculated based on cron expression
       };
     }
