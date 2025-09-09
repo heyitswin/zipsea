@@ -74,7 +74,9 @@ router.post('/traveltek', async (req: Request, res: Response) => {
     // Process webhook asynchronously
     setImmediate(async () => {
       try {
+        console.log(`Starting webhook processing for event ${webhookEvent.id}, line ${lineId}`);
         await getWebhookProcessor().processWebhooks(lineId);
+        console.log(`Webhook processing completed for event ${webhookEvent.id}`);
 
         // Update webhook status using raw SQL
         const updateQuery = `
@@ -83,20 +85,22 @@ router.post('/traveltek', async (req: Request, res: Response) => {
           WHERE id = $3
         `;
         await executeSQL(updateQuery, ['processed', new Date(), webhookEvent.id]);
+        console.log(`Updated webhook event ${webhookEvent.id} to processed`);
       } catch (error) {
+        console.error(`Failed to process webhook event ${webhookEvent.id}:`, error);
         logger.error('Failed to process webhook:', error);
 
         // Update webhook status to failed using raw SQL
         const updateQuery = `
           UPDATE webhook_events
-          SET status = $1, error_message = $2
-          WHERE id = $3
+          SET status = $1, error_message = $2, processed_at = $3
+          WHERE id = $4
         `;
-        await executeSQL(updateQuery, [
-          'failed',
-          error instanceof Error ? error.message : 'Unknown error',
-          webhookEvent.id,
-        ]);
+        const errorMessage =
+          error instanceof Error ? `${error.message}\n${error.stack}` : 'Unknown error';
+
+        await executeSQL(updateQuery, ['failed', errorMessage, new Date(), webhookEvent.id]);
+        console.log(`Updated webhook event ${webhookEvent.id} to failed`);
       }
     });
   } catch (error) {
@@ -297,6 +301,54 @@ router.get('/traveltek/db-check', async (req: Request, res: Response) => {
     res.json({
       status: 'error',
       message: 'Database check failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  } finally {
+    await client.end();
+  }
+});
+
+/**
+ * Minimal test endpoint - just updates status
+ * POST /api/webhooks/traveltek/minimal-test
+ */
+router.post('/traveltek/minimal-test', async (req: Request, res: Response) => {
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL?.includes('render.com') ? { rejectUnauthorized: false } : false,
+  });
+
+  try {
+    await client.connect();
+
+    // Insert webhook event
+    const insertResult = await client.query(
+      'INSERT INTO webhook_events (line_id, webhook_type, status, metadata) VALUES ($1, $2, $3, $4) RETURNING *',
+      [99, 'minimal_test', 'pending', JSON.stringify({ test: true })]
+    );
+
+    const webhookId = insertResult.rows[0].id;
+
+    // Simulate processing
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Update status to processed
+    await client.query('UPDATE webhook_events SET status = $1, processed_at = $2 WHERE id = $3', [
+      'processed',
+      new Date(),
+      webhookId,
+    ]);
+
+    res.json({
+      status: 'success',
+      message: 'Minimal test completed',
+      webhookId: webhookId,
+      finalStatus: 'processed',
+    });
+  } catch (error) {
+    res.json({
+      status: 'error',
+      message: 'Minimal test failed',
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   } finally {
