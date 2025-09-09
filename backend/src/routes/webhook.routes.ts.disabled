@@ -1,9 +1,10 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import logger from '../config/logger';
-import { enhancedWebhookService } from '../services/webhook-enhanced.service';
-import { SimpleWebhookService } from '../services/webhook-simple.service';
-import { comprehensiveWebhookService } from '../services/webhook-comprehensive.service';
-import { comprehensiveWebhookDebugService } from '../services/webhook-comprehensive-debug.service';
+// Temporarily disabled - causing FTP connection issues
+// import { enhancedWebhookService } from '../services/webhook-enhanced.service';
+// import { SimpleWebhookService } from '../services/webhook-simple.service';
+// import { comprehensiveWebhookService } from '../services/webhook-comprehensive.service';
+// import { comprehensiveWebhookDebugService } from '../services/webhook-comprehensive-debug.service';
 import { webhookFixedService } from '../services/webhook-fixed.service';
 import { webhookProductionFixService } from '../services/webhook-production-fix.service';
 import { db } from '../db/connection';
@@ -306,6 +307,7 @@ router.post('/traveltek', async (req: Request, res: Response, next: NextFunction
       });
 
       // Process asynchronously using production-fixed service
+      // IMPORTANT: Using production fix service that creates new FTP connection per cruise
       webhookProductionFixService
         .processWebhook(payload.lineid)
         .then(result => {
