@@ -14,11 +14,10 @@ export const webhookEvents = pgTable(
   'webhook_events',
   {
     id: serial('id').primaryKey(),
-    eventType: varchar('event_type', { length: 100 }).notNull(),
-    lineId: integer('line_id'),
-    payload: jsonb('payload').notNull(),
+    lineId: integer('line_id').notNull(),
+    webhookType: varchar('webhook_type', { length: 50 }),
     status: varchar('status', { length: 50 }).default('pending'),
-    createdAt: timestamp('created_at').defaultNow(),
+    receivedAt: timestamp('received_at').defaultNow(),
     processedAt: timestamp('processed_at'),
     metadata: jsonb('metadata'),
     errorMessage: text('error_message'),
@@ -27,7 +26,7 @@ export const webhookEvents = pgTable(
   table => ({
     statusIdx: index('idx_webhook_events_status').on(table.status),
     lineIdIdx: index('idx_webhook_events_line_id').on(table.lineId),
-    createdAtIdx: index('idx_webhook_events_created_at').on(table.createdAt),
+    receivedAtIdx: index('idx_webhook_events_received_at').on(table.receivedAt),
   })
 );
 

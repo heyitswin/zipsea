@@ -37,10 +37,9 @@ router.post('/traveltek', async (req: Request, res: Response) => {
     const [webhookEvent] = await db
       .insert(webhookEvents)
       .values({
-        eventType: payload.event || 'update',
         lineId: lineId,
+        webhookType: payload.event || 'update',
         status: 'pending',
-        payload: payload,
         metadata: payload,
       })
       .returning();
@@ -109,10 +108,9 @@ router.post('/traveltek/test', async (req: Request, res: Response) => {
     const [webhookEvent] = await db
       .insert(webhookEvents)
       .values({
-        eventType: 'test',
         lineId: lineId,
+        webhookType: 'test',
         status: 'pending',
-        payload: { test: true, lineId },
         metadata: { test: true, lineId },
       })
       .returning();
@@ -169,7 +167,7 @@ router.get('/traveltek/status', async (req: Request, res: Response) => {
     const recentEvents = await db
       .select()
       .from(webhookEvents)
-      .orderBy(sql`${webhookEvents.createdAt} DESC`)
+      .orderBy(sql`${webhookEvents.receivedAt} DESC`)
       .limit(10);
 
     // Get processing stats
