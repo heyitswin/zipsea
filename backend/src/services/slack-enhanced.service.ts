@@ -1,30 +1,46 @@
-import { env } from '../config/environment';
-import { logger } from '../config/logger';
 import axios from 'axios';
-import { db } from '../db/connection';
-import { eq, sql } from 'drizzle-orm';
-import { cruises, cruiseLines } from '../db/schema';
+import logger from '../config/logger';
+import { env } from '../config/environment';
 
-export interface SlackWebhookData {
+interface WebhookPayload {
+  event?: string;
+  lineid?: number;
   lineId?: number;
-  cruiseId?: number;
-  cruiseIds?: number[];
-  eventType: string;
-  timestamp?: string;
+  currency?: string;
+  marketid?: number;
+  source?: string;
+  description?: string;
+  timestamp?: number;
 }
 
-export interface SlackNotificationOptions {
-  title: string;
-  message: string;
-  color?: 'good' | 'warning' | 'danger';
-  details?: Record<string, any>;
-  fields?: Array<{ title: string; value: string; short?: boolean }>;
+interface ProcessingStats {
+  startTime: Date;
+  endTime?: Date;
+  totalFiles?: number;
+  processedFiles?: number;
+  updatedCruises?: number;
+  createdCruises?: number;
+  failedFiles?: number;
+  snapshotsCreated?: number;
+  errors?: string[];
+}
+
+interface ProcessingResult {
+  successful: number;
+  failed: number;
+  errors: string[];
+  startTime: Date;
+  endTime: Date;
+  processingTimeMs: number;
+  totalCruises: number;
+  priceSnapshotsCreated: number;
 }
 
 /**
- * Enhanced Slack Service with updated messages reflecting webhook improvements
+ * Enhanced Slack Service
+ * Provides comprehensive notifications for webhook processing
  */
-export class EnhancedSlackService {
+class SlackEnhancedService {
   private webhookUrl: string | undefined;
   private enabled: boolean;
 
@@ -33,550 +49,358 @@ export class EnhancedSlackService {
     this.enabled = !!this.webhookUrl;
 
     if (!this.enabled) {
-      logger.debug('Slack notifications disabled - no webhook URL configured');
+      logger.warn('Slack notifications disabled - no webhook URL configured');
     }
   }
 
   /**
-   * Send enhanced notification with detailed FTP download metrics
+   * Send a message to Slack
    */
-  async notifyEnhancedWebhookUpdate(data: {
-    lineId: number;
-    databaseLineId: number;
-    successful: number;
-    failed: number;
-    created: number;
-    totalFiles: number;
-    successfulDownloads: number;
-    failedDownloads: number;
-    corruptedFiles: number;
-    fileNotFoundErrors: number;
-    parseErrors: number;
-    successRate: number;
-    duration: number;
-  }): Promise<void> {
-    if (!this.enabled) return;
-
-    const lineDetails = data.lineId
-      ? await this.getCruiseLineDetails(data.databaseLineId)
-      : 'Unknown';
-    const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
-
-    // Determine overall status
-    const emoji = data.successRate >= 90 ? '✅' : data.successRate >= 70 ? '⚠️' : '❌';
-    const status =
-      data.successRate >= 90 ? 'Successful' : data.successRate >= 70 ? 'Partial Success' : 'Failed';
-
-    // Calculate detailed metrics
-    const durationSec = (data.duration / 1000).toFixed(1);
-    const filesPerSec =
-      data.duration > 0 ? (data.successfulDownloads / (data.duration / 1000)).toFixed(1) : '0';
-
-    const blocks: any[] = [
-      {
-        type: 'header',
-        text: {
-          type: 'plain_text',
-          text: `${emoji} Webhook Processing: ${status}`,
-          emoji: true,
-        },
-      },
-      {
-        type: 'section',
-        fields: [
-          {
-            type: 'mrkdwn',
-            text: `*Cruise Line:*\n${lineDetails}`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Overall Success Rate:*\n${data.successRate}%`,
-          },
-        ],
-      },
-      {
-        type: 'divider',
-      },
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: '*📊 Download Statistics*',
-        },
-        fields: [
-          {
-            type: 'mrkdwn',
-            text: `*Total Files:*\n${data.totalFiles}`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Downloaded:*\n${data.successfulDownloads}`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Failed:*\n${data.failedDownloads}`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Duration:*\n${durationSec}s (${filesPerSec} files/sec)`,
-          },
-        ],
-      },
-    ];
-
-    // Add error breakdown if there are issues
-    if (data.corruptedFiles > 0 || data.fileNotFoundErrors > 0 || data.parseErrors > 0) {
-      blocks.push({
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: '*⚠️ Error Breakdown*',
-        },
-        fields: [
-          {
-            type: 'mrkdwn',
-            text: `*Corrupted JSON:*\n${data.corruptedFiles} files`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Not Found on FTP:*\n${data.fileNotFoundErrors} files`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Parse Errors:*\n${data.parseErrors} files`,
-          },
-        ],
-      });
+  private async sendMessage(message: any): Promise<void> {
+    if (!this.enabled || !this.webhookUrl) {
+      logger.debug('Slack message not sent (disabled):', message);
+      return;
     }
-
-    // Add database update statistics
-    blocks.push({
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: '*💾 Database Updates*',
-      },
-      fields: [
-        {
-          type: 'mrkdwn',
-          text: `*Updated:*\n${data.successful} cruises`,
-        },
-        {
-          type: 'mrkdwn',
-          text: `*Created:*\n${data.created} new cruises`,
-        },
-        {
-          type: 'mrkdwn',
-          text: `*Failed:*\n${data.failed} updates`,
-        },
-      ],
-    });
-
-    // Add improvements notice
-    blocks.push({
-      type: 'context',
-      elements: [
-        {
-          type: 'mrkdwn',
-          text: `🔧 *Improvements Active:* JSON error recovery | Cheapest pricing extraction | Corrupted file handling | Enhanced error reporting`,
-        },
-      ],
-    });
-
-    blocks.push({
-      type: 'context',
-      elements: [
-        {
-          type: 'mrkdwn',
-          text: `⏰ ${timestamp}`,
-        },
-      ],
-    });
 
     try {
-      await this.sendMessage({ blocks });
-    } catch (error) {
-      logger.error('Failed to send enhanced webhook notification to Slack:', error);
-    }
-  }
-
-  /**
-   * Send enhanced notification for cruise line pricing update
-   * Reflects all the new improvements
-   */
-  async notifyCruiseLinePricingUpdate(
-    data: SlackWebhookData,
-    results: {
-      successful: number;
-      failed: number;
-      created?: number;
-      actuallyUpdated?: number;
-    }
-  ): Promise<void> {
-    if (!this.enabled) return;
-
-    const lineDetails = data.lineId ? await this.getCruiseLineDetails(data.lineId) : 'Unknown';
-    const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
-    const successRate =
-      results.successful > 0
-        ? Math.round((results.successful / (results.successful + results.failed)) * 100)
-        : 0;
-
-    const emoji = successRate >= 90 ? '✅' : successRate >= 70 ? '⚠️' : '❌';
-
-    const blocks: any[] = [
-      {
-        type: 'header',
-        text: {
-          type: 'plain_text',
-          text: `${emoji} Enhanced Webhook Processing Complete`,
-          emoji: true,
-        },
-      },
-      {
-        type: 'section',
-        fields: [
-          {
-            type: 'mrkdwn',
-            text: `*Cruise Line:*\n${lineDetails}`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Success Rate:*\n${successRate}%`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Updated:*\n${results.actuallyUpdated || results.successful} cruises`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Created:*\n${results.created || 0} new cruises`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Failed:*\n${results.failed} cruises`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Timestamp:*\n${timestamp}`,
-          },
-        ],
-      },
-      {
-        type: 'context',
-        elements: [
-          {
-            type: 'mrkdwn',
-            text: '🔧 *Improvements Active:* Price snapshots captured | ALL future sailings processed | Line-level locking | Complete data updates',
-          },
-        ],
-      },
-    ];
-
-    await this.sendMessage({ blocks });
-  }
-
-  /**
-   * Send notification for specific cruise pricing updates
-   */
-  async notifyCruisePricingUpdate(
-    data: SlackWebhookData,
-    results: {
-      successful: number;
-      failed: number;
-    }
-  ): Promise<void> {
-    if (!this.enabled) return;
-
-    const cruiseIds = data.cruiseId ? [data.cruiseId] : data.cruiseIds || [];
-    const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
-    const successRate =
-      results.successful > 0
-        ? Math.round((results.successful / (results.successful + results.failed)) * 100)
-        : 0;
-
-    const emoji = successRate >= 90 ? '✅' : successRate >= 70 ? '⚠️' : '❌';
-
-    const blocks: any[] = [
-      {
-        type: 'header',
-        text: {
-          type: 'plain_text',
-          text: `${emoji} Cruise Pricing Update`,
-          emoji: true,
-        },
-      },
-      {
-        type: 'section',
-        fields: [
-          {
-            type: 'mrkdwn',
-            text: `*Cruises Updated:*\n${results.successful}/${cruiseIds.length}`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Success Rate:*\n${successRate}%`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Failed:*\n${results.failed}`,
-          },
-          {
-            type: 'mrkdwn',
-            text: `*Timestamp:*\n${timestamp}`,
-          },
-        ],
-      },
-      {
-        type: 'context',
-        elements: [
-          {
-            type: 'mrkdwn',
-            text: `Cruise IDs: ${cruiseIds.slice(0, 5).join(', ')}${cruiseIds.length > 5 ? '...' : ''}`,
-          },
-        ],
-      },
-    ];
-
-    await this.sendMessage({ blocks });
-  }
-
-  /**
-   * Send notification for sync operations
-   */
-  async notifySyncStatus(
-    operation: string,
-    status: 'started' | 'completed' | 'failed',
-    details?: Record<string, any>
-  ): Promise<void> {
-    if (!this.enabled) return;
-
-    const emoji = status === 'started' ? '🚀' : status === 'completed' ? '✅' : '❌';
-    const color = status === 'started' ? undefined : status === 'completed' ? 'good' : 'danger';
-
-    const blocks: any[] = [
-      {
-        type: 'header',
-        text: {
-          type: 'plain_text',
-          text: `${emoji} ${operation}`,
-          emoji: true,
-        },
-      },
-    ];
-
-    if (details) {
-      const fields = Object.entries(details).map(([key, value]) => ({
-        type: 'mrkdwn',
-        text: `*${key}:*\n${value}`,
-      }));
-
-      const sectionBlock: any = {
-        type: 'section',
-        fields: fields.slice(0, 10), // Slack limits to 10 fields
-      };
-      blocks.push(sectionBlock);
-    }
-
-    if (status === 'started') {
-      const contextBlock: any = {
-        type: 'context',
-        elements: [
-          {
-            type: 'mrkdwn',
-            text: '⏸️ *Note:* Webhooks are automatically paused during sync operations',
-          },
-        ],
-      };
-      blocks.push(contextBlock);
-    }
-
-    await this.sendMessage({ blocks });
-  }
-
-  /**
-   * Send notification for sync errors
-   */
-  async notifySyncError(error: string, context: string): Promise<void> {
-    if (!this.enabled) return;
-
-    const blocks = [
-      {
-        type: 'header',
-        text: {
-          type: 'plain_text',
-          text: '🚨 Sync Error',
-          emoji: true,
-        },
-      },
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: `*Context:* ${context}\n*Error:* ${error}`,
-        },
-      },
-      {
-        type: 'context',
-        elements: [
-          {
-            type: 'mrkdwn',
-            text: `Timestamp: ${new Date().toISOString()}`,
-          },
-        ],
-      },
-    ];
-
-    await this.sendMessage({ blocks });
-  }
-
-  /**
-   * Send custom notification with flexible formatting
-   */
-  async notifyCustomMessage(options: SlackNotificationOptions): Promise<void> {
-    if (!this.enabled) return;
-
-    const blocks: any[] = [
-      {
-        type: 'header',
-        text: {
-          type: 'plain_text',
-          text: options.title,
-          emoji: true,
-        },
-      },
-    ];
-
-    if (options.message) {
-      blocks.push({
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: options.message,
-        },
-      });
-    }
-
-    if (options.fields && options.fields.length > 0) {
-      const sectionBlock: any = {
-        type: 'section',
-        fields: options.fields.map(f => ({
-          type: 'mrkdwn',
-          text: `*${f.title}:*\n${f.value}`,
-        })),
-      };
-      blocks.push(sectionBlock);
-    }
-
-    if (options.details) {
-      const detailsText = Object.entries(options.details)
-        .map(([key, value]) => `• *${key}:* ${value}`)
-        .join('\n');
-
-      blocks.push({
-        type: 'context',
-        elements: [
-          {
-            type: 'mrkdwn',
-            text: detailsText,
-          },
-        ],
-      });
-    }
-
-    await this.sendMessage({ blocks });
-  }
-
-  /**
-   * Send notification for batch sync operations
-   */
-  async notifyBatchSyncUpdate(
-    processedCount: number,
-    pendingCount: number,
-    duration: number
-  ): Promise<void> {
-    if (!this.enabled) return;
-
-    const emoji = pendingCount === 0 ? '✅' : '🔄';
-
-    await this.notifyCustomMessage({
-      title: `${emoji} Batch Sync Update`,
-      message: `Processed ${processedCount} cruises in ${(duration / 1000).toFixed(1)}s`,
-      fields: [
-        { title: 'Remaining', value: String(pendingCount), short: true },
-        {
-          title: 'Rate',
-          value: `${(processedCount / (duration / 1000)).toFixed(1)}/sec`,
-          short: true,
-        },
-      ],
-      details: {
-        'Flag Clearing': 'Only processed cruises cleared (bug fixed)',
-        'Price History': 'Captured before all updates',
-        'Date Range': 'ALL future sailings (no 2-year limit)',
-      },
-    });
-  }
-
-  /**
-   * Helper to get cruise line details
-   */
-  private async getCruiseLineDetails(lineId: number): Promise<string> {
-    try {
-      const result = await db
-        .select({ name: cruiseLines.name })
-        .from(cruiseLines)
-        .where(eq(cruiseLines.id, lineId))
-        .limit(1);
-
-      return result[0]?.name || `Line ID: ${lineId}`;
-    } catch (error) {
-      logger.error('Failed to get cruise line details:', error);
-      return `Line ID: ${lineId}`;
-    }
-  }
-
-  /**
-   * Helper to get cruise details
-   */
-  private async getCruiseDetails(cruiseId: number): Promise<string> {
-    try {
-      const result = await db
-        .select({
-          name: cruises.name,
-          sailingDate: cruises.sailingDate,
-        })
-        .from(cruises)
-        .where(eq(cruises.id, String(cruiseId)))
-        .limit(1);
-
-      if (result[0]) {
-        const date = new Date(result[0].sailingDate).toLocaleDateString();
-        return `${result[0].name} (${date})`;
-      }
-      return `Cruise ID: ${cruiseId}`;
-    } catch (error) {
-      logger.error('Failed to get cruise details:', error);
-      return `Cruise ID: ${cruiseId}`;
-    }
-  }
-
-  /**
-   * Send message to Slack
-   */
-  private async sendMessage(payload: any): Promise<void> {
-    if (!this.webhookUrl) return;
-
-    try {
-      await axios.post(this.webhookUrl, payload, {
+      await axios.post(this.webhookUrl, message, {
         headers: { 'Content-Type': 'application/json' },
         timeout: 5000,
       });
     } catch (error) {
-      logger.error('Failed to send Slack notification:', error);
+      logger.error('Failed to send Slack message:', error);
+    }
+  }
+
+  /**
+   * Notify when a webhook is received
+   */
+  async notifyWebhookReceived(payload: WebhookPayload): Promise<void> {
+    const lineId = payload.lineid || payload.lineId;
+    const message = {
+      text: `🔔 Webhook Received`,
+      blocks: [
+        {
+          type: 'header',
+          text: {
+            type: 'plain_text',
+            text: '🔔 Webhook Received',
+            emoji: true,
+          },
+        },
+        {
+          type: 'section',
+          fields: [
+            {
+              type: 'mrkdwn',
+              text: `*Event:*\n${payload.event || 'Unknown'}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Line ID:*\n${lineId || 'N/A'}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Currency:*\n${payload.currency || 'N/A'}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Market ID:*\n${payload.marketid || 'N/A'}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Source:*\n${payload.source || 'N/A'}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Time:*\n${new Date().toISOString()}`,
+            },
+          ],
+        },
+        {
+          type: 'context',
+          elements: [
+            {
+              type: 'mrkdwn',
+              text: payload.description || 'Processing started...',
+            },
+          ],
+        },
+      ],
+    };
+
+    await this.sendMessage(message);
+  }
+
+  /**
+   * Notify processing progress
+   */
+  async notifyProcessingProgress(lineId: number, stats: ProcessingStats): Promise<void> {
+    const progress = stats.totalFiles
+      ? Math.round(((stats.processedFiles || 0) / stats.totalFiles) * 100)
+      : 0;
+
+    const message = {
+      text: `⏳ Processing Update - Line ${lineId}`,
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*⏳ Processing Update - Line ${lineId}*`,
+          },
+        },
+        {
+          type: 'section',
+          fields: [
+            {
+              type: 'mrkdwn',
+              text: `*Progress:*\n${progress}% (${stats.processedFiles}/${stats.totalFiles})`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Updated:*\n${stats.updatedCruises || 0} cruises`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Created:*\n${stats.createdCruises || 0} cruises`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Failed:*\n${stats.failedFiles || 0} files`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Snapshots:*\n${stats.snapshotsCreated || 0} created`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Duration:*\n${this.formatDuration(stats.startTime, new Date())}`,
+            },
+          ],
+        },
+      ],
+    };
+
+    await this.sendMessage(message);
+  }
+
+  /**
+   * Notify when processing is completed
+   */
+  async notifyWebhookProcessingCompleted(
+    webhook: { lineId?: number; eventType?: string },
+    result: ProcessingResult
+  ): Promise<void> {
+    const success = result.failed === 0;
+    const emoji = success ? '✅' : '⚠️';
+    const status = success ? 'Completed Successfully' : 'Completed with Errors';
+
+    const message = {
+      text: `${emoji} Webhook Processing ${status}`,
+      blocks: [
+        {
+          type: 'header',
+          text: {
+            type: 'plain_text',
+            text: `${emoji} Webhook Processing ${status}`,
+            emoji: true,
+          },
+        },
+        {
+          type: 'section',
+          fields: [
+            {
+              type: 'mrkdwn',
+              text: `*Line ID:*\n${webhook.lineId || 'N/A'}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Total Cruises:*\n${result.totalCruises}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Successfully Processed:*\n${result.successful}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Failed:*\n${result.failed}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Price Snapshots:*\n${result.priceSnapshotsCreated}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Processing Time:*\n${this.formatMilliseconds(result.processingTimeMs)}`,
+            },
+          ],
+        },
+      ],
+    };
+
+    // Add error details if any
+    if (result.errors && result.errors.length > 0) {
+      message.blocks.push({
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `*Errors:*\n\`\`\`${result.errors.slice(0, 5).join('\n')}\`\`\`${
+            result.errors.length > 5 ? `\n_...and ${result.errors.length - 5} more_` : ''
+          }`,
+        },
+      });
+    }
+
+    // Add summary
+    message.blocks.push({
+      type: 'context',
+      elements: [
+        {
+          type: 'mrkdwn',
+          text: `Completed at ${result.endTime.toISOString()}`,
+        },
+      ],
+    });
+
+    await this.sendMessage(message);
+  }
+
+  /**
+   * Notify sync errors
+   */
+  async notifySyncError(error: string, context?: string): Promise<void> {
+    const message = {
+      text: '❌ Webhook Processing Error',
+      blocks: [
+        {
+          type: 'header',
+          text: {
+            type: 'plain_text',
+            text: '❌ Webhook Processing Error',
+            emoji: true,
+          },
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*Error:*\n\`\`\`${error}\`\`\``,
+          },
+        },
+      ],
+    };
+
+    if (context) {
+      message.blocks.push({
+        type: 'context',
+        elements: [
+          {
+            type: 'mrkdwn',
+            text: context,
+          },
+        ],
+      });
+    }
+
+    await this.sendMessage(message);
+  }
+
+  /**
+   * Notify FTP connection pool status
+   */
+  async notifyConnectionPoolStatus(stats: any): Promise<void> {
+    const message = {
+      text: '🔌 FTP Connection Pool Status',
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: '*🔌 FTP Connection Pool Status*',
+          },
+        },
+        {
+          type: 'section',
+          fields: [
+            {
+              type: 'mrkdwn',
+              text: `*Total Connections:*\n${stats.total}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*In Use:*\n${stats.inUse}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Idle:*\n${stats.idle}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Waiting Queue:*\n${stats.waiting}`,
+            },
+          ],
+        },
+      ],
+    };
+
+    await this.sendMessage(message);
+  }
+
+  /**
+   * Notify batch processing start
+   */
+  async notifyBatchProcessingStart(lineId: number, batchSize: number): Promise<void> {
+    const message = {
+      text: `🚀 Starting batch processing for Line ${lineId}`,
+      blocks: [
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*🚀 Batch Processing Started*\nLine ${lineId} - ${batchSize} files`,
+          },
+        },
+        {
+          type: 'context',
+          elements: [
+            {
+              type: 'mrkdwn',
+              text: `Started at ${new Date().toISOString()}`,
+            },
+          ],
+        },
+      ],
+    };
+
+    await this.sendMessage(message);
+  }
+
+  /**
+   * Format duration between two dates
+   */
+  private formatDuration(start: Date, end: Date): string {
+    const ms = end.getTime() - start.getTime();
+    return this.formatMilliseconds(ms);
+  }
+
+  /**
+   * Format milliseconds to human readable
+   */
+  private formatMilliseconds(ms: number): string {
+    const seconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`;
+    } else {
+      return `${seconds}s`;
     }
   }
 }
 
 // Export singleton instance
-export const enhancedSlackService = new EnhancedSlackService();
+export const slackService = new SlackEnhancedService();

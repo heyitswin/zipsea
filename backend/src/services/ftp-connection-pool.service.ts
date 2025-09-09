@@ -1,214 +1,327 @@
-import { Client } from 'basic-ftp';
-import { env } from '../config/environment';
+import * as ftp from 'basic-ftp';
+import { Client as FTPClient } from 'basic-ftp';
+import { EventEmitter } from 'events';
 import logger from '../config/logger';
+import { env } from '../config/environment';
 
 interface PooledConnection {
-  client: Client;
+  id: string;
+  client: FTPClient;
   inUse: boolean;
   lastUsed: Date;
-  id: number;
+  createdAt: Date;
+  keepAliveTimer?: NodeJS.Timeout;
+}
+
+interface ConnectionPoolOptions {
+  maxConnections: number;
+  minConnections: number;
+  connectionTTL: number; // Max lifetime of a connection in ms
+  idleTimeout: number; // Time before idle connection is closed
+  keepAliveInterval: number; // Send NOOP to keep connection alive
+  acquireTimeout: number; // Max time to wait for available connection
 }
 
 /**
  * FTP Connection Pool Manager
- * Maintains persistent FTP connections for efficient bulk operations
+ * Manages a pool of FTP connections with keep-alive, automatic cleanup, and efficient reuse
  */
-export class FTPConnectionPool {
-  private pool: PooledConnection[] = [];
-  private readonly maxConnections = 5;
-  private readonly connectionTimeout = 30000; // 30 seconds
-  private readonly idleTimeout = 300000; // 5 minutes
-  private connectionCounter = 0;
+export class FTPConnectionPool extends EventEmitter {
+  private pool: Map<string, PooledConnection> = new Map();
+  private waitingQueue: Array<(conn: PooledConnection | null) => void> = [];
+  private options: ConnectionPoolOptions;
+  private cleanupTimer?: NodeJS.Timeout;
+  private isShuttingDown = false;
 
-  constructor() {
-    // Cleanup idle connections every minute
-    setInterval(() => this.cleanupIdleConnections(), 60000);
+  constructor(options?: Partial<ConnectionPoolOptions>) {
+    super();
+
+    this.options = {
+      maxConnections: 3, // Keep low to avoid overwhelming FTP server
+      minConnections: 1,
+      connectionTTL: 10 * 60 * 1000, // 10 minutes
+      idleTimeout: 2 * 60 * 1000, // 2 minutes
+      keepAliveInterval: 30 * 1000, // 30 seconds
+      acquireTimeout: 30 * 1000, // 30 seconds
+      ...options,
+    };
+
+    // Start cleanup timer
+    this.startCleanupTimer();
+
+    // Initialize minimum connections
+    this.initializePool();
   }
 
-  /**
-   * Get an available connection from the pool or create a new one
-   */
-  async getConnection(): Promise<Client> {
-    // Try to find an available connection
-    const available = this.pool.find(conn => !conn.inUse);
-    
-    if (available) {
-      available.inUse = true;
-      available.lastUsed = new Date();
-      logger.debug(`Reusing FTP connection #${available.id}`);
-      return available.client;
+  private async initializePool(): Promise<void> {
+    for (let i = 0; i < this.options.minConnections; i++) {
+      try {
+        await this.createConnection();
+      } catch (error) {
+        logger.warn('Failed to create initial connection:', error);
+      }
     }
+  }
 
-    // Create new connection if pool isn't full
-    if (this.pool.length < this.maxConnections) {
-      const client = await this.createConnection();
+  private async createConnection(): Promise<PooledConnection> {
+    const client = new FTPClient();
+    const connectionId = `ftp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    try {
+      // Configure client
+      client.ftp.verbose = false;
+      client.ftp.timeout = 30000;
+
+      // Connect to FTP server
+      await client.access({
+        host: env.TRAVELTEK_FTP_HOST!,
+        user: env.TRAVELTEK_FTP_USER!,
+        password: env.TRAVELTEK_FTP_PASSWORD!,
+        secure: false,
+        secureOptions: { rejectUnauthorized: false },
+      });
+
+      logger.info(`[Pool] Created new FTP connection: ${connectionId}`);
+
       const connection: PooledConnection = {
+        id: connectionId,
         client,
-        inUse: true,
+        inUse: false,
         lastUsed: new Date(),
-        id: ++this.connectionCounter
+        createdAt: new Date(),
       };
-      this.pool.push(connection);
-      logger.info(`Created new FTP connection #${connection.id} (pool size: ${this.pool.length})`);
-      return client;
+
+      // Set up keep-alive
+      this.setupKeepAlive(connection);
+
+      // Add to pool
+      this.pool.set(connectionId, connection);
+
+      this.emit('connectionCreated', connectionId);
+
+      return connection;
+    } catch (error) {
+      logger.error(`[Pool] Failed to create connection ${connectionId}:`, error);
+      client.close();
+      throw error;
+    }
+  }
+
+  private setupKeepAlive(connection: PooledConnection): void {
+    // Clear existing timer if any
+    if (connection.keepAliveTimer) {
+      clearInterval(connection.keepAliveTimer);
     }
 
-    // Wait for a connection to become available
-    logger.warn('FTP pool exhausted, waiting for available connection...');
-    return new Promise((resolve) => {
-      const checkInterval = setInterval(() => {
-        const conn = this.pool.find(c => !c.inUse);
-        if (conn) {
-          clearInterval(checkInterval);
+    // Set up new keep-alive timer
+    connection.keepAliveTimer = setInterval(async () => {
+      if (!connection.inUse && !this.isShuttingDown) {
+        try {
+          // Send NOOP command to keep connection alive
+          await connection.client.pwd();
+          connection.lastUsed = new Date();
+          logger.debug(`[Pool] Keep-alive sent for ${connection.id}`);
+        } catch (error) {
+          logger.warn(`[Pool] Keep-alive failed for ${connection.id}, removing from pool`);
+          await this.removeConnection(connection.id);
+        }
+      }
+    }, this.options.keepAliveInterval);
+  }
+
+  public async acquire(): Promise<PooledConnection> {
+    if (this.isShuttingDown) {
+      throw new Error('Connection pool is shutting down');
+    }
+
+    const startTime = Date.now();
+
+    while (Date.now() - startTime < this.options.acquireTimeout) {
+      // Try to find an available connection
+      for (const [id, conn] of this.pool) {
+        if (!conn.inUse && this.isConnectionHealthy(conn)) {
           conn.inUse = true;
           conn.lastUsed = new Date();
-          resolve(conn.client);
+          logger.debug(`[Pool] Acquired existing connection: ${id}`);
+          return conn;
         }
-      }, 100);
-    });
-  }
+      }
 
-  /**
-   * Release a connection back to the pool
-   */
-  releaseConnection(client: Client): void {
-    const connection = this.pool.find(conn => conn.client === client);
-    if (connection) {
-      connection.inUse = false;
-      connection.lastUsed = new Date();
-      logger.debug(`Released FTP connection #${connection.id}`);
-    }
-  }
+      // If pool not at max, create new connection
+      if (this.pool.size < this.options.maxConnections) {
+        try {
+          const newConn = await this.createConnection();
+          newConn.inUse = true;
+          return newConn;
+        } catch (error) {
+          logger.error('[Pool] Failed to create new connection:', error);
+        }
+      }
 
-  /**
-   * Create a new FTP connection
-   */
-  private async createConnection(): Promise<Client> {
-    // Check if FTP credentials are configured
-    if (!env.TRAVELTEK_FTP_HOST || !env.TRAVELTEK_FTP_USER || !env.TRAVELTEK_FTP_PASSWORD) {
-      const missingCreds = [];
-      if (!env.TRAVELTEK_FTP_HOST) missingCreds.push('TRAVELTEK_FTP_HOST');
-      if (!env.TRAVELTEK_FTP_USER) missingCreds.push('TRAVELTEK_FTP_USER');
-      if (!env.TRAVELTEK_FTP_PASSWORD) missingCreds.push('TRAVELTEK_FTP_PASSWORD');
-      
-      const error = new Error(`Missing FTP credentials: ${missingCreds.join(', ')}`);
-      logger.error('FTP credentials not configured:', missingCreds);
-      throw error;
-    }
-    
-    const client = new Client();
-    client.ftp.verbose = false;
-    
-    try {
-      logger.debug(`Connecting to FTP: ${env.TRAVELTEK_FTP_HOST} as ${env.TRAVELTEK_FTP_USER}`);
-      
-      await client.access({
-        host: env.TRAVELTEK_FTP_HOST,
-        user: env.TRAVELTEK_FTP_USER,
-        password: env.TRAVELTEK_FTP_PASSWORD,
-        secure: false
+      // Wait for a connection to become available
+      await new Promise<void>(resolve => {
+        const timeoutId = setTimeout(() => {
+          const index = this.waitingQueue.indexOf(resolve as any);
+          if (index > -1) {
+            this.waitingQueue.splice(index, 1);
+          }
+          resolve();
+        }, 1000);
+
+        this.waitingQueue.push(conn => {
+          clearTimeout(timeoutId);
+          resolve();
+        });
       });
-      
-      logger.debug('FTP connection established successfully');
-      return client;
-    } catch (error) {
-      logger.error('Failed to create FTP connection:', {
-        error: error instanceof Error ? error.message : error,
-        host: env.TRAVELTEK_FTP_HOST,
-        user: env.TRAVELTEK_FTP_USER
-      });
-      throw error;
     }
+
+    throw new Error(`Failed to acquire connection within ${this.options.acquireTimeout}ms`);
   }
 
-  /**
-   * Clean up idle connections
-   */
-  private async cleanupIdleConnections(): Promise<void> {
+  public release(connectionId: string): void {
+    const connection = this.pool.get(connectionId);
+    if (!connection) {
+      logger.warn(`[Pool] Attempted to release unknown connection: ${connectionId}`);
+      return;
+    }
+
+    connection.inUse = false;
+    connection.lastUsed = new Date();
+    logger.debug(`[Pool] Released connection: ${connectionId}`);
+
+    // Notify waiting requests
+    const waiter = this.waitingQueue.shift();
+    if (waiter) {
+      waiter(connection);
+    }
+
+    this.emit('connectionReleased', connectionId);
+  }
+
+  private isConnectionHealthy(connection: PooledConnection): boolean {
     const now = Date.now();
-    const toRemove: number[] = [];
+    const age = now - connection.createdAt.getTime();
+    const idleTime = now - connection.lastUsed.getTime();
 
-    for (let i = 0; i < this.pool.length; i++) {
-      const conn = this.pool[i];
-      if (!conn.inUse && (now - conn.lastUsed.getTime()) > this.idleTimeout) {
-        try {
-          conn.client.close();
-          toRemove.push(i);
-          logger.debug(`Closed idle FTP connection #${conn.id}`);
-        } catch (error) {
-          logger.error(`Error closing idle connection #${conn.id}:`, error);
-        }
-      }
+    // Check if connection is too old
+    if (age > this.options.connectionTTL) {
+      logger.debug(`[Pool] Connection ${connection.id} exceeded TTL`);
+      return false;
     }
 
-    // Remove closed connections from pool
-    for (let i = toRemove.length - 1; i >= 0; i--) {
-      this.pool.splice(toRemove[i], 1);
+    // Check if connection has been idle too long
+    if (idleTime > this.options.idleTimeout) {
+      logger.debug(`[Pool] Connection ${connection.id} exceeded idle timeout`);
+      return false;
     }
 
-    if (toRemove.length > 0) {
-      logger.info(`Cleaned up ${toRemove.length} idle connections (pool size: ${this.pool.length})`);
-    }
+    return true;
   }
 
-  /**
-   * Download multiple files efficiently using a single connection
-   */
-  async downloadBatch(filePaths: string[]): Promise<Map<string, Buffer>> {
-    const client = await this.getConnection();
-    const results = new Map<string, Buffer>();
-    const errors: string[] = [];
-    const { Writable } = require('stream');
+  private async removeConnection(connectionId: string): Promise<void> {
+    const connection = this.pool.get(connectionId);
+    if (!connection) return;
 
+    // Clear keep-alive timer
+    if (connection.keepAliveTimer) {
+      clearInterval(connection.keepAliveTimer);
+    }
+
+    // Close FTP connection
     try {
-      for (const filePath of filePaths) {
-        try {
-          // Create a writable stream that collects data into a buffer
-          const chunks: Buffer[] = [];
-          const writableStream = new Writable({
-            write(chunk: Buffer, encoding: string, callback: Function) {
-              chunks.push(chunk);
-              callback();
-            }
-          });
-          
-          // Download to the writable stream
-          await client.downloadTo(writableStream, filePath);
-          
-          // Combine all chunks into a single buffer
-          const buffer = Buffer.concat(chunks);
-          results.set(filePath, buffer);
-        } catch (error) {
-          logger.warn(`Failed to download ${filePath}:`, error);
-          errors.push(filePath);
-        }
-      }
-    } finally {
-      this.releaseConnection(client);
+      connection.client.close();
+    } catch (error) {
+      logger.warn(`[Pool] Error closing connection ${connectionId}:`, error);
     }
 
-    if (errors.length > 0) {
-      logger.warn(`Failed to download ${errors.length}/${filePaths.length} files`);
-    }
+    // Remove from pool
+    this.pool.delete(connectionId);
+    logger.info(`[Pool] Removed connection: ${connectionId}`);
 
-    return results;
+    this.emit('connectionRemoved', connectionId);
   }
 
-  /**
-   * Close all connections
-   */
-  async closeAll(): Promise<void> {
-    logger.info('Closing all FTP connections...');
-    for (const conn of this.pool) {
-      try {
-        conn.client.close();
-      } catch (error) {
-        logger.error(`Error closing connection #${conn.id}:`, error);
+  private startCleanupTimer(): void {
+    this.cleanupTimer = setInterval(async () => {
+      if (this.isShuttingDown) return;
+
+      const now = Date.now();
+      const connectionsToRemove: string[] = [];
+
+      for (const [id, conn] of this.pool) {
+        if (!conn.inUse && !this.isConnectionHealthy(conn)) {
+          connectionsToRemove.push(id);
+        }
       }
+
+      // Remove unhealthy connections
+      for (const id of connectionsToRemove) {
+        await this.removeConnection(id);
+      }
+
+      // Ensure minimum connections
+      while (this.pool.size < this.options.minConnections && !this.isShuttingDown) {
+        try {
+          await this.createConnection();
+        } catch (error) {
+          logger.warn('[Pool] Failed to maintain minimum connections:', error);
+          break;
+        }
+      }
+
+      logger.debug(`[Pool] Cleanup complete. Active connections: ${this.pool.size}`);
+    }, 30000); // Run cleanup every 30 seconds
+  }
+
+  public async shutdown(): Promise<void> {
+    logger.info('[Pool] Shutting down connection pool...');
+    this.isShuttingDown = true;
+
+    // Clear cleanup timer
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
     }
-    this.pool = [];
+
+    // Clear all keep-alive timers and close connections
+    const closePromises: Promise<void>[] = [];
+    for (const [id, conn] of this.pool) {
+      closePromises.push(this.removeConnection(id));
+    }
+
+    await Promise.all(closePromises);
+
+    // Clear waiting queue
+    this.waitingQueue.forEach(waiter => waiter(null));
+    this.waitingQueue = [];
+
+    logger.info('[Pool] Connection pool shutdown complete');
+  }
+
+  public getStats() {
+    const connections = Array.from(this.pool.values());
+    return {
+      total: this.pool.size,
+      inUse: connections.filter(c => c.inUse).length,
+      idle: connections.filter(c => !c.inUse).length,
+      waiting: this.waitingQueue.length,
+      connections: connections.map(c => ({
+        id: c.id,
+        inUse: c.inUse,
+        age: Date.now() - c.createdAt.getTime(),
+        idleTime: Date.now() - c.lastUsed.getTime(),
+      })),
+    };
   }
 }
 
-// Export singleton instance
+// Singleton instance
 export const ftpConnectionPool = new FTPConnectionPool();
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  await ftpConnectionPool.shutdown();
+});
+
+process.on('SIGINT', async () => {
+  await ftpConnectionPool.shutdown();
+});

@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { apiConfig } from '../config/environment';
 import healthRoutes from './health.routes';
-// Using minimal webhook routes to fix FTP connection issues
-import webhookRoutes from './webhook-minimal.routes';
+// Using optimized webhook routes with connection pooling
+import webhookRoutes from './webhook-optimized.routes';
 import searchRoutes from './search.routes';
 import searchOptimizedRoutes from './search-optimized.routes';
 import cruiseRoutes from './cruise.routes';
