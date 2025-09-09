@@ -117,6 +117,42 @@ router.post('/traveltek', async (req: Request, res: Response) => {
 });
 
 /**
+ * Clear sync locks endpoint
+ * POST /api/webhooks/traveltek/clear-locks
+ */
+router.post('/traveltek/clear-locks', async (req: Request, res: Response) => {
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL?.includes('render.com') ? { rejectUnauthorized: false } : false,
+  });
+
+  try {
+    await client.connect();
+
+    // Clear all active locks
+    const result = await client.query(`
+      UPDATE sync_locks
+      SET is_active = false, released_at = NOW()
+      WHERE is_active = true
+      RETURNING *
+    `);
+
+    res.json({
+      success: true,
+      message: `Cleared ${result.rowCount} active locks`,
+      clearedLocks: result.rows,
+    });
+  } catch (error) {
+    console.error('Error clearing locks:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to clear locks',
+    });
+  } finally {
+    await client.end();
+  }
+});
+
+/**
  * Test webhook endpoint - for testing webhook processing
  * POST /api/webhooks/traveltek/test
  */
