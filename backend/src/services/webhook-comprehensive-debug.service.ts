@@ -61,8 +61,8 @@ export class ComprehensiveWebhookDebugService {
       debugInfo: {
         webhookId,
         startTime: new Date(startTime).toISOString(),
-        steps: []
-      }
+        steps: [],
+      },
     };
 
     try {
@@ -72,7 +72,7 @@ export class ComprehensiveWebhookDebugService {
         step: 'mapLineId',
         originalLineId: lineId,
         databaseLineId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       console.log(`🔍 DEBUG: Mapped line ${lineId} to database line ${databaseLineId}`);
@@ -87,7 +87,7 @@ export class ComprehensiveWebhookDebugService {
         step: 'acquireLock',
         lockKey,
         lockAcquired,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       if (!lockAcquired) {
@@ -109,11 +109,14 @@ export class ComprehensiveWebhookDebugService {
         result.debugInfo.steps.push({
           step: 'fetchCruises',
           cruiseCount: cruiseInfos.length,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
 
         console.log(`🔍 DEBUG: Found ${cruiseInfos.length} cruises for line ${databaseLineId}`);
-        logger.info(`🔍 DEBUG: Cruise count`, { lineId: databaseLineId, count: cruiseInfos.length });
+        logger.info(`🔍 DEBUG: Cruise count`, {
+          lineId: databaseLineId,
+          count: cruiseInfos.length,
+        });
 
         if (cruiseInfos.length === 0) {
           console.log(`🔍 DEBUG: No cruises found, exiting`);
@@ -127,7 +130,7 @@ export class ComprehensiveWebhookDebugService {
         result.debugInfo.steps.push({
           step: 'initializeFtp',
           poolSize: this.ftpPool.length,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
 
         console.log(`🔍 DEBUG: FTP pool initialized with ${this.ftpPool.length} connection(s)`);
@@ -161,13 +164,14 @@ export class ComprehensiveWebhookDebugService {
           } catch (error) {
             console.log(`❌ DEBUG: Error processing cruise ${cruise.cruiseCode}:`, error);
             result.failedUpdates++;
-            result.errors.push(`${cruise.cruiseCode}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            result.errors.push(
+              `${cruise.cruiseCode}: ${error instanceof Error ? error.message : 'Unknown error'}`
+            );
           }
         }
 
         // Close FTP connections
         await this.closeFtpPool();
-
       } finally {
         // Release lock
         await this.releaseLock(lockKey, lockValue);
@@ -178,7 +182,7 @@ export class ComprehensiveWebhookDebugService {
       result.debugInfo.steps.push({
         step: 'complete',
         duration: result.duration,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       console.log(`🔍 DEBUG: Processing complete in ${result.duration}ms`);
@@ -188,7 +192,7 @@ export class ComprehensiveWebhookDebugService {
         successful: result.successfulUpdates,
         failed: result.failedUpdates,
         skipped: result.skippedFiles,
-        corrupted: result.corruptedFiles
+        corrupted: result.corruptedFiles,
       });
 
       // Send Slack notification
@@ -199,16 +203,17 @@ export class ComprehensiveWebhookDebugService {
       }
 
       return result;
-
     } catch (error) {
       console.error(`❌ DEBUG: Fatal error in webhook processing:`, error);
       logger.error(`❌ DEBUG: Fatal error`, {
         webhookId,
         error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
-      result.errors.push(`Fatal error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      result.errors.push(
+        `Fatal error: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
       result.duration = Date.now() - startTime;
       return result;
     }
@@ -216,8 +221,14 @@ export class ComprehensiveWebhookDebugService {
 
   private async acquireLock(key: string, value: string): Promise<boolean> {
     try {
-      const result = await redisClient.set(key, value, 'NX', 'EX', 300); // 5 minute expiry
-      return result === 'OK';
+      // Set with expiry - check if key doesn't exist first
+      const exists = await redisClient.exists(key);
+      if (exists) {
+        return false;
+      }
+      await redisClient.set(key, value);
+      await redisClient.expire(key, 300); // 5 minute expiry
+      return true;
     } catch (error) {
       console.error(`❌ DEBUG: Failed to acquire lock:`, error);
       return false;
@@ -273,7 +284,7 @@ export class ComprehensiveWebhookDebugService {
     console.log(`🔍 DEBUG: FTP config - Host: ${ftpHost}, User: ${ftpUser ? 'SET' : 'NOT SET'}`);
 
     const client = new ftp.Client();
-    client.ftp.timeout = this.FTP_TIMEOUT;
+    // client.ftp.timeout = this.FTP_TIMEOUT; // Commented out - timeout is read-only
 
     try {
       await client.access({
@@ -334,7 +345,7 @@ export class ComprehensiveWebhookDebugService {
           write(chunk: Buffer, encoding: string, callback: Function) {
             chunks.push(chunk);
             callback();
-          }
+          },
         }),
         ftpPath
       );
@@ -349,14 +360,13 @@ export class ComprehensiveWebhookDebugService {
       await this.updateCruiseData(cruise.id, cruiseData);
 
       return { success: true, skipped: false, corrupted: false };
-
     } catch (error) {
       console.error(`❌ DEBUG: Error processing ${cruise.cruiseCode}:`, error);
       return {
         success: false,
         skipped: false,
         corrupted: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -430,9 +440,10 @@ export class ComprehensiveWebhookDebugService {
       return;
     }
 
-    const successRate = result.processedCruises > 0
-      ? Math.round((result.successfulUpdates / result.processedCruises) * 100)
-      : 0;
+    const successRate =
+      result.processedCruises > 0
+        ? Math.round((result.successfulUpdates / result.processedCruises) * 100)
+        : 0;
 
     const message = {
       text: `🔍 Debug Webhook Processing Complete`,
@@ -441,23 +452,24 @@ export class ComprehensiveWebhookDebugService {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: `*Debug Webhook Processing for Line ${result.lineId}*\n` +
-                  `Success Rate: ${successRate}%\n` +
-                  `Processed: ${result.processedCruises}/${result.totalCruises} cruises\n` +
-                  `✅ Successful: ${result.successfulUpdates}\n` +
-                  `❌ Failed: ${result.failedUpdates}\n` +
-                  `⏭️ Skipped: ${result.skippedFiles}\n` +
-                  `Duration: ${Math.round(result.duration / 1000)}s`
-          }
-        }
-      ]
+            text:
+              `*Debug Webhook Processing for Line ${result.lineId}*\n` +
+              `Success Rate: ${successRate}%\n` +
+              `Processed: ${result.processedCruises}/${result.totalCruises} cruises\n` +
+              `✅ Successful: ${result.successfulUpdates}\n` +
+              `❌ Failed: ${result.failedUpdates}\n` +
+              `⏭️ Skipped: ${result.skippedFiles}\n` +
+              `Duration: ${Math.round(result.duration / 1000)}s`,
+          },
+        },
+      ],
     };
 
     try {
       await fetch(slackWebhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(message)
+        body: JSON.stringify(message),
       });
     } catch (error) {
       console.error('❌ DEBUG: Failed to send Slack notification:', error);
