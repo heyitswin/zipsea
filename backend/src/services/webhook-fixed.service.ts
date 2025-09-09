@@ -62,7 +62,7 @@ export class WebhookFixedService {
     logger.info(`🚀 WebhookFixedService: Starting processing`, {
       webhookId,
       originalLineId: lineId,
-      databaseLineId
+      databaseLineId,
     });
 
     const result: ProcessingResult = {
@@ -73,7 +73,7 @@ export class WebhookFixedService {
       failedUpdates: 0,
       skippedFiles: 0,
       duration: 0,
-      errors: []
+      errors: [],
     };
 
     // Check database connection
@@ -146,7 +146,6 @@ export class WebhookFixedService {
           // Always close FTP connection
           ftpClient.close();
         }
-
       } finally {
         // Always release lock
         await this.releaseLock(lockKey, lockValue);
@@ -156,9 +155,10 @@ export class WebhookFixedService {
       result.duration = Date.now() - startTime;
 
       // Send summary
-      const successRate = result.processedCruises > 0
-        ? Math.round((result.successfulUpdates / result.processedCruises) * 100)
-        : 0;
+      const successRate =
+        result.processedCruises > 0
+          ? Math.round((result.successfulUpdates / result.processedCruises) * 100)
+          : 0;
 
       logger.info(`📊 WebhookFixedService: Processing complete`, {
         webhookId,
@@ -169,19 +169,18 @@ export class WebhookFixedService {
         failed: result.failedUpdates,
         skipped: result.skippedFiles,
         successRate: `${successRate}%`,
-        duration: `${Math.round(result.duration / 1000)}s`
+        duration: `${Math.round(result.duration / 1000)}s`,
       });
 
       // Send Slack notification if configured
       await this.sendSlackNotification(result, successRate);
 
       return result;
-
     } catch (error) {
       logger.error(`❌ WebhookFixedService: Fatal error`, {
         webhookId,
         error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
+        stack: error instanceof Error ? error.stack : undefined,
       });
 
       result.errors.push(`Fatal: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -192,8 +191,14 @@ export class WebhookFixedService {
 
   private async acquireLock(key: string, value: string, ttl: number = 60): Promise<boolean> {
     try {
-      const result = await redisClient.set(key, value, 'NX', 'EX', ttl);
-      return result === 'OK';
+      // Set with expiry - check if key doesn't exist first
+      const exists = await redisClient.exists(key);
+      if (exists) {
+        return false;
+      }
+      await redisClient.set(key, value);
+      await redisClient.expire(key, ttl);
+      return true;
     } catch (error) {
       logger.error('❌ Failed to acquire Redis lock:', error);
       return false;
@@ -249,7 +254,7 @@ export class WebhookFixedService {
 
   private async createFtpConnection(): Promise<ftp.Client> {
     const client = new ftp.Client();
-    client.ftp.timeout = this.FTP_TIMEOUT;
+    // client.ftp.timeout = this.FTP_TIMEOUT; // Commented out - timeout is read-only
 
     const ftpConfig = {
       host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
@@ -290,7 +295,7 @@ export class WebhookFixedService {
         write(chunk: Buffer, encoding: string, callback: Function) {
           chunks.push(chunk);
           callback();
-        }
+        },
       });
 
       await ftpClient.downloadTo(writable, ftpPath);
@@ -303,12 +308,11 @@ export class WebhookFixedService {
       await this.updateCruiseData(cruise.id, cruiseData);
 
       return { success: true, skipped: false };
-
     } catch (error) {
       return {
         success: false,
         skipped: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -331,8 +335,9 @@ export class WebhookFixedService {
     // Update pricing if available
     if (data.cheapest && data.cheapest.combined) {
       const combined = data.cheapest.combined;
-      const prices = [combined.inside, combined.outside, combined.balcony, combined.suite]
-        .filter(p => p && p > 0);
+      const prices = [combined.inside, combined.outside, combined.balcony, combined.suite].filter(
+        p => p && p > 0
+      );
 
       const cheapestPrice = prices.length > 0 ? Math.min(...prices) : null;
 
@@ -358,7 +363,7 @@ export class WebhookFixedService {
             combined.outside || null,
             combined.balcony || null,
             combined.suite || null,
-            data.currency || 'USD'
+            data.currency || 'USD',
           ]
         );
 
@@ -367,7 +372,10 @@ export class WebhookFixedService {
     }
   }
 
-  private async sendSlackNotification(result: ProcessingResult, successRate: number): Promise<void> {
+  private async sendSlackNotification(
+    result: ProcessingResult,
+    successRate: number
+  ): Promise<void> {
     const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
     if (!slackWebhookUrl) {
       return;
@@ -381,22 +389,23 @@ export class WebhookFixedService {
             type: 'section',
             text: {
               type: 'mrkdwn',
-              text: `*Fixed Webhook Processing for Line ${result.lineId}*\n` +
-                    `Success Rate: ${successRate}%\n` +
-                    `Processed: ${result.processedCruises}/${result.totalCruises} cruises\n` +
-                    `✅ Successful: ${result.successfulUpdates}\n` +
-                    `❌ Failed: ${result.failedUpdates}\n` +
-                    `⏭️ Skipped: ${result.skippedFiles}\n` +
-                    `⏱️ Duration: ${Math.round(result.duration / 1000)}s`
-            }
-          }
-        ]
+              text:
+                `*Fixed Webhook Processing for Line ${result.lineId}*\n` +
+                `Success Rate: ${successRate}%\n` +
+                `Processed: ${result.processedCruises}/${result.totalCruises} cruises\n` +
+                `✅ Successful: ${result.successfulUpdates}\n` +
+                `❌ Failed: ${result.failedUpdates}\n` +
+                `⏭️ Skipped: ${result.skippedFiles}\n` +
+                `⏱️ Duration: ${Math.round(result.duration / 1000)}s`,
+            },
+          },
+        ],
       };
 
       await fetch(slackWebhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(message)
+        body: JSON.stringify(message),
       });
     } catch (error) {
       logger.error('Failed to send Slack notification:', error);
