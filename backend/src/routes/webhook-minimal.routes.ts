@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import logger from '../config/logger';
 import { webhookProductionFixService } from '../services/webhook-production-fix.service';
+import { webhookKeepaliveService } from '../services/webhook-keepalive.service';
 import { db } from '../db/connection';
 import { sql } from 'drizzle-orm';
 import redisClient from '../cache/redis';
@@ -38,8 +39,8 @@ router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: R
       processingMode: 'production_sequential',
     });
 
-    // Process asynchronously with production service
-    webhookProductionFixService
+    // Process asynchronously with keepalive service for better FTP handling
+    webhookKeepaliveService
       .processWebhook(lineId)
       .then(result => {
         logger.info('✅ Webhook processing completed', {
@@ -55,7 +56,6 @@ router.post('/traveltek/cruiseline-pricing-updated', async (req: Request, res: R
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       });
-
   } catch (error) {
     logger.error('❌ Error in webhook handler', {
       webhookId,
@@ -100,8 +100,8 @@ router.post('/traveltek', async (req: Request, res: Response) => {
         processingMode: 'production_sequential',
       });
 
-      // Process with production service
-      webhookProductionFixService
+      // Process with keepalive service
+      webhookKeepaliveService
         .processWebhook(lineId)
         .then(result => {
           logger.info('✅ Processing completed', {
@@ -117,7 +117,6 @@ router.post('/traveltek', async (req: Request, res: Response) => {
             error: error instanceof Error ? error.message : 'Unknown error',
           });
         });
-
     } else {
       // Acknowledge but don't process other events
       logger.info(`⚠️ Unknown webhook event: ${webhookEvent}`, {
@@ -133,7 +132,6 @@ router.post('/traveltek', async (req: Request, res: Response) => {
         webhookId,
       });
     }
-
   } catch (error) {
     logger.error('❌ Error processing webhook', {
       webhookId,
@@ -169,8 +167,8 @@ router.post('/traveltek/test', async (req: Request, res: Response) => {
       timestamp: new Date().toISOString(),
     });
 
-    // Process with production service
-    webhookProductionFixService
+    // Process with keepalive service
+    webhookKeepaliveService
       .processWebhook(testLineId)
       .then(result => {
         logger.info('✅ Test completed', {
@@ -186,7 +184,6 @@ router.post('/traveltek/test', async (req: Request, res: Response) => {
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       });
-
   } catch (error) {
     logger.error('❌ Test webhook error:', error);
     res.status(500).json({
@@ -236,7 +233,6 @@ router.get('/traveltek/diagnostics', async (req: Request, res: Response) => {
       success: true,
       diagnostics,
     });
-
   } catch (error) {
     logger.error('Error in diagnostics:', error);
     res.status(500).json({
@@ -265,7 +261,6 @@ router.post('/traveltek/clear-locks', async (req: Request, res: Response) => {
       cleared,
       timestamp: new Date().toISOString(),
     });
-
   } catch (error) {
     logger.error('Error clearing locks:', error);
     res.status(500).json({
@@ -280,7 +275,9 @@ router.get('/traveltek/ftp-status', async (req: Request, res: Response) => {
   try {
     const ftpConfig = {
       host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
-      user: process.env.TRAVELTEK_FTP_USER ? `${process.env.TRAVELTEK_FTP_USER.substring(0, 3)}***` : 'NOT SET',
+      user: process.env.TRAVELTEK_FTP_USER
+        ? `${process.env.TRAVELTEK_FTP_USER.substring(0, 3)}***`
+        : 'NOT SET',
       hasPassword: !!process.env.TRAVELTEK_FTP_PASSWORD,
       environment: process.env.NODE_ENV || 'unknown',
     };
@@ -303,7 +300,6 @@ router.get('/traveltek/ftp-status', async (req: Request, res: Response) => {
       connectionStatus,
       recommendation,
     });
-
   } catch (error) {
     logger.error('Error checking FTP status:', error);
     res.status(500).json({
