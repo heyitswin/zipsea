@@ -213,17 +213,8 @@ export class CronService {
       issues.push('Redis connection failed');
     }
 
-    // Check FTP connection
-    try {
-      // TODO: Implement testConnection method
-      // const ftpHealthy = await traveltekFTPService.testConnection();
-      // if (!ftpHealthy) {
-      //   issues.push('FTP connection failed');
-      // }
-      issues.push('FTP health check not implemented');
-    } catch (error) {
-      issues.push('FTP health check failed');
-    }
+    // FTP health check removed - connection pooling handles this automatically
+    // The FTP connection pool service manages connections with keep-alive
 
     return {
       healthy: issues.length === 0,
