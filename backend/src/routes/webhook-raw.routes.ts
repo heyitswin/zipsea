@@ -58,7 +58,7 @@ router.post('/traveltek', async (req: Request, res: Response) => {
       lineId,
       payload.event || 'update',
       'pending',
-      JSON.stringify(payload)
+      JSON.stringify(payload),
     ]);
 
     const webhookEvent = result[0];
@@ -95,7 +95,7 @@ router.post('/traveltek', async (req: Request, res: Response) => {
         await executeSQL(updateQuery, [
           'failed',
           error instanceof Error ? error.message : 'Unknown error',
-          webhookEvent.id
+          webhookEvent.id,
         ]);
       }
     });
@@ -136,7 +136,7 @@ router.post('/traveltek/test', async (req: Request, res: Response) => {
       lineId,
       'test',
       'pending',
-      JSON.stringify({ test: true, lineId })
+      JSON.stringify({ test: true, lineId }),
     ]);
 
     const webhookEvent = result[0];
@@ -171,7 +171,7 @@ router.post('/traveltek/test', async (req: Request, res: Response) => {
         await executeSQL(updateQuery, [
           'failed',
           error instanceof Error ? error.message : 'Unknown error',
-          webhookEvent.id
+          webhookEvent.id,
         ]);
       }
     });
@@ -179,8 +179,9 @@ router.post('/traveltek/test', async (req: Request, res: Response) => {
     logger.error('Test webhook failed:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Test webhook failed',
+      message: 'Test webhook failed (RAW SQL)',
       error: error instanceof Error ? error.message : 'Unknown error',
+      route: 'webhook-raw.routes.ts',
     });
   }
 });
