@@ -126,7 +126,7 @@ export class WebhookProcessorOptimized {
           .where(eq(syncLocks.id, existingLock[0].id));
       }
 
-      // Acquire lock
+      // Acquire lock using upsert to avoid duplicate key errors
       const [lock] = await db
         .insert(syncLocks)
         .values({
@@ -134,6 +134,14 @@ export class WebhookProcessorOptimized {
           isActive: true,
           acquiredAt: new Date(),
           metadata: { lineId, processId: process.pid },
+        })
+        .onConflictDoUpdate({
+          target: syncLocks.lockKey,
+          set: {
+            isActive: true,
+            acquiredAt: new Date(),
+            metadata: { lineId, processId: process.pid },
+          },
         })
         .returning();
 

@@ -117,6 +117,53 @@ router.post('/traveltek', async (req: Request, res: Response) => {
 });
 
 /**
+ * Fix system_flags table endpoint
+ * POST /api/webhooks/traveltek/fix-system-flags
+ */
+router.post('/traveltek/fix-system-flags', async (req: Request, res: Response) => {
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL?.includes('render.com') ? { rejectUnauthorized: false } : false,
+  });
+
+  try {
+    await client.connect();
+
+    // Drop and recreate with correct schema
+    await client.query('DROP TABLE IF EXISTS system_flags CASCADE');
+
+    await client.query(`
+      CREATE TABLE system_flags (
+        id SERIAL PRIMARY KEY,
+        flag_key VARCHAR(255) UNIQUE NOT NULL,
+        flag_value TEXT,
+        flag_type VARCHAR(50),
+        description TEXT,
+        metadata JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Create indexes
+    await client.query('CREATE INDEX idx_system_flags_type ON system_flags(flag_type)');
+    await client.query('CREATE INDEX idx_system_flags_key ON system_flags(flag_key)');
+
+    res.json({
+      success: true,
+      message: 'system_flags table recreated with correct schema',
+    });
+  } catch (error) {
+    console.error('Error fixing system_flags:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to fix system_flags',
+    });
+  } finally {
+    await client.end();
+  }
+});
+
+/**
  * Clear sync locks endpoint
  * POST /api/webhooks/traveltek/clear-locks
  */
