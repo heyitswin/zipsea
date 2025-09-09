@@ -257,7 +257,7 @@ export class ComprehensiveWebhookDebugService {
           c.sailing_date
         FROM cruises c
         JOIN ships s ON c.ship_id = s.id
-        WHERE c.line_id = ${lineId}
+        WHERE c.owner_id = ${lineId}
         AND c.sailing_date >= CURRENT_DATE
         ORDER BY c.sailing_date
         LIMIT 10
