@@ -43,14 +43,19 @@ export class WebhookProcessorOptimized {
 
   constructor() {
     // Use REDIS_URL if available, otherwise fall back to individual settings
+    // BullMQ requires maxRetriesPerRequest to be null
     if (process.env.REDIS_URL) {
-      this.redis = new Redis(process.env.REDIS_URL);
+      this.redis = new Redis(process.env.REDIS_URL, {
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+      });
     } else {
       this.redis = new Redis({
         host: process.env.REDIS_HOST || 'localhost',
         port: parseInt(process.env.REDIS_PORT || '6379'),
         password: process.env.REDIS_PASSWORD,
-        maxRetriesPerRequest: 3,
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
       });
     }
 
