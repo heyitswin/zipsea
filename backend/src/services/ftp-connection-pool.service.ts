@@ -40,9 +40,9 @@ export class FTPConnectionPool {
       idleTimeout: options.idleTimeout || 2 * 60 * 1000, // 2 minutes
       keepAliveInterval: options.keepAliveInterval || 30 * 1000, // 30 seconds
       ftpConfig: options.ftpConfig || {
-        host: process.env.FTP_HOST!,
-        user: process.env.FTP_USER!,
-        password: process.env.FTP_PASSWORD!,
+        host: process.env.TRAVELTEK_FTP_HOST || process.env.FTP_HOST || 'localhost',
+        user: process.env.TRAVELTEK_FTP_USER || process.env.FTP_USER || '',
+        password: process.env.TRAVELTEK_FTP_PASSWORD || process.env.FTP_PASSWORD || '',
         secure: false,
         timeout: 60000,
       },
@@ -121,7 +121,7 @@ export class FTPConnectionPool {
     }
 
     // Wait for available connection
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       this.connectionQueue.push(resolve);
     });
   }
