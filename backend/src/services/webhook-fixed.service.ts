@@ -230,7 +230,7 @@ export class WebhookFixedService {
         c.sailing_date
       FROM cruises c
       LEFT JOIN ships s ON s.id = c.ship_id
-      WHERE c.line_id = $1
+      WHERE c.owner_id = $1
       AND c.sailing_date >= CURRENT_DATE
       ORDER BY c.sailing_date
       LIMIT 100
