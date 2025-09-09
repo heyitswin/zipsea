@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { apiConfig } from '../config/environment';
 import healthRoutes from './health.routes';
-// Using optimized webhook routes with connection pooling
-import webhookRoutes from './webhook-optimized.routes';
+// Using simple webhook routes temporarily
+import webhookRoutes from './webhook-simple.routes';
 import searchRoutes from './search.routes';
 import searchOptimizedRoutes from './search-optimized.routes';
 import cruiseRoutes from './cruise.routes';
