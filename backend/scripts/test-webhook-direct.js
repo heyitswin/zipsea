@@ -1,101 +1,148 @@
 #!/usr/bin/env node
 
 /**
- * Direct webhook test - triggers actual webhook processing
- * This sends a real webhook to the cruiseline-pricing-updated endpoint
+ * Direct test of webhook processing to isolate issues
  */
 
-const axios = require('axios');
+const API_URL = process.env.API_URL || 'https://zipsea-backend.onrender.com';
 
-// Configuration
-const API_BASE_URL = process.env.API_URL || 'https://zipsea-backend.onrender.com';
+async function testWebhookDirect() {
+  console.log('🧪 DIRECT WEBHOOK TEST');
+  console.log('======================\n');
 
-// Test cruise lines with their webhook line IDs
-const TEST_LINES = [
-  { id: 14, name: 'Holland America', expectedCruises: 1228 },
-  { id: 104, name: 'Viking', expectedCruises: 6861 },
-  { id: 24, name: 'MSC Cruises', expectedCruises: 6428 },
-  { id: 32, name: 'Royal Caribbean', expectedCruises: 3449 },
-];
-
-async function sendWebhook(lineId, lineName) {
-  console.log(`\n📤 Sending webhook for ${lineName} (Line ID: ${lineId})`);
-
+  // Test 1: Clear any stuck locks first
+  console.log('1️⃣ Clearing any stuck locks...');
   try {
-    const webhookPayload = {
-      event: 'cruiseline_pricing_updated',
-      lineid: lineId,
-      currency: 'USD',
-      timestamp: new Date().toISOString(),
-    };
+    const clearResponse = await fetch(`${API_URL}/api/webhooks/traveltek/clear-locks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const clearResult = await clearResponse.json();
+    console.log('Locks cleared:', clearResult);
+  } catch (error) {
+    console.log('Error clearing locks:', error.message);
+  }
 
-    const response = await axios.post(
-      `${API_BASE_URL}/api/webhooks/traveltek/cruiseline-pricing-updated`,
-      webhookPayload,
+  // Test 2: Try the simple webhook endpoint
+  console.log('\n2️⃣ Testing simple webhook endpoint...');
+  try {
+    const simpleResponse = await fetch(`${API_URL}/api/webhooks/traveltek/simple`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lineId: 21 }), // Crystal - 5 cruises
+      signal: AbortSignal.timeout(10000), // 10 second timeout
+    });
+
+    if (simpleResponse.ok) {
+      const result = await simpleResponse.json();
+      console.log('✅ Simple webhook response:', result);
+    } else {
+      console.log('❌ Simple webhook failed:', simpleResponse.status);
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      console.log('⏱️ Simple webhook timed out after 10 seconds');
+    } else {
+      console.log('❌ Simple webhook error:', error.message);
+    }
+  }
+
+  // Test 3: Check if the test endpoint itself is working
+  console.log('\n3️⃣ Testing test endpoint with timeout...');
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+    const testResponse = await fetch(`${API_URL}/api/webhooks/traveltek/test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lineId: 21 }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (testResponse.ok) {
+      const result = await testResponse.json();
+      console.log('✅ Test endpoint response:', result);
+    } else {
+      console.log('❌ Test endpoint failed:', testResponse.status);
+    }
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      console.log('⏱️ Test endpoint timed out after 5 seconds');
+      console.log('   This suggests the webhook handler is blocking');
+    } else {
+      console.log('❌ Test endpoint error:', error.message);
+    }
+  }
+
+  // Test 4: Check system health
+  console.log('\n4️⃣ Checking system health...');
+  try {
+    const healthResponse = await fetch(`${API_URL}/api/health`);
+    if (healthResponse.ok) {
+      const health = await healthResponse.json();
+      console.log('✅ System health:', health);
+    }
+  } catch (error) {
+    console.log('❌ Health check failed:', error.message);
+  }
+
+  // Test 5: Direct cruise line pricing update (main endpoint)
+  console.log('\n5️⃣ Testing main webhook endpoint with timeout...');
+  try {
+    const mainResponse = await fetch(
+      `${API_URL}/api/webhooks/traveltek/cruiseline-pricing-updated`,
       {
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Webhook-Test-Direct',
-        },
-        timeout: 10000,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: 'cruiseline_pricing_updated',
+          lineid: 21,
+        }),
+        signal: AbortSignal.timeout(5000), // 5 second timeout
       }
     );
 
-    console.log(`✅ Response: ${response.status}`);
-    if (response.data) {
-      console.log(`   Message: ${response.data.message || 'Processing started'}`);
-      if (response.data.jobId) {
-        console.log(`   Job ID: ${response.data.jobId}`);
+    if (mainResponse.ok) {
+      const result = await mainResponse.json();
+      console.log('✅ Main webhook response:', result);
+
+      // Wait a bit and check if processing started
+      console.log('\n⏳ Waiting 3 seconds to check processing...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      const diagResponse = await fetch(`${API_URL}/api/webhooks/traveltek/diagnostics`);
+      const diag = await diagResponse.json();
+
+      if (diag.diagnostics.activeLocks > 0) {
+        console.log('🔒 Processing appears to be running (lock acquired)');
+      } else if (diag.diagnostics.recentProcessing?.length > 0) {
+        console.log('✅ Processing completed!');
+      } else {
+        console.log('⚠️ No processing detected');
       }
+    } else {
+      console.log('❌ Main webhook failed:', mainResponse.status);
     }
-    return true;
   } catch (error) {
-    console.error(`❌ Error: ${error.message}`);
-    if (error.response) {
-      console.error(`   Status: ${error.response.status}`);
-      if (error.response.data) {
-        console.error(`   Response:`, error.response.data);
-      }
+    if (error.name === 'AbortError') {
+      console.log('⏱️ Main webhook timed out after 5 seconds');
+    } else {
+      console.log('❌ Main webhook error:', error.message);
     }
-    return false;
-  }
-}
-
-async function main() {
-  console.log('='.repeat(60));
-  console.log('🚀 Direct Webhook Test');
-  console.log(`📍 Target: ${API_BASE_URL}`);
-  console.log('='.repeat(60));
-
-  // Get line ID from command line or use default
-  const lineIdArg = process.argv[2];
-
-  if (lineIdArg) {
-    const lineId = parseInt(lineIdArg);
-    const line = TEST_LINES.find(l => l.id === lineId);
-    const name = line ? line.name : `Line ${lineId}`;
-    await sendWebhook(lineId, name);
-  } else {
-    console.log('\nUsage: node test-webhook-direct.js [lineId]');
-    console.log('\nAvailable test lines:');
-    TEST_LINES.forEach(line => {
-      console.log(`  ${line.id}: ${line.name} (~${line.expectedCruises} cruises)`);
-    });
-    console.log('\nTesting Holland America (small) and Viking (large)...\n');
-
-    // Test small line
-    await sendWebhook(14, 'Holland America');
-
-    // Wait a bit
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
-    // Test large line
-    await sendWebhook(104, 'Viking');
   }
 
-  console.log('\n' + '='.repeat(60));
-  console.log('✅ Test complete - check Slack for processing updates');
-  console.log('='.repeat(60));
+  console.log('\n' + '='.repeat(50));
+  console.log('📊 TEST SUMMARY');
+  console.log('='.repeat(50));
+  console.log('\nBased on the results above:');
+  console.log('- If endpoints are timing out, the webhook handler is blocking');
+  console.log('- If endpoints return but no processing happens, async processing is broken');
+  console.log('- If locks are stuck, Redis operations might be blocking');
+  console.log('\nCheck Render logs for detailed error messages.');
 }
 
-main().catch(console.error);
+// Run the test
+testWebhookDirect().catch(console.error);
