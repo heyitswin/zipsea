@@ -465,4 +465,4 @@ export class WebhookProcessorOptimized {
   }
 }
 
-export const webhookProcessorOptimized = new WebhookProcessorOptimized();
+// Removed global instantiation - use lazy loading in routes instead

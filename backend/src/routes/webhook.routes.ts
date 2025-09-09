@@ -6,7 +6,16 @@ import { webhookEvents } from '../db/schema/webhook-events';
 import { eq, sql } from 'drizzle-orm';
 
 const router = Router();
-const webhookProcessor = new WebhookProcessorOptimized();
+
+// Lazy-load webhook processor to ensure environment variables are loaded
+let webhookProcessor: WebhookProcessorOptimized | null = null;
+
+function getWebhookProcessor(): WebhookProcessorOptimized {
+  if (!webhookProcessor) {
+    webhookProcessor = new WebhookProcessorOptimized();
+  }
+  return webhookProcessor;
+}
 
 /**
  * Main webhook endpoint - receives notifications from Traveltek
@@ -47,7 +56,7 @@ router.post('/traveltek', async (req: Request, res: Response) => {
     // Process webhook asynchronously
     setImmediate(async () => {
       try {
-        await webhookProcessor.processWebhooks(lineId);
+        await getWebhookProcessor().processWebhooks(lineId);
 
         // Update webhook status
         await db
@@ -119,7 +128,7 @@ router.post('/traveltek/test', async (req: Request, res: Response) => {
     // Process test webhook
     setImmediate(async () => {
       try {
-        await webhookProcessor.processWebhooks(lineId);
+        await getWebhookProcessor().processWebhooks(lineId);
 
         await db
           .update(webhookEvents)

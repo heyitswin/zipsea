@@ -219,4 +219,19 @@ export class FTPConnectionPool {
   }
 }
 
-export const ftpConnectionPool = new FTPConnectionPool();
+// Lazy-load FTP connection pool to ensure environment variables are loaded
+let ftpConnectionPoolInstance: FTPConnectionPool | null = null;
+
+export function getFtpConnectionPool(): FTPConnectionPool {
+  if (!ftpConnectionPoolInstance) {
+    ftpConnectionPoolInstance = new FTPConnectionPool();
+  }
+  return ftpConnectionPoolInstance;
+}
+
+// Export for backward compatibility
+export const ftpConnectionPool = {
+  getConnection: () => getFtpConnectionPool().getConnection(),
+  releaseConnection: (id: string) => getFtpConnectionPool().releaseConnection(id),
+  shutdown: () => getFtpConnectionPool().shutdown(),
+};
