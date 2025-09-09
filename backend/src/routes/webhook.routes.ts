@@ -3,6 +3,7 @@ import logger from '../config/logger';
 import { enhancedWebhookService } from '../services/webhook-enhanced.service';
 import { SimpleWebhookService } from '../services/webhook-simple.service';
 import { comprehensiveWebhookService } from '../services/webhook-comprehensive.service';
+import { comprehensiveWebhookDebugService } from '../services/webhook-comprehensive-debug.service';
 import { db } from '../db/connection';
 import { sql } from 'drizzle-orm';
 
@@ -1308,6 +1309,54 @@ router.post('/traveltek/test-comprehensive', async (req: Request, res: Response)
       });
   } catch (error) {
     logger.error('❌ Failed to start comprehensive webhook processing:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+// Debug endpoint for testing webhook processing
+router.post('/traveltek/debug', async (req: Request, res: Response) => {
+  const webhookId = `test_debug_${Date.now()}`;
+  const testLineId = req.body.lineId || 21; // Default to Crystal (5 cruises)
+
+  try {
+    logger.info('🔍 Starting DEBUG webhook test', {
+      webhookId,
+      lineId: testLineId,
+    });
+
+    // Return immediate response
+    res.status(200).json({
+      success: true,
+      message: 'Debug webhook accepted and processing',
+      webhookId,
+      lineId: testLineId,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Process asynchronously with debug service
+    comprehensiveWebhookDebugService
+      .processWebhook(testLineId)
+      .then(result => {
+        logger.info('✅ Debug webhook processing completed', {
+          webhookId,
+          lineId: testLineId,
+          result,
+        });
+      })
+      .catch(error => {
+        logger.error('❌ Debug webhook processing failed', {
+          webhookId,
+          lineId: testLineId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+      });
+  } catch (error) {
+    logger.error('❌ Failed to start debug webhook processing:', error);
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
