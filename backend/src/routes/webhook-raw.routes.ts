@@ -242,6 +242,69 @@ router.get('/health', async (req: Request, res: Response) => {
 });
 
 /**
+ * Database diagnostic endpoint
+ * GET /api/webhooks/traveltek/db-check
+ */
+router.get('/traveltek/db-check', async (req: Request, res: Response) => {
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL?.includes('render.com') ? { rejectUnauthorized: false } : false,
+  });
+
+  try {
+    await client.connect();
+
+    // Get database info
+    const dbInfo = await client.query('SELECT current_database(), current_user, current_schema()');
+
+    // Check table exists
+    const tableCheck = await client.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public'
+        AND table_name = 'webhook_events'
+      )
+    `);
+
+    // Get columns if table exists
+    let columns = [];
+    if (tableCheck.rows[0].exists) {
+      const colResult = await client.query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'webhook_events'
+        AND table_schema = 'public'
+        ORDER BY ordinal_position
+      `);
+      columns = colResult.rows.map(r => r.column_name);
+    }
+
+    // Masked DATABASE_URL
+    const dbUrl = process.env.DATABASE_URL || 'not set';
+    const maskedUrl = dbUrl.replace(/:([^@]+)@/, ':****@');
+
+    res.json({
+      status: 'success',
+      database: dbInfo.rows[0].current_database,
+      user: dbInfo.rows[0].current_user,
+      schema: dbInfo.rows[0].current_schema,
+      tableExists: tableCheck.rows[0].exists,
+      columns: columns,
+      hasLineIdColumn: columns.includes('line_id'),
+      databaseUrl: maskedUrl,
+    });
+  } catch (error) {
+    res.json({
+      status: 'error',
+      message: 'Database check failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  } finally {
+    await client.end();
+  }
+});
+
+/**
  * Simple test endpoint - direct SQL without helper
  * GET /api/webhooks/traveltek/simple-test
  */
