@@ -32,17 +32,17 @@ export class FTPFileSearchService {
     }
 
     const client = await ftpConnectionPool.getConnection();
-    
+
     try {
       // Try current year and last 3 months first (most likely locations)
       const now = new Date();
       const searchPaths: string[] = [];
-      
+
       for (let monthOffset = 0; monthOffset <= 3; monthOffset++) {
         const date = new Date(now.getFullYear(), now.getMonth() - monthOffset, 1);
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
-        
+
         if (shipId) {
           // The actual structure is: YYYY/MM/lineId/shipId/cruiseId.json
           searchPaths.push(`${year}/${month}/${lineId}/${shipId}/${cruiseId}.json`);
@@ -59,14 +59,15 @@ export class FTPFileSearchService {
             // Need to list directories and search
             const basePath = path.substring(0, path.lastIndexOf('/'));
             const parentPath = basePath.substring(0, basePath.lastIndexOf('/'));
-            
-            const dirs = await client.list(parentPath);
-            for (const dir of dirs.filter(d => d.type === 2)) { // type 2 = directory
+
+            const dirs = await client.client.list(parentPath);
+            for (const dir of dirs.filter(d => d.type === 2)) {
+              // type 2 = directory
               const fullPath = `${parentPath}/${dir.name}/${cruiseId}.json`;
               try {
                 // Try to get file info to check if it exists
-                await client.size(fullPath);
-                
+                await client.client.size(fullPath);
+
                 // File exists! Cache and return
                 const location: CruiseFileLocation = {
                   cruiseId,
@@ -74,12 +75,12 @@ export class FTPFileSearchService {
                   year: fullPath.split('/')[2],
                   month: fullPath.split('/')[3],
                   lineId,
-                  shipId: parseInt(dir.name)
+                  shipId: parseInt(dir.name),
                 };
-                
+
                 this.fileCache.set(cacheKey, location);
                 this.lastCacheUpdate = Date.now();
-                
+
                 logger.info(`Found cruise file: ${fullPath}`);
                 return fullPath;
               } catch {
@@ -89,8 +90,8 @@ export class FTPFileSearchService {
           } else {
             // Direct path check
             try {
-              await client.size(path);
-              
+              await client.client.size(path);
+
               // File exists! Cache and return
               const pathParts = path.split('/');
               const location: CruiseFileLocation = {
@@ -99,12 +100,12 @@ export class FTPFileSearchService {
                 year: pathParts[2],
                 month: pathParts[3],
                 lineId,
-                shipId: shipId || parseInt(pathParts[5])
+                shipId: shipId || parseInt(pathParts[5]),
               };
-              
+
               this.fileCache.set(cacheKey, location);
               this.lastCacheUpdate = Date.now();
-              
+
               logger.info(`Found cruise file: ${path}`);
               return path;
             } catch {
@@ -115,37 +116,40 @@ export class FTPFileSearchService {
           logger.debug(`Path not found: ${path}`);
         }
       }
-      
+
       logger.warn(`Could not find cruise file: ${cruiseId} for line ${lineId}`);
       return null;
-      
     } catch (error) {
       logger.error(`Error searching for cruise file ${cruiseId}:`, error);
       return null;
     } finally {
-      ftpConnectionPool.releaseConnection(client);
+      ftpConnectionPool.releaseConnection(client.id);
     }
   }
 
   /**
    * Batch find cruise files
    */
-  async findCruiseFiles(cruises: Array<{ cruiseId: string; lineId: number; shipId?: number }>): Promise<Map<string, string>> {
+  async findCruiseFiles(
+    cruises: Array<{ cruiseId: string; lineId: number; shipId?: number }>
+  ): Promise<Map<string, string>> {
     const results = new Map<string, string>();
-    
+
     // Process in smaller batches to avoid overwhelming FTP
     const batchSize = 10;
     for (let i = 0; i < cruises.length; i += batchSize) {
       const batch = cruises.slice(i, i + batchSize);
-      
-      await Promise.all(batch.map(async (cruise) => {
-        const path = await this.findCruiseFile(cruise.cruiseId, cruise.lineId, cruise.shipId);
-        if (path) {
-          results.set(cruise.cruiseId, path);
-        }
-      }));
+
+      await Promise.all(
+        batch.map(async cruise => {
+          const path = await this.findCruiseFile(cruise.cruiseId, cruise.lineId, cruise.shipId);
+          if (path) {
+            results.set(cruise.cruiseId, path);
+          }
+        })
+      );
     }
-    
+
     return results;
   }
 
