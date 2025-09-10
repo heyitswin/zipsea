@@ -5,6 +5,7 @@ import { WebhookProcessorSimple } from '../services/webhook-processor-simple.ser
 import { WebhookProcessorDiscovery } from '../services/webhook-processor-discovery.service';
 import { WebhookProcessorCorrect } from '../services/webhook-processor-correct.service';
 import { getWebhookProcessorFixed } from '../services/webhook-processor-fixed.service';
+import { getWebhookProcessorSimple } from '../services/webhook-processor-simple.service';
 import { Client } from 'pg';
 
 const router = Router();
@@ -837,6 +838,83 @@ router.post('/traveltek/test-limited', async (req: Request, res: Response) => {
     res.status(500).json({
       status: 'error',
       message: 'Limited processing test failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Test with simple processor (no queue, direct processing)
+router.post('/traveltek/test-simple', async (req: Request, res: Response) => {
+  const { lineId = 22 } = req.body;
+
+  try {
+    console.log(`[TEST-SIMPLE] Testing simple processor for line ${lineId}`);
+
+    // Insert webhook event
+    const insertQuery = `
+      INSERT INTO webhook_events (line_id, webhook_type, status, metadata)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `;
+
+    const result = await executeSQL(insertQuery, [
+      lineId,
+      'test_simple',
+      'processing',
+      JSON.stringify({ test: true, lineId, processor: 'simple' }),
+    ]);
+
+    const webhookEvent = result[0];
+
+    // Process with timeout
+    try {
+      const processor = getWebhookProcessorSimple();
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Processing timeout after 60 seconds')), 60000)
+      );
+
+      await Promise.race([processor.processWebhooks(lineId), timeoutPromise]);
+
+      // Update status to processed
+      await executeSQL('UPDATE webhook_events SET status = $1, processed_at = $2 WHERE id = $3', [
+        'processed',
+        new Date(),
+        webhookEvent.id,
+      ]);
+
+      res.json({
+        status: 'success',
+        message: 'Simple webhook processor completed',
+        eventId: webhookEvent.id,
+        lineId: lineId,
+      });
+    } catch (error) {
+      console.error(`[TEST-SIMPLE] Processing failed:`, error);
+
+      // Update status to failed
+      await executeSQL(
+        'UPDATE webhook_events SET status = $1, processed_at = $2, error_message = $3 WHERE id = $4',
+        [
+          'failed',
+          new Date(),
+          error instanceof Error ? error.message : 'Unknown error',
+          webhookEvent.id,
+        ]
+      );
+
+      res.json({
+        status: 'error',
+        message: 'Simple webhook processing failed',
+        eventId: webhookEvent.id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  } catch (error) {
+    console.error('[TEST-SIMPLE] Setup error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to test simple processor',
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
