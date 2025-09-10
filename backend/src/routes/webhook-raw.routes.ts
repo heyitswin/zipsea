@@ -461,6 +461,72 @@ router.get('/traveltek/db-check', async (req: Request, res: Response) => {
  * Minimal test endpoint - just updates status
  * POST /api/webhooks/traveltek/minimal-test
  */
+// Check available lines in FTP
+router.get('/traveltek/check-lines', async (req: Request, res: Response) => {
+  try {
+    console.log('[CHECK-LINES] Checking available lines in FTP...');
+
+    const { ftpConnectionPool } = await import('../services/ftp-connection-pool.service');
+    const conn = await ftpConnectionPool.getConnection();
+
+    try {
+      const currentDate = new Date();
+      const year = currentDate.getFullYear();
+      const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+      const basePath = `/${year}/${month}`;
+
+      const availableLines = new Set<number>();
+      const filesByLine: { [key: number]: number } = {};
+
+      // Check first few days
+      const dayDirs = await conn.client.list(basePath);
+
+      for (const dayDir of dayDirs.slice(0, 3)) {
+        // Check first 3 days
+        if (dayDir.type === 2) {
+          const dayPath = `${basePath}/${dayDir.name}`;
+          const dayFiles = await conn.client.list(dayPath);
+
+          for (const file of dayFiles) {
+            if (file.type === 1 && file.name.endsWith('.jsonl')) {
+              const match = file.name.match(/line_(\d+)_/);
+              if (match) {
+                const lineId = parseInt(match[1]);
+                availableLines.add(lineId);
+                filesByLine[lineId] = (filesByLine[lineId] || 0) + 1;
+              }
+            }
+          }
+        }
+      }
+
+      ftpConnectionPool.releaseConnection(conn.id);
+
+      res.json({
+        success: true,
+        path: basePath,
+        daysChecked: Math.min(3, dayDirs.length),
+        totalDays: dayDirs.length,
+        availableLines: Array.from(availableLines).sort((a, b) => a - b),
+        filesByLine: filesByLine,
+        suggestion:
+          availableLines.size > 0
+            ? `Try testing with line ${Array.from(availableLines)[0]}`
+            : 'No lines found in current month',
+      });
+    } catch (error) {
+      ftpConnectionPool.releaseConnection(conn.id);
+      throw error;
+    }
+  } catch (error) {
+    console.error('[CHECK-LINES] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Check failed',
+    });
+  }
+});
+
 // Test file discovery only
 router.post('/traveltek/test-discovery', async (req: Request, res: Response) => {
   const { lineId = 22 } = req.body;
