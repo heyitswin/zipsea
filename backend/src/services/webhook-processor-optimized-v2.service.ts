@@ -414,7 +414,9 @@ export class WebhookProcessorOptimizedV2 {
 
             await db.insert(priceSnapshots).values({
               cruiseId: cruiseIdInt,
-              snapshotData: {
+              snapshotType: 'before',
+              cheapestCabinPrice: cruise.cheapestPrice,
+              metadata: {
                 cheapestPrice: cruise.cheapestPrice,
                 interiorPrice: cruise.interiorPrice,
                 oceanviewPrice: cruise.oceanviewPrice,
@@ -423,7 +425,7 @@ export class WebhookProcessorOptimizedV2 {
                 timestamp: new Date().toISOString(),
                 lineId: lineId,
               },
-              createdAt: new Date(),
+              snapshotDate: new Date(),
             });
             snapshotCount++;
           } catch (error) {
