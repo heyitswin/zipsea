@@ -387,7 +387,7 @@ export class WebhookProcessorOptimizedV2 {
   }
 
   // Static version of processFile that can be called from worker
-  private static async processFileStatic(file: any): Promise<boolean> {
+  public static async processFileStatic(file: any): Promise<boolean> {
     const processor = new WebhookProcessorOptimizedV2();
     return processor.processFile(file);
   }
