@@ -415,17 +415,24 @@ export class WebhookProcessorOptimizedV2 {
             await db.insert(priceSnapshots).values({
               cruiseId: cruiseIdInt,
               snapshotType: 'before',
+              staticPrice: cruise.cheapestPrice,
+              cachedPrice: cruise.cheapestPrice,
               cheapestCabinPrice: cruise.cheapestPrice,
               metadata: {
-                cheapestPrice: cruise.cheapestPrice,
+                // Store all granular cabin type pricing
                 interiorPrice: cruise.interiorPrice,
                 oceanviewPrice: cruise.oceanviewPrice,
                 balconyPrice: cruise.balconyPrice,
                 suitePrice: cruise.suitePrice,
+                // Also store the cheapest overall
+                cheapestPrice: cruise.cheapestPrice,
+                // Meta information
                 timestamp: new Date().toISOString(),
                 lineId: lineId,
+                source: 'webhook_processor_v2',
               },
               snapshotDate: new Date(),
+              priceChangeDetected: false,
             });
             snapshotCount++;
           } catch (error) {
