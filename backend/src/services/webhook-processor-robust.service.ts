@@ -301,17 +301,17 @@ export class WebhookProcessorRobust {
 
     try {
       // Connect with timeout
-      await Promise.race([
-        client.access({
-          host: process.env.TRAVELTEK_FTP_HOST || '',
-          user: process.env.TRAVELTEK_FTP_USER || '',
-          password: process.env.TRAVELTEK_FTP_PASSWORD || '',
-          secure: false,
-        }),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('FTP connection timeout')), 10000)
-        ),
-      ]);
+      // Use the same config that works in sync script
+      const ftpConfig = {
+        host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
+        user: process.env.TRAVELTEK_FTP_USER || '',
+        password: process.env.TRAVELTEK_FTP_PASSWORD || '',
+        secure: false,
+        timeout: 30000,
+        verbose: false,
+      };
+
+      await client.access(ftpConfig);
 
       console.log('[ROBUST] FTP connected successfully');
 
@@ -414,13 +414,17 @@ export class WebhookProcessorRobust {
     client.ftp.verbose = false;
 
     try {
-      // Connect to FTP
-      await client.access({
-        host: process.env.TRAVELTEK_FTP_HOST || '',
+      // Connect to FTP - using the config that works in sync script
+      const ftpConfig = {
+        host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
         user: process.env.TRAVELTEK_FTP_USER || '',
         password: process.env.TRAVELTEK_FTP_PASSWORD || '',
         secure: false,
-      });
+        timeout: 30000,
+        verbose: false,
+      };
+
+      await client.access(ftpConfig);
 
       // Download file
       const tempFile = `/tmp/webhook-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jsonl`;
