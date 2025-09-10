@@ -602,37 +602,51 @@ export class WebhookProcessorOptimizedV2 {
       };
 
       // Upsert cruise (insert if new, update if exists)
-      await db
-        .insert(cruises)
-        .values(cruiseData)
-        .onConflictDoUpdate({
-          target: cruises.id,
-          set: {
-            name: cruiseData.name,
-            voyageCode: cruiseData.voyageCode,
-            itineraryCode: cruiseData.itineraryCode,
-            sailingDate: cruiseData.sailingDate,
-            returnDate: cruiseData.returnDate,
-            nights: cruiseData.nights,
-            seaDays: cruiseData.seaDays,
-            embarkPortId: cruiseData.embarkPortId,
-            disembarkPortId: cruiseData.disembarkPortId,
-            portIds: cruiseData.portIds,
-            regionIds: cruiseData.regionIds,
-            marketId: cruiseData.marketId,
-            ownerId: cruiseData.ownerId,
-            noFly: cruiseData.noFly,
-            departUk: cruiseData.departUk,
-            showCruise: cruiseData.showCruise,
-            lastCached: cruiseData.lastCached,
-            cachedDate: cruiseData.cachedDate,
-            rawData: cruiseData.rawData,
-            updatedAt: new Date(),
-          },
-        });
+      try {
+        await db
+          .insert(cruises)
+          .values(cruiseData)
+          .onConflictDoUpdate({
+            target: cruises.id,
+            set: {
+              name: cruiseData.name,
+              voyageCode: cruiseData.voyageCode,
+              itineraryCode: cruiseData.itineraryCode,
+              sailingDate: cruiseData.sailingDate,
+              returnDate: cruiseData.returnDate,
+              nights: cruiseData.nights,
+              seaDays: cruiseData.seaDays,
+              embarkPortId: cruiseData.embarkPortId,
+              disembarkPortId: cruiseData.disembarkPortId,
+              portIds: cruiseData.portIds,
+              regionIds: cruiseData.regionIds,
+              marketId: cruiseData.marketId,
+              ownerId: cruiseData.ownerId,
+              noFly: cruiseData.noFly,
+              departUk: cruiseData.departUk,
+              showCruise: cruiseData.showCruise,
+              lastCached: cruiseData.lastCached,
+              cachedDate: cruiseData.cachedDate,
+              rawData: cruiseData.rawData,
+              updatedAt: new Date(),
+            },
+          });
 
-      this.stats.cruisesUpdated++;
-      console.log(`[OPTIMIZED-V2] Upserted cruise ${cruiseId} (${file.size} bytes)`);
+        this.stats.cruisesUpdated++;
+        console.log(`[OPTIMIZED-V2] Upserted cruise ${cruiseId} (${file.size} bytes)`);
+      } catch (error: any) {
+        console.error(`[OPTIMIZED-V2] Error upserting cruise ${cruiseId}:`, error.message);
+        console.error('[OPTIMIZED-V2] Cruise data causing error:', {
+          id: cruiseData.id,
+          marketId: cruiseData.marketId,
+          ownerId: cruiseData.ownerId,
+          marketIdRaw: data.marketid,
+          ownerIdRaw: data.ownerid,
+        });
+        // Continue processing - don't fail the whole batch
+        this.stats.errors++;
+        return true; // Return true to indicate we processed the file even if there was an error
+      }
 
       // Update pricing if available
       await this.updatePricing(cruiseId, data);
