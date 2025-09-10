@@ -10,6 +10,7 @@ import { WebhookProcessorCorrectFTP } from '../services/webhook-processor-correc
 import { WebhookProcessorSimpleFTP } from '../services/webhook-processor-simple-ftp.service';
 import { WebhookProcessorMinimal } from '../services/webhook-processor-minimal.service';
 import { WebhookProcessorFast } from '../services/webhook-processor-fast.service';
+import { WebhookProcessorOptimizedV2 } from '../services/webhook-processor-optimized-v2.service';
 import { getWebhookProcessorSimple } from '../services/webhook-processor-simple.service';
 import { Client } from 'pg';
 
@@ -1545,6 +1546,35 @@ router.get('/traveltek/simple-test', async (req: Request, res: Response) => {
     });
   } finally {
     await client.end();
+  }
+});
+
+// Test with optimized V2 processor
+router.post('/traveltek/test-optimized', async (req: Request, res: Response) => {
+  const { lineId = 10 } = req.body;
+
+  try {
+    console.log(`[TEST-OPTIMIZED] Testing optimized processor for line ${lineId}`);
+
+    const processor = new WebhookProcessorOptimizedV2();
+    const startTime = Date.now();
+
+    await processor.processWebhooks(lineId);
+
+    const duration = Date.now() - startTime;
+
+    res.json({
+      status: 'success',
+      message: 'Optimized processing completed',
+      lineId,
+      duration: `${duration}ms`,
+    });
+  } catch (error) {
+    console.error('[TEST-OPTIMIZED] Error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 });
 
