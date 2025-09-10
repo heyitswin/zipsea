@@ -4,6 +4,7 @@ import { WebhookProcessorOptimized } from '../services/webhook-processor-optimiz
 import { WebhookProcessorSimple } from '../services/webhook-processor-simple.service';
 import { WebhookProcessorDiscovery } from '../services/webhook-processor-discovery.service';
 import { WebhookProcessorCorrect } from '../services/webhook-processor-correct.service';
+import { getWebhookProcessorFixed } from '../services/webhook-processor-fixed.service';
 import { Client } from 'pg';
 
 const router = Router();
@@ -704,6 +705,82 @@ router.post('/traveltek/test-discovery', async (req: Request, res: Response) => 
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Discovery test failed',
+    });
+  }
+});
+
+// Test with FIXED webhook processor (correct FTP structure)
+router.post('/traveltek/test-fixed', async (req: Request, res: Response) => {
+  const { lineId = 22 } = req.body;
+
+  try {
+    console.log(`[TEST-FIXED] Testing fixed processor for line ${lineId}`);
+
+    // Insert webhook event
+    const insertQuery = `
+      INSERT INTO webhook_events (line_id, webhook_type, status, metadata)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `;
+    const result = await executeSQL(insertQuery, [
+      lineId,
+      'test_fixed',
+      'processing',
+      JSON.stringify({ test: true, lineId, processor: 'fixed' }),
+    ]);
+
+    const webhookEvent = result[0];
+
+    // Process with timeout
+    try {
+      const processor = getWebhookProcessorFixed();
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Processing timeout after 60 seconds')), 60000)
+      );
+
+      await Promise.race([processor.processWebhooks(lineId), timeoutPromise]);
+
+      // Update status to processed
+      await executeSQL('UPDATE webhook_events SET status = $1, processed_at = $2 WHERE id = $3', [
+        'processed',
+        new Date(),
+        webhookEvent.id,
+      ]);
+
+      res.json({
+        status: 'success',
+        message: 'Fixed webhook processor completed',
+        eventId: webhookEvent.id,
+        lineId: lineId,
+      });
+    } catch (error) {
+      console.error(`[TEST-FIXED] Processing failed:`, error);
+
+      // Update status to failed
+      await executeSQL(
+        'UPDATE webhook_events SET status = $1, processed_at = $2, error_message = $3 WHERE id = $4',
+        [
+          'failed',
+          new Date(),
+          error instanceof Error ? error.message : 'Unknown error',
+          webhookEvent.id,
+        ]
+      );
+
+      res.json({
+        status: 'error',
+        message: 'Fixed webhook processing failed',
+        eventId: webhookEvent.id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  } catch (error) {
+    console.error('[TEST-FIXED] Setup error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to test fixed processor',
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
