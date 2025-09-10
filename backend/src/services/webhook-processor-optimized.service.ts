@@ -96,7 +96,11 @@ export class WebhookProcessorOptimized {
   }
 
   async processWebhooks(lineId?: number) {
+    let lock: any = null;
+
     try {
+      console.log(`Starting webhook processing for line ${lineId || 'all'}`);
+
       await slackService.sendNotification({
         text: '🚀 Starting optimized webhook processing',
         fields: [
@@ -133,7 +137,7 @@ export class WebhookProcessorOptimized {
       }
 
       // Acquire or update lock using upsert
-      const [lock] = await db
+      const locks = await db
         .insert(syncLocks)
         .values({
           lockKey,
@@ -153,42 +157,50 @@ export class WebhookProcessorOptimized {
         })
         .returning();
 
-      try {
-        // Discover files
-        const files = await this.discoverFiles(lineId);
-        this.stats.filesDiscovered = files.length;
+      lock = locks[0];
+      console.log(`Acquired lock ${lock.id} for ${lockKey}`);
 
-        await slackService.sendNotification({
-          text: `📁 Discovered ${files.length} files to process`,
-        });
+      // Discover files
+      const files = await this.discoverFiles(lineId);
+      this.stats.filesDiscovered = files.length;
 
-        // Add files to queue
-        const jobs = files.map(file => ({
-          name: `process-${path.basename(file.path)}`,
-          data: file,
-        }));
+      await slackService.sendNotification({
+        text: `📁 Discovered ${files.length} files to process`,
+      });
 
-        await this.fileQueue.addBulk(jobs);
+      // Add files to queue
+      const jobs = files.map(file => ({
+        name: `process-${path.basename(file.path)}`,
+        data: file,
+      }));
 
-        // Start worker
-        await this.startWorker();
+      await this.fileQueue.addBulk(jobs);
 
-        // Wait for completion
-        await this.waitForCompletion();
+      // Start worker
+      await this.startWorker();
 
-        // Generate final report
-        await this.generateReport();
-      } finally {
-        // Release lock
-        await db
-          .update(syncLocks)
-          .set({ isActive: false, releasedAt: new Date() })
-          .where(eq(syncLocks.id, lock.id));
-      }
+      // Wait for completion
+      await this.waitForCompletion();
+
+      // Generate final report
+      await this.generateReport();
     } catch (error) {
       console.error('Webhook processing failed:', error);
       await slackService.sendError('Webhook processing failed', error as Error);
       throw error;
+    } finally {
+      // Always release lock if we acquired one
+      if (lock) {
+        try {
+          await db
+            .update(syncLocks)
+            .set({ isActive: false, releasedAt: new Date() })
+            .where(eq(syncLocks.id, lock.id));
+          console.log(`Released lock ${lock.id}`);
+        } catch (releaseError) {
+          console.error(`Failed to release lock ${lock.id}:`, releaseError);
+        }
+      }
     }
   }
 
