@@ -5,6 +5,7 @@ import { WebhookProcessorSimple } from '../services/webhook-processor-simple.ser
 import { WebhookProcessorDiscovery } from '../services/webhook-processor-discovery.service';
 import { WebhookProcessorCorrect } from '../services/webhook-processor-correct.service';
 import { WebhookProcessorFixed } from '../services/webhook-processor-fixed.service';
+import { WebhookProcessorMinimal } from '../services/webhook-processor-minimal.service';
 import { getWebhookProcessorSimple } from '../services/webhook-processor-simple.service';
 import { Client } from 'pg';
 
@@ -1360,6 +1361,29 @@ router.post('/traveltek/direct-test', async (req: Request, res: Response) => {
     });
   } finally {
     await client.end();
+  }
+});
+
+// Test with minimal processor to isolate FTP issues
+router.post('/traveltek/test-minimal-processor', async (req: Request, res: Response) => {
+  try {
+    const { lineId = 14 } = req.body;
+    console.log(`[TEST-MINIMAL] Testing minimal processor for line ${lineId}`);
+
+    const processor = new WebhookProcessorMinimal();
+    const result = await processor.processWebhooks(lineId);
+
+    res.json({
+      status: 'success',
+      ...result,
+      lineId,
+    });
+  } catch (error) {
+    console.error('[TEST-MINIMAL] Error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 });
 
