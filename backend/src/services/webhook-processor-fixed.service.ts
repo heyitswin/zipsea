@@ -175,18 +175,20 @@ export class WebhookProcessorFixed {
       lock = locks[0];
       console.log(`Acquired lock ${lock.id} for ${lockKey}`);
 
-      // Discover files with better error handling
-      const files = await this.discoverFilesFixed(lineId);
-      this.stats.filesDiscovered = files.length;
+      // Skip file discovery for now - just log success
+      console.log('TEMPORARY: Skipping FTP file discovery to test webhook flow');
+      this.stats.filesDiscovered = 0;
 
       await slackService.sendNotification({
-        text: `📁 Discovered ${files.length} files to process`,
+        text: `✅ Webhook received for line ${lineId || 'all'}`,
+        fields: [
+          { title: 'Status', value: 'FTP temporarily disabled', short: true },
+          { title: 'Action', value: 'Webhook acknowledged', short: true },
+        ],
       });
 
-      if (files.length === 0) {
-        console.log('No files to process');
-        return;
-      }
+      console.log('No files to process (FTP disabled)');
+      return;
 
       // Add files to queue
       const jobs = files.map(file => ({
