@@ -5,7 +5,6 @@ import { WebhookProcessorSimple } from '../services/webhook-processor-simple.ser
 import { WebhookProcessorDiscovery } from '../services/webhook-processor-discovery.service';
 import { WebhookProcessorCorrect } from '../services/webhook-processor-correct.service';
 import { WebhookProcessorFixed } from '../services/webhook-processor-fixed.service';
-import { getWebhookProcessorFixed } from '../services/webhook-processor-fixed.service';
 import { getWebhookProcessorSimple } from '../services/webhook-processor-simple.service';
 import { Client } from 'pg';
 
@@ -735,7 +734,7 @@ router.post('/traveltek/test-fixed', async (req: Request, res: Response) => {
 
     // Process with timeout
     try {
-      const processor = getWebhookProcessorFixed();
+      const processor = new WebhookProcessorFixed();
 
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Processing timeout after 180 seconds')), 180000)
@@ -794,46 +793,15 @@ router.post('/traveltek/test-limited', async (req: Request, res: Response) => {
   try {
     console.log(`[LIMITED-TEST] Testing processing of ${limit} files for line ${lineId}`);
 
-    const processor = getWebhookProcessorFixed();
-
-    // Get files first
-    const files = await processor.discoverFiles(lineId);
-    console.log(`[LIMITED-TEST] Discovered ${files.length} total files`);
-
-    // Process only a few files
-    const filesToProcess = files.slice(0, limit);
-    console.log(`[LIMITED-TEST] Processing first ${filesToProcess.length} files`);
-
-    const startTime = Date.now();
-    const results = [];
-
-    for (const file of filesToProcess) {
-      try {
-        console.log(`[LIMITED-TEST] Processing ${file.path}`);
-        // Call the process method directly
-        await processor.processFile(file);
-        results.push({ file: file.path, status: 'success' });
-      } catch (error) {
-        console.error(`[LIMITED-TEST] Failed to process ${file.path}:`, error);
-        results.push({
-          file: file.path,
-          status: 'failed',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
-      }
-    }
-
-    const duration = Date.now() - startTime;
-
-    res.json({
-      status: 'success',
-      message: `Processed ${limit} files`,
-      lineId,
-      filesDiscovered: files.length,
-      filesProcessed: filesToProcess.length,
-      duration: `${duration}ms`,
-      results,
+    // This endpoint needs refactoring - methods are private
+    res.status(501).json({
+      success: false,
+      message: 'This endpoint needs refactoring to work with WebhookProcessorFixed',
     });
+    return;
+
+    // const processor = new WebhookProcessorFixed();
+    // Code commented out - needs refactoring
   } catch (error) {
     console.error('[LIMITED-TEST] Error:', error);
     res.status(500).json({

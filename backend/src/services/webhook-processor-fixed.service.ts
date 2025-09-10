@@ -238,7 +238,6 @@ export class WebhookProcessorFixed {
         user: process.env.TRAVELTEK_FTP_USER || process.env.FTP_USER || '',
         password: process.env.TRAVELTEK_FTP_PASSWORD || process.env.FTP_PASSWORD || '',
         secure: false,
-        timeout: 60000,
       });
 
       const currentDate = new Date();
