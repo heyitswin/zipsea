@@ -196,16 +196,38 @@ export class WebhookProcessorProduction {
         }
       }
 
-      // Acquire lock
-      const [lock] = await db
-        .insert(syncLocks)
-        .values({
-          lockKey,
-          isActive: true,
-          acquiredAt: new Date(),
-          metadata: { lineId, type: 'webhook' },
-        })
-        .returning();
+      // Acquire lock (handle unique constraint)
+      let lock;
+      try {
+        const result = await db
+          .insert(syncLocks)
+          .values({
+            lockKey,
+            isActive: true,
+            acquiredAt: new Date(),
+            metadata: { lineId, type: 'webhook' },
+          })
+          .returning();
+        lock = result[0];
+      } catch (error: any) {
+        // If unique constraint error, the key exists but was marked inactive
+        if (error.code === '23505') {
+          // Update existing lock
+          const result = await db
+            .update(syncLocks)
+            .set({
+              isActive: true,
+              acquiredAt: new Date(),
+              releasedAt: null,
+              metadata: { lineId, type: 'webhook' },
+            })
+            .where(eq(syncLocks.lockKey, lockKey))
+            .returning();
+          lock = result[0];
+        } else {
+          throw error;
+        }
+      }
 
       // Track processing state
       activeProcessing.set(lineId, {
