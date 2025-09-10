@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import logger from '../config/logger';
-import { WebhookProcessorCorrectFTP } from '../services/webhook-processor-correct-ftp.service';
+import { WebhookProcessorOptimizedV2 } from '../services/webhook-processor-optimized-v2.service';
 import { db } from '../db/connection';
 import { webhookEvents } from '../db/schema/webhook-events';
 import { eq, sql } from 'drizzle-orm';
@@ -9,11 +9,11 @@ import { sql as pgSql } from '../db/connection';
 const router = Router();
 
 // Lazy-load webhook processor to ensure environment variables are loaded
-let webhookProcessor: WebhookProcessorCorrectFTP | null = null;
+let webhookProcessor: WebhookProcessorOptimizedV2 | null = null;
 
-function getWebhookProcessor(): WebhookProcessorCorrectFTP {
+function getWebhookProcessor(): WebhookProcessorOptimizedV2 {
   if (!webhookProcessor) {
-    webhookProcessor = new WebhookProcessorCorrectFTP();
+    webhookProcessor = new WebhookProcessorOptimizedV2();
   }
   return webhookProcessor;
 }

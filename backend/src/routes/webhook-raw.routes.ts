@@ -9,6 +9,7 @@ import { WebhookProcessorRobust } from '../services/webhook-processor-robust.ser
 import { WebhookProcessorCorrectFTP } from '../services/webhook-processor-correct-ftp.service';
 import { WebhookProcessorSimpleFTP } from '../services/webhook-processor-simple-ftp.service';
 import { WebhookProcessorMinimal } from '../services/webhook-processor-minimal.service';
+import { WebhookProcessorFast } from '../services/webhook-processor-fast.service';
 import { getWebhookProcessorSimple } from '../services/webhook-processor-simple.service';
 import { Client } from 'pg';
 
