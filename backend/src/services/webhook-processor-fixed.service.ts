@@ -361,7 +361,7 @@ export class WebhookProcessorFixed {
     );
   }
 
-  private async processFile(file: CruiseFile) {
+  public async processFile(file: CruiseFile) {
     const conn = await ftpConnectionPool.getConnection();
 
     try {

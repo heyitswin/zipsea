@@ -820,6 +820,63 @@ router.post('/traveltek/test-discovery-only', async (req: Request, res: Response
   }
 });
 
+// Test processing with limited files
+router.post('/traveltek/test-limited', async (req: Request, res: Response) => {
+  const { lineId = 22, limit = 5 } = req.body;
+
+  try {
+    console.log(`[LIMITED-TEST] Testing processing of ${limit} files for line ${lineId}`);
+
+    const processor = getWebhookProcessorFixed();
+
+    // Get files first
+    const files = await processor.discoverFiles(lineId);
+    console.log(`[LIMITED-TEST] Discovered ${files.length} total files`);
+
+    // Process only a few files
+    const filesToProcess = files.slice(0, limit);
+    console.log(`[LIMITED-TEST] Processing first ${filesToProcess.length} files`);
+
+    const startTime = Date.now();
+    const results = [];
+
+    for (const file of filesToProcess) {
+      try {
+        console.log(`[LIMITED-TEST] Processing ${file.path}`);
+        // Call the process method directly
+        await processor.processFile(file);
+        results.push({ file: file.path, status: 'success' });
+      } catch (error) {
+        console.error(`[LIMITED-TEST] Failed to process ${file.path}:`, error);
+        results.push({
+          file: file.path,
+          status: 'failed',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    const duration = Date.now() - startTime;
+
+    res.json({
+      status: 'success',
+      message: `Processed ${limit} files`,
+      lineId,
+      filesDiscovered: files.length,
+      filesProcessed: filesToProcess.length,
+      duration: `${duration}ms`,
+      results,
+    });
+  } catch (error) {
+    console.error('[LIMITED-TEST] Error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Limited processing test failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 // Test webhook synchronously - waits for processing to complete
 router.post('/traveltek/test-sync', async (req: Request, res: Response) => {
   try {
