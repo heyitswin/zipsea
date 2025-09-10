@@ -440,9 +440,24 @@ export class WebhookProcessorOptimizedV2 {
         returnDate = sailDate.toISOString().split('T')[0];
       }
 
-      // Extract port and region information
-      const portIds = data.portids ? data.portids.join(',') : '';
-      const regionIds = data.regionids ? data.regionids.join(',') : '';
+      // Extract port and region information (handle both array and string formats)
+      let portIds = '';
+      if (data.portids) {
+        if (Array.isArray(data.portids)) {
+          portIds = data.portids.join(',');
+        } else if (typeof data.portids === 'string') {
+          portIds = data.portids;
+        }
+      }
+
+      let regionIds = '';
+      if (data.regionids) {
+        if (Array.isArray(data.regionids)) {
+          regionIds = data.regionids.join(',');
+        } else if (typeof data.regionids === 'string') {
+          regionIds = data.regionids;
+        }
+      }
 
       // Prepare comprehensive cruise data based on Traveltek fields
       const cruiseData = {
@@ -814,13 +829,15 @@ export class WebhookProcessorOptimizedV2 {
             }
 
             await db.insert(priceSnapshots).values({
-              cruiseId: cruiseIdInt,
-              snapshotType: 'before',
-              staticPrice: cruise.cheapestPrice,
-              cachedPrice: cruise.cheapestPrice,
-              cheapestCabinPrice: cruise.cheapestPrice,
-              metadata: {
-                // Store all granular cabin type pricing
+              lineId: lineId,
+              cruiseId: cruise.cruiseId as string,
+              snapshotData: {
+                // Store all pricing data in the JSONB column
+                snapshotType: 'before',
+                staticPrice: cruise.cheapestPrice,
+                cachedPrice: cruise.cheapestPrice,
+                cheapestCabinPrice: cruise.cheapestPrice,
+                // Granular cabin type pricing
                 interiorPrice: cruise.interiorPrice,
                 oceanviewPrice: cruise.oceanviewPrice,
                 balconyPrice: cruise.balconyPrice,
@@ -829,10 +846,12 @@ export class WebhookProcessorOptimizedV2 {
                 cheapestPrice: cruise.cheapestPrice,
                 // Meta information
                 timestamp: new Date().toISOString(),
+                source: 'webhook_processor_v2',
+              },
+              metadata: {
                 lineId: lineId,
                 source: 'webhook_processor_v2',
               },
-              snapshotDate: new Date(),
               priceChangeDetected: false,
             });
             snapshotCount++;
