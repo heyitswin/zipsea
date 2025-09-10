@@ -130,10 +130,14 @@ export class WebhookProcessorFixed {
       if (existingLock.length > 0 && existingLock[0].isActive) {
         const lockAge = Date.now() - new Date(existingLock[0].acquiredAt).getTime();
         if (lockAge < 30 * 60 * 1000) {
-          console.log(`Lock ${lockKey} is still active (age: ${Math.floor(lockAge / 60000)} minutes)`);
+          console.log(
+            `Lock ${lockKey} is still active (age: ${Math.floor(lockAge / 60000)} minutes)`
+          );
           throw new Error('Another sync process is already running');
         }
-        console.log(`Taking over stale lock ${lockKey} (age: ${Math.floor(lockAge / 60000)} minutes)`);
+        console.log(
+          `Taking over stale lock ${lockKey} (age: ${Math.floor(lockAge / 60000)} minutes)`
+        );
       }
 
       // Acquire or update lock
@@ -199,7 +203,6 @@ export class WebhookProcessorFixed {
 
       // Generate final report
       await this.generateReport();
-
     } catch (error) {
       console.error('[FIXED] Webhook processing failed:', error);
       await slackService.sendError('Webhook processing failed', error as Error);
@@ -247,11 +250,14 @@ export class WebhookProcessorFixed {
               const shipDirs = await conn.client.list(linePath);
 
               if (shipDirs.length > 0) {
-                console.log(`[FIXED] Found ${shipDirs.length} ships for line ${lineId} in ${year}/${monthStr}`);
+                console.log(
+                  `[FIXED] Found ${shipDirs.length} ships for line ${lineId} in ${year}/${monthStr}`
+                );
               }
 
               for (const shipDir of shipDirs) {
-                if (shipDir.type === 2) { // Directory
+                if (shipDir.type === 2) {
+                  // Directory
                   const shipPath = `${linePath}/${shipDir.name}`;
                   const cruiseFiles = await conn.client.list(shipPath);
 
@@ -359,9 +365,14 @@ export class WebhookProcessorFixed {
       console.log(`[FIXED] Processing ${file.path}`);
 
       // Download and parse the JSON file
-      const buffer = await conn.client.get(file.path);
-      const content = buffer.toString('utf8');
+      const tempFile = `/tmp/webhook-fixed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.json`;
+      await conn.client.downloadTo(tempFile, file.path);
+      const fs = await import('fs');
+      const content = await fs.promises.readFile(tempFile, 'utf-8');
       const cruiseData = JSON.parse(content);
+
+      // Clean up temp file
+      await fs.promises.unlink(tempFile).catch(() => {});
 
       // Process the cruise data
       await this.updateCruise(cruiseData);
