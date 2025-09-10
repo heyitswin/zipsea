@@ -85,6 +85,7 @@ router.post('/traveltek', async (req: Request, res: Response) => {
           WHERE id = $3
         `;
         await executeSQL(updateQuery, ['processed', new Date(), webhookEvent.id]);
+        console.log(`[TEST] Updated webhook ${webhookEvent.id} to processed`);
         console.log(`Updated webhook event ${webhookEvent.id} to processed`);
       } catch (error) {
         console.error(`Failed to process webhook event ${webhookEvent.id}:`, error);
@@ -242,8 +243,15 @@ router.post('/traveltek/test', async (req: Request, res: Response) => {
 
     // Process test webhook
     setImmediate(async () => {
+      console.log(
+        `[TEST] Starting async processing for webhook ${webhookEvent.id}, line ${lineId}`
+      );
       try {
-        await getWebhookProcessor().processWebhooks(lineId);
+        console.log(`[TEST] Getting webhook processor instance...`);
+        const processor = getWebhookProcessor();
+        console.log(`[TEST] Calling processWebhooks for line ${lineId}...`);
+        await processor.processWebhooks(lineId);
+        console.log(`[TEST] processWebhooks completed successfully`);
 
         const updateQuery = `
           UPDATE webhook_events
@@ -252,6 +260,7 @@ router.post('/traveltek/test', async (req: Request, res: Response) => {
         `;
         await executeSQL(updateQuery, ['processed', new Date(), webhookEvent.id]);
       } catch (error) {
+        console.error(`[TEST] Failed to process webhook ${webhookEvent.id}:`, error);
         logger.error('Failed to process test webhook:', error);
 
         const updateQuery = `
@@ -395,6 +404,52 @@ router.get('/traveltek/db-check', async (req: Request, res: Response) => {
  * Minimal test endpoint - just updates status
  * POST /api/webhooks/traveltek/minimal-test
  */
+// Direct processing test - bypasses all complex logic
+router.post('/traveltek/direct-test', async (req: Request, res: Response) => {
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL?.includes('render.com') ? { rejectUnauthorized: false } : false,
+  });
+
+  try {
+    await client.connect();
+
+    // Insert webhook event
+    const insertResult = await client.query(
+      'INSERT INTO webhook_events (line_id, webhook_type, status, metadata) VALUES ($1, $2, $3, $4) RETURNING *',
+      [22, 'direct_test', 'processing', JSON.stringify({ test: true, timestamp: new Date() })]
+    );
+
+    const webhookEvent = insertResult.rows[0];
+    console.log(`Created direct test webhook ${webhookEvent.id}`);
+
+    // Simulate some processing work
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Update to completed
+    await client.query(
+      'UPDATE webhook_events SET status = $1, processed_at = $2, error_message = $3 WHERE id = $4',
+      ['completed', new Date(), 'Direct test completed successfully', webhookEvent.id]
+    );
+
+    console.log(`Direct test webhook ${webhookEvent.id} completed`);
+
+    res.json({
+      success: true,
+      message: 'Direct test completed',
+      webhookId: webhookEvent.id,
+      status: 'completed',
+    });
+  } catch (error) {
+    console.error('Direct test error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Direct test failed',
+    });
+  } finally {
+    await client.end();
+  }
+});
+
 router.post('/traveltek/minimal-test', async (req: Request, res: Response) => {
   const client = new Client({
     connectionString: process.env.DATABASE_URL,
