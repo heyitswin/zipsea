@@ -13,6 +13,7 @@ import { WebhookProcessorFast } from '../services/webhook-processor-fast.service
 import { WebhookProcessorOptimizedV2 } from '../services/webhook-processor-optimized-v2.service';
 import { getWebhookProcessorSimple } from '../services/webhook-processor-simple.service';
 import { webhookBatchProcessor } from '../services/webhook-batch-processor.service';
+import { webhookProcessorProduction } from '../services/webhook-processor-production.service';
 import { Client } from 'pg';
 
 const router = Router();
@@ -1547,6 +1548,83 @@ router.get('/traveltek/simple-test', async (req: Request, res: Response) => {
     });
   } finally {
     await client.end();
+  }
+});
+
+// Test with production processor
+router.post('/traveltek/test-production', async (req: Request, res: Response) => {
+  const { lineId = 10 } = req.body;
+
+  try {
+    console.log(`[TEST-PRODUCTION] Testing production processor for line ${lineId}`);
+
+    const result = await webhookProcessorProduction.processWebhook(lineId);
+
+    res.json({
+      status: 'success',
+      message: 'Production processing initiated',
+      lineId,
+      ...result,
+    });
+  } catch (error) {
+    console.error('[TEST-PRODUCTION] Error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Get production processing status
+router.get('/traveltek/production-status/:lineId?', async (req: Request, res: Response) => {
+  const lineId = req.params.lineId ? parseInt(req.params.lineId) : undefined;
+
+  try {
+    const status = webhookProcessorProduction.getProcessingStatus(lineId);
+
+    res.json({
+      status: 'success',
+      processing: status,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[PRODUCTION-STATUS] Error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Test concurrent webhooks
+router.post('/traveltek/test-concurrent', async (req: Request, res: Response) => {
+  const { lineIds = [3, 5, 10] } = req.body;
+
+  try {
+    console.log(`[TEST-CONCURRENT] Testing concurrent processing for lines ${lineIds.join(', ')}`);
+
+    // Start processing for all lines
+    const promises = lineIds.map((lineId: number) =>
+      webhookProcessorProduction.processWebhook(lineId)
+    );
+
+    const results = await Promise.allSettled(promises);
+
+    res.json({
+      status: 'success',
+      message: `Started processing for ${lineIds.length} lines`,
+      results: results.map((r, i) => ({
+        lineId: lineIds[i],
+        status: r.status,
+        result: r.status === 'fulfilled' ? r.value : { error: r.reason?.message || 'Failed' },
+      })),
+    });
+  } catch (error) {
+    console.error('[TEST-CONCURRENT] Error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 });
 

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import logger from '../config/logger';
 import { WebhookProcessorOptimizedV2 } from '../services/webhook-processor-optimized-v2.service';
 import { webhookQueueProcessor } from '../services/webhook-queue.service';
+import { webhookProcessorProduction } from '../services/webhook-processor-production.service';
 import { db } from '../db/connection';
 import { webhookEvents } from '../db/schema/webhook-events';
 import { eq, sql } from 'drizzle-orm';
@@ -55,24 +56,23 @@ router.post('/traveltek', async (req: Request, res: Response) => {
     // Queue webhook for processing
     setImmediate(async () => {
       try {
-        // Use queue processor for better handling of large datasets
-        const result = await webhookQueueProcessor.processWebhook(lineId);
+        // Use production processor for better handling
+        const result = await webhookProcessorProduction.processWebhook(lineId);
 
-        // Update webhook status
+        // Update webhook status based on result
         await db
           .update(webhookEvents)
           .set({
-            status: 'processed',
+            status: result.status === 'queued' ? 'processing' : result.status,
             processedAt: new Date(),
             metadata: {
               ...payload,
-              jobIds: result.jobIds,
-              jobCount: result.jobIds.length,
+              result,
             },
           })
           .where(eq(webhookEvents.id, webhookEvent.id));
 
-        logger.info(`Webhook ${webhookEvent.id} queued with ${result.jobIds.length} jobs`);
+        logger.info(`Webhook ${webhookEvent.id} status: ${result.status}`);
       } catch (error) {
         logger.error('Failed to process webhook:', error);
 
