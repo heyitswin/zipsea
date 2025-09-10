@@ -1,7 +1,8 @@
 import * as ftp from 'basic-ftp';
 import { db } from '../db/connection';
 import { cruises } from '../db/schema/cruises';
-import { syncLocks } from '../db/schema/webhook-events';
+import { cheapestPricing } from '../db/schema';
+import { syncLocks, priceSnapshots } from '../db/schema/webhook-events';
 import { eq, and } from 'drizzle-orm';
 import logger from '../config/logger';
 import { Writable } from 'stream';
@@ -239,6 +240,9 @@ export class WebhookProcessorProduction {
       });
 
       try {
+        // Take a snapshot before processing
+        await this.takeSnapshot(lineId);
+
         // Discover ALL files (not just first 50)
         const allFiles = await this.discoverAllFiles(lineId);
         console.log(`[PRODUCTION] Found ${allFiles.length} total files for line ${lineId}`);
@@ -582,6 +586,79 @@ export class WebhookProcessorProduction {
 
   async cleanup(): Promise<void> {
     await ftpPool.closeAll();
+  }
+
+  private async takeSnapshot(lineId: number) {
+    try {
+      console.log(`[PRODUCTION] Taking price snapshot for line ${lineId}`);
+
+      // Take snapshots of cheapest pricing for all cruises in this line
+      const cruisesWithPricing = await db
+        .select({
+          cruiseId: cruises.id,
+          cheapestPrice: cheapestPricing.cheapestPrice,
+          interiorPrice: cheapestPricing.interiorPrice,
+          oceanviewPrice: cheapestPricing.oceanviewPrice,
+          balconyPrice: cheapestPricing.balconyPrice,
+          suitePrice: cheapestPricing.suitePrice,
+        })
+        .from(cruises)
+        .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
+        .where(eq(cruises.cruiseLineId, lineId))
+        .limit(1000);
+
+      let snapshotCount = 0;
+
+      // Create snapshots for each cruise with pricing
+      for (const cruise of cruisesWithPricing) {
+        if (cruise.cruiseId && cruise.cheapestPrice) {
+          try {
+            // Cast cruise ID to integer for the database
+            const cruiseIdInt = parseInt(cruise.cruiseId as string, 10);
+            if (isNaN(cruiseIdInt)) {
+              console.warn(
+                `[PRODUCTION] Skipping snapshot for non-numeric cruise ID: ${cruise.cruiseId}`
+              );
+              continue;
+            }
+
+            await db.insert(priceSnapshots).values({
+              cruiseId: cruiseIdInt,
+              snapshotType: 'before',
+              staticPrice: cruise.cheapestPrice,
+              cachedPrice: cruise.cheapestPrice,
+              cheapestCabinPrice: cruise.cheapestPrice,
+              metadata: {
+                // Store all granular cabin type pricing
+                interiorPrice: cruise.interiorPrice,
+                oceanviewPrice: cruise.oceanviewPrice,
+                balconyPrice: cruise.balconyPrice,
+                suitePrice: cruise.suitePrice,
+                // Also store the cheapest overall
+                cheapestPrice: cruise.cheapestPrice,
+                // Meta information
+                timestamp: new Date().toISOString(),
+                lineId: lineId,
+                source: 'webhook_processor_production',
+              },
+              snapshotDate: new Date(),
+              priceChangeDetected: false,
+            });
+            snapshotCount++;
+          } catch (error) {
+            console.error(
+              `[PRODUCTION] Failed to create snapshot for cruise ${cruise.cruiseId}:`,
+              error
+            );
+          }
+        }
+      }
+
+      console.log(`[PRODUCTION] Created ${snapshotCount} price snapshots for line ${lineId}`);
+    } catch (error) {
+      console.error(`[PRODUCTION] Failed to take snapshots for line ${lineId}:`, error);
+      // Don't throw - snapshots are not critical to webhook processing
+    }
   }
 }
 
