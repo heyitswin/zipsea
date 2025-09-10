@@ -289,6 +289,20 @@ export class CruiseDataProcessor {
     // Process detailed cabin pricing from Traveltek structure
     const pricingData = cruiseData.prices || {};
 
+    // Log pricing data structure
+    const pricingKeys = Object.keys(pricingData);
+    console.log(
+      `[PROCESSOR-PRICING] Processing pricing for cruise ${cruiseId}, found ${pricingKeys.length} rate codes`
+    );
+
+    if (pricingKeys.length === 0) {
+      console.log(`[PROCESSOR-PRICING] No pricing data found for cruise ${cruiseId}`);
+      return;
+    }
+
+    let pricingRecordsInserted = 0;
+    let pricingRecordsSkipped = 0;
+
     // Process each rate code
     for (const rateCode in pricingData) {
       const cabins = pricingData[rateCode];
@@ -298,7 +312,10 @@ export class CruiseDataProcessor {
         const cabinData = cabins[cabinCode];
 
         // Skip if no price data
-        if (!cabinData.price && !cabinData.adultprice) continue;
+        if (!cabinData.price && !cabinData.adultprice) {
+          pricingRecordsSkipped++;
+          continue;
+        }
 
         // Map cabin type to standard categories
         const cabinType = (cabinData.cabintype || '').toLowerCase();
@@ -340,11 +357,19 @@ export class CruiseDataProcessor {
 
         try {
           await tx.insert(pricing).values(pricingRecord);
+          pricingRecordsInserted++;
         } catch (error) {
-          console.error(`[PROCESSOR] Failed to insert pricing for cabin ${cabinCode}:`, error);
+          console.error(
+            `[PROCESSOR-PRICING] Failed to insert pricing for cabin ${cabinCode}:`,
+            error
+          );
         }
       }
     }
+
+    console.log(
+      `[PROCESSOR-PRICING] Inserted ${pricingRecordsInserted} pricing records, skipped ${pricingRecordsSkipped} for cruise ${cruiseId}`
+    );
 
     // Also update cheapest_pricing table with combined data
     const cheapest = cruiseData.cheapest?.combined || cruiseData.cheapest?.prices || {};

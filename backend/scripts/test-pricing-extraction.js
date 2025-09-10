@@ -1,169 +1,98 @@
-#!/usr/bin/env node
+require('dotenv').config({ path: ['.env.local', '.env'] });
 
-const { Client } = require('pg');
-const { drizzle } = require('drizzle-orm/node-postgres');
-const { sql } = require('drizzle-orm');
-require('dotenv').config();
-
-const client = new Client({
-  connectionString: process.env.DATABASE_URL || process.env.DATABASE_URL_PRODUCTION,
-  ssl: process.env.NODE_ENV === 'production' || process.env.DATABASE_URL?.includes('render.com')
-    ? { rejectUnauthorized: false }
-    : false,
-});
-
-const db = drizzle(client);
+const { getCruiseDataProcessor } = require('../dist/services/cruise-data-processor.service');
+const { ftpConnectionPool } = require('../dist/services/ftp-connection-pool.service');
+const { db } = require('../dist/db');
+const { pricing, cheapestPricing } = require('../dist/db/schema');
+const { eq, count } = require('drizzle-orm');
 
 async function testPricingExtraction() {
+  console.log('='.repeat(60));
+  console.log('Testing Pricing Extraction');
+  console.log('='.repeat(60));
+
+  const processor = getCruiseDataProcessor();
+  const conn = await ftpConnectionPool.getConnection();
+
   try {
-    await client.connect();
+    // Use a cruise that has pricing data
+    const testFile = '/2025/10/10/54/2092636.json';
+    console.log(`\n📥 Downloading ${testFile}...`);
 
-    // Get a cruise with raw_data
-    const testCruise = await client.query(
-      "SELECT id, raw_data FROM cruises WHERE id = '2111828'"
-    );
+    const fs = require('fs');
+    const tempFile = '/tmp/test-pricing-cruise.json';
+    await conn.client.downloadTo(tempFile, testFile);
 
-    if (testCruise.rows.length === 0) {
-      console.log('Test cruise not found');
-      return;
-    }
+    const cruiseData = JSON.parse(fs.readFileSync(tempFile, 'utf-8'));
+    console.log('\n📋 Cruise Data:');
+    console.log(`  ID: ${cruiseData.codetocruiseid}`);
+    console.log(`  Name: ${cruiseData.name}`);
 
-    const cruiseId = testCruise.rows[0].id;
-    const rawData = testCruise.rows[0].raw_data;
+    // Check current pricing records for this cruise
+    const cruiseId = cruiseData.codetocruiseid;
+    const beforeCount = await db
+      .select({ count: count() })
+      .from(pricing)
+      .where(eq(pricing.cruiseId, cruiseId));
 
-    console.log(`Testing pricing extraction for cruise ${cruiseId}`);
-    console.log('Raw data has prices:', !!rawData.prices);
+    console.log(`\n📊 Before Processing:`);
+    console.log(`  Pricing records: ${beforeCount[0].count}`);
 
-    // Try to extract pricing like the webhook does
-    if (rawData.prices && typeof rawData.prices === 'object') {
-      const pricingRecords = [];
-      let count = 0;
-      let errors = [];
+    // Process the cruise
+    console.log('\n⚙️  Processing cruise data...');
+    const result = await processor.processCruiseData(cruiseData);
 
-      for (const [rateCode, cabins] of Object.entries(rawData.prices)) {
-        if (typeof cabins !== 'object') continue;
+    if (result.success) {
+      console.log(`\n✅ Processing completed!`);
 
-        for (const [cabinCode, occupancies] of Object.entries(cabins)) {
-          if (typeof occupancies !== 'object') continue;
+      // Check pricing records after processing
+      const afterCount = await db
+        .select({ count: count() })
+        .from(pricing)
+        .where(eq(pricing.cruiseId, cruiseId));
 
-          for (const [occupancyCode, pricingData] of Object.entries(occupancies)) {
-            if (typeof pricingData !== 'object') continue;
+      console.log(`\n📊 After Processing:`);
+      console.log(`  Pricing records: ${afterCount[0].count}`);
 
-            const pricing = pricingData;
-            if (!pricing.price && !pricing.adultprice) continue;
+      // Get sample pricing records
+      const samplePricing = await db
+        .select()
+        .from(pricing)
+        .where(eq(pricing.cruiseId, cruiseId))
+        .limit(3);
 
-            count++;
+      console.log('\n📋 Sample Pricing Records:');
+      samplePricing.forEach((p, i) => {
+        console.log(`\n  Record ${i + 1}:`);
+        console.log(`    Rate Code: ${p.rateCode}`);
+        console.log(`    Cabin Code: ${p.cabinCode}`);
+        console.log(`    Cabin Type: ${p.cabinType}`);
+        console.log(`    Base Price: ${p.currency} ${p.basePrice}`);
+        console.log(`    Adult Price: ${p.adultPrice}`);
+        console.log(`    Taxes: ${p.taxes}`);
+      });
 
-            // Build the record exactly as webhook does
-            const record = {
-              cruiseId,
-              rateCode: rateCode.substring(0, 50),
-              cabinCode: cabinCode.substring(0, 10),
-              occupancyCode: occupancyCode.substring(0, 10),
-              cabinType: pricing.cabintype || null,
-              basePrice: parseDecimal(pricing.price),
-              adultPrice: parseDecimal(pricing.adultprice),
-              childPrice: parseDecimal(pricing.childprice),
-              totalPrice: calculateTotalPrice(pricing),
-              isAvailable: pricing.available !== false,
-              currency: rawData.currency || 'USD',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            };
+      // Check cheapest pricing
+      const cheapest = await db
+        .select()
+        .from(cheapestPricing)
+        .where(eq(cheapestPricing.cruiseId, cruiseId))
+        .limit(1);
 
-            pricingRecords.push(record);
-
-            // Show first few records
-            if (count <= 3) {
-              console.log(`\nSample record ${count}:`);
-              console.log(`  Rate: ${record.rateCode}`);
-              console.log(`  Cabin: ${record.cabinCode}`);
-              console.log(`  Occupancy: ${record.occupancyCode}`);
-              console.log(`  Type: ${record.cabinType}`);
-              console.log(`  Base Price: ${record.basePrice}`);
-              console.log(`  Total Price: ${record.totalPrice}`);
-            }
-          }
-        }
+      if (cheapest.length > 0) {
+        console.log('\n💰 Cheapest Pricing:');
+        console.log(`  Price: ${cheapest[0].currency} ${cheapest[0].price}`);
+        console.log(`  Price Code: ${cheapest[0].priceCode}`);
       }
-
-      console.log(`\nTotal pricing records to insert: ${pricingRecords.length}`);
-
-      if (pricingRecords.length > 0) {
-        // Try to insert just one record to test
-        const testRecord = pricingRecords[0];
-
-        console.log('\nTrying to insert test record...');
-
-        try {
-          // Use raw SQL to see exact error
-          await client.query(
-            `INSERT INTO pricing (
-              cruise_id, rate_code, cabin_code, occupancy_code,
-              cabin_type, base_price, adult_price, child_price,
-              total_price, is_available, currency, created_at, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
-            [
-              testRecord.cruiseId,
-              testRecord.rateCode,
-              testRecord.cabinCode,
-              testRecord.occupancyCode,
-              testRecord.cabinType,
-              testRecord.basePrice,
-              testRecord.adultPrice,
-              testRecord.childPrice,
-              testRecord.totalPrice,
-              testRecord.isAvailable,
-              testRecord.currency,
-              testRecord.createdAt,
-              testRecord.updatedAt
-            ]
-          );
-
-          console.log('✅ Test insert successful!');
-
-          // Check if it was actually inserted
-          const check = await client.query(
-            'SELECT COUNT(*) as count FROM pricing WHERE cruise_id = $1',
-            [cruiseId]
-          );
-          console.log(`Records in pricing table for this cruise: ${check.rows[0].count}`);
-
-        } catch (error) {
-          console.error('❌ Insert failed with error:');
-          console.error(error.message);
-          console.error('Error code:', error.code);
-          console.error('Error detail:', error.detail);
-        }
-      }
-
     } else {
-      console.log('No prices field in raw_data');
+      console.log(`\n❌ Processing failed: ${result.error}`);
     }
-
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error('❌ Error:', error);
   } finally {
-    await client.end();
+    ftpConnectionPool.releaseConnection(conn);
+    process.exit(0);
   }
 }
 
-function parseDecimal(value) {
-  if (value === null || value === undefined || value === '') return null;
-  const num = parseFloat(value);
-  return isNaN(num) ? null : num;
-}
-
-function calculateTotalPrice(pricing) {
-  const base = parseDecimal(pricing.price || pricing.adultprice) || 0;
-  const taxes = parseDecimal(pricing.taxes) || 0;
-  const ncf = parseDecimal(pricing.ncf) || 0;
-  const gratuity = parseDecimal(pricing.gratuity) || 0;
-  const fuel = parseDecimal(pricing.fuel) || 0;
-  const portCharges = parseDecimal(pricing.portcharges) || 0;
-  const governmentFees = parseDecimal(pricing.governmentfees) || 0;
-
-  return base + taxes + ncf + gratuity + fuel + portCharges + governmentFees;
-}
-
-testPricingExtraction().catch(console.error);
+testPricingExtraction();
