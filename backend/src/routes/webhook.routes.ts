@@ -26,14 +26,32 @@ function getWebhookProcessor(): WebhookProcessorOptimizedV2 {
 router.post('/traveltek', async (req: Request, res: Response) => {
   try {
     const payload = req.body;
-    const lineId = payload.lineid || payload.lineId || payload.line_id || null;
+    // Try to extract lineId from various possible fields, default to 0 if not found
+    const lineId =
+      payload.lineid ||
+      payload.lineId ||
+      payload.line_id ||
+      payload.LineId ||
+      payload.LineID ||
+      payload.cruiseLineId ||
+      payload.cruise_line_id ||
+      0; // Default to 0 if no lineId found
 
     // Log incoming webhook
     logger.info('📨 Webhook received', {
       event: payload.event,
       lineId: lineId,
       timestamp: new Date().toISOString(),
+      payloadKeys: Object.keys(payload), // Log payload keys to debug missing lineId
     });
+
+    // Warn if lineId was not found in payload
+    if (lineId === 0) {
+      logger.warn('⚠️ No lineId found in webhook payload, using default value 0', {
+        payloadKeys: Object.keys(payload),
+        payload: JSON.stringify(payload).substring(0, 500), // Log first 500 chars of payload
+      });
+    }
 
     // Store webhook event in database
     // Using raw SQL temporarily due to Drizzle caching issue
