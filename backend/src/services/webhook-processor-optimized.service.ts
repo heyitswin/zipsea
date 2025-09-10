@@ -316,12 +316,25 @@ export class WebhookProcessorOptimized {
         try {
           const data = JSON.parse(line);
 
-          if (data.cruise) {
+          // Traveltek sends the entire cruise data in one object
+          // Check if this is a Traveltek cruise object
+          if (data.codetocruiseid || data.cruise_id) {
+            await this.updateCruise(data);
+            cruisesProcessed++;
+
+            // Extract and update detailed pricing from the same object
+            if (data.prices) {
+              await this.updateDetailedPricing(data.codetocruiseid || data.cruise_id, data.prices);
+              pricesProcessed++;
+            }
+          } else if (data.cruise) {
+            // Legacy format support
             await this.updateCruise(data.cruise);
             cruisesProcessed++;
           }
 
           if (data.pricing) {
+            // Legacy format support
             await this.updatePricing(data.pricing);
             pricesProcessed++;
           }
@@ -408,7 +421,111 @@ export class WebhookProcessorOptimized {
     }
   }
 
+  private async updateDetailedPricing(cruiseId: string, pricesData: any) {
+    // Process detailed cabin pricing from Traveltek structure
+    // pricesData format: { rateCode: { cabinCode: { price, taxes, etc } } }
+
+    let pricingRecordsInserted = 0;
+    let pricingRecordsUpdated = 0;
+
+    for (const rateCode in pricesData) {
+      const cabins = pricesData[rateCode];
+
+      for (const cabinCode in cabins) {
+        const cabinData = cabins[cabinCode];
+
+        // Skip if no price data
+        if (!cabinData.price && !cabinData.adultprice) continue;
+
+        // Determine cabin type based on cabin code or type
+        const cabinType = (cabinData.cabintype || cabinCode).toLowerCase();
+        let standardCabinType = 'unknown';
+
+        if (cabinType.includes('inside') || cabinType.includes('interior')) {
+          standardCabinType = 'interior';
+        } else if (cabinType.includes('outside') || cabinType.includes('ocean')) {
+          standardCabinType = 'oceanview';
+        } else if (cabinType.includes('balcony')) {
+          standardCabinType = 'balcony';
+        } else if (cabinType.includes('suite')) {
+          standardCabinType = 'suite';
+        }
+
+        const pricingRecord = {
+          cruiseId: cruiseId,
+          rateCode: rateCode,
+          cabinCode: cabinCode,
+          occupancyCode: '101', // Standard 2-adult occupancy
+          cabinType: standardCabinType,
+          basePrice: this.parsePrice(cabinData.price),
+          adultPrice: this.parsePrice(cabinData.adultprice),
+          childPrice: this.parsePrice(cabinData.childprice),
+          infantPrice: this.parsePrice(cabinData.infantprice),
+          singlePrice: this.parsePrice(cabinData.singleprice),
+          thirdAdultPrice: this.parsePrice(cabinData.thirdadultprice),
+          fourthAdultPrice: this.parsePrice(cabinData.fourthadultprice),
+          taxes: this.parsePrice(cabinData.taxes),
+          ncf: this.parsePrice(cabinData.ncf),
+          gratuity: this.parsePrice(cabinData.gratuity),
+          fuel: this.parsePrice(cabinData.fuel),
+          nonComm: this.parsePrice(cabinData.noncomm),
+          totalPrice: this.parsePrice(cabinData.price) + this.parsePrice(cabinData.taxes),
+          isAvailable: true,
+          currency: 'USD',
+          updatedAt: new Date(),
+        };
+
+        try {
+          // Try to insert, if it exists then update
+          const existingPricing = await db
+            .select()
+            .from(pricing)
+            .where(
+              and(
+                eq(pricing.cruiseId, cruiseId),
+                eq(pricing.rateCode, rateCode),
+                eq(pricing.cabinCode, cabinCode)
+              )
+            )
+            .limit(1);
+
+          if (existingPricing.length > 0) {
+            await db
+              .update(pricing)
+              .set(pricingRecord)
+              .where(eq(pricing.id, existingPricing[0].id));
+            pricingRecordsUpdated++;
+          } else {
+            await db.insert(pricing).values(pricingRecord);
+            pricingRecordsInserted++;
+          }
+        } catch (error) {
+          console.error(
+            `Failed to update pricing for ${cruiseId}/${rateCode}/${cabinCode}:`,
+            error
+          );
+        }
+      }
+    }
+
+    if (pricingRecordsInserted > 0 || pricingRecordsUpdated > 0) {
+      console.log(
+        `[PRICING] Cruise ${cruiseId}: inserted ${pricingRecordsInserted}, updated ${pricingRecordsUpdated} pricing records`
+      );
+    }
+  }
+
+  private parsePrice(value: any): number {
+    if (!value) return 0;
+    if (typeof value === 'number') return value;
+    if (typeof value === 'string') {
+      return parseFloat(value.replace(/[^0-9.-]/g, '')) || 0;
+    }
+    return 0;
+  }
+
   private async updatePricing(pricingData: any) {
+    // Legacy pricing update method
     // Update pricing
     const existingPricing = await db
       .select()
