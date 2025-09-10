@@ -144,26 +144,15 @@ export async function searchCruises(
   params: CruiseSearchParams,
 ): Promise<Cruise[]> {
   try {
-    const url = new URL(`${API_BASE_URL}/cruises`);
+    // Use the working search/by-ship endpoint
+    const url = new URL(`${API_BASE_URL}/search/by-ship`);
 
-    // Add search parameters
-    if (params.shipId) {
-      url.searchParams.set("shipId", params.shipId.toString());
-    }
+    // Add search parameters - the by-ship endpoint expects shipName and departureDate
     if (params.shipName) {
       url.searchParams.set("shipName", params.shipName);
     }
     if (params.departureDate) {
       url.searchParams.set("departureDate", params.departureDate);
-    }
-    if (params.duration) {
-      url.searchParams.set("duration", params.duration.toString());
-    }
-    if (params.limit) {
-      url.searchParams.set("limit", params.limit.toString());
-    }
-    if (params.offset) {
-      url.searchParams.set("offset", params.offset.toString());
     }
 
     const response = await fetch(url.toString(), {
@@ -176,14 +165,14 @@ export async function searchCruises(
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    const result: ApiResponse<CruisesResponse> = await response.json();
+    const result = await response.json();
 
     if (!result.success) {
       throw new Error(result.error?.message || "Failed to search cruises");
     }
 
-    // Normalize the API response using our helper function
-    const normalizedCruises = result.data.cruises.map((cruise: any) => {
+    // The by-ship endpoint returns results directly, not data.cruises
+    const normalizedCruises = (result.results || []).map((cruise: any) => {
       const normalized = normalizeCruiseData(cruise);
 
       // Additional legacy field mappings for search results
