@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import logger from '../config/logger';
 import { WebhookProcessorOptimizedV2 } from '../services/webhook-processor-optimized-v2.service';
+import { webhookQueueProcessor } from '../services/webhook-queue.service';
 import { db } from '../db/connection';
 import { webhookEvents } from '../db/schema/webhook-events';
 import { eq, sql } from 'drizzle-orm';
@@ -51,10 +52,11 @@ router.post('/traveltek', async (req: Request, res: Response) => {
       timestamp: new Date().toISOString(),
     });
 
-    // Process webhook asynchronously
+    // Queue webhook for processing
     setImmediate(async () => {
       try {
-        await getWebhookProcessor().processWebhooks(lineId);
+        // Use queue processor for better handling of large datasets
+        const result = await webhookQueueProcessor.processWebhook(lineId);
 
         // Update webhook status
         await db
@@ -62,8 +64,15 @@ router.post('/traveltek', async (req: Request, res: Response) => {
           .set({
             status: 'processed',
             processedAt: new Date(),
+            metadata: {
+              ...payload,
+              jobIds: result.jobIds,
+              jobCount: result.jobIds.length,
+            },
           })
           .where(eq(webhookEvents.id, webhookEvent.id));
+
+        logger.info(`Webhook ${webhookEvent.id} queued with ${result.jobIds.length} jobs`);
       } catch (error) {
         logger.error('Failed to process webhook:', error);
 
@@ -87,6 +96,77 @@ router.post('/traveltek', async (req: Request, res: Response) => {
         message: 'Webhook received but initial processing failed',
       });
     }
+  }
+});
+
+/**
+ * Test webhook with queue - for testing queue-based processing
+ * POST /api/webhooks/traveltek/test-queue
+ */
+router.post('/traveltek/test-queue', async (req: Request, res: Response) => {
+  try {
+    const { lineId = 22 } = req.body;
+
+    logger.info('📨 Test webhook with queue triggered', {
+      lineId: lineId,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Store test webhook event
+    const result = await pgSql`
+      INSERT INTO webhook_events (line_id, webhook_type, status, metadata)
+      VALUES (${lineId}, 'test_queue', 'processing', ${JSON.stringify({ test: true, lineId, queue: true })})
+      RETURNING *
+    `;
+    const webhookEvent = result[0];
+
+    // Queue for processing
+    try {
+      const queueResult = await webhookQueueProcessor.processWebhook(lineId);
+
+      // Update webhook with job info
+      await db
+        .update(webhookEvents)
+        .set({
+          status: 'queued',
+          metadata: {
+            test: true,
+            lineId,
+            queue: true,
+            jobIds: queueResult.jobIds,
+            jobCount: queueResult.jobIds.length,
+          },
+        })
+        .where(eq(webhookEvents.id, webhookEvent.id));
+
+      res.json({
+        status: 'success',
+        message: `Queued ${queueResult.jobIds.length} jobs for processing`,
+        eventId: webhookEvent.id,
+        lineId: lineId,
+        jobCount: queueResult.jobIds.length,
+        jobIds: queueResult.jobIds,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      // Update status to failed
+      await db
+        .update(webhookEvents)
+        .set({
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        })
+        .where(eq(webhookEvents.id, webhookEvent.id));
+
+      throw error;
+    }
+  } catch (error) {
+    logger.error('Test webhook with queue failed:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Test webhook failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 });
 
@@ -201,6 +281,48 @@ router.get('/health', async (req: Request, res: Response) => {
     message: 'Webhook endpoint is operational',
     timestamp: new Date().toISOString(),
   });
+});
+
+/**
+ * Get queue status
+ * GET /api/webhooks/traveltek/queue-status
+ */
+router.get('/traveltek/queue-status', async (req: Request, res: Response) => {
+  try {
+    const status = await webhookQueueProcessor.getQueueStatus();
+    res.json({
+      status: 'success',
+      queue: status,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Failed to get queue status:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to retrieve queue status',
+    });
+  }
+});
+
+/**
+ * Clear queue (admin only)
+ * POST /api/webhooks/traveltek/clear-queue
+ */
+router.post('/traveltek/clear-queue', async (req: Request, res: Response) => {
+  try {
+    await webhookQueueProcessor.clearQueue();
+    res.json({
+      status: 'success',
+      message: 'Queue cleared successfully',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Failed to clear queue:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to clear queue',
+    });
+  }
 });
 
 /**
