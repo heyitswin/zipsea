@@ -3,6 +3,7 @@ import { apiConfig } from '../config/environment';
 import healthRoutes from './health.routes';
 // Fixed Drizzle issue - using optimized webhook routes
 import webhookRoutes from './webhook.routes';
+import webhookPricingRoutes from './webhook-pricing.routes';
 import searchRoutes from './search.routes';
 import searchOptimizedRoutes from './search-optimized.routes';
 import cruiseRoutes from './cruise.routes';
@@ -35,6 +36,7 @@ router.use(`${apiConfig.prefix}/${apiConfig.version}`, apiRouter);
 
 // Webhook routes (outside API versioning)
 apiRouter.use('/webhooks', webhookRoutes);
+apiRouter.use('/webhooks-pricing', webhookPricingRoutes);
 
 // Admin routes (for debugging and management)
 apiRouter.use('/admin', adminRoutes);
