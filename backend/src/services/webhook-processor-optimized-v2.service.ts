@@ -403,8 +403,17 @@ export class WebhookProcessorOptimizedV2 {
       for (const cruise of cruisesWithPricing) {
         if (cruise.cruiseId && cruise.cheapestPrice) {
           try {
+            // Cast cruise ID to integer for the database
+            const cruiseIdInt = parseInt(cruise.cruiseId as string, 10);
+            if (isNaN(cruiseIdInt)) {
+              console.warn(
+                `[OPTIMIZED-V2] Skipping snapshot for non-numeric cruise ID: ${cruise.cruiseId}`
+              );
+              continue;
+            }
+
             await db.insert(priceSnapshots).values({
-              cruiseId: cruise.cruiseId,
+              cruiseId: cruiseIdInt,
               snapshotData: {
                 cheapestPrice: cruise.cheapestPrice,
                 interiorPrice: cruise.interiorPrice,
