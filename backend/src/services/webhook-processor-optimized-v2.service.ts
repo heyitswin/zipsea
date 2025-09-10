@@ -20,8 +20,6 @@ export class WebhookProcessorOptimizedV2 {
   private static poolInitialized = false;
   private static MAX_CONNECTIONS = 3;
   private static KEEP_ALIVE_INTERVAL = 30000;
-  private static MAX_MONTHS_AHEAD = parseInt(process.env.WEBHOOK_MAX_MONTHS_AHEAD || '6'); // Default to 6 months
-  private static FORCE_FULL_SYNC = process.env.WEBHOOK_FORCE_FULL_SYNC === 'true';
 
   // BullMQ configuration
   private static webhookQueue: Queue | null = null;
@@ -261,9 +259,6 @@ export class WebhookProcessorOptimizedV2 {
 
       // Log configuration and summary
       console.log(`[OPTIMIZED-V2] Found ${files.length} files to process`);
-      console.log(
-        `[OPTIMIZED-V2] Settings: MAX_MONTHS_AHEAD=${WebhookProcessorOptimizedV2.MAX_MONTHS_AHEAD}, FORCE_FULL_SYNC=${WebhookProcessorOptimizedV2.FORCE_FULL_SYNC}`
-      );
 
       // Show file distribution by month for better visibility
       const fileSummary: Record<string, number> = {};
@@ -358,32 +353,14 @@ export class WebhookProcessorOptimizedV2 {
         availableYears.push(currentYear, currentYear + 1);
       }
 
-      // Calculate date limits based on configuration
-      const maxDate = new Date();
-      if (!WebhookProcessorOptimizedV2.FORCE_FULL_SYNC) {
-        maxDate.setMonth(maxDate.getMonth() + WebhookProcessorOptimizedV2.MAX_MONTHS_AHEAD);
-      } else {
-        maxDate.setFullYear(maxDate.getFullYear() + 10); // Effectively no limit
-      }
-      const maxYear = maxDate.getFullYear();
-      const maxMonth = maxDate.getMonth() + 1;
-
       console.log(
-        `[OPTIMIZED-V2] Scanning years: ${availableYears.join(', ')} (limit: ${maxYear}-${maxMonth.toString().padStart(2, '0')})`
+        `[OPTIMIZED-V2] Scanning years: ${availableYears.join(', ')} (ALL available data)`
       );
 
       // For each available year, scan all months from current month onwards
       for (const year of availableYears) {
-        // Skip years beyond our limit
-        if (year > maxYear) {
-          console.log(
-            `[OPTIMIZED-V2] Skipping year ${year} (beyond ${WebhookProcessorOptimizedV2.MAX_MONTHS_AHEAD} months limit)`
-          );
-          continue;
-        }
-
         const startMonth = year === currentYear ? currentMonth : 1;
-        const endMonth = year === maxYear ? Math.min(12, maxMonth) : 12;
+        const endMonth = 12;
 
         for (let month = startMonth; month <= endMonth; month++) {
           const monthStr = month.toString().padStart(2, '0');

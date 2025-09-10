@@ -57,6 +57,12 @@
   3. Individual `cheapestinside`, `cheapestoutside`, etc.
   4. Fallback to `prices`/`cachedprices` nested structure
 
+### 6. ✅ Performance Optimization - ADDED
+- **Full Data Scanning**: Scans ALL available months on FTP (2025-2027)
+- **Progress Logging**: Shows processing rate (files/minute) and batch progress
+- **File Distribution**: Logs file counts by year/month for visibility
+- **Efficient Batching**: Processes files in batches of 50 with queue system
+
 ## Database Schema Issues
 
 ### price_snapshots table
