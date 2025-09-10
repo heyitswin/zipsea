@@ -793,7 +793,7 @@ router.post('/traveltek/test-discovery-only', async (req: Request, res: Response
   try {
     console.log(`[DISCOVERY-ONLY] Testing file discovery for line ${lineId}`);
 
-    const processor = getWebhookProcessorFixed();
+    const processor = new WebhookProcessorFixed();
 
     // Temporarily expose discovery method for testing
     const discoveryResult = await (processor as any).discoverFiles(lineId);
