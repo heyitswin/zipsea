@@ -133,28 +133,40 @@ export class WebhookProcessorSimple {
       }
 
       // Process files with controlled concurrency (no queue)
-      const filesToProcess = files.slice(0, 100); // Process max 100 files at a time
+      const filesToProcess = files.slice(0, 20); // Process max 20 files for testing
       console.log(`[SIMPLE] Processing ${filesToProcess.length} files with concurrency of 3`);
 
       // Process in batches of 3 for controlled concurrency
       const batchSize = 3;
       for (let i = 0; i < filesToProcess.length; i += batchSize) {
         const batch = filesToProcess.slice(i, i + batchSize);
+        const batchNum = Math.floor(i / batchSize) + 1;
+        const totalBatches = Math.ceil(filesToProcess.length / batchSize);
+
         console.log(
-          `[SIMPLE] Processing batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(filesToProcess.length / batchSize)}`
+          `[SIMPLE] Starting batch ${batchNum} of ${totalBatches} (files ${i + 1}-${Math.min(i + batchSize, filesToProcess.length)})`
         );
 
+        const batchStart = Date.now();
         await Promise.all(
           batch.map(async file => {
+            const fileStart = Date.now();
             try {
+              console.log(`[SIMPLE] Starting file: ${file.path}`);
               await this.processFile(file);
               this.stats.filesProcessed++;
+              console.log(`[SIMPLE] Completed file: ${file.path} (${Date.now() - fileStart}ms)`);
             } catch (error) {
-              console.error(`[SIMPLE] Failed to process ${file.path}:`, error);
+              console.error(
+                `[SIMPLE] Failed to process ${file.path} after ${Date.now() - fileStart}ms:`,
+                error
+              );
               this.stats.filesFailed++;
             }
           })
         );
+
+        console.log(`[SIMPLE] Batch ${batchNum} completed in ${Date.now() - batchStart}ms`);
 
         // Progress update every 10 files
         if ((i + batchSize) % 10 === 0 || i + batchSize >= filesToProcess.length) {
@@ -321,8 +333,6 @@ export class WebhookProcessorSimple {
     const conn = await ftpConnectionPool.getConnection();
 
     try {
-      console.log(`[SIMPLE] Processing ${file.path}`);
-
       // Download and parse the JSON file
       const tempFile = `/tmp/webhook-simple-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.json`;
       await conn.client.downloadTo(tempFile, file.path);

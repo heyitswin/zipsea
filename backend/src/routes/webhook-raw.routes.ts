@@ -737,7 +737,7 @@ router.post('/traveltek/test-fixed', async (req: Request, res: Response) => {
       const processor = getWebhookProcessorFixed();
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Processing timeout after 60 seconds')), 60000)
+        setTimeout(() => reject(new Error('Processing timeout after 180 seconds')), 180000)
       );
 
       await Promise.race([processor.processWebhooks(lineId), timeoutPromise]);
@@ -906,7 +906,7 @@ router.post('/traveltek/test-simple', async (req: Request, res: Response) => {
       const processor = getWebhookProcessorSimple();
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Processing timeout after 60 seconds')), 60000)
+        setTimeout(() => reject(new Error('Processing timeout after 180 seconds')), 180000)
       );
 
       await Promise.race([processor.processWebhooks(lineId), timeoutPromise]);
