@@ -25,7 +25,7 @@ function getWebhookProcessor(): WebhookProcessorOptimized {
 router.post('/traveltek', async (req: Request, res: Response) => {
   try {
     const payload = req.body;
-    const lineId = payload.lineid || payload.lineId;
+    const lineId = payload.lineid || payload.lineId || payload.line_id || null;
 
     // Log incoming webhook
     logger.info('📨 Webhook received', {
