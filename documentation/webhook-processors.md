@@ -22,19 +22,6 @@
 11. webhook-processor-simple-ftp.service.ts - UNUSED
 12. webhook-processor-simple.service.ts - UNUSED
 
-## Environment Variables
-
-### Webhook Processing Optimization
-- **`WEBHOOK_MAX_MONTHS_AHEAD`** (default: 6)
-  - Limits FTP scanning to X months from current date
-  - Reduces processing time by skipping far-future data
-  - Example: `WEBHOOK_MAX_MONTHS_AHEAD=3` scans only 3 months ahead
-  
-- **`WEBHOOK_FORCE_FULL_SYNC`** (default: false)
-  - Set to `true` to scan all available data (2025-2027)
-  - Useful for initial sync or data recovery
-  - Example: `WEBHOOK_FORCE_FULL_SYNC=true`
-
 ## Fixed Issues (2025-09-10)
 
 ### 1. ✅ Month Scanning - FIXED
@@ -71,10 +58,10 @@
   4. Fallback to `prices`/`cachedprices` nested structure
 
 ### 6. ✅ Performance Optimization - ADDED
-- **Date Range Filtering**: Limits scanning to configurable months ahead
+- **Full Data Scanning**: Scans ALL available months on FTP (2025-2027)
 - **Progress Logging**: Shows processing rate (files/minute) and batch progress
 - **File Distribution**: Logs file counts by year/month for visibility
-- **Configurable Sync**: Can limit to 6 months or force full sync as needed
+- **Efficient Batching**: Processes files in batches of 50 with queue system
 
 ## Database Schema Issues
 
