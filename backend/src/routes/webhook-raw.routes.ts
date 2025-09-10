@@ -920,6 +920,140 @@ router.post('/traveltek/test-simple', async (req: Request, res: Response) => {
   }
 });
 
+// Minimal test - just discover files, no processing
+router.post('/traveltek/test-minimal', async (req: Request, res: Response) => {
+  const { lineId = 22 } = req.body;
+
+  try {
+    console.log(`[MINIMAL-TEST] Starting minimal test for line ${lineId}`);
+    const startTime = Date.now();
+
+    // Step 1: Try to discover files
+    console.log(`[MINIMAL-TEST] Step 1: Discovering files...`);
+    const processor = getWebhookProcessorSimple();
+
+    let files;
+    try {
+      files = await processor.discoverFiles(lineId);
+      console.log(
+        `[MINIMAL-TEST] Discovery completed in ${Date.now() - startTime}ms, found ${files.length} files`
+      );
+    } catch (error) {
+      console.error(`[MINIMAL-TEST] Discovery failed after ${Date.now() - startTime}ms:`, error);
+      return res.json({
+        status: 'error',
+        message: 'File discovery failed',
+        duration: `${Date.now() - startTime}ms`,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+
+    // Step 2: Try to process just 1 file
+    if (files.length > 0) {
+      console.log(`[MINIMAL-TEST] Step 2: Processing first file...`);
+      const processStart = Date.now();
+
+      try {
+        await processor.processFile(files[0]);
+        console.log(`[MINIMAL-TEST] File processed in ${Date.now() - processStart}ms`);
+
+        res.json({
+          status: 'success',
+          message: 'Minimal test completed',
+          lineId,
+          filesDiscovered: files.length,
+          firstFileProcessed: files[0].path,
+          discoveryTime: `${processStart - startTime}ms`,
+          processingTime: `${Date.now() - processStart}ms`,
+          totalTime: `${Date.now() - startTime}ms`,
+        });
+      } catch (error) {
+        console.error(
+          `[MINIMAL-TEST] Processing failed after ${Date.now() - processStart}ms:`,
+          error
+        );
+        res.json({
+          status: 'partial',
+          message: 'Discovery succeeded but processing failed',
+          lineId,
+          filesDiscovered: files.length,
+          discoveryTime: `${processStart - startTime}ms`,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    } else {
+      res.json({
+        status: 'success',
+        message: 'No files found',
+        lineId,
+        filesDiscovered: 0,
+        totalTime: `${Date.now() - startTime}ms`,
+      });
+    }
+  } catch (error) {
+    console.error('[MINIMAL-TEST] Unexpected error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Minimal test failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Test without locks - skip lock management entirely
+router.post('/traveltek/test-no-locks', async (req: Request, res: Response) => {
+  const { lineId = 22 } = req.body;
+
+  try {
+    console.log(`[NO-LOCKS-TEST] Starting test without locks for line ${lineId}`);
+    const startTime = Date.now();
+
+    // Get processor
+    const processor = getWebhookProcessorSimple();
+
+    // Discover files
+    console.log(`[NO-LOCKS-TEST] Discovering files...`);
+    const files = await processor.discoverFiles(lineId);
+    console.log(`[NO-LOCKS-TEST] Found ${files.length} files in ${Date.now() - startTime}ms`);
+
+    // Process up to 5 files
+    const filesToProcess = files.slice(0, 5);
+    console.log(`[NO-LOCKS-TEST] Processing ${filesToProcess.length} files...`);
+
+    let processed = 0;
+    let failed = 0;
+
+    for (const file of filesToProcess) {
+      try {
+        const fileStart = Date.now();
+        await processor.processFile(file);
+        processed++;
+        console.log(`[NO-LOCKS-TEST] Processed ${file.path} in ${Date.now() - fileStart}ms`);
+      } catch (error) {
+        failed++;
+        console.error(`[NO-LOCKS-TEST] Failed to process ${file.path}:`, error);
+      }
+    }
+
+    res.json({
+      status: 'success',
+      message: 'Test without locks completed',
+      lineId,
+      filesDiscovered: files.length,
+      filesProcessed: processed,
+      filesFailed: failed,
+      totalTime: `${Date.now() - startTime}ms`,
+    });
+  } catch (error) {
+    console.error('[NO-LOCKS-TEST] Error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Test without locks failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 // Test webhook synchronously - waits for processing to complete
 router.post('/traveltek/test-sync', async (req: Request, res: Response) => {
   try {
