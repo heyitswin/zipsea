@@ -13,7 +13,7 @@ const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 async function stopWebhookQueue() {
   console.log('🛑 Stopping Webhook Queue Processing');
-  console.log('=' .repeat(50));
+  console.log('='.repeat(50));
 
   const redis = new Redis(REDIS_URL, {
     maxRetriesPerRequest: null,
@@ -69,10 +69,31 @@ async function stopWebhookQueue() {
         const forceStop = process.argv.includes('--force');
         if (forceStop) {
           console.log('\n🔴 Force stopping active jobs...');
+          let stoppedCount = 0;
           for (const job of activeJobs) {
-            await job.moveToFailed(new Error('Force stopped by admin'), false);
+            try {
+              // Try to remove the job directly
+              await job.remove();
+              stoppedCount++;
+            } catch (error) {
+              // If remove fails, try to fail it
+              try {
+                await job.moveToFailed(new Error('Force stopped by admin'), false);
+                stoppedCount++;
+              } catch (moveError) {
+                console.log(`   ⚠️  Could not stop job ${job.id} - it may be locked by worker`);
+              }
+            }
           }
-          console.log('✅ Active jobs moved to failed');
+          if (stoppedCount > 0) {
+            console.log(`✅ Stopped ${stoppedCount} of ${activeJobs.length} active jobs`);
+          }
+          if (stoppedCount < activeJobs.length) {
+            console.log('\n⚠️  Some jobs could not be stopped because they are locked by workers');
+            console.log('   To fully stop all processing:');
+            console.log('   1. Kill the worker processes: pkill -f "node.*worker"');
+            console.log('   2. Or restart the backend service on Render');
+          }
         }
       }
 
@@ -86,7 +107,6 @@ async function stopWebhookQueue() {
 
       console.log('\n✅ Queue operations complete!');
       console.log('\n📝 To resume processing, use: node resume-webhook-queue.js');
-
     } else {
       console.log('\n✅ No active or waiting jobs to stop');
     }
@@ -100,7 +120,6 @@ async function stopWebhookQueue() {
     } else {
       console.log('✅ No locks to clear');
     }
-
   } catch (error) {
     console.error('❌ Error:', error);
   } finally {
