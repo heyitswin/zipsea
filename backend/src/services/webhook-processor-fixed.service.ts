@@ -188,24 +188,10 @@ export class WebhookProcessorFixed {
       });
 
       console.log('No files to process (FTP disabled)');
-      return;
 
-      // Add files to queue
-      const jobs = files.map(file => ({
-        name: `process-${path.basename(file.path)}`,
-        data: file,
-      }));
-
-      await this.fileQueue.addBulk(jobs);
-
-      // Start worker
-      await this.startWorker();
-
-      // Wait for completion
-      await this.waitForCompletion();
-
-      // Generate final report
+      // Generate report even with no files
       await this.generateReport();
+      return;
     } catch (error) {
       console.error('Webhook processing failed:', error);
       await slackService.sendError('Webhook processing failed', error as Error);
