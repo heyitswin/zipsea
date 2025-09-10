@@ -13,11 +13,10 @@ const sql = postgres(env.DATABASE_URL, {
   max: 5,
   idle_timeout: 20,
   connect_timeout: 10,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
 });
 
 export class SearchSimpleController {
-  
   /**
    * Find cruises by ship name and departure date
    * This is a primary use case for the search API
@@ -25,16 +24,20 @@ export class SearchSimpleController {
   async findByShipAndDate(req: Request, res: Response): Promise<void> {
     try {
       const { shipName, departureDate, month, year } = req.query;
-      
+
       // Build query conditions
       const conditions = [];
       const params = [];
-      
+
       if (shipName) {
-        conditions.push(`LOWER(s.name) LIKE LOWER($${params.length + 1})`);
+        // Search both in linked ships table AND in cruise's ship_name field
+        conditions.push(
+          `(LOWER(s.name) LIKE LOWER($${params.length + 1}) OR LOWER(c.ship_name) LIKE LOWER($${params.length + 2}))`
+        );
+        params.push(`%${shipName}%`);
         params.push(`%${shipName}%`);
       }
-      
+
       if (departureDate) {
         conditions.push(`c.sailing_date = $${params.length + 1}`);
         params.push(departureDate);
@@ -44,18 +47,18 @@ export class SearchSimpleController {
         conditions.push(`EXTRACT(YEAR FROM c.sailing_date) = $${params.length + 1}`);
         params.push(year);
       }
-      
+
       if (conditions.length === 0) {
         res.status(400).json({
-          error: 'Please provide shipName and either departureDate or month/year'
+          error: 'Please provide shipName and either departureDate or month/year',
         });
         return;
       }
-      
+
       const whereClause = conditions.join(' AND ');
-      
+
       const query = `
-        SELECT 
+        SELECT
           c.id,
           c.cruise_id,
           c.name,
@@ -63,7 +66,7 @@ export class SearchSimpleController {
           c.sailing_date,
           c.nights,
           cl.name as cruise_line_name,
-          s.name as ship_name,
+          COALESCE(s.name, c.ship_name) as ship_name,
           p1.name as embark_port_name,
           p2.name as disembark_port_name,
           c.port_ids,
@@ -83,24 +86,23 @@ export class SearchSimpleController {
         ORDER BY c.sailing_date ASC
         LIMIT 100
       `;
-      
+
       const results = await sql.unsafe(query, params);
-      
+
       res.json({
         success: true,
         count: results.length,
-        results
+        results,
       });
-      
     } catch (error: any) {
       logger.error('Search by ship and date failed:', error);
       res.status(500).json({
         error: 'Search failed',
-        message: error.message
+        message: error.message,
       });
     }
   }
-  
+
   /**
    * Get all ships with upcoming cruises
    */
@@ -121,31 +123,30 @@ export class SearchSimpleController {
         GROUP BY s.id, s.name, cl.name
         ORDER BY s.name
       `;
-      
+
       res.json({
         success: true,
         count: ships.length,
-        ships
+        ships,
       });
-      
     } catch (error: any) {
       logger.error('Get ships failed:', error);
       res.status(500).json({
         error: 'Failed to get ships',
-        message: error.message
+        message: error.message,
       });
     }
   }
-  
+
   /**
    * Get all sailing dates for a specific ship
    */
   async getShipSailings(req: Request, res: Response): Promise<void> {
     try {
       const { shipId } = req.params;
-      
+
       const sailings = await sql`
-        SELECT 
+        SELECT
           c.id,
           c.cruise_id,
           c.name,
@@ -160,18 +161,17 @@ export class SearchSimpleController {
         AND c.sailing_date >= CURRENT_DATE
         ORDER BY c.sailing_date ASC
       `;
-      
+
       res.json({
         success: true,
         count: sailings.length,
-        sailings
+        sailings,
       });
-      
     } catch (error: any) {
       logger.error('Get ship sailings failed:', error);
       res.status(500).json({
         error: 'Failed to get ship sailings',
-        message: error.message
+        message: error.message,
       });
     }
   }

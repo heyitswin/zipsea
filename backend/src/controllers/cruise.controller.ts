@@ -33,10 +33,24 @@ class CruiseController {
       // If no filters are provided, use the original hotfix service
       if (!shipId && !shipName && !departureDate) {
         const results = await searchHotfixService.getSimpleCruiseList(limit, offset);
+
+        // Map the results to ensure consistent field names
+        const formattedCruises = results.cruises.map((cruise: any) => ({
+          id: cruise.id,
+          name: cruise.name,
+          sailing_date: cruise.sailingDate, // Map sailingDate to sailing_date
+          nights: cruise.nights,
+          cruise_line_name: cruise.cruiseLine?.name,
+          ship_name: cruise.ship?.name,
+          embark_port_name: cruise.embarkPort?.name,
+          disembark_port_name: cruise.disembarkPort?.name,
+          cheapest_price: cruise.price?.amount,
+        }));
+
         res.json({
           success: true,
           data: {
-            cruises: results.cruises,
+            cruises: formattedCruises,
             meta: results.meta,
           },
         });
