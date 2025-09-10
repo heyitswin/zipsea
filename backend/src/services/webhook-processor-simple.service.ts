@@ -209,121 +209,132 @@ export class WebhookProcessorSimple {
       const currentDate = new Date();
       const startYear = currentDate.getFullYear();
       const startMonth = currentDate.getMonth() + 1;
-      const endYear = startYear + 3; // Check up to 3 years ahead
 
-      console.log(`[SIMPLE-DISCOVERY] Scanning from ${startYear}/${startMonth} to ${endYear}/12`);
+      // Only scan current month and next 2 months for webhooks (not 3 years!)
+      const monthsToScan = 3;
+      console.log(
+        `[SIMPLE-DISCOVERY] Scanning ${monthsToScan} months from ${startYear}/${startMonth}`
+      );
 
       // FTP structure: /year/month/lineid/shipid/cruiseid.json
-      for (let year = startYear; year <= endYear; year++) {
-        const monthStart = year === startYear ? startMonth : 1;
+      // Calculate which months to scan
+      const monthsToCheck = [];
+      for (let i = 0; i < monthsToScan; i++) {
+        const checkMonth = startMonth + i;
+        const checkYear = startYear + Math.floor((startMonth + i - 1) / 12);
+        const actualMonth = ((checkMonth - 1) % 12) + 1;
+        monthsToCheck.push({ year: checkYear, month: actualMonth });
+      }
 
-        for (let month = monthStart; month <= 12; month++) {
-          const monthStr = month.toString().padStart(2, '0');
+      console.log(
+        `[SIMPLE-DISCOVERY] Will check: ${monthsToCheck.map(m => `${m.year}/${m.month}`).join(', ')}`
+      );
 
-          if (lineId) {
-            // Specific line: /year/month/lineid/
-            const linePath = `/${year}/${monthStr}/${lineId}`;
-            console.log(`[SIMPLE-DISCOVERY] Checking path: ${linePath}`);
+      for (const { year, month } of monthsToCheck) {
+        const monthStr = month.toString().padStart(2, '0');
 
-            try {
-              const shipDirs = await conn.client.list(linePath);
-              console.log(`[SIMPLE-DISCOVERY] Listed ${linePath}, found ${shipDirs.length} items`);
+        if (lineId) {
+          // Specific line: /year/month/lineid/
+          const linePath = `/${year}/${monthStr}/${lineId}`;
+          console.log(`[SIMPLE-DISCOVERY] Checking path: ${linePath}`);
 
-              if (shipDirs.length > 0) {
-                console.log(
-                  `[SIMPLE-DISCOVERY] Found ${shipDirs.length} ships for line ${lineId} in ${year}/${monthStr}`
-                );
-              }
+          try {
+            const shipDirs = await conn.client.list(linePath);
+            console.log(`[SIMPLE-DISCOVERY] Listed ${linePath}, found ${shipDirs.length} items`);
 
-              // For each ship directory
-              for (const shipDir of shipDirs) {
-                if (shipDir.type === 2 && shipDir.name !== '.' && shipDir.name !== '..') {
-                  const shipPath = `${linePath}/${shipDir.name}`;
+            if (shipDirs.length > 0) {
+              console.log(
+                `[SIMPLE-DISCOVERY] Found ${shipDirs.length} ships for line ${lineId} in ${year}/${monthStr}`
+              );
+            }
 
-                  try {
-                    const cruiseFiles = await conn.client.list(shipPath);
+            // For each ship directory
+            for (const shipDir of shipDirs) {
+              if (shipDir.type === 2 && shipDir.name !== '.' && shipDir.name !== '..') {
+                const shipPath = `${linePath}/${shipDir.name}`;
 
-                    for (const cruiseFile of cruiseFiles) {
-                      if (cruiseFile.name.endsWith('.json')) {
-                        const cruiseId = cruiseFile.name.replace('.json', '');
-                        files.push({
-                          path: `${shipPath}/${cruiseFile.name}`,
-                          name: cruiseFile.name,
-                          cruiseId,
-                          shipId: shipDir.name,
-                          lineId: lineId.toString(),
-                          year: year.toString(),
-                          month: monthStr,
-                          size: cruiseFile.size,
-                        });
-                      }
+                try {
+                  const cruiseFiles = await conn.client.list(shipPath);
+
+                  for (const cruiseFile of cruiseFiles) {
+                    if (cruiseFile.name.endsWith('.json')) {
+                      const cruiseId = cruiseFile.name.replace('.json', '');
+                      files.push({
+                        path: `${shipPath}/${cruiseFile.name}`,
+                        name: cruiseFile.name,
+                        cruiseId,
+                        shipId: shipDir.name,
+                        lineId: lineId.toString(),
+                        year: year.toString(),
+                        month: monthStr,
+                        size: cruiseFile.size,
+                      });
                     }
-                  } catch (error) {
-                    console.log(`[SIMPLE-DISCOVERY] No cruise files in ${shipPath}`);
                   }
+                } catch (error) {
+                  console.log(`[SIMPLE-DISCOVERY] No cruise files in ${shipPath}`);
                 }
               }
-            } catch (error) {
-              // Directory doesn't exist for this month/line combination
-              console.log(`[SIMPLE-DISCOVERY] Path ${linePath} not found, skipping`);
             }
-          } else {
-            // All lines: /year/month/
-            const monthPath = `/${year}/${monthStr}`;
+          } catch (error) {
+            // Directory doesn't exist for this month/line combination
+            console.log(`[SIMPLE-DISCOVERY] Path ${linePath} not found, skipping`);
+          }
+        } else {
+          // All lines: /year/month/
+          const monthPath = `/${year}/${monthStr}`;
 
-            try {
-              const lineDirs = await conn.client.list(monthPath);
+          try {
+            const lineDirs = await conn.client.list(monthPath);
 
-              for (const lineDir of lineDirs) {
-                if (lineDir.type === 2 && lineDir.name !== '.' && lineDir.name !== '..') {
-                  const linePath = `${monthPath}/${lineDir.name}`;
+            for (const lineDir of lineDirs) {
+              if (lineDir.type === 2 && lineDir.name !== '.' && lineDir.name !== '..') {
+                const linePath = `${monthPath}/${lineDir.name}`;
 
-                  try {
-                    const shipDirs = await conn.client.list(linePath);
+                try {
+                  const shipDirs = await conn.client.list(linePath);
 
-                    for (const shipDir of shipDirs) {
-                      if (shipDir.type === 2 && shipDir.name !== '.' && shipDir.name !== '..') {
-                        const shipPath = `${linePath}/${shipDir.name}`;
+                  for (const shipDir of shipDirs) {
+                    if (shipDir.type === 2 && shipDir.name !== '.' && shipDir.name !== '..') {
+                      const shipPath = `${linePath}/${shipDir.name}`;
 
-                        try {
-                          const cruiseFiles = await conn.client.list(shipPath);
+                      try {
+                        const cruiseFiles = await conn.client.list(shipPath);
 
-                          for (const cruiseFile of cruiseFiles) {
-                            if (cruiseFile.name.endsWith('.json')) {
-                              const cruiseId = cruiseFile.name.replace('.json', '');
-                              files.push({
-                                path: `${shipPath}/${cruiseFile.name}`,
-                                name: cruiseFile.name,
-                                cruiseId,
-                                shipId: shipDir.name,
-                                lineId: lineDir.name,
-                                year: year.toString(),
-                                month: monthStr,
-                                size: cruiseFile.size,
-                              });
-                            }
+                        for (const cruiseFile of cruiseFiles) {
+                          if (cruiseFile.name.endsWith('.json')) {
+                            const cruiseId = cruiseFile.name.replace('.json', '');
+                            files.push({
+                              path: `${shipPath}/${cruiseFile.name}`,
+                              name: cruiseFile.name,
+                              cruiseId,
+                              shipId: shipDir.name,
+                              lineId: lineDir.name,
+                              year: year.toString(),
+                              month: monthStr,
+                              size: cruiseFile.size,
+                            });
                           }
-                        } catch (error) {
-                          console.log(`[SIMPLE-DISCOVERY] No cruise files in ${shipPath}`);
                         }
+                      } catch (error) {
+                        console.log(`[SIMPLE-DISCOVERY] No cruise files in ${shipPath}`);
                       }
                     }
-                  } catch (error) {
-                    console.log(`[SIMPLE-DISCOVERY] No ships in ${linePath}`);
                   }
+                } catch (error) {
+                  console.log(`[SIMPLE-DISCOVERY] No ships in ${linePath}`);
                 }
               }
-            } catch (error) {
-              console.log(`[SIMPLE-DISCOVERY] Path ${monthPath} not found, skipping`);
             }
+          } catch (error) {
+            console.log(`[SIMPLE-DISCOVERY] Path ${monthPath} not found, skipping`);
           }
         }
       }
 
       console.log(`[SIMPLE-DISCOVERY] Total discovered: ${files.length} cruise files`);
-      const limited = files.slice(0, 100); // Limit for initial testing
-      console.log(`[SIMPLE-DISCOVERY] Returning ${limited.length} files (limited to 100)`);
-      return limited;
+      // No need to limit if we're only scanning 3 months
+      return files;
     } finally {
       ftpConnectionPool.releaseConnection(conn.id);
     }
