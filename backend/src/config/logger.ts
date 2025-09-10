@@ -10,6 +10,34 @@ const logFormat = winston.format.combine(
   winston.format.prettyPrint()
 );
 
+// Safe stringify function to handle circular references
+const safeStringify = (obj: any, indent?: number): string => {
+  const seen = new WeakSet();
+  return JSON.stringify(
+    obj,
+    (key, value) => {
+      if (typeof value === 'object' && value !== null) {
+        if (seen.has(value)) {
+          return '[Circular]';
+        }
+        seen.add(value);
+      }
+      // Also filter out large objects that might cause issues
+      if (
+        key === 'config' ||
+        key === 'request' ||
+        key === 'response' ||
+        key === 'res' ||
+        key === 'req'
+      ) {
+        return '[Filtered]';
+      }
+      return value;
+    },
+    indent
+  );
+};
+
 // Console format for development
 const consoleFormat = winston.format.combine(
   winston.format.colorize(),
@@ -18,7 +46,11 @@ const consoleFormat = winston.format.combine(
     let log = `${timestamp} [${level}]: ${message}`;
 
     if (Object.keys(meta).length > 0) {
-      log += ` ${JSON.stringify(meta, null, 2)}`;
+      try {
+        log += ` ${safeStringify(meta, 2)}`;
+      } catch (error) {
+        log += ` [Unable to stringify metadata]`;
+      }
     }
 
     return log;
