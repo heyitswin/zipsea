@@ -18,7 +18,7 @@ interface FtpConnection {
 export class WebhookProcessorOptimizedV2 {
   private static ftpPool: FtpConnection[] = [];
   private static poolInitialized = false;
-  private static MAX_CONNECTIONS = 3;
+  private static MAX_CONNECTIONS = 10; // Increased from 3 for faster parallel FTP downloads
   private static KEEP_ALIVE_INTERVAL = 30000;
   private static processorInstance: WebhookProcessorOptimizedV2 | null = null;
 
@@ -77,7 +77,7 @@ export class WebhookProcessorOptimizedV2 {
         );
 
         // Process files in batches
-        const BATCH_SIZE = 5;
+        const BATCH_SIZE = 20; // Increased from 5 for faster parallel processing
         const results = { processed: 0, failed: 0, updated: 0 };
         const startTime = Date.now();
 
@@ -120,7 +120,7 @@ export class WebhookProcessorOptimizedV2 {
       },
       {
         connection: WebhookProcessorOptimizedV2.redisConnection!,
-        concurrency: 3, // Process 3 jobs concurrently
+        concurrency: 10, // Increased from 3 - DB can handle more concurrent operations now
         stalledInterval: 30000,
       }
     );
@@ -319,7 +319,7 @@ export class WebhookProcessorOptimizedV2 {
       }
 
       // Create batches of files for queue processing
-      const MAX_FILES_PER_JOB = 50; // Process up to 50 files per job
+      const MAX_FILES_PER_JOB = 200; // Increased from 50 - DB can handle more now
       const batches = [];
 
       for (let i = 0; i < files.length; i += MAX_FILES_PER_JOB) {
