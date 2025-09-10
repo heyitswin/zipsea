@@ -71,39 +71,49 @@ router.post('/traveltek', async (req: Request, res: Response) => {
       timestamp: new Date().toISOString(),
     });
 
-    // Process webhook asynchronously
-    setImmediate(async () => {
-      try {
-        console.log(`Starting webhook processing for event ${webhookEvent.id}, line ${lineId}`);
-        await getWebhookProcessor().processWebhooks(lineId);
-        console.log(`Webhook processing completed for event ${webhookEvent.id}`);
+    // Process webhook asynchronously - ensure it actually runs
+    console.log(`[WEBHOOK] Scheduling async processing for webhook ${webhookEvent.id}`);
 
-        // Update webhook status using raw SQL
-        const updateQuery = `
+    // Use Promise constructor to ensure async work happens
+    Promise.resolve()
+      .then(async () => {
+        try {
+          console.log(
+            `[ASYNC] Starting webhook processing for event ${webhookEvent.id}, line ${lineId}`
+          );
+          const processor = getWebhookProcessor();
+          console.log(`[ASYNC] Got processor instance, calling processWebhooks...`);
+          await processor.processWebhooks(lineId);
+          console.log(`[ASYNC] Webhook processing completed for event ${webhookEvent.id}`);
+
+          // Update webhook status using raw SQL
+          const updateQuery = `
           UPDATE webhook_events
           SET status = $1, processed_at = $2
           WHERE id = $3
         `;
-        await executeSQL(updateQuery, ['processed', new Date(), webhookEvent.id]);
-        console.log(`[TEST] Updated webhook ${webhookEvent.id} to processed`);
-        console.log(`Updated webhook event ${webhookEvent.id} to processed`);
-      } catch (error) {
-        console.error(`Failed to process webhook event ${webhookEvent.id}:`, error);
-        logger.error('Failed to process webhook:', error);
+          await executeSQL(updateQuery, ['processed', new Date(), webhookEvent.id]);
+          console.log(`[ASYNC] Updated webhook event ${webhookEvent.id} to processed`);
+        } catch (error) {
+          console.error(`[ASYNC] Failed to process webhook event ${webhookEvent.id}:`, error);
+          logger.error('Failed to process webhook:', error);
 
-        // Update webhook status to failed using raw SQL
-        const updateQuery = `
+          // Update webhook status to failed using raw SQL
+          const updateQuery = `
           UPDATE webhook_events
           SET status = $1, error_message = $2, processed_at = $3
           WHERE id = $4
         `;
-        const errorMessage =
-          error instanceof Error ? `${error.message}\n${error.stack}` : 'Unknown error';
+          const errorMessage =
+            error instanceof Error ? `${error.message}\n${error.stack}` : 'Unknown error';
 
-        await executeSQL(updateQuery, ['failed', errorMessage, new Date(), webhookEvent.id]);
-        console.log(`Updated webhook event ${webhookEvent.id} to failed`);
-      }
-    });
+          await executeSQL(updateQuery, ['failed', errorMessage, new Date(), webhookEvent.id]);
+          console.log(`[ASYNC] Updated webhook event ${webhookEvent.id} to failed`);
+        }
+      })
+      .catch(err => {
+        console.error(`[ASYNC] Unhandled error in webhook processing:`, err);
+      });
   } catch (error) {
     logger.error('Failed to handle webhook:', error);
 
@@ -449,6 +459,80 @@ router.get('/traveltek/db-check', async (req: Request, res: Response) => {
  * Minimal test endpoint - just updates status
  * POST /api/webhooks/traveltek/minimal-test
  */
+// Synchronous processing test - runs webhook processor synchronously
+router.post('/traveltek/sync-test', async (req: Request, res: Response) => {
+  const { lineId = 22 } = req.body;
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL?.includes('render.com') ? { rejectUnauthorized: false } : false,
+  });
+
+  try {
+    await client.connect();
+
+    // Insert webhook event
+    const insertResult = await client.query(
+      'INSERT INTO webhook_events (line_id, webhook_type, status, metadata) VALUES ($1, $2, $3, $4) RETURNING *',
+      [lineId, 'sync_test', 'processing', JSON.stringify({ test: true, lineId })]
+    );
+
+    const webhookEvent = insertResult.rows[0];
+    console.log(`[SYNC-TEST] Created webhook ${webhookEvent.id} for line ${lineId}`);
+
+    // Try to run the processor synchronously
+    try {
+      console.log(`[SYNC-TEST] Getting processor instance...`);
+      const processor = getWebhookProcessor();
+
+      console.log(`[SYNC-TEST] Calling processWebhooks synchronously...`);
+      await processor.processWebhooks(lineId);
+
+      console.log(`[SYNC-TEST] Process completed successfully`);
+
+      // Update status
+      await client.query('UPDATE webhook_events SET status = $1, processed_at = $2 WHERE id = $3', [
+        'completed',
+        new Date(),
+        webhookEvent.id,
+      ]);
+
+      res.json({
+        success: true,
+        message: 'Synchronous test completed',
+        webhookId: webhookEvent.id,
+        status: 'completed',
+      });
+    } catch (processingError) {
+      console.error(`[SYNC-TEST] Processing failed:`, processingError);
+
+      // Update status to failed
+      await client.query(
+        'UPDATE webhook_events SET status = $1, processed_at = $2, error_message = $3 WHERE id = $4',
+        [
+          'failed',
+          new Date(),
+          processingError instanceof Error ? processingError.message : 'Unknown error',
+          webhookEvent.id,
+        ]
+      );
+
+      res.json({
+        success: false,
+        message: 'Synchronous test failed',
+        webhookId: webhookEvent.id,
+        error: processingError instanceof Error ? processingError.message : 'Unknown error',
+      });
+    }
+  } catch (error) {
+    console.error('[SYNC-TEST] Setup error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Sync test failed',
+    });
+  } finally {
+    await client.end();
+  }
+});
+
 // Direct processing test - bypasses all complex logic
 router.post('/traveltek/direct-test', async (req: Request, res: Response) => {
   const client = new Client({
