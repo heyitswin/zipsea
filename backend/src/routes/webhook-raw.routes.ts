@@ -596,7 +596,7 @@ router.get('/traveltek/check-ftp-data', async (req: Request, res: Response) => {
         overview: dataOverview.years,
         totalEstimatedFiles: dataOverview.totalFiles,
         sampleLineIds: Array.from(dataOverview.sampleLines)
-          .sort((a, b) => a - b)
+          .sort((a: any, b: any) => Number(a) - Number(b))
           .slice(0, 10),
         suggestion:
           dataOverview.sampleLines.size > 0
