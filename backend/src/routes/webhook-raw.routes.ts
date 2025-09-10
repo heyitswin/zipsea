@@ -6,6 +6,7 @@ import { WebhookProcessorDiscovery } from '../services/webhook-processor-discove
 import { WebhookProcessorCorrect } from '../services/webhook-processor-correct.service';
 import { WebhookProcessorFixed } from '../services/webhook-processor-fixed.service';
 import { WebhookProcessorRobust } from '../services/webhook-processor-robust.service';
+import { WebhookProcessorCorrectFTP } from '../services/webhook-processor-correct-ftp.service';
 import { WebhookProcessorSimpleFTP } from '../services/webhook-processor-simple-ftp.service';
 import { WebhookProcessorMinimal } from '../services/webhook-processor-minimal.service';
 import { getWebhookProcessorSimple } from '../services/webhook-processor-simple.service';
@@ -14,11 +15,11 @@ import { Client } from 'pg';
 const router = Router();
 
 // Lazy-load webhook processor to ensure environment variables are loaded
-let webhookProcessor: WebhookProcessorRobust | null = null;
+let webhookProcessor: WebhookProcessorCorrectFTP | null = null;
 
-function getWebhookProcessor(): WebhookProcessorRobust {
+function getWebhookProcessor(): WebhookProcessorCorrectFTP {
   if (!webhookProcessor) {
-    webhookProcessor = new WebhookProcessorRobust();
+    webhookProcessor = new WebhookProcessorCorrectFTP();
   }
   return webhookProcessor;
 }
