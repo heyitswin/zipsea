@@ -1,6 +1,8 @@
 import * as ftp from 'basic-ftp';
 import { db } from '../db/connection';
 import { cruises } from '../db/schema/cruises';
+import { cheapestPricing } from '../db/schema';
+import { priceSnapshots } from '../db/schema/webhook-events';
 import { eq } from 'drizzle-orm';
 import logger from '../config/logger';
 import { Writable } from 'stream';
@@ -55,7 +57,9 @@ export class WebhookProcessorOptimizedV2 {
           inUse: false,
           lastUsed: Date.now(),
         });
-        console.log(`[OPTIMIZED-V2] Connection ${i + 1}/${WebhookProcessorOptimizedV2.MAX_CONNECTIONS} established`);
+        console.log(
+          `[OPTIMIZED-V2] Connection ${i + 1}/${WebhookProcessorOptimizedV2.MAX_CONNECTIONS} established`
+        );
       } catch (error) {
         console.error(`[OPTIMIZED-V2] Failed to create connection ${i + 1}:`, error);
       }
@@ -64,7 +68,10 @@ export class WebhookProcessorOptimizedV2 {
     // Set up keep-alive
     setInterval(async () => {
       for (const conn of WebhookProcessorOptimizedV2.ftpPool) {
-        if (!conn.inUse && Date.now() - conn.lastUsed > WebhookProcessorOptimizedV2.KEEP_ALIVE_INTERVAL) {
+        if (
+          !conn.inUse &&
+          Date.now() - conn.lastUsed > WebhookProcessorOptimizedV2.KEEP_ALIVE_INTERVAL
+        ) {
           try {
             await conn.client.send('NOOP');
             conn.lastUsed = Date.now();
@@ -76,7 +83,9 @@ export class WebhookProcessorOptimizedV2 {
     }, WebhookProcessorOptimizedV2.KEEP_ALIVE_INTERVAL);
 
     WebhookProcessorOptimizedV2.poolInitialized = true;
-    console.log(`[OPTIMIZED-V2] FTP pool ready with ${WebhookProcessorOptimizedV2.ftpPool.length} connections`);
+    console.log(
+      `[OPTIMIZED-V2] FTP pool ready with ${WebhookProcessorOptimizedV2.ftpPool.length} connections`
+    );
   }
 
   private async getFtpConnection(): Promise<FtpConnection> {
@@ -130,6 +139,9 @@ export class WebhookProcessorOptimizedV2 {
     console.log(`[OPTIMIZED-V2] Starting webhook processing for line ${lineId}`);
 
     try {
+      // Take a snapshot before processing
+      await this.takeSnapshot(lineId);
+
       // Discover files efficiently
       const files = await this.discoverFiles(lineId);
       console.log(`[OPTIMIZED-V2] Found ${files.length} files to process`);
@@ -144,7 +156,9 @@ export class WebhookProcessorOptimizedV2 {
       }
 
       const duration = Date.now() - startTime;
-      console.log(`[OPTIMIZED-V2] Completed in ${duration}ms - Processed: ${this.stats.filesProcessed}, Updated: ${this.stats.cruisesUpdated}`);
+      console.log(
+        `[OPTIMIZED-V2] Completed in ${duration}ms - Processed: ${this.stats.filesProcessed}, Updated: ${this.stats.cruisesUpdated}`
+      );
     } catch (error) {
       console.error('[OPTIMIZED-V2] Processing failed:', error);
       throw error;
@@ -171,7 +185,8 @@ export class WebhookProcessorOptimizedV2 {
           const shipDirs = await conn.client.list(linePath);
 
           for (const shipDir of shipDirs) {
-            if (shipDir.type === 2) { // Directory
+            if (shipDir.type === 2) {
+              // Directory
               const shipPath = `${linePath}/${shipDir.name}`;
               const cruiseFiles = await conn.client.list(shipPath);
 
@@ -227,7 +242,8 @@ export class WebhookProcessorOptimizedV2 {
         const cruiseId = data.id || data.codetocruiseid || file.cruiseId;
 
         // Extract sailing date
-        let sailingDate = data.embarkDate || data.embarkdate || data.sailingdate || data.sailing_date;
+        let sailingDate =
+          data.embarkDate || data.embarkdate || data.sailingdate || data.sailing_date;
         if (sailingDate && sailingDate.includes('T')) {
           sailingDate = sailingDate.split('T')[0];
         }
@@ -297,11 +313,11 @@ export class WebhookProcessorOptimizedV2 {
         for (const cabin of pricingData) {
           const price = parseFloat(
             cabin.price ||
-            cabin.adult_price ||
-            cabin.adultprice ||
-            cabin.cheapest_price ||
-            cabin.from_price ||
-            0
+              cabin.adult_price ||
+              cabin.adultprice ||
+              cabin.cheapest_price ||
+              cabin.from_price ||
+              0
           );
 
           if (!price || price === 0) continue;
@@ -334,8 +350,10 @@ export class WebhookProcessorOptimizedV2 {
         }
       } else if (typeof pricingData === 'object') {
         // Handle object-based pricing structure
-        interiorPrice = parseFloat(pricingData.interior_price || pricingData.inside_price || 0) || null;
-        oceanviewPrice = parseFloat(pricingData.oceanview_price || pricingData.outside_price || 0) || null;
+        interiorPrice =
+          parseFloat(pricingData.interior_price || pricingData.inside_price || 0) || null;
+        oceanviewPrice =
+          parseFloat(pricingData.oceanview_price || pricingData.outside_price || 0) || null;
         balconyPrice = parseFloat(pricingData.balcony_price || 0) || null;
         suitePrice = parseFloat(pricingData.suite_price || 0) || null;
       }
@@ -357,6 +375,61 @@ export class WebhookProcessorOptimizedV2 {
       }
     } catch (error) {
       console.error(`[OPTIMIZED-V2] Failed to update pricing for ${cruiseId}:`, error);
+    }
+  }
+
+  private async takeSnapshot(lineId: number) {
+    try {
+      console.log(`[OPTIMIZED-V2] Taking price snapshot for line ${lineId}`);
+
+      // Take snapshots of cheapest pricing for all cruises in this line
+      const cruisesWithPricing = await db
+        .select({
+          cruiseId: cruises.id,
+          cheapestPrice: cheapestPricing.cheapestPrice,
+          interiorPrice: cheapestPricing.interiorPrice,
+          oceanviewPrice: cheapestPricing.oceanviewPrice,
+          balconyPrice: cheapestPricing.balconyPrice,
+          suitePrice: cheapestPricing.suitePrice,
+        })
+        .from(cruises)
+        .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
+        .where(eq(cruises.cruiseLineId, lineId))
+        .limit(1000);
+
+      let snapshotCount = 0;
+
+      // Create snapshots for each cruise with pricing
+      for (const cruise of cruisesWithPricing) {
+        if (cruise.cruiseId && cruise.cheapestPrice) {
+          try {
+            await db.insert(priceSnapshots).values({
+              cruiseId: cruise.cruiseId,
+              snapshotData: {
+                cheapestPrice: cruise.cheapestPrice,
+                interiorPrice: cruise.interiorPrice,
+                oceanviewPrice: cruise.oceanviewPrice,
+                balconyPrice: cruise.balconyPrice,
+                suitePrice: cruise.suitePrice,
+                timestamp: new Date().toISOString(),
+                lineId: lineId,
+              },
+              createdAt: new Date(),
+            });
+            snapshotCount++;
+          } catch (error) {
+            console.error(
+              `[OPTIMIZED-V2] Failed to create snapshot for cruise ${cruise.cruiseId}:`,
+              error
+            );
+          }
+        }
+      }
+
+      console.log(`[OPTIMIZED-V2] Created ${snapshotCount} price snapshots for line ${lineId}`);
+    } catch (error) {
+      console.error(`[OPTIMIZED-V2] Failed to take snapshots for line ${lineId}:`, error);
+      // Don't throw - snapshots are not critical to webhook processing
     }
   }
 }
