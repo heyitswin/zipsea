@@ -436,14 +436,36 @@ export class WebhookProcessorOptimized {
   }
 
   private async waitForCompletion() {
-    return new Promise(resolve => {
-      const checkInterval = setInterval(async () => {
-        const waiting = await this.fileQueue.getWaitingCount();
-        const active = await this.fileQueue.getActiveCount();
+    // If no files were discovered, return immediately
+    if (this.stats.filesDiscovered === 0) {
+      console.log('No files to wait for');
+      return;
+    }
 
-        if (waiting === 0 && active === 0) {
+    return new Promise(resolve => {
+      let checksWithoutJobs = 0;
+      const maxChecksWithoutJobs = 3; // Give up after 15 seconds of no jobs
+
+      const checkInterval = setInterval(async () => {
+        try {
+          const waiting = await this.fileQueue.getWaitingCount();
+          const active = await this.fileQueue.getActiveCount();
+
+          console.log(`Queue status - Waiting: ${waiting}, Active: ${active}`);
+
+          if (waiting === 0 && active === 0) {
+            checksWithoutJobs++;
+            if (checksWithoutJobs >= maxChecksWithoutJobs) {
+              clearInterval(checkInterval);
+              resolve(true);
+            }
+          } else {
+            checksWithoutJobs = 0; // Reset counter if jobs are found
+          }
+        } catch (error) {
+          console.error('Error checking queue status:', error);
           clearInterval(checkInterval);
-          resolve(true);
+          resolve(false);
         }
       }, 5000);
     });
