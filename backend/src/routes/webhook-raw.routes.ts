@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import logger from '../config/logger';
 import { WebhookProcessorOptimized } from '../services/webhook-processor-optimized.service';
 import { WebhookProcessorSimple } from '../services/webhook-processor-simple.service';
+import { WebhookProcessorDiscovery } from '../services/webhook-processor-discovery.service';
 import { Client } from 'pg';
 
 const router = Router();
@@ -460,6 +461,32 @@ router.get('/traveltek/db-check', async (req: Request, res: Response) => {
  * Minimal test endpoint - just updates status
  * POST /api/webhooks/traveltek/minimal-test
  */
+// Test file discovery only
+router.post('/traveltek/test-discovery', async (req: Request, res: Response) => {
+  const { lineId = 22 } = req.body;
+
+  try {
+    console.log(`[TEST-DISCOVERY] Testing file discovery for line ${lineId}`);
+
+    const processor = new WebhookProcessorDiscovery();
+    const result = await processor.testDiscovery(lineId);
+
+    res.json({
+      success: result.success,
+      message: result.success ? 'Discovery completed' : 'Discovery failed',
+      filesFound: result.files.length,
+      files: result.files,
+      error: result.error,
+    });
+  } catch (error) {
+    console.error('[TEST-DISCOVERY] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Discovery test failed',
+    });
+  }
+});
+
 // Test webhook synchronously - waits for processing to complete
 router.post('/traveltek/test-sync', async (req: Request, res: Response) => {
   try {
@@ -481,11 +508,17 @@ router.post('/traveltek/test-sync', async (req: Request, res: Response) => {
 
     const webhookEvent = result[0];
 
-    // Process synchronously
+    // Process synchronously with timeout
     try {
       console.log(`[TEST-SYNC] Calling webhook processor...`);
       const processor = getWebhookProcessor();
-      await processor.processWebhooks(lineId);
+
+      // Add 30 second timeout
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Processing timeout after 30 seconds')), 30000)
+      );
+
+      await Promise.race([processor.processWebhooks(lineId), timeoutPromise]);
 
       // Update status to processed
       await executeSQL('UPDATE webhook_events SET status = $1, processed_at = $2 WHERE id = $3', [
