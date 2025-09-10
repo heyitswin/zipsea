@@ -1365,6 +1365,57 @@ router.post('/traveltek/direct-test', async (req: Request, res: Response) => {
   }
 });
 
+// Test FTP connection
+router.get('/traveltek/test-ftp', async (req: Request, res: Response) => {
+  try {
+    const ftp = require('basic-ftp');
+    const client = new ftp.Client();
+    client.ftp.verbose = false;
+
+    const config = {
+      host: process.env.TRAVELTEK_FTP_HOST || process.env.FTP_HOST,
+      user: process.env.TRAVELTEK_FTP_USER || process.env.FTP_USER,
+      password: process.env.TRAVELTEK_FTP_PASSWORD || process.env.FTP_PASSWORD,
+      secure: false,
+    };
+
+    // Mask password for response
+    const maskedConfig = {
+      ...config,
+      password: config.password ? `${config.password.substring(0, 3)}***` : 'NOT SET',
+    };
+
+    console.log('[FTP-TEST] Testing FTP connection...');
+
+    try {
+      await client.access(config);
+      const list = await client.list('/');
+      client.close();
+
+      res.json({
+        status: 'success',
+        message: 'FTP connection successful',
+        config: maskedConfig,
+        rootFolders: list.slice(0, 5).map(f => f.name),
+      });
+    } catch (ftpError: any) {
+      client.close();
+      res.status(500).json({
+        status: 'error',
+        message: 'FTP connection failed',
+        config: maskedConfig,
+        error: ftpError.message,
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to test FTP',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 // Test with minimal processor to isolate FTP issues
 router.post('/traveltek/test-minimal-processor', async (req: Request, res: Response) => {
   try {
