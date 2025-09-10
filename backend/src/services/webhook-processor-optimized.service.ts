@@ -105,34 +105,41 @@ export class WebhookProcessorOptimized {
         ],
       });
 
-      // Check for existing lock
+      // Check for existing lock and handle stale locks
       const lockKey = `webhook-sync-${lineId || 'all'}`;
+
+      // First, check if there's an existing lock
       const existingLock = await db
         .select()
         .from(syncLocks)
-        .where(and(eq(syncLocks.lockKey, lockKey), eq(syncLocks.isActive, true)))
+        .where(eq(syncLocks.lockKey, lockKey))
         .limit(1);
 
-      if (existingLock.length > 0) {
+      let canProceed = true;
+
+      if (existingLock.length > 0 && existingLock[0].isActive) {
         const lockAge = Date.now() - new Date(existingLock[0].acquiredAt).getTime();
         if (lockAge < 30 * 60 * 1000) {
-          // 30 minutes
+          // Lock is still fresh (less than 30 minutes old)
+          console.log(
+            `Lock ${lockKey} is still active (age: ${Math.floor(lockAge / 60000)} minutes)`
+          );
           throw new Error('Another sync process is already running');
         }
-        // Release stale lock
-        await db
-          .update(syncLocks)
-          .set({ isActive: false, releasedAt: new Date() })
-          .where(eq(syncLocks.id, existingLock[0].id));
+        // Lock is stale, we'll take it over
+        console.log(
+          `Taking over stale lock ${lockKey} (age: ${Math.floor(lockAge / 60000)} minutes)`
+        );
       }
 
-      // Acquire lock using upsert to avoid duplicate key errors
+      // Acquire or update lock using upsert
       const [lock] = await db
         .insert(syncLocks)
         .values({
           lockKey,
           isActive: true,
           acquiredAt: new Date(),
+          releasedAt: null,
           metadata: { lineId, processId: process.pid },
         })
         .onConflictDoUpdate({
@@ -140,6 +147,7 @@ export class WebhookProcessorOptimized {
           set: {
             isActive: true,
             acquiredAt: new Date(),
+            releasedAt: null,
             metadata: { lineId, processId: process.pid },
           },
         })

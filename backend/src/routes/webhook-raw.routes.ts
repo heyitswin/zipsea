@@ -165,6 +165,51 @@ router.post('/traveltek/fix-system-flags', async (req: Request, res: Response) =
 });
 
 /**
+ * Check sync locks endpoint
+ * GET /api/webhooks/traveltek/check-locks
+ */
+router.get('/traveltek/check-locks', async (req: Request, res: Response) => {
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL?.includes('render.com') ? { rejectUnauthorized: false } : false,
+  });
+
+  try {
+    await client.connect();
+
+    // Get all locks
+    const result = await client.query(`
+      SELECT *,
+        EXTRACT(EPOCH FROM (NOW() - acquired_at)) as age_seconds,
+        CASE
+          WHEN is_active = true THEN 'ACTIVE'
+          ELSE 'RELEASED'
+        END as status
+      FROM sync_locks
+      ORDER BY id DESC
+      LIMIT 20
+    `);
+
+    res.json({
+      success: true,
+      totalLocks: result.rowCount,
+      locks: result.rows.map(lock => ({
+        ...lock,
+        age_minutes: Math.floor(lock.age_seconds / 60),
+        is_stale: lock.is_active && lock.age_seconds > 1800, // 30 minutes
+      })),
+    });
+  } catch (error) {
+    console.error('Error checking locks:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to check locks',
+    });
+  } finally {
+    await client.end();
+  }
+});
+
+/**
  * Clear sync locks endpoint
  * POST /api/webhooks/traveltek/clear-locks
  */
