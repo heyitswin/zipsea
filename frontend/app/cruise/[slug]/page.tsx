@@ -715,7 +715,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block */}
-                  <div className="flex-1 px-5 md:px-8 text-center md:text-center">
+                  <div className="flex-1 px-5 md:px-8 text-right">
                     <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                       STARTING FROM
                     </div>
@@ -805,7 +805,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block */}
-                  <div className="flex-1 px-5 md:px-8 text-center md:text-center">
+                  <div className="flex-1 px-5 md:px-8 text-right">
                     <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                       STARTING FROM
                     </div>
@@ -895,7 +895,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block */}
-                  <div className="flex-1 px-5 md:px-8 text-center md:text-center">
+                  <div className="flex-1 px-5 md:px-8 text-right">
                     <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                       STARTING FROM
                     </div>
@@ -985,7 +985,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block */}
-                  <div className="flex-1 px-5 md:px-8 text-center md:text-center">
+                  <div className="flex-1 px-5 md:px-8 text-right">
                     <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                       STARTING FROM
                     </div>

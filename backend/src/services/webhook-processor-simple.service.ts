@@ -3,7 +3,7 @@ import { webhookEvents, syncLocks } from '../db/schema';
 import { eq, and, or, isNull } from 'drizzle-orm';
 import { ftpConnectionPool } from './ftp-connection-pool.service';
 import { slackService } from './slack.service';
-// import { cruiseService } from './cruise.service'; // TODO: Implement cruise update logic
+import { getCruiseDataProcessor } from './cruise-data-processor.service';
 
 interface CruiseFile {
   path: string;
@@ -28,15 +28,24 @@ interface ProcessingStats {
 }
 
 export class WebhookProcessorSimple {
-  private stats: ProcessingStats = {
-    filesDiscovered: 0,
-    filesProcessed: 0,
-    filesSkipped: 0,
-    filesFailed: 0,
-    cruisesUpdated: 0,
-    pricesUpdated: 0,
-    startTime: new Date(),
-  };
+  private stats: ProcessingStats;
+  private dataProcessor = getCruiseDataProcessor();
+
+  constructor() {
+    this.stats = this.initializeStats();
+  }
+
+  private initializeStats(): ProcessingStats {
+    return {
+      filesDiscovered: 0,
+      filesProcessed: 0,
+      filesSkipped: 0,
+      filesFailed: 0,
+      cruisesUpdated: 0,
+      pricesUpdated: 0,
+      startTime: new Date(),
+    };
+  }
 
   async processWebhooks(lineId?: number) {
     let lock: any = null;
@@ -44,22 +53,16 @@ export class WebhookProcessorSimple {
     try {
       console.log(`[SIMPLE] Starting webhook processing for line ${lineId || 'all'}`);
 
-      this.stats = {
-        filesDiscovered: 0,
-        filesProcessed: 0,
-        filesSkipped: 0,
-        filesFailed: 0,
-        cruisesUpdated: 0,
-        pricesUpdated: 0,
-        startTime: new Date(),
-      };
+      // Reset stats for this processing run
+      this.stats = this.initializeStats();
 
       // Send initial notification
       await slackService.sendNotification({
-        text: '🚀 Starting webhook processing (Simple)',
+        text: `🚀 Webhook received for Line ${lineId || 'All'}`,
         fields: [
           { title: 'Line ID', value: lineId ? lineId.toString() : 'All lines', short: true },
           { title: 'Start Time', value: new Date().toISOString(), short: true },
+          { title: 'Process ID', value: process.pid.toString(), short: true },
         ],
       });
 
@@ -79,11 +82,34 @@ export class WebhookProcessorSimple {
           console.log(
             `Lock ${lockKey} is still active (age: ${Math.floor(lockAge / 60000)} minutes)`
           );
+
+          // Notify about queued webhook
+          await slackService.sendNotification({
+            text: `⏳ Webhook queued - Line ${lineId || 'All'} is already being processed`,
+            fields: [
+              { title: 'Status', value: 'Queued', short: true },
+              { title: 'Lock Age', value: `${Math.floor(lockAge / 60000)} minutes`, short: true },
+              {
+                title: 'Action',
+                value: 'Will retry after current processing completes',
+                short: true,
+              },
+            ],
+          });
+
           throw new Error('Another sync process is already running');
         }
         console.log(
           `Taking over stale lock ${lockKey} (age: ${Math.floor(lockAge / 60000)} minutes)`
         );
+
+        await slackService.sendNotification({
+          text: `⚠️ Taking over stale lock for Line ${lineId || 'All'}`,
+          fields: [
+            { title: 'Lock Age', value: `${Math.floor(lockAge / 60000)} minutes`, short: true },
+            { title: 'Action', value: 'Proceeding with processing', short: true },
+          ],
+        });
       }
 
       // Acquire or update lock
@@ -116,8 +142,23 @@ export class WebhookProcessorSimple {
 
       console.log(`[SIMPLE] Discovered ${files.length} cruise files`);
 
+      // More informative discovery notification
+      const totalSize = files.reduce((sum, f) => sum + f.size, 0);
+      const sizeMB = (totalSize / (1024 * 1024)).toFixed(2);
+
+      // Calculate actual date range from discovered files
+      const months = [...new Set(files.map(f => `${f.year}/${f.month}`))].sort();
+      const dateRange =
+        months.length > 0 ? `${months[0]} to ${months[months.length - 1]}` : 'No files';
+
       await slackService.sendNotification({
-        text: `📁 Discovered ${files.length} cruise files to process`,
+        text: `📁 File discovery complete for Line ${lineId || 'All'}`,
+        fields: [
+          { title: 'Files Found', value: files.length.toString(), short: true },
+          { title: 'Total Size', value: `${sizeMB} MB`, short: true },
+          { title: 'Date Range', value: dateRange, short: true },
+          { title: 'Months Scanned', value: months.length.toString(), short: true },
+        ],
       });
 
       if (files.length === 0) {
@@ -132,9 +173,23 @@ export class WebhookProcessorSimple {
         return;
       }
 
-      // Process files with controlled concurrency (no queue)
-      const filesToProcess = files.slice(0, 20); // Process max 20 files for testing
+      // Process ALL files, not just first 20
+      const filesToProcess = files; // Process ALL files
       console.log(`[SIMPLE] Processing ${filesToProcess.length} files with concurrency of 3`);
+
+      // Send processing start notification
+      await slackService.sendNotification({
+        text: `⚙️ Starting to process ${filesToProcess.length} files for Line ${lineId || 'All'}`,
+        fields: [
+          { title: 'Total Files', value: filesToProcess.length.toString(), short: true },
+          { title: 'Batch Size', value: '3', short: true },
+          {
+            title: 'Estimated Time',
+            value: `${Math.ceil((filesToProcess.length / 3) * 2)} seconds`,
+            short: true,
+          },
+        ],
+      });
 
       // Process in batches of 3 for controlled concurrency
       const batchSize = 3;
@@ -170,9 +225,32 @@ export class WebhookProcessorSimple {
 
         // Progress update every 10 files
         if ((i + batchSize) % 10 === 0 || i + batchSize >= filesToProcess.length) {
+          const processed = Math.min(i + batchSize, filesToProcess.length);
+          const percentage = Math.round((processed / filesToProcess.length) * 100);
+
           console.log(
-            `[SIMPLE] Progress: ${Math.min(i + batchSize, filesToProcess.length)}/${filesToProcess.length} files processed`
+            `[SIMPLE] Progress: ${processed}/${filesToProcess.length} files processed (${percentage}%)`
           );
+
+          // Send progress update to Slack every 25%
+          if (percentage % 25 === 0 || processed === filesToProcess.length) {
+            await slackService.sendNotification({
+              text: `📊 Processing progress: ${percentage}% complete`,
+              fields: [
+                {
+                  title: 'Files Processed',
+                  value: `${processed}/${filesToProcess.length}`,
+                  short: true,
+                },
+                {
+                  title: 'Success Rate',
+                  value: `${Math.round((this.stats.filesProcessed / processed) * 100)}%`,
+                  short: true,
+                },
+                { title: 'Failed', value: this.stats.filesFailed.toString(), short: true },
+              ],
+            });
+          }
         }
       }
 
@@ -180,7 +258,22 @@ export class WebhookProcessorSimple {
       await this.generateReport();
     } catch (error) {
       console.error('[SIMPLE] Webhook processing failed:', error);
-      await slackService.sendError('Webhook processing failed', error as Error);
+
+      // Send more detailed error notification
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      await slackService.sendNotification({
+        text: `❌ Webhook processing failed for Line ${lineId || 'All'}`,
+        fields: [
+          { title: 'Error', value: errorMessage, short: false },
+          {
+            title: 'Files Processed',
+            value: `${this.stats.filesProcessed}/${this.stats.filesDiscovered}`,
+            short: true,
+          },
+          { title: 'Time Failed', value: new Date().toISOString(), short: true },
+        ],
+      });
+
       throw error;
     } finally {
       // Always release lock if we acquired one
@@ -210,20 +303,70 @@ export class WebhookProcessorSimple {
       const startYear = currentDate.getFullYear();
       const startMonth = currentDate.getMonth() + 1;
 
-      // Only scan current month and next 2 months for webhooks (not 3 years!)
-      const monthsToScan = 3;
-      console.log(
-        `[SIMPLE-DISCOVERY] Scanning ${monthsToScan} months from ${startYear}/${startMonth}`
-      );
+      // Dynamically discover available months on FTP server
+      console.log(`[SIMPLE-DISCOVERY] Starting dynamic scan from ${startYear}/${startMonth}`);
 
       // FTP structure: /year/month/lineid/shipid/cruiseid.json
-      // Calculate which months to scan
       const monthsToCheck = [];
-      for (let i = 0; i < monthsToScan; i++) {
-        const checkMonth = startMonth + i;
-        const checkYear = startYear + Math.floor((startMonth + i - 1) / 12);
-        const actualMonth = ((checkMonth - 1) % 12) + 1;
-        monthsToCheck.push({ year: checkYear, month: actualMonth });
+
+      // Scan up to 3 years ahead but stop if no data found
+      const maxYearsAhead = 3;
+      let consecutiveEmptyMonths = 0;
+      const maxConsecutiveEmpty = 6; // Stop after 6 consecutive empty months
+
+      for (let yearOffset = 0; yearOffset <= maxYearsAhead; yearOffset++) {
+        const checkYear = startYear + yearOffset;
+        const monthStart = checkYear === startYear ? startMonth : 1;
+
+        for (let month = monthStart; month <= 12; month++) {
+          const monthStr = month.toString().padStart(2, '0');
+
+          // Check if this month has data for our line
+          let hasData = false;
+
+          if (lineId) {
+            const linePath = `/${checkYear}/${monthStr}/${lineId}`;
+            try {
+              const items = await conn.client.list(linePath);
+              // Check if there are actual ship directories (not just . and ..)
+              hasData = items.some(
+                item => item.type === 2 && item.name !== '.' && item.name !== '..'
+              );
+            } catch (error) {
+              // Directory doesn't exist
+              hasData = false;
+            }
+          } else {
+            // Check if month directory exists and has any line folders
+            const monthPath = `/${checkYear}/${monthStr}`;
+            try {
+              const items = await conn.client.list(monthPath);
+              hasData = items.some(item => item.type === 2 && item.name.match(/^\d+$/));
+            } catch (error) {
+              hasData = false;
+            }
+          }
+
+          if (hasData) {
+            monthsToCheck.push({ year: checkYear, month });
+            consecutiveEmptyMonths = 0;
+            console.log(`[SIMPLE-DISCOVERY] Found data for ${checkYear}/${monthStr}`);
+          } else {
+            consecutiveEmptyMonths++;
+            // Don't break immediately - there might be gaps in the data
+            if (consecutiveEmptyMonths >= maxConsecutiveEmpty) {
+              console.log(
+                `[SIMPLE-DISCOVERY] No data found for ${maxConsecutiveEmpty} consecutive months, stopping scan`
+              );
+              break;
+            }
+          }
+        }
+
+        // If we've seen too many empty months, stop scanning years
+        if (consecutiveEmptyMonths >= maxConsecutiveEmpty) {
+          break;
+        }
       }
 
       console.log(
@@ -368,17 +511,59 @@ export class WebhookProcessorSimple {
 
   private async updateCruise(cruiseData: any) {
     try {
-      // For now, just log the update - we'll need to implement the actual database update
-      console.log(`[SIMPLE] Would update cruise ${cruiseData.cruise_id || cruiseData.id}`);
+      // Store raw JSON data in database
+      // Traveltek uses 'codetocruiseid' as the unique cruise identifier
+      const cruiseId = cruiseData.codetocruiseid || cruiseData.cruise_id || cruiseData.id;
+      console.log(`[SIMPLE] Updating cruise ${cruiseId} in database`);
 
-      // TODO: Implement actual database update logic
-      // This would involve:
-      // 1. Updating cruise table with new data
-      // 2. Updating pricing tables
-      // 3. Updating itinerary if changed
+      const lineId = parseInt(cruiseData.line_id || cruiseData.lineId || '0');
 
-      // For testing purposes, just count it as updated
-      this.stats.pricesUpdated += 1;
+      // Use the data processor to extract and populate all tables
+      const result = await this.dataProcessor.processCruiseData(cruiseData);
+
+      if (result.success) {
+        if (result.action === 'created') {
+          console.log(`[SIMPLE] 🆕 Created new cruise ${cruiseId}`);
+          this.stats.cruisesUpdated++;
+        } else if (result.action === 'updated') {
+          console.log(`[SIMPLE] ✅ Updated existing cruise ${cruiseId}`);
+          this.stats.cruisesUpdated++;
+        }
+
+        // Store webhook event for audit trail
+        await db.insert(webhookEvents).values({
+          lineId: lineId,
+          webhookType: result.action === 'created' ? 'cruise_created' : 'cruise_updated',
+          status: 'processed',
+          processedAt: new Date(),
+          metadata: {
+            cruiseId: result.cruiseId,
+            action: result.action,
+            shipId: cruiseData.ship_id || cruiseData.shipId,
+          },
+        });
+
+        this.stats.pricesUpdated += 1;
+      } else {
+        console.error(`[SIMPLE] ❌ Failed to process cruise ${cruiseId}: ${result.error}`);
+
+        // Store failure in webhook events
+        await db.insert(webhookEvents).values({
+          lineId: lineId,
+          webhookType: 'cruise_processing_failed',
+          status: 'failed',
+          processedAt: new Date(),
+          errorMessage: result.error,
+          metadata: {
+            cruiseCode: cruiseId,
+            error: result.error,
+          },
+        });
+
+        throw new Error(result.error);
+      }
+
+      console.log(`[SIMPLE] Successfully processed cruise ${cruiseId}`);
     } catch (error) {
       console.error('[SIMPLE] Failed to update cruise:', error);
       throw error;
@@ -391,23 +576,35 @@ export class WebhookProcessorSimple {
     const durationMinutes = Math.floor(duration / 60000);
     const durationSeconds = Math.floor((duration % 60000) / 1000);
 
+    const successRate =
+      this.stats.filesDiscovered > 0
+        ? Math.round((this.stats.filesProcessed / this.stats.filesDiscovered) * 100)
+        : 0;
+
+    // Determine status emoji and message
+    const statusEmoji = this.stats.filesFailed === 0 ? '✅' : '⚠️';
+    const statusText =
+      this.stats.filesFailed === 0
+        ? 'Webhook processing completed successfully'
+        : `Webhook processing completed with ${this.stats.filesFailed} errors`;
+
     await slackService.sendNotification({
-      text: '✅ Webhook processing completed (Simple)',
+      text: `${statusEmoji} ${statusText}`,
       fields: [
         { title: 'Files Discovered', value: this.stats.filesDiscovered.toString(), short: true },
         { title: 'Files Processed', value: this.stats.filesProcessed.toString(), short: true },
         { title: 'Files Failed', value: this.stats.filesFailed.toString(), short: true },
-        { title: 'Files Skipped', value: this.stats.filesSkipped.toString(), short: true },
-        { title: 'Cruises Updated', value: this.stats.cruisesUpdated.toString(), short: true },
-        { title: 'Prices Updated', value: this.stats.pricesUpdated.toString(), short: true },
+        { title: 'Success Rate', value: `${successRate}%`, short: true },
+        { title: 'Database Updates', value: this.stats.cruisesUpdated.toString(), short: true },
+        { title: 'Price Updates', value: this.stats.pricesUpdated.toString(), short: true },
         {
           title: 'Duration',
           value: `${durationMinutes}m ${durationSeconds}s`,
           short: true,
         },
         {
-          title: 'End Time',
-          value: new Date().toISOString(),
+          title: 'Processing Speed',
+          value: `${(this.stats.filesProcessed / (duration / 1000)).toFixed(1)} files/sec`,
           short: true,
         },
       ],
