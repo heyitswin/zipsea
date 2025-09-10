@@ -232,19 +232,17 @@ export class WebhookProcessorOptimized {
                 const dayFiles = await conn.client.list(dayPath);
 
                 for (const file of dayFiles) {
-                  if (file.type === 1 && file.name.endsWith('.jsonl')) {
-                    // Extract line ID from filename
-                    const match = file.name.match(/line_(\d+)_/);
-                    if (match) {
-                      const fileLineId = parseInt(match[1]);
-                      if (!lineId || fileLineId === lineId) {
-                        files.push({
-                          path: `${dayPath}/${file.name}`,
-                          size: file.size,
-                          modifiedAt: file.modifiedAt || new Date(),
-                          lineId: fileLineId,
-                        });
-                      }
+                  if (file.type === 1 && file.name.endsWith('.json')) {
+                    // For Traveltek, line ID is the directory name (e.g., /2025/09/54/shipid/cruise.json)
+                    // dayDir.name is the line ID
+                    const fileLineId = parseInt(dayDir.name);
+                    if (!lineId || fileLineId === lineId || isNaN(fileLineId)) {
+                      files.push({
+                        path: `${dayPath}/${file.name}`,
+                        size: file.size,
+                        modifiedAt: file.modifiedAt || new Date(),
+                        lineId: fileLineId || 0,
+                      });
                     }
                   }
                 }
@@ -299,48 +297,47 @@ export class WebhookProcessorOptimized {
       }
 
       // Download and parse file
-      const tempFile = `/tmp/webhook-${Date.now()}.jsonl`;
+      const tempFile = `/tmp/webhook-${Date.now()}.json`;
       await conn.client.downloadTo(tempFile, file.path);
       const fs = await import('fs');
       const content = await fs.promises.readFile(tempFile, 'utf-8');
       await fs.promises.unlink(tempFile);
 
-      const lines = content.split('\n').filter(line => line.trim());
       let cruisesProcessed = 0;
       let pricesProcessed = 0;
 
       // Take snapshot before processing
       await this.takeSnapshot(file.lineId);
 
-      for (const line of lines) {
-        try {
-          const data = JSON.parse(line);
+      try {
+        // Traveltek files are single JSON objects, not JSONL
+        const data = JSON.parse(content);
 
-          // Traveltek sends the entire cruise data in one object
-          // Check if this is a Traveltek cruise object
-          if (data.codetocruiseid || data.cruise_id) {
-            await this.updateCruise(data);
-            cruisesProcessed++;
+        // Check if this is a Traveltek cruise object
+        if (data.codetocruiseid || data.cruise_id) {
+          await this.updateCruise(data);
+          cruisesProcessed++;
 
-            // Extract and update detailed pricing from the same object
-            if (data.prices) {
-              await this.updateDetailedPricing(data.codetocruiseid || data.cruise_id, data.prices);
-              pricesProcessed++;
-            }
-          } else if (data.cruise) {
-            // Legacy format support
-            await this.updateCruise(data.cruise);
-            cruisesProcessed++;
-          }
-
-          if (data.pricing) {
-            // Legacy format support
-            await this.updatePricing(data.pricing);
+          // Extract and update detailed pricing from the same object
+          // Traveltek stores pricing in cheapest.prices, not prices directly
+          const pricingData = data.prices || (data.cheapest && data.cheapest.prices);
+          if (pricingData) {
+            await this.updateDetailedPricing(data.codetocruiseid || data.cruise_id, pricingData);
             pricesProcessed++;
           }
-        } catch (error) {
-          console.error(`Error processing line in ${file.path}:`, error);
+        } else if (data.cruise) {
+          // Legacy format support - if data has a cruise property
+          await this.updateCruise(data.cruise);
+          cruisesProcessed++;
         }
+
+        if (data.pricing) {
+          // Legacy format support - if data has a pricing property
+          await this.updatePricing(data.pricing);
+          pricesProcessed++;
+        }
+      } catch (error) {
+        console.error(`Error processing JSON in ${file.path}:`, error);
       }
 
       // Record processed event
