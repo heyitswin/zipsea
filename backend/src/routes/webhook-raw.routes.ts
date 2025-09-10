@@ -1096,19 +1096,18 @@ router.post('/traveltek/simple-test', async (req: Request, res: Response) => {
     // Use simple processor
     try {
       const processor = new WebhookProcessorSimple();
-      const result = await processor.processWebhooks(lineId);
+      await processor.processWebhooks(lineId);
 
       // Update status
       await client.query(
         'UPDATE webhook_events SET status = $1, processed_at = $2, error_message = $3 WHERE id = $4',
-        ['completed', new Date(), result.message, webhookEvent.id]
+        ['completed', new Date(), 'Processing completed successfully', webhookEvent.id]
       );
 
       res.json({
         success: true,
         message: 'Simple test completed',
         webhookId: webhookEvent.id,
-        result: result,
       });
     } catch (processingError) {
       console.error(`[SIMPLE-TEST] Processing failed:`, processingError);
