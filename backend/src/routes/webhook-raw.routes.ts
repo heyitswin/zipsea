@@ -12,6 +12,7 @@ import { WebhookProcessorMinimal } from '../services/webhook-processor-minimal.s
 import { WebhookProcessorFast } from '../services/webhook-processor-fast.service';
 import { WebhookProcessorOptimizedV2 } from '../services/webhook-processor-optimized-v2.service';
 import { getWebhookProcessorSimple } from '../services/webhook-processor-simple.service';
+import { webhookBatchProcessor } from '../services/webhook-batch-processor.service';
 import { Client } from 'pg';
 
 const router = Router();
@@ -1546,6 +1547,51 @@ router.get('/traveltek/simple-test', async (req: Request, res: Response) => {
     });
   } finally {
     await client.end();
+  }
+});
+
+// Test with batch processor
+router.post('/traveltek/test-batch', async (req: Request, res: Response) => {
+  const { lineId = 10 } = req.body;
+
+  try {
+    console.log(`[TEST-BATCH] Testing batch processor for line ${lineId}`);
+
+    const result = await webhookBatchProcessor.processWebhook(lineId);
+
+    res.json({
+      status: 'success',
+      message: 'Batch processing initiated',
+      lineId,
+      ...result,
+    });
+  } catch (error) {
+    console.error('[TEST-BATCH] Error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+// Get batch processing status
+router.get('/traveltek/batch-status/:lineId?', async (req: Request, res: Response) => {
+  const lineId = req.params.lineId ? parseInt(req.params.lineId) : undefined;
+
+  try {
+    const status = webhookBatchProcessor.getProcessingStatus(lineId);
+
+    res.json({
+      status: 'success',
+      processing: status,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('[BATCH-STATUS] Error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 });
 
