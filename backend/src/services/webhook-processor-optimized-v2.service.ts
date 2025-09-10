@@ -147,14 +147,19 @@ export class WebhookProcessorOptimizedV2 {
 
     console.log('[OPTIMIZED-V2] BullMQ queue and worker initialized');
 
+    // Resume queue in case it was paused
+    await WebhookProcessorOptimizedV2.webhookQueue.resume();
+    console.log('[OPTIMIZED-V2] Queue resumed to ensure processing');
+
     // Log worker status
     setTimeout(async () => {
       try {
         const isRunning = await WebhookProcessorOptimizedV2.webhookWorker.isRunning();
         const waiting = await WebhookProcessorOptimizedV2.webhookQueue.getWaitingCount();
         const active = await WebhookProcessorOptimizedV2.webhookQueue.getActiveCount();
+        const isPaused = await WebhookProcessorOptimizedV2.webhookQueue.isPaused();
         console.log(
-          `[OPTIMIZED-V2] Worker status check - Running: ${isRunning}, Waiting jobs: ${waiting}, Active jobs: ${active}`
+          `[OPTIMIZED-V2] Worker status check - Running: ${isRunning}, Waiting: ${waiting}, Active: ${active}, Paused: ${isPaused}`
         );
       } catch (err) {
         console.error('[OPTIMIZED-V2] Error checking worker status:', err);
@@ -393,19 +398,20 @@ export class WebhookProcessorOptimizedV2 {
           if (dir.type === 2) {
             // Directory
             const year = parseInt(dir.name);
-            if (!isNaN(year) && year >= currentYear && year <= currentYear + 2) {
+            // Include any year from current year onwards (no upper limit)
+            if (!isNaN(year) && year >= currentYear) {
               availableYears.push(year);
             }
           }
         }
+        // Sort years in ascending order
+        availableYears.sort((a, b) => a - b);
       } catch (error) {
         console.log('[OPTIMIZED-V2] Error listing years, using default range');
         availableYears.push(currentYear, currentYear + 1);
       }
 
-      console.log(
-        `[OPTIMIZED-V2] Scanning years: ${availableYears.join(', ')} (ALL available data)`
-      );
+      console.log(`[OPTIMIZED-V2] Scanning ALL available years: ${availableYears.join(', ')}`);
 
       // For each available year, scan all months from current month onwards
       for (const year of availableYears) {
