@@ -1,4 +1,6 @@
 import * as ftp from 'basic-ftp';
+import { Queue, Worker, Job } from 'bullmq';
+import Redis from 'ioredis';
 import { db } from '../db/connection';
 import { cruises } from '../db/schema/cruises';
 import { cheapestPricing } from '../db/schema';
@@ -19,6 +21,11 @@ export class WebhookProcessorOptimizedV2 {
   private static MAX_CONNECTIONS = 3;
   private static KEEP_ALIVE_INTERVAL = 30000;
 
+  // BullMQ configuration
+  private static webhookQueue: Queue | null = null;
+  private static webhookWorker: Worker | null = null;
+  private static redisConnection: Redis | null = null;
+
   private stats = {
     filesProcessed: 0,
     cruisesUpdated: 0,
@@ -27,6 +34,95 @@ export class WebhookProcessorOptimizedV2 {
 
   constructor() {
     this.initializeFtpPool();
+    this.initializeQueue();
+  }
+
+  private async initializeQueue() {
+    // Only initialize once
+    if (WebhookProcessorOptimizedV2.webhookQueue) {
+      return;
+    }
+
+    // Create Redis connection for BullMQ
+    WebhookProcessorOptimizedV2.redisConnection = new Redis(
+      process.env.REDIS_URL || 'redis://localhost:6379',
+      {
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+      }
+    );
+
+    // Create the queue for webhook processing
+    WebhookProcessorOptimizedV2.webhookQueue = new Queue('webhook-v2-processing', {
+      connection: WebhookProcessorOptimizedV2.redisConnection,
+      defaultJobOptions: {
+        removeOnComplete: { count: 100, age: 3600 }, // Keep last 100 completed jobs for 1 hour
+        removeOnFail: { count: 50, age: 86400 }, // Keep last 50 failed jobs for 24 hours
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+      },
+    });
+
+    // Create worker to process jobs
+    WebhookProcessorOptimizedV2.webhookWorker = new Worker(
+      'webhook-v2-processing',
+      async (job: Job) => {
+        const { lineId, files } = job.data;
+        console.log(
+          `[WORKER-V2] Processing job ${job.id} for line ${lineId} with ${files.length} files`
+        );
+
+        // Process files in batches
+        const BATCH_SIZE = 5;
+        const results = { processed: 0, failed: 0, updated: 0 };
+
+        for (let i = 0; i < files.length; i += BATCH_SIZE) {
+          const batch = files.slice(i, i + BATCH_SIZE);
+
+          // Update job progress
+          await job.updateProgress((i / files.length) * 100);
+
+          // Process batch in parallel
+          const batchResults = await Promise.allSettled(
+            batch.map(file => this.processFileStatic(file))
+          );
+
+          batchResults.forEach(result => {
+            if (result.status === 'fulfilled') {
+              results.processed++;
+              if (result.value) results.updated++;
+            } else {
+              results.failed++;
+              console.error(`[WORKER-V2] File processing failed:`, result.reason);
+            }
+          });
+        }
+
+        console.log(
+          `[WORKER-V2] Job ${job.id} completed: ${results.processed} processed, ${results.updated} updated, ${results.failed} failed`
+        );
+        return results;
+      },
+      {
+        connection: WebhookProcessorOptimizedV2.redisConnection!,
+        concurrency: 3, // Process 3 jobs concurrently
+        stalledInterval: 30000,
+      }
+    );
+
+    // Set up event listeners
+    WebhookProcessorOptimizedV2.webhookWorker.on('completed', job => {
+      console.log(`[QUEUE-V2] Job ${job.id} completed successfully`);
+    });
+
+    WebhookProcessorOptimizedV2.webhookWorker.on('failed', (job, err) => {
+      console.error(`[QUEUE-V2] Job ${job?.id} failed:`, err.message);
+    });
+
+    console.log('[OPTIMIZED-V2] BullMQ queue and worker initialized');
   }
 
   private async initializeFtpPool() {
@@ -134,11 +230,16 @@ export class WebhookProcessorOptimizedV2 {
     conn.lastUsed = Date.now();
   }
 
-  async processWebhooks(lineId: number): Promise<void> {
+  async processWebhooks(
+    lineId: number
+  ): Promise<{ status: string; jobId?: string; message: string }> {
     const startTime = Date.now();
     console.log(`[OPTIMIZED-V2] Starting webhook processing for line ${lineId}`);
 
     try {
+      // Initialize queue if not already done
+      await this.initializeQueue();
+
       // Take a snapshot before processing
       await this.takeSnapshot(lineId);
 
@@ -146,22 +247,56 @@ export class WebhookProcessorOptimizedV2 {
       const files = await this.discoverFiles(lineId);
       console.log(`[OPTIMIZED-V2] Found ${files.length} files to process`);
 
-      // Process in parallel batches
-      const BATCH_SIZE = 5;
-      const filesToProcess = files.slice(0, 20); // Limit to 20 files for webhooks
+      if (files.length === 0) {
+        return {
+          status: 'completed',
+          message: `No files found for line ${lineId}`,
+        };
+      }
 
-      for (let i = 0; i < filesToProcess.length; i += BATCH_SIZE) {
-        const batch = filesToProcess.slice(i, i + BATCH_SIZE);
-        await Promise.all(batch.map(file => this.processFile(file)));
+      // Create batches of files for queue processing
+      const MAX_FILES_PER_JOB = 50; // Process up to 50 files per job
+      const batches = [];
+
+      for (let i = 0; i < files.length; i += MAX_FILES_PER_JOB) {
+        batches.push(files.slice(i, i + MAX_FILES_PER_JOB));
+      }
+
+      console.log(`[OPTIMIZED-V2] Creating ${batches.length} jobs for line ${lineId}`);
+
+      // Queue jobs for processing
+      const jobIds = [];
+      for (let i = 0; i < batches.length; i++) {
+        const job = await WebhookProcessorOptimizedV2.webhookQueue!.add(
+          `line-${lineId}-batch-${i + 1}`,
+          {
+            lineId,
+            files: batches[i],
+            batchNumber: i + 1,
+            totalBatches: batches.length,
+          },
+          {
+            priority: batches.length - i, // Process earlier batches first
+            delay: i * 2000, // Stagger job starts by 2 seconds
+          }
+        );
+        jobIds.push(job.id);
       }
 
       const duration = Date.now() - startTime;
-      console.log(
-        `[OPTIMIZED-V2] Completed in ${duration}ms - Processed: ${this.stats.filesProcessed}, Updated: ${this.stats.cruisesUpdated}`
-      );
+      console.log(`[OPTIMIZED-V2] Queued ${batches.length} jobs in ${duration}ms`);
+
+      return {
+        status: 'queued',
+        jobId: jobIds[0], // Return first job ID
+        message: `Queued ${batches.length} jobs to process ${files.length} files for line ${lineId}`,
+      };
     } catch (error) {
       console.error('[OPTIMIZED-V2] Processing failed:', error);
-      throw error;
+      return {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      };
     }
   }
 
@@ -170,44 +305,80 @@ export class WebhookProcessorOptimizedV2 {
     const files: any[] = [];
 
     try {
-      // Only check current month and next month
+      // Get current date
       const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
 
-      for (let monthOffset = 0; monthOffset <= 1; monthOffset++) {
-        const checkDate = new Date(now);
-        checkDate.setMonth(checkDate.getMonth() + monthOffset);
+      // First, discover what years are available on FTP
+      const availableYears: number[] = [];
+      try {
+        const yearDirs = await conn.client.list('/');
+        for (const dir of yearDirs) {
+          if (dir.type === 2) {
+            // Directory
+            const year = parseInt(dir.name);
+            if (!isNaN(year) && year >= currentYear && year <= currentYear + 2) {
+              availableYears.push(year);
+            }
+          }
+        }
+      } catch (error) {
+        console.log('[OPTIMIZED-V2] Error listing years, using default range');
+        availableYears.push(currentYear, currentYear + 1);
+      }
 
-        const year = checkDate.getFullYear();
-        const month = (checkDate.getMonth() + 1).toString().padStart(2, '0');
-        const linePath = `/${year}/${month}/${lineId}`;
+      console.log(`[OPTIMIZED-V2] Scanning years: ${availableYears.join(', ')}`);
 
-        try {
-          const shipDirs = await conn.client.list(linePath);
+      // For each available year, scan all months from current month onwards
+      for (const year of availableYears) {
+        const startMonth = year === currentYear ? currentMonth : 1;
+        const endMonth = 12;
 
-          for (const shipDir of shipDirs) {
-            if (shipDir.type === 2) {
-              // Directory
-              const shipPath = `${linePath}/${shipDir.name}`;
-              const cruiseFiles = await conn.client.list(shipPath);
+        for (let month = startMonth; month <= endMonth; month++) {
+          const monthStr = month.toString().padStart(2, '0');
+          const linePath = `/${year}/${monthStr}/${lineId}`;
 
-              for (const file of cruiseFiles) {
-                if (file.type === 1 && file.name.endsWith('.json')) {
-                  files.push({
-                    path: `${shipPath}/${file.name}`,
-                    name: file.name,
-                    lineId: lineId,
-                    shipId: parseInt(shipDir.name) || 0,
-                    cruiseId: file.name.replace('.json', ''),
-                    size: file.size,
-                  });
+          try {
+            const shipDirs = await conn.client.list(linePath);
+
+            for (const shipDir of shipDirs) {
+              if (shipDir.type === 2) {
+                // Directory
+                const shipPath = `${linePath}/${shipDir.name}`;
+                const cruiseFiles = await conn.client.list(shipPath);
+
+                for (const file of cruiseFiles) {
+                  if (file.type === 1 && file.name.endsWith('.json')) {
+                    files.push({
+                      path: `${shipPath}/${file.name}`,
+                      name: file.name,
+                      lineId: lineId,
+                      shipId: parseInt(shipDir.name) || 0,
+                      cruiseId: file.name.replace('.json', ''),
+                      size: file.size,
+                      year: year,
+                      month: month,
+                    });
+                  }
                 }
               }
             }
+
+            if (files.length > 0) {
+              console.log(`[OPTIMIZED-V2] Found ${files.length} files in ${year}/${monthStr}`);
+            }
+          } catch (error) {
+            // No data for this month, continue silently
           }
-        } catch (error) {
-          // No data for this month, continue
         }
       }
+
+      // Sort files by date (year/month) to process most recent first
+      files.sort((a, b) => {
+        if (a.year !== b.year) return a.year - b.year;
+        return a.month - b.month;
+      });
     } finally {
       this.releaseFtpConnection(conn);
     }
@@ -215,7 +386,13 @@ export class WebhookProcessorOptimizedV2 {
     return files;
   }
 
-  private async processFile(file: any): Promise<void> {
+  // Static version of processFile that can be called from worker
+  private static async processFileStatic(file: any): Promise<boolean> {
+    const processor = new WebhookProcessorOptimizedV2();
+    return processor.processFile(file);
+  }
+
+  private async processFile(file: any): Promise<boolean> {
     const conn = await this.getFtpConnection();
 
     try {
@@ -237,58 +414,106 @@ export class WebhookProcessorOptimizedV2 {
 
       const data = JSON.parse(Buffer.concat(chunks).toString());
 
-      // Update cruise in database
-      if (data && (data.id || data.codetocruiseid)) {
-        const cruiseId = data.id || data.codetocruiseid || file.cruiseId;
+      // According to TRAVELTEK-COMPLETE-FIELD-REFERENCE.md, the primary ID is codetocruiseid
+      const cruiseId = data.codetocruiseid || data.id || file.cruiseId;
 
-        // Extract sailing date
-        let sailingDate =
-          data.embarkDate || data.embarkdate || data.sailingdate || data.sailing_date;
-        if (sailingDate && sailingDate.includes('T')) {
-          sailingDate = sailingDate.split('T')[0];
-        }
-
-        // Prepare cruise data
-        const cruiseData = {
-          id: cruiseId,
-          cruiseId: data.cruiseid || data.cruise_id,
-          name: data.name || data.title || data.cruisename || 'Unknown Cruise',
-          cruiseLineId: file.lineId,
-          shipId: file.shipId || data.shipid || 0,
-          nights: parseInt(data.nights || data.duration || 0),
-          sailingDate: sailingDate || new Date().toISOString().split('T')[0],
-          embarkPortId: data.embarkportid || data.embarkation_port_id || 0,
-          disembarkPortId: data.disembarkportid || data.disembarkation_port_id || 0,
-          rawData: data,
-          updatedAt: new Date(),
-        };
-
-        // Upsert cruise
-        await db
-          .insert(cruises)
-          .values(cruiseData)
-          .onConflictDoUpdate({
-            target: cruises.id,
-            set: {
-              name: cruiseData.name,
-              nights: cruiseData.nights,
-              sailingDate: cruiseData.sailingDate,
-              rawData: cruiseData.rawData,
-              updatedAt: new Date(),
-            },
-          });
-
-        this.stats.cruisesUpdated++;
-        console.log(`[OPTIMIZED-V2] Updated cruise ${cruiseId} (${file.size} bytes)`);
-
-        // Update pricing if available
-        await this.updatePricing(cruiseId, data);
+      if (!cruiseId) {
+        console.log(`[OPTIMIZED-V2] No cruise ID found in ${file.path}`);
+        return;
       }
 
+      // Extract sailing date (from startdate or saildate field)
+      let sailingDate = data.startdate || data.saildate;
+      if (!sailingDate) {
+        // Fallback to other possible date fields
+        sailingDate = data.embarkDate || data.embarkdate || data.sailingdate || data.sailing_date;
+      }
+      if (sailingDate && sailingDate.includes('T')) {
+        sailingDate = sailingDate.split('T')[0];
+      }
+
+      // Calculate return date if we have sailing date and nights
+      let returnDate = null;
+      if (sailingDate && data.nights) {
+        const sailDate = new Date(sailingDate);
+        sailDate.setDate(sailDate.getDate() + parseInt(data.nights));
+        returnDate = sailDate.toISOString().split('T')[0];
+      }
+
+      // Extract port and region information
+      const portIds = data.portids ? data.portids.join(',') : '';
+      const regionIds = data.regionids ? data.regionids.join(',') : '';
+
+      // Prepare comprehensive cruise data based on Traveltek fields
+      const cruiseData = {
+        id: cruiseId,
+        cruiseId: data.cruiseid ? data.cruiseid.toString() : cruiseId,
+        cruiseLineId: file.lineId,
+        shipId: data.shipid || file.shipId || 0,
+        name: data.name || data.title || 'Unknown Cruise',
+        voyageCode: data.voyagecode || null,
+        itineraryCode: data.itinerarycode || null,
+        sailingDate: sailingDate || new Date().toISOString().split('T')[0],
+        returnDate: returnDate,
+        nights: parseInt(data.nights || data.sailnights || 0),
+        seaDays: parseInt(data.seadays || 0),
+        embarkPortId: data.startportid || data.embarkportid || 0,
+        disembarkPortId: data.endportid || data.disembarkportid || 0,
+        portIds: portIds,
+        regionIds: regionIds,
+        marketId: data.marketid ? data.marketid.toString() : null,
+        ownerId: data.ownerid ? data.ownerid.toString() : null,
+        noFly: data.nofly === 'Y' || data.nofly === true,
+        departUk: data.departuk === true,
+        showCruise: data.showcruise !== false, // Default to true unless explicitly false
+        lastCached: data.lastcached || null,
+        cachedDate: data.cacheddate || null,
+        rawData: data,
+        updatedAt: new Date(),
+      };
+
+      // Upsert cruise (insert if new, update if exists)
+      await db
+        .insert(cruises)
+        .values(cruiseData)
+        .onConflictDoUpdate({
+          target: cruises.id,
+          set: {
+            name: cruiseData.name,
+            voyageCode: cruiseData.voyageCode,
+            itineraryCode: cruiseData.itineraryCode,
+            sailingDate: cruiseData.sailingDate,
+            returnDate: cruiseData.returnDate,
+            nights: cruiseData.nights,
+            seaDays: cruiseData.seaDays,
+            embarkPortId: cruiseData.embarkPortId,
+            disembarkPortId: cruiseData.disembarkPortId,
+            portIds: cruiseData.portIds,
+            regionIds: cruiseData.regionIds,
+            marketId: cruiseData.marketId,
+            ownerId: cruiseData.ownerId,
+            noFly: cruiseData.noFly,
+            departUk: cruiseData.departUk,
+            showCruise: cruiseData.showCruise,
+            lastCached: cruiseData.lastCached,
+            cachedDate: cruiseData.cachedDate,
+            rawData: cruiseData.rawData,
+            updatedAt: new Date(),
+          },
+        });
+
+      this.stats.cruisesUpdated++;
+      console.log(`[OPTIMIZED-V2] Upserted cruise ${cruiseId} (${file.size} bytes)`);
+
+      // Update pricing if available
+      await this.updatePricing(cruiseId, data);
+
       this.stats.filesProcessed++;
+      return true; // Successfully processed
     } catch (error) {
       console.error(`[OPTIMIZED-V2] Failed to process ${file.path}:`, error);
       this.stats.errors.push(`${file.path}: ${error}`);
+      return false; // Failed to process
     } finally {
       this.releaseFtpConnection(conn);
     }
@@ -296,86 +521,262 @@ export class WebhookProcessorOptimizedV2 {
 
   private async updatePricing(cruiseId: string, data: any): Promise<void> {
     try {
-      // Look for pricing in various possible locations
-      const pricingData = data.prices || data.pricing || data.cabins || data.categories;
+      // Extract pricing from Traveltek's structure
+      let cheapestData: any = {};
 
-      if (!pricingData) {
-        return;
+      // According to TRAVELTEK-COMPLETE-FIELD-REFERENCE.md, pricing is in:
+      // 1. data.cheapest object with combined field (preferred)
+      // 2. data.cheapest.prices for separated cabin types
+      // 3. data.cheapestinside, cheapestoutside, cheapestbalcony, cheapestsuite objects
+
+      // First priority: cheapest.combined (most reliable aggregated pricing)
+      if (data.cheapest && data.cheapest.combined) {
+        cheapestData = {
+          cheapestPrice: parseFloat(
+            data.cheapest.combined.price || data.cheapest.combined.total || 0
+          ),
+          interiorPrice: parseFloat(data.cheapest.combined.inside || 0),
+          oceanviewPrice: parseFloat(data.cheapest.combined.outside || 0),
+          balconyPrice: parseFloat(data.cheapest.combined.balcony || 0),
+          suitePrice: parseFloat(data.cheapest.combined.suite || 0),
+        };
+      }
+      // Second priority: cheapest.prices
+      else if (data.cheapest && data.cheapest.prices) {
+        cheapestData = {
+          interiorPrice: parseFloat(data.cheapest.prices.inside || 0),
+          oceanviewPrice: parseFloat(data.cheapest.prices.outside || 0),
+          balconyPrice: parseFloat(data.cheapest.prices.balcony || 0),
+          suitePrice: parseFloat(data.cheapest.prices.suite || 0),
+        };
+        // Calculate cheapest overall
+        const prices = [
+          cheapestData.interiorPrice,
+          cheapestData.oceanviewPrice,
+          cheapestData.balconyPrice,
+          cheapestData.suitePrice,
+        ].filter(p => p > 0);
+        cheapestData.cheapestPrice = prices.length > 0 ? Math.min(...prices) : null;
+      }
+      // Third priority: Individual cheapest objects
+      else if (
+        data.cheapestinside ||
+        data.cheapestoutside ||
+        data.cheapestbalcony ||
+        data.cheapestsuite
+      ) {
+        cheapestData = {
+          interiorPrice: data.cheapestinside ? parseFloat(data.cheapestinside.price || 0) : null,
+          oceanviewPrice: data.cheapestoutside ? parseFloat(data.cheapestoutside.price || 0) : null,
+          balconyPrice: data.cheapestbalcony ? parseFloat(data.cheapestbalcony.price || 0) : null,
+          suitePrice: data.cheapestsuite ? parseFloat(data.cheapestsuite.price || 0) : null,
+        };
+        // Calculate cheapest overall
+        const prices = [
+          cheapestData.interiorPrice,
+          cheapestData.oceanviewPrice,
+          cheapestData.balconyPrice,
+          cheapestData.suitePrice,
+        ].filter(p => p > 0);
+        cheapestData.cheapestPrice = prices.length > 0 ? Math.min(...prices) : null;
+      }
+      // Fallback: Try to extract from prices/cachedprices structure
+      else if (data.prices || data.cachedprices) {
+        const priceSource = data.cachedprices || data.prices;
+        cheapestData = await this.extractPricesFromNestedStructure(priceSource);
       }
 
-      let interiorPrice = null;
-      let oceanviewPrice = null;
-      let balconyPrice = null;
-      let suitePrice = null;
-
-      // Handle different pricing structures
-      if (Array.isArray(pricingData)) {
-        for (const cabin of pricingData) {
-          const price = parseFloat(
-            cabin.price ||
-              cabin.adult_price ||
-              cabin.adultprice ||
-              cabin.cheapest_price ||
-              cabin.from_price ||
-              0
-          );
-
-          if (!price || price === 0) continue;
-
-          const category = (
-            cabin.category ||
-            cabin.cabin_type ||
-            cabin.cabintype ||
-            cabin.type ||
-            ''
-          ).toLowerCase();
-
-          if (category.includes('interior') || category.includes('inside')) {
-            if (!interiorPrice || price < interiorPrice) {
-              interiorPrice = price;
-            }
-          } else if (category.includes('ocean') || category.includes('outside')) {
-            if (!oceanviewPrice || price < oceanviewPrice) {
-              oceanviewPrice = price;
-            }
-          } else if (category.includes('balcony') || category.includes('verandah')) {
-            if (!balconyPrice || price < balconyPrice) {
-              balconyPrice = price;
-            }
-          } else if (category.includes('suite') || category.includes('penthouse')) {
-            if (!suitePrice || price < suitePrice) {
-              suitePrice = price;
-            }
-          }
+      // Clean up zero values
+      Object.keys(cheapestData).forEach(key => {
+        if (cheapestData[key] === 0 || cheapestData[key] === null) {
+          cheapestData[key] = null;
         }
-      } else if (typeof pricingData === 'object') {
-        // Handle object-based pricing structure
-        interiorPrice =
-          parseFloat(pricingData.interior_price || pricingData.inside_price || 0) || null;
-        oceanviewPrice =
-          parseFloat(pricingData.oceanview_price || pricingData.outside_price || 0) || null;
-        balconyPrice = parseFloat(pricingData.balcony_price || 0) || null;
-        suitePrice = parseFloat(pricingData.suite_price || 0) || null;
-      }
+      });
 
-      // Update cruise with pricing if we found any
-      if (interiorPrice || oceanviewPrice || balconyPrice || suitePrice) {
+      // Update cruises table with basic pricing
+      if (
+        cheapestData.interiorPrice ||
+        cheapestData.oceanviewPrice ||
+        cheapestData.balconyPrice ||
+        cheapestData.suitePrice
+      ) {
         await db
           .update(cruises)
           .set({
-            interiorPrice: interiorPrice?.toString(),
-            oceanviewPrice: oceanviewPrice?.toString(),
-            balconyPrice: balconyPrice?.toString(),
-            suitePrice: suitePrice?.toString(),
+            interiorPrice: cheapestData.interiorPrice?.toString(),
+            oceanviewPrice: cheapestData.oceanviewPrice?.toString(),
+            balconyPrice: cheapestData.balconyPrice?.toString(),
+            suitePrice: cheapestData.suitePrice?.toString(),
             updatedAt: new Date(),
           })
           .where(eq(cruises.id, cruiseId));
 
-        console.log(`[OPTIMIZED-V2] Updated pricing for cruise ${cruiseId}`);
+        console.log(`[OPTIMIZED-V2] Updated cruise pricing for ${cruiseId}`);
+      }
+
+      // Now update the cheapest_pricing table with full details
+      if (
+        cheapestData.cheapestPrice ||
+        cheapestData.interiorPrice ||
+        cheapestData.oceanviewPrice ||
+        cheapestData.balconyPrice ||
+        cheapestData.suitePrice
+      ) {
+        // Prepare full cheapest pricing data
+        const cheapestPricingData = {
+          cruiseId: cruiseId,
+          cheapestPrice: cheapestData.cheapestPrice,
+
+          // Interior details
+          interiorPrice: cheapestData.interiorPrice,
+          interiorTaxes: data.cheapestinside?.taxes || null,
+          interiorNcf: data.cheapestinside?.ncf || null,
+          interiorGratuity: data.cheapestinside?.gratuity || null,
+          interiorFuel: data.cheapestinside?.fuel || null,
+          interiorNonComm: data.cheapestinside?.noncomm || null,
+          interiorPriceCode: data.cheapestinsidepricecode || null,
+
+          // Oceanview details
+          oceanviewPrice: cheapestData.oceanviewPrice,
+          oceanviewTaxes: data.cheapestoutside?.taxes || null,
+          oceanviewNcf: data.cheapestoutside?.ncf || null,
+          oceanviewGratuity: data.cheapestoutside?.gratuity || null,
+          oceanviewFuel: data.cheapestoutside?.fuel || null,
+          oceanviewNonComm: data.cheapestoutside?.noncomm || null,
+          oceanviewPriceCode: data.cheapestoutsidepricecode || null,
+
+          // Balcony details
+          balconyPrice: cheapestData.balconyPrice,
+          balconyTaxes: data.cheapestbalcony?.taxes || null,
+          balconyNcf: data.cheapestbalcony?.ncf || null,
+          balconyGratuity: data.cheapestbalcony?.gratuity || null,
+          balconyFuel: data.cheapestbalcony?.fuel || null,
+          balconyNonComm: data.cheapestbalcony?.noncomm || null,
+          balconyPriceCode: data.cheapestbalconypricecode || null,
+
+          // Suite details
+          suitePrice: cheapestData.suitePrice,
+          suiteTaxes: data.cheapestsuite?.taxes || null,
+          suiteNcf: data.cheapestsuite?.ncf || null,
+          suiteGratuity: data.cheapestsuite?.gratuity || null,
+          suiteFuel: data.cheapestsuite?.fuel || null,
+          suiteNonComm: data.cheapestsuite?.noncomm || null,
+          suitePriceCode: data.cheapestsuitepricecode || null,
+
+          currency: data.currency || 'USD',
+          lastUpdated: new Date(),
+        };
+
+        // Upsert into cheapest_pricing table
+        await db
+          .insert(cheapestPricing)
+          .values(cheapestPricingData)
+          .onConflictDoUpdate({
+            target: cheapestPricing.cruiseId,
+            set: {
+              ...cheapestPricingData,
+              lastUpdated: new Date(),
+            },
+          });
+
+        console.log(`[OPTIMIZED-V2] Updated cheapest_pricing for cruise ${cruiseId}`);
       }
     } catch (error) {
       console.error(`[OPTIMIZED-V2] Failed to update pricing for ${cruiseId}:`, error);
     }
+  }
+
+  // Helper function to extract prices from nested rate/cabin/occupancy structure
+  private async extractPricesFromNestedStructure(priceData: any): Promise<any> {
+    const result = {
+      interiorPrice: null as number | null,
+      oceanviewPrice: null as number | null,
+      balconyPrice: null as number | null,
+      suitePrice: null as number | null,
+      cheapestPrice: null as number | null,
+    };
+
+    if (!priceData || typeof priceData !== 'object') {
+      return result;
+    }
+
+    // Iterate through rate codes
+    for (const rateCode in priceData) {
+      const cabins = priceData[rateCode];
+      if (!cabins || typeof cabins !== 'object') continue;
+
+      // Iterate through cabin codes
+      for (const cabinCode in cabins) {
+        const occupancies = cabins[cabinCode];
+        if (!occupancies || typeof occupancies !== 'object') continue;
+
+        // Find the cheapest price for this cabin
+        let cabinPrice = null;
+        for (const occupancy in occupancies) {
+          const priceInfo = occupancies[occupancy];
+          if (priceInfo && priceInfo.price) {
+            const price = parseFloat(priceInfo.price);
+            if (price > 0 && (!cabinPrice || price < cabinPrice)) {
+              cabinPrice = price;
+            }
+          }
+        }
+
+        if (!cabinPrice) continue;
+
+        // Categorize cabin based on code or type
+        const cabinUpper = cabinCode.toUpperCase();
+        const cabinType = occupancies['101']?.cabintype?.toLowerCase() || '';
+
+        if (
+          cabinUpper.startsWith('I') ||
+          cabinType.includes('interior') ||
+          cabinType.includes('inside')
+        ) {
+          if (!result.interiorPrice || cabinPrice < result.interiorPrice) {
+            result.interiorPrice = cabinPrice;
+          }
+        } else if (
+          cabinUpper.startsWith('O') ||
+          cabinType.includes('ocean') ||
+          cabinType.includes('outside')
+        ) {
+          if (!result.oceanviewPrice || cabinPrice < result.oceanviewPrice) {
+            result.oceanviewPrice = cabinPrice;
+          }
+        } else if (
+          cabinUpper.startsWith('B') ||
+          cabinType.includes('balcony') ||
+          cabinType.includes('verandah')
+        ) {
+          if (!result.balconyPrice || cabinPrice < result.balconyPrice) {
+            result.balconyPrice = cabinPrice;
+          }
+        } else if (
+          cabinUpper.startsWith('S') ||
+          cabinType.includes('suite') ||
+          cabinType.includes('penthouse')
+        ) {
+          if (!result.suitePrice || cabinPrice < result.suitePrice) {
+            result.suitePrice = cabinPrice;
+          }
+        }
+      }
+    }
+
+    // Calculate overall cheapest
+    const allPrices = [
+      result.interiorPrice,
+      result.oceanviewPrice,
+      result.balconyPrice,
+      result.suitePrice,
+    ].filter(p => p !== null && p > 0) as number[];
+
+    if (allPrices.length > 0) {
+      result.cheapestPrice = Math.min(...allPrices);
+    }
+
+    return result;
   }
 
   private async takeSnapshot(lineId: number) {
