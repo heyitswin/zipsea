@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import logger from '../config/logger';
-import { WebhookProcessorOptimized } from '../services/webhook-processor-optimized.service';
+import { WebhookProcessorFixed } from '../services/webhook-processor-fixed.service';
 import { db } from '../db/connection';
 import { webhookEvents } from '../db/schema/webhook-events';
 import { eq, sql } from 'drizzle-orm';
@@ -9,11 +9,11 @@ import { sql as pgSql } from '../db/connection';
 const router = Router();
 
 // Lazy-load webhook processor to ensure environment variables are loaded
-let webhookProcessor: WebhookProcessorOptimized | null = null;
+let webhookProcessor: WebhookProcessorFixed | null = null;
 
-function getWebhookProcessor(): WebhookProcessorOptimized {
+function getWebhookProcessor(): WebhookProcessorFixed {
   if (!webhookProcessor) {
-    webhookProcessor = new WebhookProcessorOptimized();
+    webhookProcessor = new WebhookProcessorFixed();
   }
   return webhookProcessor;
 }
