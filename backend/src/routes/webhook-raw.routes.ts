@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import logger from '../config/logger';
 import { WebhookProcessorOptimized } from '../services/webhook-processor-optimized.service';
+import { WebhookProcessorSimple } from '../services/webhook-processor-simple.service';
 import { Client } from 'pg';
 
 const router = Router();
@@ -459,6 +460,74 @@ router.get('/traveltek/db-check', async (req: Request, res: Response) => {
  * Minimal test endpoint - just updates status
  * POST /api/webhooks/traveltek/minimal-test
  */
+// Simple processing test - uses simplified processor
+router.post('/traveltek/simple-test', async (req: Request, res: Response) => {
+  const { lineId = 22 } = req.body;
+  const client = new Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL?.includes('render.com') ? { rejectUnauthorized: false } : false,
+  });
+
+  try {
+    await client.connect();
+
+    // Insert webhook event
+    const insertResult = await client.query(
+      'INSERT INTO webhook_events (line_id, webhook_type, status, metadata) VALUES ($1, $2, $3, $4) RETURNING *',
+      [lineId, 'simple_test', 'processing', JSON.stringify({ test: true, lineId })]
+    );
+
+    const webhookEvent = insertResult.rows[0];
+    console.log(`[SIMPLE-TEST] Created webhook ${webhookEvent.id} for line ${lineId}`);
+
+    // Use simple processor
+    try {
+      const processor = new WebhookProcessorSimple();
+      const result = await processor.processSimple(lineId);
+
+      // Update status
+      await client.query(
+        'UPDATE webhook_events SET status = $1, processed_at = $2, error_message = $3 WHERE id = $4',
+        ['completed', new Date(), result.message, webhookEvent.id]
+      );
+
+      res.json({
+        success: true,
+        message: 'Simple test completed',
+        webhookId: webhookEvent.id,
+        result: result,
+      });
+    } catch (processingError) {
+      console.error(`[SIMPLE-TEST] Processing failed:`, processingError);
+
+      // Update status to failed
+      await client.query(
+        'UPDATE webhook_events SET status = $1, processed_at = $2, error_message = $3 WHERE id = $4',
+        [
+          'failed',
+          new Date(),
+          processingError instanceof Error ? processingError.message : 'Unknown error',
+          webhookEvent.id,
+        ]
+      );
+
+      res.json({
+        success: false,
+        message: 'Simple test failed',
+        webhookId: webhookEvent.id,
+        error: processingError instanceof Error ? processingError.message : 'Unknown error',
+      });
+    }
+  } catch (error) {
+    console.error('[SIMPLE-TEST] Setup error:', error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : 'Simple test failed',
+    });
+  } finally {
+    await client.end();
+  }
+});
+
 // Synchronous processing test - runs webhook processor synchronously
 router.post('/traveltek/sync-test', async (req: Request, res: Response) => {
   const { lineId = 22 } = req.body;
