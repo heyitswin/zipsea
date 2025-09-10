@@ -4,6 +4,7 @@ import { WebhookProcessorOptimized } from '../services/webhook-processor-optimiz
 import { WebhookProcessorSimple } from '../services/webhook-processor-simple.service';
 import { WebhookProcessorDiscovery } from '../services/webhook-processor-discovery.service';
 import { WebhookProcessorCorrect } from '../services/webhook-processor-correct.service';
+import { WebhookProcessorFixed } from '../services/webhook-processor-fixed.service';
 import { getWebhookProcessorFixed } from '../services/webhook-processor-fixed.service';
 import { getWebhookProcessorSimple } from '../services/webhook-processor-simple.service';
 import { Client } from 'pg';
@@ -11,11 +12,11 @@ import { Client } from 'pg';
 const router = Router();
 
 // Lazy-load webhook processor to ensure environment variables are loaded
-let webhookProcessor: WebhookProcessorOptimized | null = null;
+let webhookProcessor: WebhookProcessorFixed | null = null;
 
-function getWebhookProcessor(): WebhookProcessorOptimized {
+function getWebhookProcessor(): WebhookProcessorFixed {
   if (!webhookProcessor) {
-    webhookProcessor = new WebhookProcessorOptimized();
+    webhookProcessor = new WebhookProcessorFixed();
   }
   return webhookProcessor;
 }

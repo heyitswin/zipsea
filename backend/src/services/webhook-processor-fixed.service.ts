@@ -1,20 +1,20 @@
 import { Queue, Worker, QueueEvents } from 'bullmq';
 import Redis from 'ioredis';
 import * as path from 'path';
+import * as fs from 'fs/promises';
 import { db } from '../db/connection';
-import { webhookEvents, systemFlags, syncLocks } from '../db/schema/webhook-events';
+import { webhookEvents, systemFlags, priceSnapshots, syncLocks } from '../db/schema/webhook-events';
 import { cruises, pricing } from '../db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, gte, sql } from 'drizzle-orm';
 import { ftpConnectionPool } from './ftp-connection-pool.service';
 import { slackService } from './slack.service';
+import * as ftp from 'basic-ftp';
 
-interface CruiseFile {
+interface WebhookFile {
   path: string;
   size: number;
   modifiedAt: Date;
   lineId: number;
-  shipId: number;
-  cruiseId: string;
 }
 
 interface ProcessingStats {
@@ -44,7 +44,8 @@ export class WebhookProcessorFixed {
   };
 
   constructor() {
-    // Initialize Redis connection for BullMQ
+    // Use REDIS_URL if available, otherwise fall back to individual settings
+    // BullMQ requires maxRetriesPerRequest to be null
     if (process.env.REDIS_URL) {
       this.redis = new Redis(process.env.REDIS_URL, {
         maxRetriesPerRequest: null,
@@ -60,7 +61,10 @@ export class WebhookProcessorFixed {
       });
     }
 
-    this.fileQueue = new Queue('cruise-files', {
+    // Check and warn about eviction policy
+    this.checkRedisConfig();
+
+    this.fileQueue = new Queue('webhook-files', {
       connection: this.redis,
       defaultJobOptions: {
         attempts: 3,
@@ -73,15 +77,27 @@ export class WebhookProcessorFixed {
       },
     });
 
-    this.queueEvents = new QueueEvents('cruise-files', {
+    this.queueEvents = new QueueEvents('webhook-files', {
       connection: this.redis,
     });
 
     this.setupEventListeners();
   }
 
+  private async checkRedisConfig() {
+    try {
+      const config = await this.redis.config('GET', 'maxmemory-policy');
+      const policy = config[1];
+      if (policy !== 'noeviction') {
+        console.warn(`IMPORTANT! Eviction policy is ${policy}. It should be "noeviction"`);
+      }
+    } catch (error) {
+      console.error('Could not check Redis eviction policy:', error);
+    }
+  }
+
   private setupEventListeners() {
-    this.queueEvents.on('completed', ({ jobId }) => {
+    this.queueEvents.on('completed', ({ jobId, returnvalue }) => {
       console.log(`Job ${jobId} completed`);
       this.stats.filesProcessed++;
     });
@@ -90,37 +106,30 @@ export class WebhookProcessorFixed {
       console.error(`Job ${jobId} failed:`, failedReason);
       this.stats.filesFailed++;
     });
+
+    this.queueEvents.on('progress', ({ jobId, data }) => {
+      console.log(`Job ${jobId} progress:`, data);
+    });
   }
 
   async processWebhooks(lineId?: number) {
     let lock: any = null;
 
     try {
-      console.log(`[FIXED] Starting webhook processing for line ${lineId || 'all'}`);
+      console.log(`Starting webhook processing for line ${lineId || 'all'}`);
 
-      this.stats = {
-        filesDiscovered: 0,
-        filesProcessed: 0,
-        filesSkipped: 0,
-        filesFailed: 0,
-        cruisesUpdated: 0,
-        pricesUpdated: 0,
-        startTime: new Date(),
-      };
-
-      // Send initial notification
       await slackService.sendNotification({
-        text: '🚀 Starting webhook processing (Fixed)',
+        text: '🚀 Starting fixed webhook processing',
         fields: [
           { title: 'Line ID', value: lineId ? lineId.toString() : 'All lines', short: true },
           { title: 'Start Time', value: new Date().toISOString(), short: true },
         ],
       });
 
-      // Acquire lock
+      // Check for existing lock and handle stale locks
       const lockKey = `webhook-sync-${lineId || 'all'}`;
 
-      // Check for existing lock
+      // First, check if there's an existing lock
       const existingLock = await db
         .select()
         .from(syncLocks)
@@ -130,17 +139,19 @@ export class WebhookProcessorFixed {
       if (existingLock.length > 0 && existingLock[0].isActive) {
         const lockAge = Date.now() - new Date(existingLock[0].acquiredAt).getTime();
         if (lockAge < 30 * 60 * 1000) {
+          // Lock is still fresh (less than 30 minutes old)
           console.log(
             `Lock ${lockKey} is still active (age: ${Math.floor(lockAge / 60000)} minutes)`
           );
           throw new Error('Another sync process is already running');
         }
+        // Lock is stale, we'll take it over
         console.log(
           `Taking over stale lock ${lockKey} (age: ${Math.floor(lockAge / 60000)} minutes)`
         );
       }
 
-      // Acquire or update lock
+      // Acquire or update lock using upsert
       const locks = await db
         .insert(syncLocks)
         .values({
@@ -162,38 +173,28 @@ export class WebhookProcessorFixed {
         .returning();
 
       lock = locks[0];
-      console.log(`[FIXED] Acquired lock ${lock.id} for ${lockKey}`);
+      console.log(`Acquired lock ${lock.id} for ${lockKey}`);
 
-      // Discover files using correct FTP structure
-      const files = await this.discoverFiles(lineId);
+      // Discover files with better error handling
+      const files = await this.discoverFilesFixed(lineId);
       this.stats.filesDiscovered = files.length;
-      console.log(`[FIXED] Discovered ${files.length} cruise files`);
 
       await slackService.sendNotification({
-        text: `📁 Discovered ${files.length} cruise files to process`,
+        text: `📁 Discovered ${files.length} files to process`,
       });
 
       if (files.length === 0) {
-        console.log('[FIXED] No files to process');
-        await slackService.sendNotification({
-          text: '✅ No files found to process',
-          fields: [
-            { title: 'Line ID', value: lineId ? lineId.toString() : 'All', short: true },
-            { title: 'Result', value: 'No updates needed', short: true },
-          ],
-        });
+        console.log('No files to process');
         return;
       }
 
-      // Add files to queue (limit to prevent overwhelming)
-      const filesToProcess = files.slice(0, 100); // Process max 100 files at a time
-      const jobs = filesToProcess.map(file => ({
-        name: `process-${file.cruiseId}`,
+      // Add files to queue
+      const jobs = files.map(file => ({
+        name: `process-${path.basename(file.path)}`,
         data: file,
       }));
 
       await this.fileQueue.addBulk(jobs);
-      console.log(`[FIXED] Added ${jobs.length} jobs to queue`);
 
       // Start worker
       await this.startWorker();
@@ -204,7 +205,7 @@ export class WebhookProcessorFixed {
       // Generate final report
       await this.generateReport();
     } catch (error) {
-      console.error('[FIXED] Webhook processing failed:', error);
+      console.error('Webhook processing failed:', error);
       await slackService.sendError('Webhook processing failed', error as Error);
       throw error;
     } finally {
@@ -215,129 +216,102 @@ export class WebhookProcessorFixed {
             .update(syncLocks)
             .set({ isActive: false, releasedAt: new Date() })
             .where(eq(syncLocks.id, lock.id));
-          console.log(`[FIXED] Released lock ${lock.id}`);
+          console.log(`Released lock ${lock.id}`);
         } catch (releaseError) {
-          console.error(`[FIXED] Failed to release lock ${lock.id}:`, releaseError);
+          console.error(`Failed to release lock ${lock.id}:`, releaseError);
         }
       }
     }
   }
 
-  private async discoverFiles(lineId?: number): Promise<CruiseFile[]> {
-    const files: CruiseFile[] = [];
-    const conn = await ftpConnectionPool.getConnection();
+  private async discoverFilesFixed(lineId?: number): Promise<WebhookFile[]> {
+    const files: WebhookFile[] = [];
+
+    // Create a dedicated FTP client for discovery (don't use pool for listing)
+    const client = new ftp.Client();
+    client.ftp.verbose = false;
 
     try {
+      // Connect to FTP
+      await client.access({
+        host: process.env.TRAVELTEK_FTP_HOST || process.env.FTP_HOST || 'localhost',
+        user: process.env.TRAVELTEK_FTP_USER || process.env.FTP_USER || '',
+        password: process.env.TRAVELTEK_FTP_PASSWORD || process.env.FTP_PASSWORD || '',
+        secure: false,
+        timeout: 60000,
+      });
+
       const currentDate = new Date();
       const startYear = currentDate.getFullYear();
       const startMonth = currentDate.getMonth() + 1;
-      const endYear = startYear + 3; // Check up to 3 years ahead
 
-      console.log(`[FIXED] Scanning from ${startYear}/${startMonth} to ${endYear}/12`);
+      // IMPORTANT: Only scan 3 months ahead, not 3 years!
+      const endDate = new Date(currentDate);
+      endDate.setMonth(endDate.getMonth() + 3);
+      const endYear = endDate.getFullYear();
+      const endMonth = endDate.getMonth() + 1;
 
-      // FTP structure: /year/month/lineid/shipid/cruiseid.json
+      console.log(`Scanning from ${startYear}/${startMonth} to ${endYear}/${endMonth}`);
+
       for (let year = startYear; year <= endYear; year++) {
         const monthStart = year === startYear ? startMonth : 1;
+        const monthEnd = year === endYear ? endMonth : 12;
 
-        for (let month = monthStart; month <= 12; month++) {
+        for (let month = monthStart; month <= monthEnd; month++) {
           const monthStr = month.toString().padStart(2, '0');
+          const basePath = `/${year}/${monthStr}`;
 
-          if (lineId) {
-            // Specific line: /year/month/lineid/
-            const linePath = `/${year}/${monthStr}/${lineId}`;
+          try {
+            console.log(`Checking ${basePath}...`);
+            const dayDirs = await client.list(basePath);
 
-            try {
-              const shipDirs = await conn.client.list(linePath);
+            for (const dayDir of dayDirs) {
+              if (dayDir.type === 2) {
+                // Directory
+                const dayPath = `${basePath}/${dayDir.name}`;
 
-              if (shipDirs.length > 0) {
-                console.log(
-                  `[FIXED] Found ${shipDirs.length} ships for line ${lineId} in ${year}/${monthStr}`
-                );
-              }
+                try {
+                  const dayFiles = await client.list(dayPath);
 
-              for (const shipDir of shipDirs) {
-                if (shipDir.type === 2) {
-                  // Directory
-                  const shipPath = `${linePath}/${shipDir.name}`;
-                  const cruiseFiles = await conn.client.list(shipPath);
-
-                  for (const file of cruiseFiles) {
-                    if (file.type === 1 && file.name.endsWith('.json')) {
-                      files.push({
-                        path: `${shipPath}/${file.name}`,
-                        size: file.size,
-                        modifiedAt: file.modifiedAt || new Date(),
-                        lineId: lineId,
-                        shipId: parseInt(shipDir.name),
-                        cruiseId: file.name.replace('.json', ''),
-                      });
-                    }
-                  }
-                }
-              }
-            } catch (error) {
-              // No data for this line/month combination - this is normal
-            }
-          } else {
-            // All lines: scan each line directory
-            const monthPath = `/${year}/${monthStr}`;
-
-            try {
-              const lineDirs = await conn.client.list(monthPath);
-
-              for (const lineDir of lineDirs) {
-                if (lineDir.type === 2 && /^\d+$/.test(lineDir.name)) {
-                  const currentLineId = parseInt(lineDir.name);
-                  const linePath = `${monthPath}/${lineDir.name}`;
-
-                  try {
-                    const shipDirs = await conn.client.list(linePath);
-
-                    for (const shipDir of shipDirs) {
-                      if (shipDir.type === 2) {
-                        const shipPath = `${linePath}/${shipDir.name}`;
-                        const cruiseFiles = await conn.client.list(shipPath);
-
-                        for (const file of cruiseFiles) {
-                          if (file.type === 1 && file.name.endsWith('.json')) {
-                            files.push({
-                              path: `${shipPath}/${file.name}`,
-                              size: file.size,
-                              modifiedAt: file.modifiedAt || new Date(),
-                              lineId: currentLineId,
-                              shipId: parseInt(shipDir.name),
-                              cruiseId: file.name.replace('.json', ''),
-                            });
-                          }
+                  for (const file of dayFiles) {
+                    if (file.type === 1 && file.name.endsWith('.jsonl')) {
+                      // Extract line ID from filename
+                      const match = file.name.match(/line_(\d+)_/);
+                      if (match) {
+                        const fileLineId = parseInt(match[1]);
+                        if (!lineId || fileLineId === lineId) {
+                          files.push({
+                            path: `${dayPath}/${file.name}`,
+                            size: file.size,
+                            modifiedAt: file.modifiedAt || new Date(),
+                            lineId: fileLineId,
+                          });
                         }
                       }
                     }
-                  } catch (error) {
-                    // Skip this line if error
                   }
+                } catch (dayError) {
+                  console.log(`Could not list ${dayPath}:`, (dayError as Error).message);
                 }
               }
-            } catch (error) {
-              // No data for this month - this is normal
             }
+          } catch (error) {
+            console.log(`No data for ${basePath}:`, (error as Error).message);
           }
-
-          // Stop if we've found enough files
-          if (files.length > 1000) {
-            console.log(`[FIXED] Stopping discovery at ${files.length} files`);
-            break;
-          }
-        }
-
-        // Stop if we've found enough files
-        if (files.length > 1000) {
-          break;
         }
       }
 
-      console.log(`[FIXED] Total files discovered: ${files.length}`);
+      console.log(`Found ${files.length} files to process`);
+    } catch (error) {
+      console.error('FTP connection failed:', error);
+      throw error;
     } finally {
-      ftpConnectionPool.releaseConnection(conn.id);
+      // Always close the client
+      try {
+        client.close();
+      } catch (closeError) {
+        console.error('Error closing FTP client:', closeError);
+      }
     }
 
     return files;
@@ -345,57 +319,233 @@ export class WebhookProcessorFixed {
 
   private async startWorker() {
     this.processingWorker = new Worker(
-      'cruise-files',
+      'webhook-files',
       async job => {
-        const file = job.data as CruiseFile;
+        const file = job.data as WebhookFile;
         await this.processFile(file);
         await job.updateProgress(100);
       },
       {
         connection: this.redis,
-        concurrency: 3, // Process 3 files in parallel
+        concurrency: 2, // Reduced concurrency to avoid overwhelming FTP
       }
     );
   }
 
-  public async processFile(file: CruiseFile) {
+  private async processFile(file: WebhookFile) {
     const conn = await ftpConnectionPool.getConnection();
 
     try {
-      console.log(`[FIXED] Processing ${file.path}`);
+      // Check if already processed recently (within last 24 hours)
+      const recentEvent = await db
+        .select()
+        .from(webhookEvents)
+        .where(
+          and(
+            eq(webhookEvents.webhookType, 'file_processed'),
+            eq(webhookEvents.lineId, file.lineId),
+            gte(webhookEvents.processedAt, new Date(Date.now() - 24 * 60 * 60 * 1000))
+          )
+        )
+        .limit(1);
 
-      // Download and parse the JSON file
-      const tempFile = `/tmp/webhook-fixed-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.json`;
+      if (recentEvent.length > 0 && recentEvent[0].metadata?.path === file.path) {
+        console.log(`Skipping recently processed file: ${file.path}`);
+        this.stats.filesSkipped++;
+        return;
+      }
+
+      // Download and parse file
+      const tempFile = `/tmp/webhook-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jsonl`;
+
+      console.log(`Downloading ${file.path} to ${tempFile}`);
       await conn.client.downloadTo(tempFile, file.path);
-      const fs = await import('fs');
-      const content = await fs.promises.readFile(tempFile, 'utf-8');
-      const cruiseData = JSON.parse(content);
 
-      // Clean up temp file
-      await fs.promises.unlink(tempFile).catch(() => {});
+      const content = await fs.readFile(tempFile, 'utf-8');
+      await fs.unlink(tempFile);
 
-      // Process the cruise data
-      await this.updateCruise(cruiseData);
+      const lines = content.split('\n').filter(line => line.trim());
+      let cruisesProcessed = 0;
+      let pricesProcessed = 0;
 
-      this.stats.cruisesUpdated++;
+      // Take snapshot before processing (only for first file of the line)
+      const hasSnapshot = await db
+        .select()
+        .from(priceSnapshots)
+        .where(
+          and(
+            eq(priceSnapshots.lineId, file.lineId),
+            gte(priceSnapshots.createdAt, new Date(Date.now() - 60 * 60 * 1000))
+          )
+        )
+        .limit(1);
+
+      if (hasSnapshot.length === 0) {
+        await this.takeSnapshot(file.lineId);
+      }
+
+      for (const line of lines) {
+        try {
+          const data = JSON.parse(line);
+
+          if (data.cruise) {
+            await this.updateCruise(data.cruise);
+            cruisesProcessed++;
+          }
+
+          if (data.pricing) {
+            await this.updatePricing(data.pricing);
+            pricesProcessed++;
+          }
+        } catch (error) {
+          console.error(`Error processing line in ${file.path}:`, error);
+        }
+      }
+
+      // Record processed event
+      await db.insert(webhookEvents).values({
+        webhookType: 'file_processed',
+        lineId: file.lineId,
+        metadata: {
+          path: file.path,
+          size: file.size,
+          cruisesProcessed,
+          pricesProcessed,
+        },
+        status: 'completed',
+        processedAt: new Date(),
+      });
+
+      console.log(`Processed ${file.path}: ${cruisesProcessed} cruises, ${pricesProcessed} prices`);
+
+      this.stats.cruisesUpdated += cruisesProcessed;
+      this.stats.pricesUpdated += pricesProcessed;
     } catch (error) {
-      console.error(`[FIXED] Failed to process ${file.path}:`, error);
-      this.stats.filesFailed++;
+      console.error(`Failed to process file ${file.path}:`, error);
+
+      await db.insert(webhookEvents).values({
+        webhookType: 'file_error',
+        lineId: file.lineId,
+        metadata: {
+          path: file.path,
+          error: (error as Error).message,
+        },
+        status: 'failed',
+        errorMessage: (error as Error).message,
+        processedAt: new Date(),
+      });
+
+      throw error;
     } finally {
       ftpConnectionPool.releaseConnection(conn.id);
     }
   }
 
+  private async takeSnapshot(lineId: number) {
+    try {
+      // Create price snapshot with limited data
+      const snapshotData = await this.getCurrentPrices(lineId);
+
+      await db.insert(priceSnapshots).values({
+        lineId,
+        snapshotData,
+        createdAt: new Date(),
+      });
+
+      console.log(`Created price snapshot for line ${lineId}`);
+    } catch (error) {
+      console.error(`Failed to create snapshot for line ${lineId}:`, error);
+    }
+  }
+
+  private async getCurrentPrices(lineId: number) {
+    const prices = await db
+      .select({
+        cruiseId: pricing.cruiseId,
+        cabinCode: pricing.cabinCode,
+        basePrice: pricing.basePrice,
+        totalPrice: pricing.totalPrice,
+      })
+      .from(pricing)
+      .innerJoin(cruises, eq(cruises.id, pricing.cruiseId))
+      .where(eq(cruises.cruiseLineId, lineId))
+      .limit(100); // Limit snapshot size
+
+    return prices;
+  }
+
   private async updateCruise(cruiseData: any) {
-    // This would update the cruise in the database
-    // For now, just log that we processed it
-    console.log(`[FIXED] Would update cruise ${cruiseData.id || 'unknown'}`);
+    try {
+      // Update cruise details
+      const existingCruise = await db
+        .select()
+        .from(cruises)
+        .where(eq(cruises.id, cruiseData.id))
+        .limit(1);
+
+      if (existingCruise.length > 0) {
+        await db
+          .update(cruises)
+          .set({
+            name: cruiseData.name || existingCruise[0].name,
+            nights: cruiseData.nights || existingCruise[0].nights,
+            sailingDate: cruiseData.embarkDate || existingCruise[0].sailingDate,
+            updatedAt: new Date(),
+          })
+          .where(eq(cruises.id, existingCruise[0].id));
+      }
+    } catch (error) {
+      console.error(`Failed to update cruise ${cruiseData.id}:`, error);
+    }
+  }
+
+  private async updatePricing(pricingData: any) {
+    try {
+      // Update pricing
+      const existingPricing = await db
+        .select()
+        .from(pricing)
+        .where(
+          and(
+            eq(pricing.cruiseId, pricingData.cruiseId),
+            eq(pricing.cabinCode, pricingData.cabinCode || 'DEFAULT')
+          )
+        )
+        .limit(1);
+
+      if (existingPricing.length > 0) {
+        await db
+          .update(pricing)
+          .set({
+            rateCode: pricingData.rateCode || existingPricing[0].rateCode,
+            basePrice: pricingData.price || existingPricing[0].basePrice,
+            taxes: pricingData.taxes || existingPricing[0].taxes,
+            totalPrice: pricingData.totalPrice || existingPricing[0].totalPrice,
+            updatedAt: new Date(),
+          })
+          .where(eq(pricing.id, existingPricing[0].id));
+      } else if (pricingData.cruiseId && pricingData.price) {
+        // Insert new pricing if it doesn't exist
+        await db.insert(pricing).values({
+          cruiseId: pricingData.cruiseId,
+          cabinCode: pricingData.cabinCode || 'DEFAULT',
+          rateCode: pricingData.rateCode || 'STANDARD',
+          basePrice: pricingData.price,
+          taxes: pricingData.taxes || 0,
+          totalPrice: pricingData.totalPrice || pricingData.price,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    } catch (error) {
+      console.error(`Failed to update pricing for cruise ${pricingData.cruiseId}:`, error);
+    }
   }
 
   private async waitForCompletion() {
     // If no files were discovered, return immediately
     if (this.stats.filesDiscovered === 0) {
-      console.log('[FIXED] No files to wait for');
+      console.log('No files to wait for');
       return;
     }
 
@@ -408,7 +558,7 @@ export class WebhookProcessorFixed {
           const waiting = await this.fileQueue.getWaitingCount();
           const active = await this.fileQueue.getActiveCount();
 
-          console.log(`[FIXED] Queue status - Waiting: ${waiting}, Active: ${active}`);
+          console.log(`Queue status - Waiting: ${waiting}, Active: ${active}`);
 
           if (waiting === 0 && active === 0) {
             checksWithoutJobs++;
@@ -420,7 +570,7 @@ export class WebhookProcessorFixed {
             checksWithoutJobs = 0; // Reset counter if jobs are found
           }
         } catch (error) {
-          console.error('[FIXED] Error checking queue status:', error);
+          console.error('Error checking queue status:', error);
           clearInterval(checkInterval);
           resolve(false);
         }
@@ -432,26 +582,46 @@ export class WebhookProcessorFixed {
     this.stats.endTime = new Date();
     const duration = this.stats.endTime.getTime() - this.stats.startTime.getTime();
     const durationMinutes = Math.floor(duration / 60000);
+    const durationSeconds = Math.floor((duration % 60000) / 1000);
 
     await slackService.sendNotification({
-      text: '✅ Webhook processing completed (Fixed)',
+      text: '✅ Webhook processing completed',
       fields: [
-        { title: 'Duration', value: `${durationMinutes} minutes`, short: true },
+        { title: 'Duration', value: `${durationMinutes}m ${durationSeconds}s`, short: true },
         { title: 'Files Discovered', value: this.stats.filesDiscovered.toString(), short: true },
         { title: 'Files Processed', value: this.stats.filesProcessed.toString(), short: true },
+        { title: 'Files Skipped', value: this.stats.filesSkipped.toString(), short: true },
         { title: 'Files Failed', value: this.stats.filesFailed.toString(), short: true },
         { title: 'Cruises Updated', value: this.stats.cruisesUpdated.toString(), short: true },
+        { title: 'Prices Updated', value: this.stats.pricesUpdated.toString(), short: true },
       ],
     });
-  }
-}
 
-// Singleton instance
-let webhookProcessorFixed: WebhookProcessorFixed | null = null;
-
-export function getWebhookProcessorFixed(): WebhookProcessorFixed {
-  if (!webhookProcessorFixed) {
-    webhookProcessorFixed = new WebhookProcessorFixed();
+    // Update system flags
+    await db
+      .insert(systemFlags)
+      .values({
+        flagKey: 'last_webhook_sync',
+        flagValue: new Date().toISOString(),
+        metadata: this.stats,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: systemFlags.flagKey,
+        set: {
+          flagValue: new Date().toISOString(),
+          metadata: this.stats,
+          updatedAt: new Date(),
+        },
+      });
   }
-  return webhookProcessorFixed;
+
+  async shutdown() {
+    if (this.processingWorker) {
+      await this.processingWorker.close();
+    }
+    await this.fileQueue.close();
+    await this.queueEvents.close();
+    await this.redis.quit();
+  }
 }
