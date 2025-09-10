@@ -20,6 +20,7 @@ export class WebhookProcessorOptimizedV2 {
   private static poolInitialized = false;
   private static MAX_CONNECTIONS = 3;
   private static KEEP_ALIVE_INTERVAL = 30000;
+  private static processorInstance: WebhookProcessorOptimizedV2 | null = null;
 
   // BullMQ configuration
   private static webhookQueue: Queue | null = null;
@@ -168,7 +169,16 @@ export class WebhookProcessorOptimizedV2 {
   }
 
   private async initializeFtpPool() {
+    // Check if already initialized or initializing
     if (WebhookProcessorOptimizedV2.poolInitialized) {
+      return;
+    }
+
+    // Set flag immediately to prevent race conditions
+    WebhookProcessorOptimizedV2.poolInitialized = true;
+
+    // Double-check pool size after setting flag
+    if (WebhookProcessorOptimizedV2.ftpPool.length >= WebhookProcessorOptimizedV2.MAX_CONNECTIONS) {
       return;
     }
 
@@ -220,7 +230,7 @@ export class WebhookProcessorOptimizedV2 {
       }
     }, WebhookProcessorOptimizedV2.KEEP_ALIVE_INTERVAL);
 
-    WebhookProcessorOptimizedV2.poolInitialized = true;
+    // Don't set poolInitialized again, it's already set at the beginning
     console.log(
       `[OPTIMIZED-V2] FTP pool ready with ${WebhookProcessorOptimizedV2.ftpPool.length} connections`
     );
@@ -353,6 +363,14 @@ export class WebhookProcessorOptimizedV2 {
         `[OPTIMIZED-V2] Queue status after adding jobs - Waiting: ${waiting}, Delayed: ${delayed}, Active: ${active}, Paused: ${isPaused}`
       );
 
+      // Resume queue if it's paused
+      if (isPaused) {
+        console.log('[OPTIMIZED-V2] Queue is paused, resuming...');
+        await WebhookProcessorOptimizedV2.webhookQueue.resume();
+        const stillPaused = await WebhookProcessorOptimizedV2.webhookQueue.isPaused();
+        console.log(`[OPTIMIZED-V2] Queue resumed. Still paused: ${stillPaused}`);
+      }
+
       // Check if worker is running
       if (WebhookProcessorOptimizedV2.webhookWorker) {
         const isRunning = await WebhookProcessorOptimizedV2.webhookWorker.isRunning();
@@ -471,8 +489,11 @@ export class WebhookProcessorOptimizedV2 {
 
   // Static version of processFile that can be called from worker
   public static async processFileStatic(file: any): Promise<boolean> {
-    const processor = new WebhookProcessorOptimizedV2();
-    return processor.processFile(file);
+    // Use singleton instance to avoid creating multiple FTP pools
+    if (!WebhookProcessorOptimizedV2.processorInstance) {
+      WebhookProcessorOptimizedV2.processorInstance = new WebhookProcessorOptimizedV2();
+    }
+    return WebhookProcessorOptimizedV2.processorInstance.processFile(file);
   }
 
   private async processFile(file: any): Promise<boolean> {
@@ -542,9 +563,9 @@ export class WebhookProcessorOptimizedV2 {
         }
       }
 
-      // Helper function to safely parse integer, returning 0 for invalid values
-      const safeParseInt = (value: any, defaultValue: number = 0): number => {
-        if (value === null || value === undefined || value === '') {
+      // Helper function to safely parse integer, returning default for invalid values
+      const safeParseInt = (value: any, defaultValue: number | null = 0): number | null => {
+        if (value === null || value === undefined || value === '' || value === 'system') {
           return defaultValue;
         }
         // Handle strings like "system" that can't be parsed as integers
@@ -569,8 +590,8 @@ export class WebhookProcessorOptimizedV2 {
         disembarkPortId: safeParseInt(data.endportid || data.disembarkportid, 0),
         portIds: portIds,
         regionIds: regionIds,
-        marketId: data.marketid ? data.marketid.toString() : null,
-        ownerId: data.ownerid ? data.ownerid.toString() : null,
+        marketId: safeParseInt(data.marketid, null),
+        ownerId: safeParseInt(data.ownerid, null),
         noFly: data.nofly === 'Y' || data.nofly === true,
         departUk: data.departuk === true,
         showCruise: data.showcruise !== false, // Default to true unless explicitly false
