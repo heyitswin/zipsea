@@ -6,6 +6,7 @@ import { WebhookProcessorDiscovery } from '../services/webhook-processor-discove
 import { WebhookProcessorCorrect } from '../services/webhook-processor-correct.service';
 import { WebhookProcessorFixed } from '../services/webhook-processor-fixed.service';
 import { WebhookProcessorRobust } from '../services/webhook-processor-robust.service';
+import { WebhookProcessorSimpleFTP } from '../services/webhook-processor-simple-ftp.service';
 import { WebhookProcessorMinimal } from '../services/webhook-processor-minimal.service';
 import { getWebhookProcessorSimple } from '../services/webhook-processor-simple.service';
 import { Client } from 'pg';
@@ -1362,6 +1363,29 @@ router.post('/traveltek/direct-test', async (req: Request, res: Response) => {
     });
   } finally {
     await client.end();
+  }
+});
+
+// Test with simple FTP processor
+router.post('/traveltek/test-simple-ftp', async (req: Request, res: Response) => {
+  try {
+    const { lineId = 14 } = req.body;
+    console.log(`[TEST-SIMPLE-FTP] Testing simple FTP processor for line ${lineId}`);
+
+    const processor = new WebhookProcessorSimpleFTP();
+    await processor.processWebhooks(lineId);
+
+    res.json({
+      status: 'success',
+      message: 'Simple FTP processing completed',
+      lineId,
+    });
+  } catch (error) {
+    console.error('[TEST-SIMPLE-FTP] Error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 });
 
