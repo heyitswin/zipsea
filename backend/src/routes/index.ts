@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { apiConfig } from '../config/environment';
 import healthRoutes from './health.routes';
-// Using raw SQL webhook routes temporarily due to Drizzle issue
-import webhookRoutes from './webhook-raw.routes';
+// Fixed Drizzle issue - using optimized webhook routes
+import webhookRoutes from './webhook.routes';
 import searchRoutes from './search.routes';
 import searchOptimizedRoutes from './search-optimized.routes';
 import cruiseRoutes from './cruise.routes';
