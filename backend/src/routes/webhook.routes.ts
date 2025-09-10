@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 import logger from '../config/logger';
 import { WebhookProcessorOptimizedV2 } from '../services/webhook-processor-optimized-v2.service';
 import { webhookQueueProcessor } from '../services/webhook-queue.service';
-import { webhookProcessorProduction } from '../services/webhook-processor-production.service';
 import { db } from '../db/connection';
 import { webhookEvents } from '../db/schema/webhook-events';
 import { eq, sql } from 'drizzle-orm';
@@ -56,8 +55,8 @@ router.post('/traveltek', async (req: Request, res: Response) => {
     // Queue webhook for processing
     setImmediate(async () => {
       try {
-        // Use production processor for better handling
-        const result = await webhookProcessorProduction.processWebhook(lineId);
+        // Use V2 processor (the only one we should be using)
+        const result = await getWebhookProcessor().processWebhooks(lineId);
 
         // Update webhook status based on result
         await db

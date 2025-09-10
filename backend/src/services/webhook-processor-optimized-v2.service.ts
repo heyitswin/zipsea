@@ -240,8 +240,8 @@ export class WebhookProcessorOptimizedV2 {
       // Initialize queue if not already done
       await this.initializeQueue();
 
-      // Take a snapshot before processing
-      await this.takeSnapshot(lineId);
+      // Skip snapshot for now - database schema mismatch
+      // await this.takeSnapshot(lineId);
 
       // Discover files efficiently
       const files = await this.discoverFiles(lineId);
