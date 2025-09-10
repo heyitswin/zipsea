@@ -223,9 +223,12 @@ export class WebhookProcessorFixed {
     }
   }
 
-  private async discoverFiles(lineId?: number): Promise<CruiseFile[]> {
+  public async discoverFiles(lineId?: number): Promise<CruiseFile[]> {
     const files: CruiseFile[] = [];
+    console.log(`[FIXED-DISCOVERY] Starting file discovery for lineId: ${lineId}`);
+
     const conn = await ftpConnectionPool.getConnection();
+    console.log(`[FIXED-DISCOVERY] Got FTP connection`);
 
     try {
       const currentDate = new Date();
@@ -233,7 +236,7 @@ export class WebhookProcessorFixed {
       const startMonth = currentDate.getMonth() + 1;
       const endYear = startYear + 3; // Check up to 3 years ahead
 
-      console.log(`[FIXED] Scanning from ${startYear}/${startMonth} to ${endYear}/12`);
+      console.log(`[FIXED-DISCOVERY] Scanning from ${startYear}/${startMonth} to ${endYear}/12`);
 
       // FTP structure: /year/month/lineid/shipid/cruiseid.json
       for (let year = startYear; year <= endYear; year++) {

@@ -785,6 +785,41 @@ router.post('/traveltek/test-fixed', async (req: Request, res: Response) => {
   }
 });
 
+// Test file discovery only - no processing
+router.post('/traveltek/test-discovery-only', async (req: Request, res: Response) => {
+  const { lineId = 22 } = req.body;
+
+  try {
+    console.log(`[DISCOVERY-ONLY] Testing file discovery for line ${lineId}`);
+
+    const processor = getWebhookProcessorFixed();
+
+    // Temporarily expose discovery method for testing
+    const discoveryResult = await (processor as any).discoverFiles(lineId);
+
+    res.json({
+      status: 'success',
+      message: 'File discovery completed',
+      lineId,
+      filesFound: discoveryResult?.length || 0,
+      files:
+        discoveryResult?.slice(0, 10).map((f: any) => ({
+          path: f.path,
+          name: f.name,
+          size: f.size,
+        })) || [],
+      totalFiles: discoveryResult?.length || 0,
+    });
+  } catch (error) {
+    console.error('[DISCOVERY-ONLY] Error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'File discovery failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 // Test webhook synchronously - waits for processing to complete
 router.post('/traveltek/test-sync', async (req: Request, res: Response) => {
   try {
