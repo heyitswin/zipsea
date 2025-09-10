@@ -16,3 +16,4 @@
 
 # Node modules (handled by root .gitignore)
 # node_modules/
+dist/
