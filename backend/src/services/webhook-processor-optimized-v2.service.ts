@@ -459,21 +459,31 @@ export class WebhookProcessorOptimizedV2 {
         }
       }
 
+      // Helper function to safely parse integer, returning 0 for invalid values
+      const safeParseInt = (value: any, defaultValue: number = 0): number => {
+        if (value === null || value === undefined || value === '') {
+          return defaultValue;
+        }
+        // Handle strings like "system" that can't be parsed as integers
+        const parsed = parseInt(value);
+        return isNaN(parsed) ? defaultValue : parsed;
+      };
+
       // Prepare comprehensive cruise data based on Traveltek fields
       const cruiseData = {
         id: cruiseId,
         cruiseId: data.cruiseid ? data.cruiseid.toString() : cruiseId,
         cruiseLineId: file.lineId,
-        shipId: data.shipid || file.shipId || 0,
+        shipId: safeParseInt(data.shipid || file.shipId, 0),
         name: data.name || data.title || 'Unknown Cruise',
         voyageCode: data.voyagecode || null,
         itineraryCode: data.itinerarycode || null,
         sailingDate: sailingDate || new Date().toISOString().split('T')[0],
         returnDate: returnDate,
-        nights: parseInt(data.nights || data.sailnights || 0),
-        seaDays: parseInt(data.seadays || 0),
-        embarkPortId: data.startportid || data.embarkportid || 0,
-        disembarkPortId: data.endportid || data.disembarkportid || 0,
+        nights: safeParseInt(data.nights || data.sailnights, 0),
+        seaDays: safeParseInt(data.seadays, 0),
+        embarkPortId: safeParseInt(data.startportid || data.embarkportid, 0),
+        disembarkPortId: safeParseInt(data.endportid || data.disembarkportid, 0),
         portIds: portIds,
         regionIds: regionIds,
         marketId: data.marketid ? data.marketid.toString() : null,
@@ -481,7 +491,7 @@ export class WebhookProcessorOptimizedV2 {
         noFly: data.nofly === 'Y' || data.nofly === true,
         departUk: data.departuk === true,
         showCruise: data.showcruise !== false, // Default to true unless explicitly false
-        lastCached: data.lastcached || null,
+        lastCached: safeParseInt(data.lastcached, null),
         cachedDate: data.cacheddate || null,
         rawData: data,
         updatedAt: new Date(),
