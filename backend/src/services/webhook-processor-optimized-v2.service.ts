@@ -87,7 +87,7 @@ export class WebhookProcessorOptimizedV2 {
 
           // Process batch in parallel
           const batchResults = await Promise.allSettled(
-            batch.map(file => this.processFileStatic(file))
+            batch.map(file => WebhookProcessorOptimizedV2.processFileStatic(file))
           );
 
           batchResults.forEach(result => {

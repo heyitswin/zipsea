@@ -100,7 +100,7 @@ export class WebhookProcessorOptimized {
 
     try {
       console.log(
-        `[OPTIMIZED-V3] Starting webhook processing for line ${lineId || 'all'} with detailed pricing extraction`
+        `[OPTIMIZED-SNAPSHOT-FIX] Starting webhook processing for line ${lineId || 'all'} - deployed ${new Date().toISOString()}`
       );
 
       await slackService.sendNotification({
