@@ -8,6 +8,7 @@ import { priceSnapshots } from '../db/schema/webhook-events';
 import { eq } from 'drizzle-orm';
 import logger from '../config/logger';
 import { Writable } from 'stream';
+import { slackService, WebhookProcessingResult } from './slack.service';
 
 interface FtpConnection {
   client: ftp.Client;
@@ -31,7 +32,20 @@ export class WebhookProcessorOptimizedV2 {
     filesProcessed: 0,
     cruisesUpdated: 0,
     errors: [] as string[],
+    priceSnapshotsCreated: 0,
   };
+
+  private processingJobs = new Map<
+    number,
+    {
+      startTime: Date;
+      totalFiles: number;
+      processedFiles: number;
+      successful: number;
+      failed: number;
+      errors: Array<{ filePath?: string; error: string }>;
+    }
+  >();
 
   constructor() {
     this.initializeFtpPool();
@@ -116,6 +130,17 @@ export class WebhookProcessorOptimizedV2 {
         console.log(
           `[WORKER-V2] Job ${job.id} completed: ${results.processed} processed, ${results.updated} updated, ${results.failed} failed`
         );
+
+        // Track completion for Slack notifications
+        if (WebhookProcessorOptimizedV2.processorInstance) {
+          await WebhookProcessorOptimizedV2.processorInstance.trackBatchCompletion(
+            lineId,
+            results,
+            batchNumber,
+            totalBatches
+          );
+        }
+
         return results;
       },
       {
@@ -287,6 +312,13 @@ export class WebhookProcessorOptimizedV2 {
   ): Promise<{ status: string; jobId?: string; message: string }> {
     const startTime = Date.now();
     console.log(`[OPTIMIZED-V2] Starting webhook processing for line ${lineId}`);
+
+    // Send Slack notification for processing start
+    await slackService.notifyWebhookProcessingStarted({
+      eventType: 'cruise_line_update',
+      lineId,
+      timestamp: new Date().toISOString(),
+    });
 
     try {
       // Initialize queue if not already done
@@ -993,9 +1025,83 @@ export class WebhookProcessorOptimizedV2 {
       }
 
       console.log(`[OPTIMIZED-V2] Created ${snapshotCount} price snapshots for line ${lineId}`);
+      this.stats.priceSnapshotsCreated = snapshotCount;
     } catch (error) {
       console.error(`[OPTIMIZED-V2] Failed to take snapshots for line ${lineId}:`, error);
       // Don't throw - snapshots are not critical to webhook processing
+    }
+  }
+
+  /**
+   * Track batch completion and send Slack notification when all batches are complete
+   */
+  private async trackBatchCompletion(
+    lineId: number,
+    results: { processed: number; failed: number; updated: number },
+    batchNumber: number,
+    totalBatches: number
+  ): Promise<void> {
+    if (!this.processingJobs.has(lineId)) {
+      this.processingJobs.set(lineId, {
+        startTime: new Date(),
+        totalFiles: 0,
+        processedFiles: 0,
+        successful: 0,
+        failed: 0,
+        errors: [],
+      });
+    }
+
+    const jobTracking = this.processingJobs.get(lineId)!;
+
+    // Update tracking
+    jobTracking.processedFiles += results.processed;
+    jobTracking.successful += results.updated;
+    jobTracking.failed += results.failed;
+
+    console.log(
+      `[OPTIMIZED-V2] Batch ${batchNumber}/${totalBatches} complete for line ${lineId}. ` +
+        `Total progress: ${jobTracking.processedFiles} files processed`
+    );
+
+    // Check if this might be the last batch
+    const activeCount = await WebhookProcessorOptimizedV2.webhookQueue.getActiveCount();
+    const waitingCount = await WebhookProcessorOptimizedV2.webhookQueue.getWaitingCount();
+
+    if (activeCount === 0 && waitingCount === 0) {
+      // All processing complete
+      const endTime = new Date();
+      const processingTimeMs = endTime.getTime() - jobTracking.startTime.getTime();
+
+      // Send Slack notification
+      const result: WebhookProcessingResult = {
+        successful: jobTracking.successful,
+        failed: jobTracking.failed,
+        errors: jobTracking.errors,
+        startTime: jobTracking.startTime,
+        endTime,
+        processingTimeMs,
+        totalCruises: jobTracking.processedFiles,
+        priceSnapshotsCreated: this.stats.priceSnapshotsCreated,
+      };
+
+      await slackService.notifyWebhookProcessingCompleted(
+        {
+          eventType: 'cruise_line_update',
+          lineId,
+          timestamp: endTime.toISOString(),
+        },
+        result
+      );
+
+      // Clean up tracking
+      this.processingJobs.delete(lineId);
+
+      console.log(
+        `[OPTIMIZED-V2] All processing complete for line ${lineId}. ` +
+          `Final stats: ${jobTracking.successful} successful, ${jobTracking.failed} failed, ` +
+          `${this.stats.priceSnapshotsCreated} snapshots created, ${processingTimeMs}ms total time`
+      );
     }
   }
 }
