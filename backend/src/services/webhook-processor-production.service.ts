@@ -1,7 +1,7 @@
 import * as ftp from 'basic-ftp';
 import { db } from '../db/connection';
 import { cruises } from '../db/schema/cruises';
-import { syncLocks } from '../db/schema/sync-locks';
+import { syncLocks } from '../db/schema/webhook-events';
 import { eq, and } from 'drizzle-orm';
 import logger from '../config/logger';
 import { Writable } from 'stream';
@@ -41,7 +41,9 @@ class FTPConnectionPool {
   }
 
   private async _doInitialize(): Promise<void> {
-    console.log(`[PRODUCTION] Initializing FTP connection pool with ${CONFIG.MAX_FTP_CONNECTIONS} connections...`);
+    console.log(
+      `[PRODUCTION] Initializing FTP connection pool with ${CONFIG.MAX_FTP_CONNECTIONS} connections...`
+    );
 
     const ftpConfig = {
       host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
@@ -183,7 +185,9 @@ export class WebhookProcessorProduction {
             .set({ isActive: false, releasedAt: new Date() })
             .where(eq(syncLocks.id, existingLock[0].id));
         } else {
-          console.log(`[PRODUCTION] Line ${lineId} is already being processed (lock age: ${lockAge}ms)`);
+          console.log(
+            `[PRODUCTION] Line ${lineId} is already being processed (lock age: ${lockAge}ms)`
+          );
           return {
             status: 'already_processing',
             message: `Line ${lineId} is already being processed`,
@@ -258,7 +262,9 @@ export class WebhookProcessorProduction {
   }
 
   private async processFilesAsync(lineId: number, files: any[], lockId: number): Promise<void> {
-    console.log(`[PRODUCTION] Starting async processing of ${files.length} files for line ${lineId}`);
+    console.log(
+      `[PRODUCTION] Starting async processing of ${files.length} files for line ${lineId}`
+    );
     const state = activeProcessing.get(lineId)!;
 
     try {
@@ -275,7 +281,9 @@ export class WebhookProcessorProduction {
         const successCount = results.filter(r => r.status === 'fulfilled').length;
         const failCount = results.filter(r => r.status === 'rejected').length;
 
-        console.log(`[PRODUCTION] Batch complete for line ${lineId}: ${state.processedFiles}/${state.totalFiles} files (${successCount} success, ${failCount} failed)`);
+        console.log(
+          `[PRODUCTION] Batch complete for line ${lineId}: ${state.processedFiles}/${state.totalFiles} files (${successCount} success, ${failCount} failed)`
+        );
 
         // Small delay between batches to prevent overwhelming the system
         if (i + CONFIG.FILES_PER_BATCH < files.length) {
@@ -284,7 +292,9 @@ export class WebhookProcessorProduction {
       }
 
       state.status = 'completed';
-      console.log(`[PRODUCTION] Completed processing ${state.processedFiles} files for line ${lineId} in ${Date.now() - state.startTime}ms`);
+      console.log(
+        `[PRODUCTION] Completed processing ${state.processedFiles} files for line ${lineId} in ${Date.now() - state.startTime}ms`
+      );
     } catch (error) {
       state.status = 'failed';
       state.error = error instanceof Error ? error.message : 'Unknown error';
@@ -387,11 +397,11 @@ export class WebhookProcessorProduction {
         for (const cabin of pricingData) {
           const price = parseFloat(
             cabin.price ||
-            cabin.adult_price ||
-            cabin.adultprice ||
-            cabin.cheapest_price ||
-            cabin.from_price ||
-            0
+              cabin.adult_price ||
+              cabin.adultprice ||
+              cabin.cheapest_price ||
+              cabin.from_price ||
+              0
           );
 
           if (!price || price === 0) continue;
@@ -463,7 +473,8 @@ export class WebhookProcessorProduction {
 
           // Process ships in batches to avoid timeout
           for (const shipDir of shipDirs) {
-            if (shipDir.type === 2) { // Directory
+            if (shipDir.type === 2) {
+              // Directory
               const shipPath = `${linePath}/${shipDir.name}`;
 
               try {
@@ -524,7 +535,10 @@ export class WebhookProcessorProduction {
         status: state.status,
         totalFiles: state.totalFiles,
         processedFiles: state.processedFiles,
-        progress: state.totalFiles > 0 ? `${Math.round((state.processedFiles / state.totalFiles) * 100)}%` : '0%',
+        progress:
+          state.totalFiles > 0
+            ? `${Math.round((state.processedFiles / state.totalFiles) * 100)}%`
+            : '0%',
         duration: `${Math.round((Date.now() - state.startTime) / 1000)}s`,
         error: state.error,
       };
