@@ -20,6 +20,8 @@ export class WebhookProcessorOptimizedV2 {
   private static poolInitialized = false;
   private static MAX_CONNECTIONS = 3;
   private static KEEP_ALIVE_INTERVAL = 30000;
+  private static MAX_MONTHS_AHEAD = parseInt(process.env.WEBHOOK_MAX_MONTHS_AHEAD || '6'); // Default to 6 months
+  private static FORCE_FULL_SYNC = process.env.WEBHOOK_FORCE_FULL_SYNC === 'true';
 
   // BullMQ configuration
   private static webhookQueue: Queue | null = null;
@@ -70,20 +72,31 @@ export class WebhookProcessorOptimizedV2 {
     WebhookProcessorOptimizedV2.webhookWorker = new Worker(
       'webhook-v2-processing',
       async (job: Job) => {
-        const { lineId, files } = job.data;
+        const { lineId, files, batchNumber, totalBatches } = job.data;
         console.log(
-          `[WORKER-V2] Processing job ${job.id} for line ${lineId} with ${files.length} files`
+          `[WORKER-V2] Processing job ${job.id} (batch ${batchNumber}/${totalBatches}) for line ${lineId} with ${files.length} files`
         );
 
         // Process files in batches
         const BATCH_SIZE = 5;
         const results = { processed: 0, failed: 0, updated: 0 };
+        const startTime = Date.now();
 
         for (let i = 0; i < files.length; i += BATCH_SIZE) {
           const batch = files.slice(i, i + BATCH_SIZE);
 
-          // Update job progress
-          await job.updateProgress((i / files.length) * 100);
+          // Update job progress with more detail
+          const progress = Math.round((i / files.length) * 100);
+          await job.updateProgress(progress);
+
+          // Log progress every 10 files
+          if (i > 0 && i % 10 === 0) {
+            const elapsed = Date.now() - startTime;
+            const rate = Math.round((results.processed / elapsed) * 1000 * 60); // files per minute
+            console.log(
+              `[WORKER-V2] Job ${job.id} progress: ${results.processed}/${files.length} files (${progress}%) - ${rate} files/min`
+            );
+          }
 
           // Process batch in parallel
           const batchResults = await Promise.allSettled(
@@ -245,7 +258,22 @@ export class WebhookProcessorOptimizedV2 {
 
       // Discover files efficiently
       const files = await this.discoverFiles(lineId);
+
+      // Log configuration and summary
       console.log(`[OPTIMIZED-V2] Found ${files.length} files to process`);
+      console.log(
+        `[OPTIMIZED-V2] Settings: MAX_MONTHS_AHEAD=${WebhookProcessorOptimizedV2.MAX_MONTHS_AHEAD}, FORCE_FULL_SYNC=${WebhookProcessorOptimizedV2.FORCE_FULL_SYNC}`
+      );
+
+      // Show file distribution by month for better visibility
+      const fileSummary: Record<string, number> = {};
+      files.forEach(file => {
+        const key = `${file.year}/${file.month.toString().padStart(2, '0')}`;
+        fileSummary[key] = (fileSummary[key] || 0) + 1;
+      });
+      if (Object.keys(fileSummary).length > 0) {
+        console.log(`[OPTIMIZED-V2] File distribution:`, JSON.stringify(fileSummary));
+      }
 
       if (files.length === 0) {
         return {
@@ -262,7 +290,9 @@ export class WebhookProcessorOptimizedV2 {
         batches.push(files.slice(i, i + MAX_FILES_PER_JOB));
       }
 
-      console.log(`[OPTIMIZED-V2] Creating ${batches.length} jobs for line ${lineId}`);
+      console.log(
+        `[OPTIMIZED-V2] Creating ${batches.length} jobs for line ${lineId} (${files.length} files / ${MAX_FILES_PER_JOB} per job)`
+      );
 
       // Queue jobs for processing
       const jobIds = [];
@@ -328,12 +358,32 @@ export class WebhookProcessorOptimizedV2 {
         availableYears.push(currentYear, currentYear + 1);
       }
 
-      console.log(`[OPTIMIZED-V2] Scanning years: ${availableYears.join(', ')}`);
+      // Calculate date limits based on configuration
+      const maxDate = new Date();
+      if (!WebhookProcessorOptimizedV2.FORCE_FULL_SYNC) {
+        maxDate.setMonth(maxDate.getMonth() + WebhookProcessorOptimizedV2.MAX_MONTHS_AHEAD);
+      } else {
+        maxDate.setFullYear(maxDate.getFullYear() + 10); // Effectively no limit
+      }
+      const maxYear = maxDate.getFullYear();
+      const maxMonth = maxDate.getMonth() + 1;
+
+      console.log(
+        `[OPTIMIZED-V2] Scanning years: ${availableYears.join(', ')} (limit: ${maxYear}-${maxMonth.toString().padStart(2, '0')})`
+      );
 
       // For each available year, scan all months from current month onwards
       for (const year of availableYears) {
+        // Skip years beyond our limit
+        if (year > maxYear) {
+          console.log(
+            `[OPTIMIZED-V2] Skipping year ${year} (beyond ${WebhookProcessorOptimizedV2.MAX_MONTHS_AHEAD} months limit)`
+          );
+          continue;
+        }
+
         const startMonth = year === currentYear ? currentMonth : 1;
-        const endMonth = 12;
+        const endMonth = year === maxYear ? Math.min(12, maxMonth) : 12;
 
         for (let month = startMonth; month <= endMonth; month++) {
           const monthStr = month.toString().padStart(2, '0');
