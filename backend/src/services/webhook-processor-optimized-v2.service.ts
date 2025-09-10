@@ -644,7 +644,7 @@ export class WebhookProcessorOptimizedV2 {
           ownerIdRaw: data.ownerid,
         });
         // Continue processing - don't fail the whole batch
-        this.stats.errors++;
+        this.stats.errors.push(`Cruise ${cruiseId}: ${error.message}`);
         return true; // Return true to indicate we processed the file even if there was an error
       }
 
