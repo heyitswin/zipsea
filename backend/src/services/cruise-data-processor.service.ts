@@ -287,7 +287,9 @@ export class CruiseDataProcessor {
 
   private async processPricing(tx: any, cruiseId: string, cruiseData: any) {
     // Process detailed cabin pricing from Traveltek structure
-    const pricingData = cruiseData.prices || {};
+    // Traveltek stores pricing in cheapest.prices, not prices directly
+    const pricingData =
+      cruiseData.prices || (cruiseData.cheapest && cruiseData.cheapest.prices) || {};
 
     // Process each rate code
     for (const rateCode in pricingData) {
