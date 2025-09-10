@@ -16,6 +16,7 @@ import {
 import { createSlugFromCruise } from "../lib/slug";
 import { useAlert } from "../components/GlobalAlertProvider";
 import Navigation from "./components/Navigation";
+import SearchResultsModal from "./components/SearchResultsModal";
 import { trackSearch, trackEngagement } from "../lib/analytics";
 
 // Separate component to handle URL params (needs to be wrapped in Suspense)
@@ -49,6 +50,15 @@ function HomeWithParams() {
   // Last minute deals states
   const [lastMinuteDeals, setLastMinuteDeals] = useState<LastMinuteDeals[]>([]);
   const [isLoadingDeals, setIsLoadingDeals] = useState(false);
+
+  // Search results modal states
+  const [isSearchResultsOpen, setIsSearchResultsOpen] = useState(false);
+  const [searchModalParams, setSearchModalParams] = useState<{
+    shipId: number;
+    shipName: string;
+    cruiseLineName: string;
+    date: Date;
+  } | null>(null);
 
   // Available sailing dates states
   const [availableSailingDates, setAvailableSailingDates] = useState<
@@ -573,10 +583,14 @@ function HomeWithParams() {
       } else if (results.length === 0) {
         showAlert("No cruises found for your search criteria");
       } else {
-        // Navigate to search results page or show selection
-        showAlert(
-          `Found ${results.length} cruises. Please refine your search.`,
-        );
+        // Show search results in modal
+        setSearchModalParams({
+          shipId: selectedShip.id,
+          shipName: selectedShip.name,
+          cruiseLineName: selectedShip.cruiseLineName || "",
+          date: selectedDate,
+        });
+        setIsSearchResultsOpen(true);
       }
     } catch (err) {
       console.error("Error searching cruises:", err);
@@ -597,6 +611,13 @@ function HomeWithParams() {
         onDateSelect={handleDateSelect}
         selectedDate={selectedDate}
         onSearchClick={handleSearchCruises}
+      />
+
+      {/* Search Results Modal */}
+      <SearchResultsModal
+        isOpen={isSearchResultsOpen}
+        onClose={() => setIsSearchResultsOpen(false)}
+        searchParams={searchModalParams}
       />
 
       {/* Hero Section */}
