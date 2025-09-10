@@ -133,7 +133,33 @@ export class WebhookProcessorOptimizedV2 {
       console.error(`[QUEUE-V2] Job ${job?.id} failed:`, err.message);
     });
 
+    WebhookProcessorOptimizedV2.webhookWorker.on('active', job => {
+      console.log(`[QUEUE-V2] Job ${job.id} is now active (started processing)`);
+    });
+
+    WebhookProcessorOptimizedV2.webhookWorker.on('stalled', jobId => {
+      console.warn(`[QUEUE-V2] Job ${jobId} has stalled`);
+    });
+
+    WebhookProcessorOptimizedV2.webhookWorker.on('error', err => {
+      console.error(`[QUEUE-V2] Worker error:`, err.message);
+    });
+
     console.log('[OPTIMIZED-V2] BullMQ queue and worker initialized');
+
+    // Log worker status
+    setTimeout(async () => {
+      try {
+        const isRunning = await WebhookProcessorOptimizedV2.webhookWorker.isRunning();
+        const waiting = await WebhookProcessorOptimizedV2.webhookQueue.getWaitingCount();
+        const active = await WebhookProcessorOptimizedV2.webhookQueue.getActiveCount();
+        console.log(
+          `[OPTIMIZED-V2] Worker status check - Running: ${isRunning}, Waiting jobs: ${waiting}, Active jobs: ${active}`
+        );
+      } catch (err) {
+        console.error('[OPTIMIZED-V2] Error checking worker status:', err);
+      }
+    }, 5000); // Check after 5 seconds
   }
 
   private async initializeFtpPool() {
@@ -310,6 +336,30 @@ export class WebhookProcessorOptimizedV2 {
 
       const duration = Date.now() - startTime;
       console.log(`[OPTIMIZED-V2] Queued ${batches.length} jobs in ${duration}ms`);
+      console.log(`[OPTIMIZED-V2] Job IDs: ${jobIds.join(', ')}`);
+
+      // Check queue status immediately after adding jobs
+      const waiting = await WebhookProcessorOptimizedV2.webhookQueue.getWaitingCount();
+      const delayed = await WebhookProcessorOptimizedV2.webhookQueue.getDelayedCount();
+      const active = await WebhookProcessorOptimizedV2.webhookQueue.getActiveCount();
+      const isPaused = await WebhookProcessorOptimizedV2.webhookQueue.isPaused();
+
+      console.log(
+        `[OPTIMIZED-V2] Queue status after adding jobs - Waiting: ${waiting}, Delayed: ${delayed}, Active: ${active}, Paused: ${isPaused}`
+      );
+
+      // Check if worker is running
+      if (WebhookProcessorOptimizedV2.webhookWorker) {
+        const isRunning = await WebhookProcessorOptimizedV2.webhookWorker.isRunning();
+        console.log(`[OPTIMIZED-V2] Worker running: ${isRunning}`);
+
+        if (!isRunning) {
+          console.log('[OPTIMIZED-V2] WARNING: Worker is not running! Attempting to run worker...');
+          await WebhookProcessorOptimizedV2.webhookWorker.run();
+        }
+      } else {
+        console.error('[OPTIMIZED-V2] ERROR: Worker not initialized!');
+      }
 
       return {
         status: 'queued',
