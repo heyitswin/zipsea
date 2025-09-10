@@ -14,6 +14,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/send-quote-confirmation",
   "/api/test-email",
   "/api/test-config",
+  "/api/image-proxy", // Allow public access to image proxy
   // Public API routes for cruise browsing
   "/api/v1/cruises/(.*)",
   "/api/v1/search",
