@@ -3,7 +3,7 @@ import Redis from 'ioredis';
 import * as path from 'path';
 import { db } from '../db/connection';
 import { webhookEvents, systemFlags, priceSnapshots, syncLocks } from '../db/schema/webhook-events';
-import { cruises, pricing } from '../db/schema';
+import { cruises, pricing, cheapestPricing } from '../db/schema';
 import { eq, and, gte, sql } from 'drizzle-orm';
 import { ftpConnectionPool } from './ftp-connection-pool.service';
 import { slackService } from './slack.service';
@@ -378,15 +378,47 @@ export class WebhookProcessorOptimized {
   }
 
   private async takeSnapshot(lineId: number) {
-    // Create price snapshot
-    await db.insert(priceSnapshots).values({
-      lineId,
-      snapshotData: await this.getCurrentPrices(lineId),
-      createdAt: new Date(),
-    });
+    // Take snapshots of cheapest pricing for all cruises in this line
+    const cruisesWithPricing = await db
+      .select({
+        cruiseId: cruises.id,
+        cheapestPrice: cheapestPricing.cheapestPrice,
+        interiorPrice: cheapestPricing.interiorPrice,
+        oceanviewPrice: cheapestPricing.oceanviewPrice,
+        balconyPrice: cheapestPricing.balconyPrice,
+        suitePrice: cheapestPricing.suitePrice,
+      })
+      .from(cruises)
+      .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
+      .where(eq(cruises.cruiseLineId, lineId))
+      .limit(1000);
+
+    // Create snapshots for each cruise
+    for (const cruise of cruisesWithPricing) {
+      if (cruise.cruiseId && cruise.cheapestPrice) {
+        try {
+          await db.insert(priceSnapshots).values({
+            cruiseId: cruise.cruiseId,
+            snapshotData: {
+              cheapestPrice: cruise.cheapestPrice,
+              interiorPrice: cruise.interiorPrice,
+              oceanviewPrice: cruise.oceanviewPrice,
+              balconyPrice: cruise.balconyPrice,
+              suitePrice: cruise.suitePrice,
+              timestamp: new Date().toISOString(),
+              lineId: lineId,
+            },
+            createdAt: new Date(),
+          });
+        } catch (error) {
+          console.error(`Failed to create snapshot for cruise ${cruise.cruiseId}:`, error);
+        }
+      }
+    }
   }
 
   private async getCurrentPrices(lineId: number) {
+    // This method is no longer used
     const prices = await db
       .select()
       .from(pricing)
