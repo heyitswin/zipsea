@@ -3,7 +3,7 @@ import Redis from 'ioredis';
 import * as path from 'path';
 import { db } from '../db/connection';
 import { webhookEvents, systemFlags, priceSnapshots, syncLocks } from '../db/schema/webhook-events';
-import { cruises, pricing } from '../db/schema';
+import { cruises, pricing, cheapestPricing } from '../db/schema';
 import { eq, and, gte, sql } from 'drizzle-orm';
 import { ftpConnectionPool } from './ftp-connection-pool.service';
 import { slackService } from './slack.service';
@@ -234,19 +234,17 @@ export class WebhookProcessorOptimized {
                 const dayFiles = await conn.client.list(dayPath);
 
                 for (const file of dayFiles) {
-                  if (file.type === 1 && file.name.endsWith('.jsonl')) {
-                    // Extract line ID from filename
-                    const match = file.name.match(/line_(\d+)_/);
-                    if (match) {
-                      const fileLineId = parseInt(match[1]);
-                      if (!lineId || fileLineId === lineId) {
-                        files.push({
-                          path: `${dayPath}/${file.name}`,
-                          size: file.size,
-                          modifiedAt: file.modifiedAt || new Date(),
-                          lineId: fileLineId,
-                        });
-                      }
+                  if (file.type === 1 && file.name.endsWith('.json')) {
+                    // For Traveltek, line ID is the directory name (e.g., /2025/09/54/shipid/cruise.json)
+                    // dayDir.name is the line ID
+                    const fileLineId = parseInt(dayDir.name);
+                    if (!lineId || fileLineId === lineId || isNaN(fileLineId)) {
+                      files.push({
+                        path: `${dayPath}/${file.name}`,
+                        size: file.size,
+                        modifiedAt: file.modifiedAt || new Date(),
+                        lineId: fileLineId || 0,
+                      });
                     }
                   }
                 }
@@ -301,48 +299,47 @@ export class WebhookProcessorOptimized {
       }
 
       // Download and parse file
-      const tempFile = `/tmp/webhook-${Date.now()}.jsonl`;
+      const tempFile = `/tmp/webhook-${Date.now()}.json`;
       await conn.client.downloadTo(tempFile, file.path);
       const fs = await import('fs');
       const content = await fs.promises.readFile(tempFile, 'utf-8');
       await fs.promises.unlink(tempFile);
 
-      const lines = content.split('\n').filter(line => line.trim());
       let cruisesProcessed = 0;
       let pricesProcessed = 0;
 
       // Take snapshot before processing
       await this.takeSnapshot(file.lineId);
 
-      for (const line of lines) {
-        try {
-          const data = JSON.parse(line);
+      try {
+        // Traveltek files are single JSON objects, not JSONL
+        const data = JSON.parse(content);
 
-          // Traveltek sends the entire cruise data in one object
-          // Check if this is a Traveltek cruise object
-          if (data.codetocruiseid || data.cruise_id) {
-            await this.updateCruise(data);
-            cruisesProcessed++;
+        // Check if this is a Traveltek cruise object
+        if (data.codetocruiseid || data.cruise_id) {
+          await this.updateCruise(data);
+          cruisesProcessed++;
 
-            // Extract and update detailed pricing from the same object
-            if (data.prices) {
-              await this.updateDetailedPricing(data.codetocruiseid || data.cruise_id, data.prices);
-              pricesProcessed++;
-            }
-          } else if (data.cruise) {
-            // Legacy format support
-            await this.updateCruise(data.cruise);
-            cruisesProcessed++;
-          }
-
-          if (data.pricing) {
-            // Legacy format support
-            await this.updatePricing(data.pricing);
+          // Extract and update detailed pricing from the same object
+          // Traveltek stores pricing in cheapest.prices, not prices directly
+          const pricingData = data.prices || (data.cheapest && data.cheapest.prices);
+          if (pricingData) {
+            await this.updateDetailedPricing(data.codetocruiseid || data.cruise_id, pricingData);
             pricesProcessed++;
           }
-        } catch (error) {
-          console.error(`Error processing line in ${file.path}:`, error);
+        } else if (data.cruise) {
+          // Legacy format support - if data has a cruise property
+          await this.updateCruise(data.cruise);
+          cruisesProcessed++;
         }
+
+        if (data.pricing) {
+          // Legacy format support - if data has a pricing property
+          await this.updatePricing(data.pricing);
+          pricesProcessed++;
+        }
+      } catch (error) {
+        console.error(`Error processing JSON in ${file.path}:`, error);
       }
 
       // Record processed event
@@ -383,15 +380,47 @@ export class WebhookProcessorOptimized {
   }
 
   private async takeSnapshot(lineId: number) {
-    // Create price snapshot
-    await db.insert(priceSnapshots).values({
-      lineId,
-      snapshotData: await this.getCurrentPrices(lineId),
-      createdAt: new Date(),
-    });
+    // Take snapshots of cheapest pricing for all cruises in this line
+    const cruisesWithPricing = await db
+      .select({
+        cruiseId: cruises.id,
+        cheapestPrice: cheapestPricing.cheapestPrice,
+        interiorPrice: cheapestPricing.interiorPrice,
+        oceanviewPrice: cheapestPricing.oceanviewPrice,
+        balconyPrice: cheapestPricing.balconyPrice,
+        suitePrice: cheapestPricing.suitePrice,
+      })
+      .from(cruises)
+      .leftJoin(cheapestPricing, eq(cruises.id, cheapestPricing.cruiseId))
+      .where(eq(cruises.cruiseLineId, lineId))
+      .limit(1000);
+
+    // Create snapshots for each cruise
+    for (const cruise of cruisesWithPricing) {
+      if (cruise.cruiseId && cruise.cheapestPrice) {
+        try {
+          await db.insert(priceSnapshots).values({
+            cruiseId: cruise.cruiseId,
+            snapshotData: {
+              cheapestPrice: cruise.cheapestPrice,
+              interiorPrice: cruise.interiorPrice,
+              oceanviewPrice: cruise.oceanviewPrice,
+              balconyPrice: cruise.balconyPrice,
+              suitePrice: cruise.suitePrice,
+              timestamp: new Date().toISOString(),
+              lineId: lineId,
+            },
+            createdAt: new Date(),
+          });
+        } catch (error) {
+          console.error(`Failed to create snapshot for cruise ${cruise.cruiseId}:`, error);
+        }
+      }
+    }
   }
 
   private async getCurrentPrices(lineId: number) {
+    // This method is no longer used
     const prices = await db
       .select()
       .from(pricing)
