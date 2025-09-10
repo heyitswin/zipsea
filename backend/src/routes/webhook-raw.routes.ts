@@ -1061,7 +1061,7 @@ router.post('/traveltek/simple-test', async (req: Request, res: Response) => {
     // Use simple processor
     try {
       const processor = new WebhookProcessorSimple();
-      const result = await processor.processSimple(lineId);
+      const result = await processor.processWebhooks(lineId);
 
       // Update status
       await client.query(
