@@ -1,0 +1,7 @@
+Version: 2025-09-10-v4-pricing-extraction
+Timestamp: 2025-09-10T18:00:00Z
+Changes:
+- Added detailed pricing extraction to WebhookProcessorOptimized
+- Fixed webhook routing to use correct processor
+- Added cabin_categories.category column
+- Enhanced pricing data extraction from Traveltek JSON
