@@ -460,6 +460,47 @@ router.get('/traveltek/db-check', async (req: Request, res: Response) => {
  * Minimal test endpoint - just updates status
  * POST /api/webhooks/traveltek/minimal-test
  */
+// FTP test endpoint - just tests FTP connection
+router.get('/traveltek/ftp-test', async (req: Request, res: Response) => {
+  try {
+    console.log('[FTP-TEST] Testing FTP connection...');
+
+    // Import ftpConnectionPool
+    const { ftpConnectionPool } = await import('../services/ftp-connection-pool.service');
+
+    // Try to get a connection
+    const conn = await ftpConnectionPool.getConnection();
+    console.log(`[FTP-TEST] Got FTP connection: ${conn.id}`);
+
+    // Try to list root directory
+    const items = await conn.client.list('/');
+    console.log(`[FTP-TEST] Listed root directory: ${items.length} items`);
+
+    // Try to list a specific path
+    const testPath = '/2025/09';
+    const monthItems = await conn.client.list(testPath);
+    console.log(`[FTP-TEST] Listed ${testPath}: ${monthItems.length} items`);
+
+    // Release connection
+    ftpConnectionPool.releaseConnection(conn.id);
+    console.log('[FTP-TEST] Released connection');
+
+    res.json({
+      success: true,
+      message: 'FTP connection test successful',
+      rootItems: items.length,
+      monthItems: monthItems.length,
+      testPath: testPath,
+    });
+  } catch (error) {
+    console.error('[FTP-TEST] FTP test failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'FTP test failed',
+    });
+  }
+});
+
 // Simple processing test - uses simplified processor
 router.post('/traveltek/simple-test', async (req: Request, res: Response) => {
   const { lineId = 22 } = req.body;
