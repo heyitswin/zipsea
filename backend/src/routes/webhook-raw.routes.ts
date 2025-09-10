@@ -3,6 +3,7 @@ import logger from '../config/logger';
 import { WebhookProcessorOptimized } from '../services/webhook-processor-optimized.service';
 import { WebhookProcessorSimple } from '../services/webhook-processor-simple.service';
 import { WebhookProcessorDiscovery } from '../services/webhook-processor-discovery.service';
+import { WebhookProcessorCorrect } from '../services/webhook-processor-correct.service';
 import { Client } from 'pg';
 
 const router = Router();
@@ -461,6 +462,160 @@ router.get('/traveltek/db-check', async (req: Request, res: Response) => {
  * Minimal test endpoint - just updates status
  * POST /api/webhooks/traveltek/minimal-test
  */
+// List available cruise lines using correct FTP structure
+router.get('/traveltek/list-lines', async (req: Request, res: Response) => {
+  try {
+    console.log('[LIST-LINES] Listing available cruise lines...');
+
+    const processor = new WebhookProcessorCorrect();
+    const result = await processor.listAvailableLines();
+
+    res.json({
+      success: result.success,
+      availableLines: result.lines,
+      count: result.lines.length,
+      suggestion:
+        result.lines.length > 0
+          ? `Found ${result.lines.length} lines! Try testing with line ${result.lines[0]}`
+          : 'No lines found in current month',
+      error: result.error,
+    });
+  } catch (error) {
+    console.error('[LIST-LINES] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to list lines',
+    });
+  }
+});
+
+// Discover cruise files for a specific line
+router.post('/traveltek/discover-cruises', async (req: Request, res: Response) => {
+  const { lineId = 22 } = req.body;
+
+  try {
+    console.log(`[DISCOVER-CRUISES] Discovering cruises for line ${lineId}...`);
+
+    const processor = new WebhookProcessorCorrect();
+    const result = await processor.discoverCruiseFiles(lineId);
+
+    res.json({
+      success: result.success,
+      lineId: lineId,
+      filesFound: result.files.length,
+      files: result.files,
+      error: result.error,
+    });
+  } catch (error) {
+    console.error('[DISCOVER-CRUISES] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Discovery failed',
+    });
+  }
+});
+
+// Check FTP data availability
+router.get('/traveltek/check-ftp-data', async (req: Request, res: Response) => {
+  try {
+    console.log('[CHECK-FTP] Checking FTP data availability...');
+
+    const { ftpConnectionPool } = await import('../services/ftp-connection-pool.service');
+    const conn = await ftpConnectionPool.getConnection();
+
+    try {
+      const dataOverview: any = {
+        years: {},
+        totalFiles: 0,
+        sampleLines: new Set<number>(),
+      };
+
+      // Check root directory for years
+      const rootItems = await conn.client.list('/');
+
+      for (const item of rootItems) {
+        if (item.type === 2 && /^\d{4}$/.test(item.name)) {
+          const year = item.name;
+          dataOverview.years[year] = { months: [] };
+
+          // Check months in this year
+          try {
+            const monthItems = await conn.client.list(`/${year}`);
+
+            for (const monthItem of monthItems) {
+              if (monthItem.type === 2 && /^\d{2}$/.test(monthItem.name)) {
+                const month = monthItem.name;
+                const monthPath = `/${year}/${month}`;
+
+                // Count days in this month
+                const dayItems = await conn.client.list(monthPath);
+                const dayCount = dayItems.filter(d => d.type === 2).length;
+
+                // Sample first day for file count
+                let fileCount = 0;
+                if (dayCount > 0) {
+                  const firstDay = dayItems.find(d => d.type === 2);
+                  if (firstDay) {
+                    const dayFiles = await conn.client.list(`${monthPath}/${firstDay.name}`);
+                    fileCount = dayFiles.filter(
+                      f => f.type === 1 && f.name.endsWith('.jsonl')
+                    ).length;
+
+                    // Extract some line IDs
+                    for (const file of dayFiles.slice(0, 5)) {
+                      if (file.name.endsWith('.jsonl')) {
+                        const match = file.name.match(/line_(\d+)_/);
+                        if (match) {
+                          dataOverview.sampleLines.add(parseInt(match[1]));
+                        }
+                      }
+                    }
+                  }
+                }
+
+                dataOverview.years[year].months.push({
+                  month,
+                  days: dayCount,
+                  filesPerDay: fileCount,
+                  estimatedTotalFiles: fileCount * dayCount,
+                });
+
+                dataOverview.totalFiles += fileCount * dayCount;
+              }
+            }
+          } catch (error) {
+            console.log(`Error checking year ${year}:`, error);
+          }
+        }
+      }
+
+      ftpConnectionPool.releaseConnection(conn.id);
+
+      res.json({
+        success: true,
+        overview: dataOverview.years,
+        totalEstimatedFiles: dataOverview.totalFiles,
+        sampleLineIds: Array.from(dataOverview.sampleLines)
+          .sort((a, b) => a - b)
+          .slice(0, 10),
+        suggestion:
+          dataOverview.sampleLines.size > 0
+            ? `Found data! Try line ${Array.from(dataOverview.sampleLines)[0]}`
+            : 'No JSONL files found in FTP',
+      });
+    } catch (error) {
+      ftpConnectionPool.releaseConnection(conn.id);
+      throw error;
+    }
+  } catch (error) {
+    console.error('[CHECK-FTP] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Check failed',
+    });
+  }
+});
+
 // Check available lines in FTP
 router.get('/traveltek/check-lines', async (req: Request, res: Response) => {
   try {
