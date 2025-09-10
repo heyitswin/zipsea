@@ -460,6 +460,77 @@ router.get('/traveltek/db-check', async (req: Request, res: Response) => {
  * Minimal test endpoint - just updates status
  * POST /api/webhooks/traveltek/minimal-test
  */
+// Test webhook synchronously - waits for processing to complete
+router.post('/traveltek/test-sync', async (req: Request, res: Response) => {
+  try {
+    const { lineId = 22 } = req.body;
+    console.log(`[TEST-SYNC] Processing webhook for line ${lineId}`);
+
+    // Insert webhook event
+    const insertQuery = `
+      INSERT INTO webhook_events (line_id, webhook_type, status, metadata)
+      VALUES ($1, $2, $3, $4)
+      RETURNING *
+    `;
+    const result = await executeSQL(insertQuery, [
+      lineId,
+      'test_sync',
+      'processing',
+      JSON.stringify({ test: true, lineId, sync: true }),
+    ]);
+
+    const webhookEvent = result[0];
+
+    // Process synchronously
+    try {
+      console.log(`[TEST-SYNC] Calling webhook processor...`);
+      const processor = getWebhookProcessor();
+      await processor.processWebhooks(lineId);
+
+      // Update status to processed
+      await executeSQL('UPDATE webhook_events SET status = $1, processed_at = $2 WHERE id = $3', [
+        'processed',
+        new Date(),
+        webhookEvent.id,
+      ]);
+
+      res.json({
+        status: 'success',
+        message: 'Webhook processed successfully',
+        eventId: webhookEvent.id,
+        lineId: lineId,
+      });
+    } catch (error) {
+      console.error(`[TEST-SYNC] Processing failed:`, error);
+
+      // Update status to failed
+      await executeSQL(
+        'UPDATE webhook_events SET status = $1, processed_at = $2, error_message = $3 WHERE id = $4',
+        [
+          'failed',
+          new Date(),
+          error instanceof Error ? error.message : 'Unknown error',
+          webhookEvent.id,
+        ]
+      );
+
+      res.json({
+        status: 'error',
+        message: 'Webhook processing failed',
+        eventId: webhookEvent.id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  } catch (error) {
+    console.error('[TEST-SYNC] Setup error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to handle webhook',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 // FTP test endpoint - just tests FTP connection
 router.get('/traveltek/ftp-test', async (req: Request, res: Response) => {
   try {
