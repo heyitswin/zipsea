@@ -112,7 +112,7 @@ export const isTest = false; // No test environment
 export const dbConfig = {
   url: env.DATABASE_URL || '',
   ssl: env.DATABASE_URL?.includes('render.com') ? true : false,
-  max: isProduction || isStaging ? 50 : 5, // Increased from 20 to handle more concurrent operations
+  max: isProduction || isStaging ? 25 : 5, // Optimized for actual usage patterns
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
 };
