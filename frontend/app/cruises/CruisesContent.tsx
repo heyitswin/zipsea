@@ -286,16 +286,15 @@ export default function CruisesContent() {
 
       if (response.ok) {
         const data = await response.json();
-        // Filter out cruises without any valid prices and cruises departing today or in the past
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0);
+        // Filter out cruises without any valid prices and cruises that have already departed
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Set to beginning of today
 
         const filteredCruises = (data.results || data.cruises || []).filter(
           (cruise: Cruise) => {
-            // Filter out cruises departing today or in the past
+            // Filter out cruises that have already departed (allow today's cruises)
             const sailingDate = new Date(cruise.sailingDate);
-            if (sailingDate < tomorrow) {
+            if (sailingDate < today) {
               return false;
             }
 
