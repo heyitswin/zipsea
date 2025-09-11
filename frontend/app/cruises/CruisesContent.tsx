@@ -114,7 +114,7 @@ export default function CruisesContent() {
         const timeoutId = setTimeout(() => controller.abort(), 3000);
 
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/search/comprehensive?includeFacets=true&limit=1`,
+          `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?includeFacets=true&limit=1`,
           { signal: controller.signal },
         );
 
@@ -263,7 +263,7 @@ export default function CruisesContent() {
       const timeoutId = setTimeout(() => controller.abort(), 3000);
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/search/comprehensive?${params.toString()}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?${params.toString()}`,
         { signal: controller.signal },
       );
 
