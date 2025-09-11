@@ -1,0 +1,87 @@
+--- a/frontend/app/cruises/CruisesContent.tsx
++++ b/frontend/app/cruises/CruisesContent.tsx
+@@ -283,7 +283,7 @@ export default function CruisesContent() {
+       const controller = new AbortController();
+       const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased timeout
+ 
+-      const url = `${process.env.NEXT_PUBLIC_API_URL}/search?${params.toString()}`;
++      const url = `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?${params.toString()}`;
+       console.log("Fetching cruises from:", url);
+ 
+       const response = await fetch(url, { signal: controller.signal });
+@@ -291,7 +291,7 @@ export default function CruisesContent() {
+ 
+       if (response.ok) {
+         const data = await response.json();
+-
++        
+         // Filter out cruises without any valid prices and cruises departing within 1 week
+         const oneWeekFromNow = new Date();
+         oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
+@@ -388,55 +388,9 @@ export default function CruisesContent() {
+     regions,
+   ]);
+ 
+-  // Initial load on mount
++  // Fetch cruises when any dependency changes (including initial load)
+   useEffect(() => {
+-    const loadInitialCruises = async () => {
+-      setLoading(true);
+-      try {
+-        const params = new URLSearchParams();
+-        params.append("limit", ITEMS_PER_PAGE.toString());
+-        params.append("offset", "0");
+-        params.append("sortBy", "date");
+-        params.append("sortOrder", "asc");
+-
+-        const response = await fetch(
+-          `${process.env.NEXT_PUBLIC_API_URL}/search?${params.toString()}`,
+-        );
+-
+-        if (response.ok) {
+-          const data = await response.json();
+-          const oneWeekFromNow = new Date();
+-          oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
+-
+-          const filteredCruises = (data.results || []).filter(
+-            (cruise: Cruise) => {
+-              const sailingDate = new Date(cruise.sailingDate);
+-              if (sailingDate < oneWeekFromNow) return false;
+-
+-              const allPrices: number[] = [];
+-              if (cruise.pricing) {
+-                Object.values(cruise.pricing).forEach((price: any) => {
+-                  const num = Number(price);
+-                  if (!isNaN(num) && num > 0) allPrices.push(num);
+-                });
+-              }
+-
+-              if (allPrices.length === 0) return false;
+-              const lowestPrice = Math.min(...allPrices);
+-              return lowestPrice > 99;
+-            },
+-          );
+-
+-          setCruises(filteredCruises);
+-          setTotalCount(data.totalCount || filteredCruises.length);
+-        }
+-      } catch (error) {
+-        console.error("Error loading initial cruises:", error);
+-        setError(true);
+-      } finally {
+-        setLoading(false);
+-      }
+-    };
+-
+-    loadInitialCruises();
++    // Removed duplicate initial load logic - fetchCruises handles everything
+   }, []); // Only run once on mount
+ 
+   // Fetch cruises when filters or page changes
+@@ -453,7 +407,6 @@ export default function CruisesContent() {
+     ) {
+       return;
+     }
+-
+     fetchCruises();
+   }, [fetchCruises]);

@@ -277,7 +277,7 @@ export default function CruisesContent() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased timeout
 
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/search?${params.toString()}`;
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?${params.toString()}`;
       console.log("Fetching cruises from:", url);
 
       const response = await fetch(url, { signal: controller.signal });
@@ -290,7 +290,7 @@ export default function CruisesContent() {
         const oneWeekFromNow = new Date();
         oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
 
-        const filteredCruises = (data.results || []).filter(
+        const filteredCruises = (data.results || data.cruises || []).filter(
           (cruise: Cruise) => {
             // Filter out cruises departing within 1 week from today
             const sailingDate = new Date(cruise.sailingDate);
@@ -366,7 +366,12 @@ export default function CruisesContent() {
 
         setCruises(filteredCruises);
         // Use total from API pagination if available
-        setTotalCount(data.pagination?.total || filteredCruises.length);
+        setTotalCount(
+          data.pagination?.total ||
+            data.totalCount ||
+            data.total ||
+            filteredCruises.length,
+        );
       } else {
         throw new Error("API response not ok");
       }
@@ -387,74 +392,10 @@ export default function CruisesContent() {
     sortBy,
   ]);
 
-  // Initial load on mount
+  // Initial load is now handled by fetchCruises in the useEffect below
+
+  // Fetch cruises when filters or page changes (now handles initial load too)
   useEffect(() => {
-    const loadInitialCruises = async () => {
-      setLoading(true);
-      try {
-        const params = new URLSearchParams();
-        params.append("limit", ITEMS_PER_PAGE.toString());
-        params.append("offset", "0");
-        params.append("sortBy", "date");
-        params.append("sortOrder", "asc");
-
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/search?${params.toString()}`,
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          const oneWeekFromNow = new Date();
-          oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
-
-          const filteredCruises = (data.results || []).filter(
-            (cruise: Cruise) => {
-              const sailingDate = new Date(cruise.sailingDate);
-              if (sailingDate < oneWeekFromNow) return false;
-
-              const allPrices: number[] = [];
-              if (cruise.pricing) {
-                Object.values(cruise.pricing).forEach((price: any) => {
-                  const num = Number(price);
-                  if (!isNaN(num) && num > 0) allPrices.push(num);
-                });
-              }
-
-              if (allPrices.length === 0) return false;
-              const lowestPrice = Math.min(...allPrices);
-              return lowestPrice > 99;
-            },
-          );
-
-          setCruises(filteredCruises);
-          setTotalCount(data.totalCount || filteredCruises.length);
-        }
-      } catch (error) {
-        console.error("Error loading initial cruises:", error);
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadInitialCruises();
-  }, []); // Only run once on mount
-
-  // Fetch cruises when filters or page changes
-  useEffect(() => {
-    // Skip if it's the initial state
-    if (
-      page === 1 &&
-      selectedCruiseLines.length === 0 &&
-      selectedMonths.length === 0 &&
-      selectedNightRanges.length === 0 &&
-      selectedDeparturePorts.length === 0 &&
-      selectedShips.length === 0 &&
-      selectedRegions.length === 0 &&
-      sortBy === "soonest"
-    ) {
-      return;
-    }
     fetchCruises();
   }, [fetchCruises]);
 
