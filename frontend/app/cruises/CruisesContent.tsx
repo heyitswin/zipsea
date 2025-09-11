@@ -404,55 +404,69 @@ export default function CruisesContent() {
               return false;
             }
 
+            // Collect all valid prices to check minimum
+            const allPrices: number[] = [];
+
             // Check pricing object first
             if (cruise.pricing) {
-              const hasValidPrice = [
+              [
                 cruise.pricing.interior,
                 cruise.pricing.oceanview,
                 cruise.pricing.balcony,
                 cruise.pricing.suite,
                 cruise.pricing.lowestPrice,
-              ].some(
-                (price) =>
-                  price &&
-                  price !== "0" &&
-                  price !== "null" &&
-                  Number(price) > 0,
-              );
-              if (hasValidPrice) return true;
+              ].forEach((price) => {
+                if (price && price !== "0" && price !== "null") {
+                  const num = Number(price);
+                  if (!isNaN(num) && num > 0) {
+                    allPrices.push(num);
+                  }
+                }
+              });
             }
 
             // Check combined field
             if (cruise.combined) {
-              const hasValidPrice = [
+              [
                 cruise.combined.inside,
                 cruise.combined.outside,
                 cruise.combined.balcony,
                 cruise.combined.suite,
-              ].some(
-                (price) =>
-                  price &&
-                  price !== "0" &&
-                  price !== "null" &&
-                  Number(price) > 0,
-              );
-              if (hasValidPrice) return true;
+              ].forEach((price) => {
+                if (price && price !== "0" && price !== "null") {
+                  const num = Number(price);
+                  if (!isNaN(num) && num > 0) {
+                    allPrices.push(num);
+                  }
+                }
+              });
             }
 
             // Fallback to individual price fields
-            const prices = [
+            [
               cruise.cheapestPrice,
               cruise.interiorPrice,
               cruise.oceanviewPrice,
               cruise.oceanViewPrice,
               cruise.balconyPrice,
               cruise.suitePrice,
-            ]
-              .filter((p) => p && p !== "0" && p !== "null")
-              .map((p) => Number(p))
-              .filter((p) => !isNaN(p) && p > 0);
+            ].forEach((price) => {
+              if (price && price !== "0" && price !== "null") {
+                const num = Number(price);
+                if (!isNaN(num) && num > 0) {
+                  allPrices.push(num);
+                }
+              }
+            });
 
-            return prices.length > 0;
+            // Filter out cruises with no valid prices
+            if (allPrices.length === 0) return false;
+
+            // Filter out cruises with lowest price of $99 or less
+            const lowestPrice = Math.min(...allPrices);
+            if (lowestPrice <= 99) return false;
+
+            return true;
           },
         );
 
@@ -754,52 +768,69 @@ export default function CruisesContent() {
 
             {isDateDropdownOpen && (
               <div className="absolute top-full mt-2 w-96 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4">
-                {[2025, 2026, 2027, 2028].map((year) => (
-                  <div key={year} className="mb-4">
-                    <div className="font-geograph font-bold text-[14px] text-gray-700 mb-2">
-                      {year}
+                {[2025, 2026, 2027, 2028].map((year) => {
+                  const currentDate = new Date();
+                  const currentYear = currentDate.getFullYear();
+                  const currentMonth = currentDate.getMonth();
+
+                  return (
+                    <div key={year} className="mb-4">
+                      <div className="font-geograph font-bold text-[14px] text-gray-700 mb-2">
+                        {year}
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        {[
+                          "Jan",
+                          "Feb",
+                          "Mar",
+                          "Apr",
+                          "May",
+                          "Jun",
+                          "Jul",
+                          "Aug",
+                          "Sep",
+                          "Oct",
+                          "Nov",
+                          "Dec",
+                        ].map((month, index) => {
+                          const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
+                          const isSelected = selectedMonths.includes(monthStr);
+
+                          // Check if month is in the past
+                          const isPast =
+                            year < currentYear ||
+                            (year === currentYear && index < currentMonth);
+
+                          return (
+                            <button
+                              key={monthStr}
+                              onClick={() => {
+                                if (!isPast) {
+                                  setSelectedMonths((prev) =>
+                                    isSelected
+                                      ? prev.filter((m) => m !== monthStr)
+                                      : [...prev, monthStr],
+                                  );
+                                  setPage(1);
+                                }
+                              }}
+                              disabled={isPast}
+                              className={`px-3 py-1 rounded-full text-[14px] font-geograph transition-colors ${
+                                isPast
+                                  ? "bg-gray-50 text-gray-400 cursor-not-allowed"
+                                  : isSelected
+                                    ? "bg-[#0E1B4D] text-white"
+                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              }`}
+                            >
+                              {month}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <div className="grid grid-cols-4 gap-2">
-                      {[
-                        "Jan",
-                        "Feb",
-                        "Mar",
-                        "Apr",
-                        "May",
-                        "Jun",
-                        "Jul",
-                        "Aug",
-                        "Sep",
-                        "Oct",
-                        "Nov",
-                        "Dec",
-                      ].map((month, index) => {
-                        const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
-                        const isSelected = selectedMonths.includes(monthStr);
-                        return (
-                          <button
-                            key={monthStr}
-                            onClick={() => {
-                              setSelectedMonths((prev) =>
-                                isSelected
-                                  ? prev.filter((m) => m !== monthStr)
-                                  : [...prev, monthStr],
-                              );
-                              setPage(1);
-                            }}
-                            className={`px-3 py-1 rounded-full text-[14px] font-geograph transition-colors ${
-                              isSelected
-                                ? "bg-[#0E1B4D] text-white"
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                            }`}
-                          >
-                            {month}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
