@@ -630,7 +630,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           {/* Description Section */}
           {(ship?.description || ship?.shortDescription) && (
-            <div className="bg-white rounded-lg p-4 md:p-6 mb-6">
+            <div className="mb-6">
               <p
                 className="font-geograph text-[18px] md:text-[24px] leading-[1.5] text-dark-blue"
                 style={{ letterSpacing: "-0.02em" }}

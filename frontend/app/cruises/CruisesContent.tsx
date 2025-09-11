@@ -14,10 +14,12 @@ interface Cruise {
   voyageCode?: string;
   nights: number;
   sailingDate: string;
+  sailingDateText?: string;
   embarkPortName: string;
   disembarkPortName: string;
   interiorPrice?: string;
   oceanviewPrice?: string;
+  oceanViewPrice?: string;
   balconyPrice?: string;
   suitePrice?: string;
   cheapestPrice?: string;
@@ -28,11 +30,17 @@ interface Cruise {
   ship?: {
     id: number;
     name: string;
+    defaultShipImage?: string;
+    defaultShipImage2k?: string;
+    defaultShipImageHd?: string;
   };
   embarkPort?: {
     id: number;
     name: string;
   };
+  departurePort?: string;
+  destinationName?: string;
+  description?: string;
   featuredImageUrl?: string;
 }
 
@@ -211,6 +219,8 @@ export default function CruisesContent() {
   const fetchCruises = useCallback(async () => {
     setLoading(true);
     setError(false);
+    // Clear existing cruises to prevent showing stale data
+    setCruises([]);
     try {
       const params = new URLSearchParams();
 
@@ -293,9 +303,20 @@ export default function CruisesContent() {
     sortBy,
   ]);
 
+  // Force fresh data fetch on component mount
   useEffect(() => {
+    // Reset cruises to prevent showing stale cached data
+    setCruises([]);
+    setLoading(true);
     fetchCruises();
   }, [fetchCruises]);
+
+  // Clear any cached state when component unmounts
+  useEffect(() => {
+    return () => {
+      setCruises([]);
+    };
+  }, []);
 
   // Get applied filters for display - memoized for performance
   const appliedFilters = useMemo(() => {
@@ -409,58 +430,16 @@ export default function CruisesContent() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Custom Navigation for Cruises Page */}
-      <nav className="bg-white border-b border-[#0E1B4D] py-[20px] px-[28px]">
-        <div className="flex items-center justify-between h-[44px]">
-          <div className="flex items-center">
-            <div className="w-[110px]">
-              <a href="/">
-                <Image
-                  src="/images/zipsea-logo-blue.svg"
-                  alt="Zipsea"
-                  width={110}
-                  height={40}
-                  className="w-[110px] h-auto"
-                  priority
-                />
-              </a>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-8">
-            <a
-              href="/why-zipsea"
-              className="text-[16px] font-medium font-geograph text-[#0E1B4D] hover:opacity-80 transition-all"
-            >
-              Why Zipsea
-            </a>
-            <a
-              href="/faqs"
-              className="text-[16px] font-medium font-geograph text-[#0E1B4D] hover:opacity-80 transition-all"
-            >
-              FAQs
-            </a>
-          </div>
-        </div>
-      </nav>
-
       {/* Banner Section */}
-      <div
-        className="bg-[#E9B4EB] bg-opacity-20 p-8 cursor-pointer"
-        onClick={handleOpenMissive}
-      >
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Image
-              src="/images/zippy.png"
-              alt="Zippy"
-              width={100}
-              height={100}
-              className="w-[100px] h-auto"
-            />
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div
+          className="bg-[#E9B4EB] rounded-[10px] p-8 cursor-pointer"
+          onClick={handleOpenMissive}
+        >
+          <div className="flex items-center justify-between">
             <div>
               <h2
-                className="font-whitney font-black text-[#0E1B4D] uppercase mb-2"
+                className="font-whitney font-black text-[#0E1B4D] uppercase mb-2 text-[32px]"
                 style={{ letterSpacing: "-0.02em" }}
               >
                 Always the most onboard credit back
@@ -469,14 +448,21 @@ export default function CruisesContent() {
                 Have a question? We're here to help, just click to chat →
               </p>
             </div>
+            <Image
+              src="/images/zippy.png"
+              alt="Zippy"
+              width={100}
+              height={100}
+              className="w-[100px] h-auto"
+            />
           </div>
         </div>
       </div>
 
       {/* Filters Section */}
-      <div className="border-b border-gray-200">
+      <div>
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 relative z-40">
             {/* Cruise Lines Filter */}
             <div className="relative" ref={cruiseLineDropdownRef}>
               <button
@@ -806,7 +792,8 @@ export default function CruisesContent() {
 
       {/* Applied Filters and Sort */}
       <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3">
+          {/* Applied Filters */}
           <div className="flex items-center gap-3 flex-wrap">
             {appliedFilters.map((filter, index) => (
               <div
@@ -841,278 +828,302 @@ export default function CruisesContent() {
           </div>
 
           {/* Sort Dropdown */}
-          <div className="relative" ref={sortDropdownRef}>
-            <button
-              onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
-              className="flex items-center gap-2 font-geograph text-[16px] text-dark-blue hover:opacity-80 transition-opacity"
-            >
-              Sort by:{" "}
-              {sortBy === "soonest"
-                ? "Soonest"
-                : sortBy === "lowest_price"
-                  ? "Lowest price"
-                  : sortBy === "highest_price"
-                    ? "Highest price"
-                    : sortBy === "shortest"
-                      ? "Shortest cruises"
-                      : "Longest cruises"}
-              <Image
-                src="/images/arrow-down.svg"
-                alt="Arrow"
-                width={12}
-                height={12}
-              />
-            </button>
+          <div>
+            <div className="relative inline-block" ref={sortDropdownRef}>
+              <button
+                onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full bg-white hover:border-gray-400 transition-colors"
+              >
+                <span className="font-geograph text-[16px] text-dark-blue">
+                  Sort by:{" "}
+                  {sortBy === "soonest"
+                    ? "Soonest"
+                    : sortBy === "lowest_price"
+                      ? "Lowest price"
+                      : sortBy === "highest_price"
+                        ? "Highest price"
+                        : sortBy === "shortest"
+                          ? "Shortest cruises"
+                          : "Longest cruises"}
+                </span>
+                <Image
+                  src="/images/arrow-down.svg"
+                  alt="Arrow"
+                  width={12}
+                  height={12}
+                />
+              </button>
 
-            {isSortDropdownOpen && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                {[
-                  "soonest",
-                  "lowest_price",
-                  "highest_price",
-                  "shortest",
-                  "longest",
-                ].map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => {
-                      setSortBy(option);
-                      setIsSortDropdownOpen(false);
-                      setPage(1);
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors font-geograph text-[16px] text-dark-blue"
-                  >
-                    {option === "soonest"
-                      ? "Soonest"
-                      : option === "lowest_price"
-                        ? "Lowest price"
-                        : option === "highest_price"
-                          ? "Highest price"
-                          : option === "shortest"
-                            ? "Shortest cruises"
-                            : "Longest cruises"}
-                  </button>
-                ))}
-              </div>
-            )}
+              {isSortDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  {[
+                    "soonest",
+                    "lowest_price",
+                    "highest_price",
+                    "shortest",
+                    "longest",
+                  ].map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => {
+                        setSortBy(option);
+                        setIsSortDropdownOpen(false);
+                        setPage(1);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors font-geograph text-[16px] text-dark-blue"
+                    >
+                      {option === "soonest"
+                        ? "Soonest"
+                        : option === "lowest_price"
+                          ? "Lowest price"
+                          : option === "highest_price"
+                            ? "Highest price"
+                            : option === "shortest"
+                              ? "Shortest cruises"
+                              : "Longest cruises"}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Cruise Results */}
-      <div className="max-w-7xl mx-auto px-4 pb-8">
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="text-xl text-gray-600">Loading cruises...</div>
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <div className="text-xl text-gray-600">
-              There was a problem fetching cruises, try reloading the page in a
-              couple seconds
+        {/* Cruise Results */}
+        <div className="max-w-7xl mx-auto px-4 pb-8">
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="text-xl text-gray-600">Loading cruises...</div>
             </div>
-          </div>
-        ) : cruises.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-xl text-gray-600">
-              No cruises found matching your criteria
+          ) : error ? (
+            <div className="text-center py-12">
+              <div className="text-xl text-gray-600">
+                There was a problem fetching cruises, try reloading the page in
+                a couple seconds
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {cruises.map((cruise) => {
-              const slug = createSlugFromCruise({
-                id: cruise.id,
-                shipName: cruise.ship?.name || "unknown",
-                sailingDate: cruise.sailingDate,
-              });
+          ) : cruises.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-xl text-gray-600">
+                No cruises found matching your criteria
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {cruises.map((cruise) => {
+                const slug = createSlugFromCruise({
+                  id: cruise.id,
+                  shipName: cruise.ship?.name || "unknown",
+                  sailingDate: cruise.sailingDate,
+                });
 
-              return (
-                <div
-                  key={cruise.id}
-                  onClick={() => router.push(`/cruise/${slug}`)}
-                  className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer"
-                >
-                  <div className="flex gap-6">
-                    {/* Featured Image */}
-                    <div className="w-48 h-32 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                      {cruise.featuredImageUrl ? (
-                        <Image
-                          src={cruise.featuredImageUrl}
-                          alt={cruise.name}
-                          width={192}
-                          height={128}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">
-                          No image
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Cruise Details */}
-                    <div className="flex-1">
-                      <h3
-                        className="font-whitney font-black uppercase text-[#2F2F2F] text-[24px] mb-2"
-                        style={{ letterSpacing: "-0.02em" }}
-                      >
-                        {cruise.name}
-                      </h3>
-
-                      <p className="font-geograph text-[16px] text-[#606060] mb-4">
-                        {cruise.cruiseLine?.name || "Unknown Line"} |{" "}
-                        {cruise.ship?.name || "Unknown Ship"}
-                      </p>
-
-                      <div className="grid grid-cols-4 gap-4">
-                        <div>
-                          <div
-                            className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
-                            style={{ letterSpacing: "0.1em" }}
-                          >
-                            DEPART
+                return (
+                  <div
+                    key={cruise.id}
+                    onClick={() => router.push(`/cruise/${slug}`)}
+                    className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                  >
+                    <div className="flex gap-6">
+                      {/* Featured Image */}
+                      <div className="w-48 h-32 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                        {cruise.ship?.defaultShipImage ? (
+                          <img
+                            src={
+                              cruise.ship.defaultShipImageHd ||
+                              cruise.ship.defaultShipImage2k ||
+                              cruise.ship.defaultShipImage
+                            }
+                            alt={cruise.ship.name || cruise.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : cruise.featuredImageUrl ? (
+                          <img
+                            src={cruise.featuredImageUrl}
+                            alt={cruise.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            No image
                           </div>
-                          <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
-                            {new Date(cruise.sailingDate).toLocaleDateString(
-                              "en-US",
-                              {
+                        )}
+                      </div>
+
+                      {/* Cruise Details */}
+                      <div className="flex-1">
+                        <h3
+                          className="font-whitney font-black uppercase text-[#2F2F2F] text-[24px] mb-1"
+                          style={{ letterSpacing: "-0.02em" }}
+                        >
+                          {cruise.name}
+                        </h3>
+
+                        <p className="font-geograph text-[16px] text-[#606060] mb-4">
+                          {cruise.cruiseLine?.name || "Unknown Line"} |{" "}
+                          {cruise.ship?.name || "Unknown Ship"}
+                        </p>
+
+                        <div className="grid grid-cols-4 gap-2">
+                          <div>
+                            <div
+                              className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                              style={{ letterSpacing: "0.1em" }}
+                            >
+                              DEPART
+                            </div>
+                            <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                              {new Date(cruise.sailingDate).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                },
+                              )}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div
+                              className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                              style={{ letterSpacing: "0.1em" }}
+                            >
+                              RETURN
+                            </div>
+                            <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                              {new Date(
+                                new Date(cruise.sailingDate).getTime() +
+                                  cruise.nights * 24 * 60 * 60 * 1000,
+                              ).toLocaleDateString("en-US", {
                                 month: "short",
                                 day: "numeric",
                                 year: "numeric",
-                              },
-                            )}
+                              })}
+                            </div>
                           </div>
-                        </div>
 
-                        <div>
-                          <div
-                            className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
-                            style={{ letterSpacing: "0.1em" }}
-                          >
-                            RETURN
+                          <div>
+                            <div
+                              className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                              style={{ letterSpacing: "0.1em" }}
+                            >
+                              DEPARTURE PORT
+                            </div>
+                            <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                              {cruise.embarkPort?.name ||
+                                cruise.embarkPortName ||
+                                "Unknown"}
+                            </div>
                           </div>
-                          <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
-                            {new Date(
-                              new Date(cruise.sailingDate).getTime() +
-                                cruise.nights * 24 * 60 * 60 * 1000,
-                            ).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </div>
-                        </div>
 
-                        <div>
-                          <div
-                            className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
-                            style={{ letterSpacing: "0.1em" }}
-                          >
-                            DEPARTURE PORT
-                          </div>
-                          <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
-                            {cruise.embarkPort?.name ||
-                              cruise.embarkPortName ||
-                              "Unknown"}
-                          </div>
-                        </div>
-
-                        <div>
-                          <div
-                            className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
-                            style={{ letterSpacing: "0.1em" }}
-                          >
-                            NIGHTS
-                          </div>
-                          <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
-                            {cruise.nights}
+                          <div>
+                            <div
+                              className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                              style={{ letterSpacing: "0.1em" }}
+                            >
+                              NIGHTS
+                            </div>
+                            <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                              {cruise.nights}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Pricing and CTA */}
-                    <div className="flex flex-col items-end justify-between">
-                      <div className="text-right">
-                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
-                          STARTING FROM
+                      {/* Pricing and CTA */}
+                      <div className="flex flex-col items-end justify-between">
+                        <div className="text-right">
+                          <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                            STARTING FROM
+                          </div>
+                          <div className="font-geograph font-bold text-[24px] text-dark-blue">
+                            {(() => {
+                              const prices = [
+                                cruise.cheapestPrice,
+                                cruise.interiorPrice,
+                                cruise.oceanviewPrice,
+                                cruise.oceanViewPrice,
+                                cruise.balconyPrice,
+                                cruise.suitePrice,
+                              ]
+                                .filter((p) => p && p !== "0" && p !== "null")
+                                .map((p) => Number(p))
+                                .filter((p) => !isNaN(p) && p > 0);
+
+                              return prices.length > 0
+                                ? formatPrice(Math.min(...prices))
+                                : "Call for price";
+                            })()}
+                          </div>
                         </div>
-                        <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                          {formatPrice(
-                            Number(cruise.cheapestPrice) ||
-                              Number(cruise.interiorPrice) ||
-                              0,
-                          )}
-                        </div>
+
+                        <button
+                          className="px-6 py-3 bg-[#0E1B4D] text-white rounded-full font-geograph font-medium text-[16px] hover:bg-opacity-90 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/cruise/${slug}`);
+                          }}
+                        >
+                          View cruise
+                        </button>
                       </div>
-
-                      <button
-                        className="px-6 py-3 bg-[#F953A4] text-white rounded-full font-geograph font-medium text-[16px] hover:bg-opacity-90 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/cruise/${slug}`);
-                        }}
-                      >
-                        View cruise
-                      </button>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Pagination */}
-        {!error && totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-8">
-            <button
-              onClick={() => setPage(Math.max(1, page - 1))}
-              disabled={page === 1}
-              className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-            >
-              Previous
-            </button>
-
-            <div className="flex gap-2">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                let pageNum;
-                if (totalPages <= 5) {
-                  pageNum = i + 1;
-                } else if (page <= 3) {
-                  pageNum = i + 1;
-                } else if (page >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i;
-                } else {
-                  pageNum = page - 2 + i;
-                }
-
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setPage(pageNum)}
-                    className={`w-10 h-10 rounded-lg transition-colors ${
-                      pageNum === page
-                        ? "bg-[#0E1B4D] text-white"
-                        : "border border-gray-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
                 );
               })}
             </div>
+          )}
 
-            <button
-              onClick={() => setPage(Math.min(totalPages, page + 1))}
-              disabled={page === totalPages}
-              className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-            >
-              Next
-            </button>
-          </div>
-        )}
+          {/* Pagination */}
+          {!error && totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-8">
+              <button
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+                className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+              >
+                Previous
+              </button>
+
+              <div className="flex gap-2">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      className={`w-10 h-10 rounded-lg transition-colors ${
+                        pageNum === page
+                          ? "bg-[#0E1B4D] text-white"
+                          : "border border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+                className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
