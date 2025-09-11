@@ -39,7 +39,7 @@ export class FilterOptionsController {
       `;
 
       // Get unique regions
-      // Note: region_ids is stored as a JSONB array in cruises table
+      // Note: region_ids is stored as a VARCHAR (comma-separated) in cruises table
       const regions = await sql`
         SELECT DISTINCT r.id, r.name
         FROM regions r
@@ -47,7 +47,12 @@ export class FilterOptionsController {
           SELECT 1 FROM cruises c
           WHERE c.is_active = true
           AND c.sailing_date >= CURRENT_DATE
-          AND c.region_ids::jsonb @> to_jsonb(r.id)
+          AND (
+            c.region_ids = r.id::text OR
+            c.region_ids LIKE r.id::text || ',%' OR
+            c.region_ids LIKE '%,' || r.id::text || ',%' OR
+            c.region_ids LIKE '%,' || r.id::text
+          )
         )
         ORDER BY r.name ASC
       `;

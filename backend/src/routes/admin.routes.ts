@@ -760,7 +760,7 @@ router.get('/quotes', async (req: Request, res: Response) => {
       quotesQuery = sql`
         SELECT
           qr.id,
-          COALESCE(qr.id::text, '') as reference_number,
+          COALESCE(qr.reference_number, qr.id::text, '') as reference_number,
           qr.created_at,
           COALESCE(qr.status, 'waiting') as status,
           qr.cruise_id,
@@ -768,9 +768,9 @@ router.get('/quotes', async (req: Request, res: Response) => {
           COALESCE(qr.last_name, '') as last_name,
           COALESCE(qr.email, '') as email,
           COALESCE(qr.phone, '') as phone,
-          1 as passenger_count,
-          COALESCE(qr.cabin_code, '') as cabin_type,
-          COALESCE(qr.special_requirements, '') as special_requirements,
+          COALESCE(qr.adults, 2) + COALESCE(qr.children, 0) as passenger_count,
+          COALESCE(qr.cabin_type, '') as cabin_type,
+          COALESCE(qr.special_requests, '') as special_requirements,
           COALESCE(qr.total_price, 0) as total_price,
           qr.quote_response,
           c.sailing_date,
@@ -794,7 +794,7 @@ router.get('/quotes', async (req: Request, res: Response) => {
       quotesQuery = sql`
         SELECT
           qr.id,
-          COALESCE(qr.id::text, '') as reference_number,
+          COALESCE(qr.reference_number, qr.id::text, '') as reference_number,
           qr.created_at,
           COALESCE(qr.status, 'waiting') as status,
           qr.cruise_id,
@@ -802,9 +802,9 @@ router.get('/quotes', async (req: Request, res: Response) => {
           COALESCE(qr.last_name, '') as last_name,
           COALESCE(qr.email, '') as email,
           COALESCE(qr.phone, '') as phone,
-          1 as passenger_count,
-          COALESCE(qr.cabin_code, '') as cabin_type,
-          COALESCE(qr.special_requirements, '') as special_requirements,
+          COALESCE(qr.adults, 2) + COALESCE(qr.children, 0) as passenger_count,
+          COALESCE(qr.cabin_type, '') as cabin_type,
+          COALESCE(qr.special_requests, '') as special_requirements,
           COALESCE(qr.total_price, 0) as total_price,
           qr.quote_response,
           c.sailing_date,
