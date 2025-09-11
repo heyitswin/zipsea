@@ -535,7 +535,7 @@ export default function Navigation({
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 py-[12px] md:py-[20px] px-[28px] transition-all duration-300 ease-in-out h-[64px] md:h-auto ${
+        className={`fixed top-0 left-0 right-0 z-50 py-[14px] md:py-[20px] px-[30px] md:px-[28px] transition-all duration-300 ease-in-out h-[64px] md:h-auto ${
           isScrolled ? "bg-white shadow-lg" : "bg-transparent"
         }`}
       >

@@ -760,7 +760,7 @@ router.get('/quotes', async (req: Request, res: Response) => {
       quotesQuery = sql`
         SELECT
           qr.id,
-          qr.reference_number,
+          qr."referenceNumber" as reference_number,
           qr.created_at,
           qr.status,
           qr.cruise_id,
@@ -794,7 +794,7 @@ router.get('/quotes', async (req: Request, res: Response) => {
       quotesQuery = sql`
         SELECT
           qr.id,
-          qr.reference_number,
+          qr."referenceNumber" as reference_number,
           qr.created_at,
           qr.status,
           qr.cruise_id,

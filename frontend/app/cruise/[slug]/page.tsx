@@ -626,20 +626,20 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       />
 
       {/* Body Section - Updated background and styling */}
-      <div className="bg-sand py-16">
-        <div className="max-w-7xl mx-auto px-6">
+      <div className="bg-sand py-8 md:py-16">
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
           {/* Description Section */}
           {(ship?.description || ship?.shortDescription) && (
-            <div>
+            <div className="bg-white rounded-lg p-4 md:p-6 mb-6">
               <p
-                className="font-geograph text-[20px] md:text-[24px] leading-[1.5] text-dark-blue"
+                className="font-geograph text-[18px] md:text-[24px] leading-[1.5] text-dark-blue"
                 style={{ letterSpacing: "-0.02em" }}
               >
                 {(() => {
                   const desc = ship.description || ship.shortDescription || "";
-                  return desc.length > 1200 && !isDescriptionExpanded ? (
+                  return desc.length > 600 && !isDescriptionExpanded ? (
                     <>
-                      {desc.substring(0, 1200)}...{" "}
+                      {desc.substring(0, 600)}...{" "}
                       <button
                         onClick={() => setIsDescriptionExpanded(true)}
                         className="text-pink-500 hover:text-pink-600 underline font-medium transition-colors"
@@ -651,7 +651,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   ) : (
                     <>
                       {desc}
-                      {desc.length > 1200 && (
+                      {desc.length > 600 && (
                         <>
                           {" "}
                           <button
@@ -681,7 +681,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         cruise?.balconyPrice ||
         cruise?.suitePrice) && (
         <div className="bg-sand">
-          <div className="max-w-7xl mx-auto px-6">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
             <div className="mb-6">
               <h2
                 className="font-whitney font-black text-[32px] text-dark-blue uppercase"
@@ -738,37 +738,37 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     </p>
                   </div>
 
-                  {/* Pricing Block */}
-                  <div className="flex-1 px-5 md:px-8 text-right">
-                    <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                      STARTING FROM
-                    </div>
-                    <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                      {formatPrice(
-                        pricing?.raw?.combined?.inside ||
-                          pricing?.interiorPrice ||
-                          cruise?.interiorPrice,
-                      )}
-                    </div>
-                    {isPriceAvailable(
-                      pricing?.raw?.combined?.inside ||
-                        pricing?.interiorPrice ||
-                        cruise?.interiorPrice,
-                    ) && (
-                      <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                        +$
-                        {calculateOnboardCredit(
+                  {/* Pricing Block and Button - Mobile optimized */}
+                  <div className="flex flex-row items-center justify-between flex-1 px-5 md:px-8">
+                    <div className="text-left">
+                      <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
+                        STARTING FROM
+                      </div>
+                      <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
+                        {formatPrice(
                           pricing?.raw?.combined?.inside ||
                             pricing?.interiorPrice ||
                             cruise?.interiorPrice,
-                        )}{" "}
-                        onboard credit
+                        )}
                       </div>
-                    )}
-                  </div>
+                      {isPriceAvailable(
+                        pricing?.raw?.combined?.inside ||
+                          pricing?.interiorPrice ||
+                          cruise?.interiorPrice,
+                      ) && (
+                        <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1 hidden md:inline-block">
+                          +$
+                          {calculateOnboardCredit(
+                            pricing?.raw?.combined?.inside ||
+                              pricing?.interiorPrice ||
+                              cruise?.interiorPrice,
+                          )}{" "}
+                          onboard credit
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Quote CTA Button */}
-                  <div className="p-5 md:py-3 md:pr-5 md:pl-0">
+                    {/* Quote CTA Button - Inline on mobile */}
                     <button
                       onClick={() =>
                         handleGetQuote(
@@ -783,7 +783,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           pricing?.interiorPrice || cruise?.interiorPrice,
                         )
                       }
-                      className={`w-full md:w-auto font-geograph font-medium text-[16px] px-4 py-3 rounded-full transition-colors ${
+                      className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors ${
                         isPriceAvailable(
                           pricing?.interiorPrice || cruise?.interiorPrice,
                         )
@@ -836,37 +836,37 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     </p>
                   </div>
 
-                  {/* Pricing Block */}
-                  <div className="flex-1 px-5 md:px-8 text-right">
-                    <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                      STARTING FROM
-                    </div>
-                    <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                      {formatPrice(
-                        pricing?.raw?.combined?.outside ||
-                          pricing?.oceanviewPrice ||
-                          cruise?.oceanviewPrice,
-                      )}
-                    </div>
-                    {isPriceAvailable(
-                      pricing?.raw?.combined?.outside ||
-                        pricing?.oceanviewPrice ||
-                        cruise?.oceanviewPrice,
-                    ) && (
-                      <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                        +$
-                        {calculateOnboardCredit(
+                  {/* Pricing Block and Button - Mobile optimized */}
+                  <div className="flex flex-row items-center justify-between flex-1 px-5 md:px-8">
+                    <div className="text-left">
+                      <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
+                        STARTING FROM
+                      </div>
+                      <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
+                        {formatPrice(
                           pricing?.raw?.combined?.outside ||
                             pricing?.oceanviewPrice ||
                             cruise?.oceanviewPrice,
-                        )}{" "}
-                        onboard credit
+                        )}
                       </div>
-                    )}
-                  </div>
+                      {isPriceAvailable(
+                        pricing?.raw?.combined?.outside ||
+                          pricing?.oceanviewPrice ||
+                          cruise?.oceanviewPrice,
+                      ) && (
+                        <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1 hidden md:inline-block">
+                          +$
+                          {calculateOnboardCredit(
+                            pricing?.raw?.combined?.outside ||
+                              pricing?.oceanviewPrice ||
+                              cruise?.oceanviewPrice,
+                          )}{" "}
+                          onboard credit
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Quote CTA Button */}
-                  <div className="p-5 md:py-3 md:pr-5 md:pl-0">
+                    {/* Quote CTA Button - Inline on mobile */}
                     <button
                       onClick={() =>
                         handleGetQuote(
@@ -883,7 +883,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                             cruise?.oceanviewPrice,
                         )
                       }
-                      className={`w-full md:w-auto font-geograph font-medium text-[16px] px-4 py-3 rounded-full transition-colors ${
+                      className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors ${
                         isPriceAvailable(
                           pricing?.raw?.combined?.outside ||
                             pricing?.oceanviewPrice ||
@@ -938,37 +938,37 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     </p>
                   </div>
 
-                  {/* Pricing Block */}
-                  <div className="flex-1 px-5 md:px-8 text-right">
-                    <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                      STARTING FROM
-                    </div>
-                    <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                      {formatPrice(
-                        pricing?.raw?.combined?.balcony ||
-                          pricing?.balconyPrice ||
-                          cruise?.balconyPrice,
-                      )}
-                    </div>
-                    {isPriceAvailable(
-                      pricing?.raw?.combined?.balcony ||
-                        pricing?.balconyPrice ||
-                        cruise?.balconyPrice,
-                    ) && (
-                      <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                        +$
-                        {calculateOnboardCredit(
+                  {/* Pricing Block and Button - Mobile optimized */}
+                  <div className="flex flex-row items-center justify-between flex-1 px-5 md:px-8">
+                    <div className="text-left">
+                      <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
+                        STARTING FROM
+                      </div>
+                      <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
+                        {formatPrice(
                           pricing?.raw?.combined?.balcony ||
                             pricing?.balconyPrice ||
                             cruise?.balconyPrice,
-                        )}{" "}
-                        onboard credit
+                        )}
                       </div>
-                    )}
-                  </div>
+                      {isPriceAvailable(
+                        pricing?.raw?.combined?.balcony ||
+                          pricing?.balconyPrice ||
+                          cruise?.balconyPrice,
+                      ) && (
+                        <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1 hidden md:inline-block">
+                          +$
+                          {calculateOnboardCredit(
+                            pricing?.raw?.combined?.balcony ||
+                              pricing?.balconyPrice ||
+                              cruise?.balconyPrice,
+                          )}{" "}
+                          onboard credit
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Quote CTA Button */}
-                  <div className="p-5 md:py-3 md:pr-5 md:pl-0">
+                    {/* Quote CTA Button - Inline on mobile */}
                     <button
                       onClick={() =>
                         handleGetQuote(
@@ -985,7 +985,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                             cruise?.balconyPrice,
                         )
                       }
-                      className={`w-full md:w-auto font-geograph font-medium text-[16px] px-4 py-3 rounded-full transition-colors ${
+                      className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors ${
                         isPriceAvailable(
                           pricing?.raw?.combined?.balcony ||
                             pricing?.balconyPrice ||
@@ -1040,37 +1040,37 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     </p>
                   </div>
 
-                  {/* Pricing Block */}
-                  <div className="flex-1 px-5 md:px-8 text-right">
-                    <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                      STARTING FROM
-                    </div>
-                    <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                      {formatPrice(
-                        pricing?.raw?.combined?.suite ||
-                          pricing?.suitePrice ||
-                          cruise?.suitePrice,
-                      )}
-                    </div>
-                    {isPriceAvailable(
-                      pricing?.raw?.combined?.suite ||
-                        pricing?.suitePrice ||
-                        cruise?.suitePrice,
-                    ) && (
-                      <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                        +$
-                        {calculateOnboardCredit(
+                  {/* Pricing Block and Button - Mobile optimized */}
+                  <div className="flex flex-row items-center justify-between flex-1 px-5 md:px-8">
+                    <div className="text-left">
+                      <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
+                        STARTING FROM
+                      </div>
+                      <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
+                        {formatPrice(
                           pricing?.raw?.combined?.suite ||
                             pricing?.suitePrice ||
                             cruise?.suitePrice,
-                        )}{" "}
-                        onboard credit
+                        )}
                       </div>
-                    )}
-                  </div>
+                      {isPriceAvailable(
+                        pricing?.raw?.combined?.suite ||
+                          pricing?.suitePrice ||
+                          cruise?.suitePrice,
+                      ) && (
+                        <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1 hidden md:inline-block">
+                          +$
+                          {calculateOnboardCredit(
+                            pricing?.raw?.combined?.suite ||
+                              pricing?.suitePrice ||
+                              cruise?.suitePrice,
+                          )}{" "}
+                          onboard credit
+                        </div>
+                      )}
+                    </div>
 
-                  {/* Quote CTA Button */}
-                  <div className="p-5 md:py-3 md:pr-5 md:pl-0">
+                    {/* Quote CTA Button - Inline on mobile */}
                     <button
                       onClick={() =>
                         handleGetQuote(
@@ -1087,7 +1087,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                             cruise?.suitePrice,
                         )
                       }
-                      className={`w-full md:w-auto font-geograph font-medium text-[16px] px-4 py-3 rounded-full transition-colors ${
+                      className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors ${
                         isPriceAvailable(
                           pricing?.raw?.combined?.suite ||
                             pricing?.suitePrice ||
@@ -1109,8 +1109,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
       {/* Itinerary Section */}
       {cruiseData?.itinerary && cruiseData.itinerary.length > 0 && (
-        <div className="bg-sand py-16">
-          <div className="max-w-7xl mx-auto px-6">
+        <div className="bg-sand py-8 md:py-16">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
             <div className="mb-6">
               <h2
                 className="font-whitney font-black text-[32px] text-dark-blue uppercase mb-4"
