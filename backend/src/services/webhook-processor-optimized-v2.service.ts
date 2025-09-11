@@ -91,7 +91,7 @@ export class WebhookProcessorOptimizedV2 {
         );
 
         // Process files in batches
-        const BATCH_SIZE = 10; // Conservative batch size for stable processing
+        const BATCH_SIZE = 5; // Small batch size to prevent memory spikes
         const results = { processed: 0, failed: 0, updated: 0 };
         const startTime = Date.now();
 
@@ -115,6 +115,12 @@ export class WebhookProcessorOptimizedV2 {
           const batchResults = await Promise.allSettled(
             batch.map(file => WebhookProcessorOptimizedV2.processFileStatic(file))
           );
+
+          // Add a small delay between batches to prevent PostgreSQL page cache exhaustion
+          // This allows the database to clear its cache and prevents memory spikes
+          if (i + BATCH_SIZE < files.length) {
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+          }
 
           batchResults.forEach(result => {
             if (result.status === 'fulfilled') {
@@ -145,7 +151,7 @@ export class WebhookProcessorOptimizedV2 {
       },
       {
         connection: WebhookProcessorOptimizedV2.redisConnection!,
-        concurrency: 5, // Moderate concurrency to prevent spikes
+        concurrency: 3, // Low concurrency to prevent PostgreSQL page cache exhaustion
         stalledInterval: 30000,
       }
     );
@@ -351,7 +357,7 @@ export class WebhookProcessorOptimizedV2 {
       }
 
       // Create batches of files for queue processing
-      const MAX_FILES_PER_JOB = 100; // Reasonable job size for balanced processing
+      const MAX_FILES_PER_JOB = 50; // Smaller jobs to reduce memory pressure on PostgreSQL
       const batches = [];
 
       for (let i = 0; i < files.length; i += MAX_FILES_PER_JOB) {
