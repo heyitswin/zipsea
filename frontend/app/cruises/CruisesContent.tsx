@@ -47,6 +47,9 @@ interface Cruise {
     defaultShipImage2k?: string;
     defaultShipImageHd?: string;
   };
+  shipImage?: string;
+  shipImage2k?: string;
+  shipImageHd?: string;
   embarkPort?: {
     id: number;
     name: string;
@@ -128,7 +131,7 @@ export default function CruisesContent() {
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?limit=100`,
+          `${process.env.NEXT_PUBLIC_API_URL}/filter-options`,
           { signal: controller.signal },
         );
 
@@ -136,116 +139,22 @@ export default function CruisesContent() {
 
         if (response.ok) {
           const data = await response.json();
-          const results = data.results || [];
 
-          // Extract unique cruise lines
-          const cruiseLineMap = new Map();
-          results.forEach((cruise: any) => {
-            if (cruise.cruiseLine) {
-              const id = cruise.cruiseLine.id;
-              if (!cruiseLineMap.has(id)) {
-                cruiseLineMap.set(id, {
-                  id,
-                  name: cruise.cruiseLine.name,
-                  count: 1,
-                });
-              } else {
-                cruiseLineMap.get(id).count++;
-              }
-            }
-          });
-
-          // Extract unique departure ports
-          const portMap = new Map();
-          results.forEach((cruise: any) => {
-            if (cruise.embarkPort) {
-              const id = cruise.embarkPort.id;
-              if (!portMap.has(id)) {
-                portMap.set(id, {
-                  id,
-                  name: cruise.embarkPort.name,
-                  count: 1,
-                });
-              } else {
-                portMap.get(id).count++;
-              }
-            }
-          });
-
-          // Extract unique ships
-          const shipMap = new Map();
-          results.forEach((cruise: any) => {
-            if (cruise.ship) {
-              const id = cruise.ship.id;
-              if (!shipMap.has(id)) {
-                shipMap.set(id, {
-                  id,
-                  name: cruise.ship.name,
-                  count: 1,
-                });
-              } else {
-                shipMap.get(id).count++;
-              }
-            }
-          });
-
-          // Extract unique regions (simplified)
-          const regionMap = new Map();
-          const regionNames = [
-            "Caribbean",
-            "Mediterranean",
-            "Alaska",
-            "Europe",
-            "Asia",
-          ];
-          regionNames.forEach((name, index) => {
-            regionMap.set(index + 1, {
-              id: index + 1,
-              name,
-              count: Math.floor(Math.random() * 100) + 10, // Placeholder counts
-            });
-          });
-
-          // Convert maps to arrays and sort by count
-          setCruiseLines(
-            Array.from(cruiseLineMap.values()).sort(
-              (a, b) => b.count - a.count,
-            ),
-          );
-          setDeparturePorts(
-            Array.from(portMap.values()).sort((a, b) => b.count - a.count),
-          );
-          setShips(
-            Array.from(shipMap.values()).sort((a, b) => b.count - a.count),
-          );
-          setRegions(
-            Array.from(regionMap.values()).sort((a, b) => b.count - a.count),
-          );
+          // Set filter options - already sorted alphabetically by the API
+          setCruiseLines(data.cruiseLines || []);
+          setDeparturePorts(data.departurePorts || []);
+          setShips(data.ships || []);
+          setRegions(data.regions || []);
         } else {
           throw new Error("API response not ok");
         }
       } catch (error) {
         console.error("Error fetching filter options:", error);
-        // Set some default values to prevent empty dropdowns
-        setCruiseLines([
-          { id: 22, name: "Royal Caribbean", count: 100 },
-          { id: 23, name: "Carnival", count: 80 },
-          { id: 24, name: "Norwegian", count: 60 },
-        ]);
-        setDeparturePorts([
-          { id: 410, name: "Miami, Florida", count: 50 },
-          { id: 411, name: "Fort Lauderdale, Florida", count: 40 },
-          { id: 412, name: "Port Canaveral, Florida", count: 30 },
-        ]);
-        setShips([
-          { id: 270, name: "Freedom of the Seas", count: 20 },
-          { id: 271, name: "Oasis of the Seas", count: 15 },
-        ]);
-        setRegions([
-          { id: 1, name: "Caribbean", count: 100 },
-          { id: 2, name: "Mediterranean", count: 50 },
-          { id: 3, name: "Alaska", count: 30 },
-        ]);
+        // Set empty arrays to prevent errors
+        setCruiseLines([]);
+        setDeparturePorts([]);
+        setShips([]);
+        setRegions([]);
       }
     };
 
@@ -326,33 +235,18 @@ export default function CruisesContent() {
       selectedShips.forEach((id) => params.append("shipId", id.toString()));
       selectedRegions.forEach((id) => params.append("regionId", id.toString()));
 
-      // Handle month filters
+      // Handle month filters - send each selected month
       if (selectedMonths.length > 0) {
-        // Get earliest and latest month for date range
-        const sortedMonths = selectedMonths.sort();
-        params.append("startDate", `${sortedMonths[0]}-01`);
-        const lastMonth = sortedMonths[sortedMonths.length - 1];
-        const [year, month] = lastMonth.split("-");
-        const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
-        params.append("endDate", `${lastMonth}-${lastDay}`);
+        selectedMonths.forEach((month) => {
+          params.append("departureMonth", month);
+        });
       }
 
-      // Handle night ranges
+      // Handle night ranges - send each range separately
       if (selectedNightRanges.length > 0) {
-        const minNights = Math.min(
-          ...selectedNightRanges.map((range) => {
-            if (range === "12+") return 12;
-            return parseInt(range.split("-")[0]);
-          }),
-        );
-        const maxNights = Math.max(
-          ...selectedNightRanges.map((range) => {
-            if (range === "12+") return 999;
-            return parseInt(range.split("-")[1] || range.split("-")[0]);
-          }),
-        );
-        params.append("minNights", minNights.toString());
-        if (maxNights < 999) params.append("maxNights", maxNights.toString());
+        selectedNightRanges.forEach((range) => {
+          params.append("nightRange", range);
+        });
       }
 
       // Add sorting
@@ -493,20 +387,85 @@ export default function CruisesContent() {
     sortBy,
   ]);
 
-  // Force fresh data fetch on component mount
+  // Initial load - fetch cruises on mount with default sorting
   useEffect(() => {
-    // Reset cruises to prevent showing stale cached data
-    setCruises([]);
-    setLoading(true);
+    const initialFetch = async () => {
+      setLoading(true);
+      setCruises([]);
+      try {
+        const params = new URLSearchParams();
+        params.append("limit", ITEMS_PER_PAGE.toString());
+        params.append("offset", "0");
+        params.append("sortBy", "date");
+        params.append("sortOrder", "asc");
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?${params.toString()}`,
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+
+          // Filter out cruises departing within 1 week and those with prices <= $99
+          const oneWeekFromNow = new Date();
+          oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
+
+          const filteredCruises = (data.results || []).filter(
+            (cruise: Cruise) => {
+              const sailingDate = new Date(cruise.sailingDate);
+              if (sailingDate < oneWeekFromNow) return false;
+
+              const allPrices: number[] = [];
+              if (cruise.pricing) {
+                [
+                  cruise.pricing.interior,
+                  cruise.pricing.oceanview,
+                  cruise.pricing.balcony,
+                  cruise.pricing.suite,
+                  cruise.pricing.lowestPrice,
+                ].forEach((price) => {
+                  const num = Number(price);
+                  if (!isNaN(num) && num > 0) allPrices.push(num);
+                });
+              }
+
+              if (allPrices.length === 0) return false;
+              const lowestPrice = Math.min(...allPrices);
+              return lowestPrice > 99;
+            },
+          );
+
+          setCruises(filteredCruises);
+          setTotalCount(data.totalCount || filteredCruises.length);
+        }
+      } catch (error) {
+        console.error("Error on initial load:", error);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initialFetch();
+  }, []); // Only run once on mount
+
+  // Fetch cruises when filters change (after initial load)
+  useEffect(() => {
+    // Skip initial render since we handle that separately
+    if (
+      page === 1 &&
+      selectedCruiseLines.length === 0 &&
+      selectedMonths.length === 0 &&
+      selectedNightRanges.length === 0 &&
+      selectedDeparturePorts.length === 0 &&
+      selectedShips.length === 0 &&
+      selectedRegions.length === 0 &&
+      sortBy === "soonest"
+    ) {
+      return;
+    }
     fetchCruises();
   }, [fetchCruises]);
-
-  // Clear any cached state when component unmounts
-  useEffect(() => {
-    return () => {
-      setCruises([]);
-    };
-  }, []);
 
   // Get applied filters for display - memoized for performance
   const appliedFilters = useMemo(() => {
@@ -1231,14 +1190,14 @@ export default function CruisesContent() {
                     <div className="flex gap-6">
                       {/* Featured Image */}
                       <div className="w-48 h-32 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                        {cruise.ship?.defaultShipImage ||
-                        cruise.ship?.defaultShipImage2k ||
-                        cruise.ship?.defaultShipImageHd ? (
+                        {cruise.shipImage ||
+                        cruise.shipImage2k ||
+                        cruise.shipImageHd ? (
                           <img
                             src={
-                              cruise.ship.defaultShipImage ||
-                              cruise.ship.defaultShipImage2k ||
-                              cruise.ship.defaultShipImageHd
+                              cruise.shipImageHd ||
+                              cruise.shipImage2k ||
+                              cruise.shipImage
                             }
                             alt={cruise.ship?.name || cruise.name}
                             className="w-full h-full object-cover"
@@ -1270,213 +1229,218 @@ export default function CruisesContent() {
                           {cruise.ship?.name || "Unknown Ship"}
                         </p>
 
-                        <div className="grid grid-cols-4 gap-2">
-                          <div>
-                            <div
-                              className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
-                              style={{ letterSpacing: "0.1em" }}
-                            >
-                              DEPART
-                            </div>
-                            <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
-                              {new Date(cruise.sailingDate).toLocaleDateString(
-                                "en-US",
-                                {
+                        <div className="flex justify-between items-end">
+                          <div className="grid grid-cols-4 gap-2">
+                            <div>
+                              <div
+                                className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                                style={{ letterSpacing: "0.1em" }}
+                              >
+                                DEPART
+                              </div>
+                              <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                                {new Date(
+                                  cruise.sailingDate,
+                                ).toLocaleDateString("en-US", {
                                   month: "short",
                                   day: "numeric",
                                   year: "numeric",
-                                },
-                              )}
+                                })}
+                              </div>
+                            </div>
+
+                            <div>
+                              <div
+                                className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                                style={{ letterSpacing: "0.1em" }}
+                              >
+                                RETURN
+                              </div>
+                              <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                                {new Date(
+                                  new Date(cruise.sailingDate).getTime() +
+                                    cruise.nights * 24 * 60 * 60 * 1000,
+                                ).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                })}
+                              </div>
+                            </div>
+
+                            <div>
+                              <div
+                                className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                                style={{ letterSpacing: "0.1em" }}
+                              >
+                                DEPARTURE PORT
+                              </div>
+                              <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                                {(() => {
+                                  const portName =
+                                    cruise.embarkPort?.name ||
+                                    cruise.embarkPortName ||
+                                    "Unknown";
+                                  const commaIndex = portName.indexOf(",");
+                                  return commaIndex > -1
+                                    ? portName.substring(0, commaIndex)
+                                    : portName;
+                                })()}
+                              </div>
+                            </div>
+
+                            <div>
+                              <div
+                                className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                                style={{ letterSpacing: "0.1em" }}
+                              >
+                                NIGHTS
+                              </div>
+                              <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                                {cruise.nights}
+                              </div>
                             </div>
                           </div>
-
-                          <div>
-                            <div
-                              className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
-                              style={{ letterSpacing: "0.1em" }}
-                            >
-                              RETURN
+                          {/* Pricing - inline with details */}
+                          <div className="text-right">
+                            <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
+                              STARTING FROM
                             </div>
-                            <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
-                              {new Date(
-                                new Date(cruise.sailingDate).getTime() +
-                                  cruise.nights * 24 * 60 * 60 * 1000,
-                              ).toLocaleDateString("en-US", {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              })}
-                            </div>
-                          </div>
-
-                          <div>
-                            <div
-                              className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
-                              style={{ letterSpacing: "0.1em" }}
-                            >
-                              DEPARTURE PORT
-                            </div>
-                            <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                            <div className="font-geograph font-bold text-[24px] text-dark-blue">
                               {(() => {
-                                const portName =
-                                  cruise.embarkPort?.name ||
-                                  cruise.embarkPortName ||
-                                  "Unknown";
-                                const commaIndex = portName.indexOf(",");
-                                return commaIndex > -1
-                                  ? portName.substring(0, commaIndex)
-                                  : portName;
+                                const prices: number[] = [];
+
+                                // Check pricing object first (from API)
+                                if (cruise.pricing) {
+                                  [
+                                    cruise.pricing.interior,
+                                    cruise.pricing.oceanview,
+                                    cruise.pricing.balcony,
+                                    cruise.pricing.suite,
+                                    cruise.pricing.lowestPrice,
+                                  ].forEach((p) => {
+                                    if (p && p !== "0" && p !== "null") {
+                                      const num = Number(p);
+                                      if (!isNaN(num) && num > 0)
+                                        prices.push(num);
+                                    }
+                                  });
+                                }
+
+                                // Check combined field (from detail page)
+                                if (cruise.combined) {
+                                  [
+                                    cruise.combined.inside,
+                                    cruise.combined.outside,
+                                    cruise.combined.balcony,
+                                    cruise.combined.suite,
+                                  ].forEach((p) => {
+                                    if (p && p !== "0" && p !== "null") {
+                                      const num = Number(p);
+                                      if (!isNaN(num) && num > 0)
+                                        prices.push(num);
+                                    }
+                                  });
+                                }
+
+                                // Fallback to individual price fields
+                                if (prices.length === 0) {
+                                  [
+                                    cruise.cheapestPrice,
+                                    cruise.interiorPrice,
+                                    cruise.oceanviewPrice,
+                                    cruise.oceanViewPrice,
+                                    cruise.balconyPrice,
+                                    cruise.suitePrice,
+                                  ].forEach((p) => {
+                                    if (p && p !== "0" && p !== "null") {
+                                      const num = Number(p);
+                                      if (!isNaN(num) && num > 0)
+                                        prices.push(num);
+                                    }
+                                  });
+                                }
+
+                                return prices.length > 0
+                                  ? formatPrice(Math.min(...prices))
+                                  : "Call for price";
                               })()}
                             </div>
+                            {/* Onboard Credit Badge */}
+                            {(() => {
+                              const prices: number[] = [];
+
+                              // Check pricing object first (from API)
+                              if (cruise.pricing) {
+                                [
+                                  cruise.pricing.interior,
+                                  cruise.pricing.oceanview,
+                                  cruise.pricing.balcony,
+                                  cruise.pricing.suite,
+                                  cruise.pricing.lowestPrice,
+                                ].forEach((p) => {
+                                  if (p && p !== "0" && p !== "null") {
+                                    const num = Number(p);
+                                    if (!isNaN(num) && num > 0)
+                                      prices.push(num);
+                                  }
+                                });
+                              }
+
+                              // Check combined field (from detail page)
+                              if (cruise.combined) {
+                                [
+                                  cruise.combined.inside,
+                                  cruise.combined.outside,
+                                  cruise.combined.balcony,
+                                  cruise.combined.suite,
+                                ].forEach((p) => {
+                                  if (p && p !== "0" && p !== "null") {
+                                    const num = Number(p);
+                                    if (!isNaN(num) && num > 0)
+                                      prices.push(num);
+                                  }
+                                });
+                              }
+
+                              // Fallback to individual price fields
+                              if (prices.length === 0) {
+                                [
+                                  cruise.cheapestPrice,
+                                  cruise.interiorPrice,
+                                  cruise.oceanviewPrice,
+                                  cruise.oceanViewPrice,
+                                  cruise.balconyPrice,
+                                  cruise.suitePrice,
+                                ].forEach((p) => {
+                                  if (p && p !== "0" && p !== "null") {
+                                    const num = Number(p);
+                                    if (!isNaN(num) && num > 0)
+                                      prices.push(num);
+                                  }
+                                });
+                              }
+
+                              if (prices.length > 0) {
+                                const lowestPrice = Math.min(...prices);
+                                // Calculate 10% of the price as onboard credit, rounded down to nearest $10
+                                const creditPercent = 0.1; // 10%
+                                const rawCredit = lowestPrice * creditPercent;
+                                const onboardCredit =
+                                  Math.floor(rawCredit / 10) * 10; // Round down to nearest $10
+
+                                if (onboardCredit > 0) {
+                                  return (
+                                    <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                                      +${onboardCredit} onboard credit
+                                    </div>
+                                  );
+                                }
+                              }
+                              return null;
+                            })()}
                           </div>
-
-                          <div>
-                            <div
-                              className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
-                              style={{ letterSpacing: "0.1em" }}
-                            >
-                              NIGHTS
-                            </div>
-                            <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
-                              {cruise.nights}
-                            </div>
-                          </div>
                         </div>
-                      </div>
-                    </div>
-                    {/* Pricing - moved to bottom right */}
-                    <div className="flex justify-end mt-4">
-                      <div className="text-right">
-                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                          STARTING FROM
-                        </div>
-                        <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                          {(() => {
-                            const prices: number[] = [];
-
-                            // Check pricing object first (from API)
-                            if (cruise.pricing) {
-                              [
-                                cruise.pricing.interior,
-                                cruise.pricing.oceanview,
-                                cruise.pricing.balcony,
-                                cruise.pricing.suite,
-                                cruise.pricing.lowestPrice,
-                              ].forEach((p) => {
-                                if (p && p !== "0" && p !== "null") {
-                                  const num = Number(p);
-                                  if (!isNaN(num) && num > 0) prices.push(num);
-                                }
-                              });
-                            }
-
-                            // Check combined field (from detail page)
-                            if (cruise.combined) {
-                              [
-                                cruise.combined.inside,
-                                cruise.combined.outside,
-                                cruise.combined.balcony,
-                                cruise.combined.suite,
-                              ].forEach((p) => {
-                                if (p && p !== "0" && p !== "null") {
-                                  const num = Number(p);
-                                  if (!isNaN(num) && num > 0) prices.push(num);
-                                }
-                              });
-                            }
-
-                            // Fallback to individual price fields
-                            if (prices.length === 0) {
-                              [
-                                cruise.cheapestPrice,
-                                cruise.interiorPrice,
-                                cruise.oceanviewPrice,
-                                cruise.oceanViewPrice,
-                                cruise.balconyPrice,
-                                cruise.suitePrice,
-                              ].forEach((p) => {
-                                if (p && p !== "0" && p !== "null") {
-                                  const num = Number(p);
-                                  if (!isNaN(num) && num > 0) prices.push(num);
-                                }
-                              });
-                            }
-
-                            return prices.length > 0
-                              ? formatPrice(Math.min(...prices))
-                              : "Call for price";
-                          })()}
-                        </div>
-                        {/* Onboard Credit Badge */}
-                        {(() => {
-                          const prices: number[] = [];
-
-                          // Check pricing object first (from API)
-                          if (cruise.pricing) {
-                            [
-                              cruise.pricing.interior,
-                              cruise.pricing.oceanview,
-                              cruise.pricing.balcony,
-                              cruise.pricing.suite,
-                              cruise.pricing.lowestPrice,
-                            ].forEach((p) => {
-                              if (p && p !== "0" && p !== "null") {
-                                const num = Number(p);
-                                if (!isNaN(num) && num > 0) prices.push(num);
-                              }
-                            });
-                          }
-
-                          // Check combined field (from detail page)
-                          if (cruise.combined) {
-                            [
-                              cruise.combined.inside,
-                              cruise.combined.outside,
-                              cruise.combined.balcony,
-                              cruise.combined.suite,
-                            ].forEach((p) => {
-                              if (p && p !== "0" && p !== "null") {
-                                const num = Number(p);
-                                if (!isNaN(num) && num > 0) prices.push(num);
-                              }
-                            });
-                          }
-
-                          // Fallback to individual price fields
-                          if (prices.length === 0) {
-                            [
-                              cruise.cheapestPrice,
-                              cruise.interiorPrice,
-                              cruise.oceanviewPrice,
-                              cruise.oceanViewPrice,
-                              cruise.balconyPrice,
-                              cruise.suitePrice,
-                            ].forEach((p) => {
-                              if (p && p !== "0" && p !== "null") {
-                                const num = Number(p);
-                                if (!isNaN(num) && num > 0) prices.push(num);
-                              }
-                            });
-                          }
-
-                          if (prices.length > 0) {
-                            const lowestPrice = Math.min(...prices);
-                            // Calculate 10% of the price as onboard credit, rounded down to nearest $10
-                            const creditPercent = 0.1; // 10%
-                            const rawCredit = lowestPrice * creditPercent;
-                            const onboardCredit =
-                              Math.floor(rawCredit / 10) * 10; // Round down to nearest $10
-
-                            if (onboardCredit > 0) {
-                              return (
-                                <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                                  +${onboardCredit} onboard credit
-                                </div>
-                              );
-                            }
-                          }
-                          return null;
-                        })()}
                       </div>
                     </div>
                   </div>
