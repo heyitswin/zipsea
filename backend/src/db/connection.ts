@@ -5,24 +5,33 @@ import logger, { dbLogger } from '../config/logger';
 import * as schema from './schema';
 
 // Create PostgreSQL connection (only if DATABASE_URL is provided)
-const sql = env.DATABASE_URL ? postgres(env.DATABASE_URL, {
-  max: dbConfig.max,
-  idle_timeout: dbConfig.idleTimeoutMillis / 1000,
-  connect_timeout: 30, // Increase connection timeout to 30 seconds
-  ssl: dbConfig.ssl ? { rejectUnauthorized: false } : false,
-  onnotice: () => {}, // Suppress notices in production
-  debug: env.NODE_ENV === 'staging',
-}) : null as any;
+const sql = env.DATABASE_URL
+  ? postgres(env.DATABASE_URL, {
+      max: dbConfig.max,
+      idle_timeout: dbConfig.idleTimeoutMillis / 1000,
+      connect_timeout: 60, // Increase connection timeout to 60 seconds
+      ssl: env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false },
+      onnotice: () => {}, // Suppress notices in production
+      debug: false, // Disable debug logging for performance
+      fetch_types: false, // Disable type fetching for performance
+      prepare: false, // Disable prepared statements for compatibility
+    })
+  : (null as any);
 
 // Create Drizzle database instance (only if we have a connection)
-export const db = sql ? drizzle(sql, { 
-  schema,
-  logger: env.NODE_ENV === 'staging' ? {
-    logQuery: (query, params) => {
-      dbLogger.debug('SQL Query', { query, params });
-    }
-  } : false,
-}) : null as any;
+export const db = sql
+  ? drizzle(sql, {
+      schema,
+      logger:
+        env.NODE_ENV === 'staging'
+          ? {
+              logQuery: (query, params) => {
+                dbLogger.debug('SQL Query', { query, params });
+              },
+            }
+          : false,
+    })
+  : (null as any);
 
 // Test database connection
 export async function testConnection(): Promise<boolean> {

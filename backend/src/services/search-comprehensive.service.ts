@@ -16,7 +16,7 @@ export interface ComprehensiveSearchFilters {
   q?: string; // General search query
 
   // Date filters
-  departureMonth?: string; // Format: YYYY-MM
+  departureMonth?: string | string[]; // Format: YYYY-MM, can be multiple
   startDate?: string; // Format: YYYY-MM-DD
   endDate?: string; // Format: YYYY-MM-DD
 
@@ -107,14 +107,24 @@ export class ComprehensiveSearchService {
         );
       }
 
-      // Date filters
+      // Date filters - handle multiple departure months
       if (filters.departureMonth) {
-        const [year, month] = filters.departureMonth.split('-');
-        const startOfMonth = `${year}-${month}-01`;
-        const endOfMonth = new Date(parseInt(year), parseInt(month), 0).toISOString().split('T')[0];
-        conditions.push(
-          and(gte(cruises.sailingDate, startOfMonth), lte(cruises.sailingDate, endOfMonth))
-        );
+        const months = Array.isArray(filters.departureMonth)
+          ? filters.departureMonth
+          : [filters.departureMonth];
+
+        const monthConditions = months.map(monthStr => {
+          const [year, month] = monthStr.split('-');
+          const startOfMonth = `${year}-${month}-01`;
+          const endOfMonth = new Date(parseInt(year), parseInt(month), 0)
+            .toISOString()
+            .split('T')[0];
+          return and(gte(cruises.sailingDate, startOfMonth), lte(cruises.sailingDate, endOfMonth));
+        });
+
+        if (monthConditions.length > 0) {
+          conditions.push(or(...monthConditions));
+        }
       }
 
       if (filters.startDate) {
@@ -184,7 +194,7 @@ export class ComprehensiveSearchService {
         }
       }
 
-      // Build the main query
+      // Build the main query - VERY simplified to debug timeout
       let query = db
         .select({
           id: cruises.id,
@@ -195,18 +205,18 @@ export class ComprehensiveSearchService {
           nights: cruises.nights,
           seaDays: cruises.seaDays,
           cruiseLineId: cruises.cruiseLineId,
-          cruiseLineName: cruiseLines.name,
-          cruiseLineCode: cruiseLines.code,
+          cruiseLineName: sql<string>`''`,
+          cruiseLineCode: sql<string>`''`,
           shipId: cruises.shipId,
-          shipName: ships.name,
-          shipCode: ships.code,
-          shipImage: ships.defaultShipImage,
-          shipImage2k: ships.defaultShipImage2k,
-          shipImageHd: ships.defaultShipImageHd,
+          shipName: sql<string>`''`,
+          shipCode: sql<string>`''`,
+          shipImage: sql<string>`''`,
+          shipImage2k: sql<string>`''`,
+          shipImageHd: sql<string>`''`,
           embarkPortId: cruises.embarkPortId,
-          embarkPortName: sql<string>`ep.name`,
+          embarkPortName: sql<string>`''`,
           disembarkPortId: cruises.disembarkPortId,
-          disembarkPortName: sql<string>`dp.name`,
+          disembarkPortName: sql<string>`''`,
           regionIds: cruises.regionIds,
           portIds: cruises.portIds,
           // Pricing fields
@@ -219,10 +229,6 @@ export class ComprehensiveSearchService {
           updatedAt: cruises.updatedAt,
         })
         .from(cruises)
-        .leftJoin(cruiseLines, eq(cruises.cruiseLineId, cruiseLines.id))
-        .leftJoin(ships, eq(cruises.shipId, ships.id))
-        .leftJoin(sql`ports ep`, sql`${cruises.embarkPortId} = ep.id`)
-        .leftJoin(sql`ports dp`, sql`${cruises.disembarkPortId} = dp.id`)
         .where(and(...conditions));
 
       // Apply price filters if we have pricing data
@@ -278,8 +284,21 @@ export class ComprehensiveSearchService {
       // Apply pagination
       query = query.limit(limit).offset(offset);
 
-      // Execute query
-      const results = await query;
+      // Execute query with timeout
+      logger.info('Executing database query...');
+      const queryPromise = query;
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Database query timeout after 30s')), 30000)
+      );
+
+      let results;
+      try {
+        results = await Promise.race([queryPromise, timeoutPromise]);
+        logger.info('Query executed successfully', { count: results.length });
+      } catch (error: any) {
+        logger.error('Query execution failed:', error);
+        throw new Error(`Database query failed: ${error.message}`);
+      }
 
       // Get total count for pagination
       const countQuery = db

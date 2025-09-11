@@ -20,13 +20,22 @@ class SearchComprehensiveController {
     try {
       const startTime = Date.now();
 
+      logger.info('Search request received', {
+        query: req.query,
+        url: req.url,
+      });
+
       // Parse filters from query params
       const filters: ComprehensiveSearchFilters = {
         // Text search
         q: req.query.q as string,
 
-        // Date filters
-        departureMonth: req.query.departureMonth as string, // YYYY-MM
+        // Date filters - handle multiple months
+        departureMonth: req.query.departureMonth
+          ? Array.isArray(req.query.departureMonth)
+            ? (req.query.departureMonth as string[])
+            : [req.query.departureMonth as string]
+          : undefined,
         startDate: req.query.startDate as string,
         endDate: req.query.endDate as string,
 
@@ -57,9 +66,37 @@ class SearchComprehensiveController {
             : Number(req.query.regionId)
           : undefined,
 
-        // Trip characteristics
-        minNights: req.query.minNights ? Number(req.query.minNights) : undefined,
-        maxNights: req.query.maxNights ? Number(req.query.maxNights) : undefined,
+        // Trip characteristics - handle nightRange parameter from frontend
+        minNights: (() => {
+          if (req.query.minNights) return Number(req.query.minNights);
+          if (req.query.nightRange) {
+            const ranges = Array.isArray(req.query.nightRange)
+              ? (req.query.nightRange as string[])
+              : [req.query.nightRange as string];
+            const minValues = ranges.map(range => {
+              if (range === '12+') return 12;
+              const [min] = range.split('-');
+              return parseInt(min);
+            });
+            return Math.min(...minValues);
+          }
+          return undefined;
+        })(),
+        maxNights: (() => {
+          if (req.query.maxNights) return Number(req.query.maxNights);
+          if (req.query.nightRange) {
+            const ranges = Array.isArray(req.query.nightRange)
+              ? (req.query.nightRange as string[])
+              : [req.query.nightRange as string];
+            const maxValues = ranges.map(range => {
+              if (range === '12+') return 999;
+              const parts = range.split('-');
+              return parseInt(parts[1] || parts[0]);
+            });
+            return Math.max(...maxValues);
+          }
+          return undefined;
+        })(),
         nights: req.query.nights ? Number(req.query.nights) : undefined,
 
         // Price filters
@@ -96,7 +133,9 @@ class SearchComprehensiveController {
       });
 
       // Perform search
+      logger.info('Calling searchCruises with filters:', filters);
       const results = await comprehensiveSearchService.searchCruises(filters, options);
+      logger.info('Search completed, got results:', { count: results?.results?.length || 0 });
 
       // Log slow queries
       const totalTime = Date.now() - startTime;

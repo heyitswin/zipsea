@@ -760,7 +760,7 @@ router.get('/quotes', async (req: Request, res: Response) => {
       quotesQuery = sql`
         SELECT
           qr.id,
-          COALESCE(qr.id::text, '') as reference_number,
+          qr.id::text as reference_number,
           qr.created_at,
           COALESCE(qr.status, 'submitted') as status,
           qr.cruise_id,
@@ -768,7 +768,7 @@ router.get('/quotes', async (req: Request, res: Response) => {
           '' as last_name,
           '' as email,
           '' as phone,
-          COALESCE(qr.passenger_count, 2) as passenger_count,
+          2 as passenger_count,
           COALESCE(qr.cabin_type, qr.cabin_code, '') as cabin_type,
           COALESCE(qr.special_requirements, '') as special_requirements,
           COALESCE(qr.total_price, 0) as total_price,
@@ -794,7 +794,7 @@ router.get('/quotes', async (req: Request, res: Response) => {
       quotesQuery = sql`
         SELECT
           qr.id,
-          COALESCE(qr.id::text, '') as reference_number,
+          qr.id::text as reference_number,
           qr.created_at,
           COALESCE(qr.status, 'submitted') as status,
           qr.cruise_id,
@@ -802,7 +802,7 @@ router.get('/quotes', async (req: Request, res: Response) => {
           '' as last_name,
           '' as email,
           '' as phone,
-          COALESCE(qr.passenger_count, 2) as passenger_count,
+          2 as passenger_count,
           COALESCE(qr.cabin_type, qr.cabin_code, '') as cabin_type,
           COALESCE(qr.special_requirements, '') as special_requirements,
           COALESCE(qr.total_price, 0) as total_price,
