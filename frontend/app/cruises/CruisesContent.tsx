@@ -82,23 +82,15 @@ export default function CruisesContent() {
   const [sortBy, setSortBy] = useState<string>("soonest");
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
-  // Filter states
-  const [selectedCruiseLine, setSelectedCruiseLine] = useState<number | null>(
-    null,
-  );
-  const [selectedDateRange, setSelectedDateRange] = useState<{
-    start?: string;
-    end?: string;
-  }>({});
-  const [selectedNights, setSelectedNights] = useState<{
-    min?: number;
-    max?: number;
-  }>({});
-  const [selectedDeparturePort, setSelectedDeparturePort] = useState<
-    number | null
-  >(null);
-  const [selectedShip, setSelectedShip] = useState<number | null>(null);
-  const [selectedRegion, setSelectedRegion] = useState<number | null>(null);
+  // Filter states - support multi-select
+  const [selectedCruiseLines, setSelectedCruiseLines] = useState<number[]>([]);
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]); // Format: "YYYY-MM"
+  const [selectedNightRanges, setSelectedNightRanges] = useState<string[]>([]); // "2-5", "6-8", "9-11", "12+"
+  const [selectedDeparturePorts, setSelectedDeparturePorts] = useState<
+    number[]
+  >([]);
+  const [selectedShips, setSelectedShips] = useState<number[]>([]);
+  const [selectedRegions, setSelectedRegions] = useState<number[]>([]);
 
   // Filter dropdown states
   const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] =
@@ -324,21 +316,44 @@ export default function CruisesContent() {
       params.append("limit", ITEMS_PER_PAGE.toString());
       params.append("offset", ((page - 1) * ITEMS_PER_PAGE).toString());
 
-      // Add filters
-      if (selectedCruiseLine)
-        params.append("cruiseLineId", selectedCruiseLine.toString());
-      if (selectedDeparturePort)
-        params.append("departurePortId", selectedDeparturePort.toString());
-      if (selectedShip) params.append("shipId", selectedShip.toString());
-      if (selectedRegion) params.append("regionId", selectedRegion.toString());
-      if (selectedDateRange.start)
-        params.append("startDate", selectedDateRange.start);
-      if (selectedDateRange.end)
-        params.append("endDate", selectedDateRange.end);
-      if (selectedNights.min)
-        params.append("minNights", selectedNights.min.toString());
-      if (selectedNights.max)
-        params.append("maxNights", selectedNights.max.toString());
+      // Add filters - support multiple selections
+      selectedCruiseLines.forEach((id) =>
+        params.append("cruiseLineId", id.toString()),
+      );
+      selectedDeparturePorts.forEach((id) =>
+        params.append("departurePortId", id.toString()),
+      );
+      selectedShips.forEach((id) => params.append("shipId", id.toString()));
+      selectedRegions.forEach((id) => params.append("regionId", id.toString()));
+
+      // Handle month filters
+      if (selectedMonths.length > 0) {
+        // Get earliest and latest month for date range
+        const sortedMonths = selectedMonths.sort();
+        params.append("startDate", `${sortedMonths[0]}-01`);
+        const lastMonth = sortedMonths[sortedMonths.length - 1];
+        const [year, month] = lastMonth.split("-");
+        const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
+        params.append("endDate", `${lastMonth}-${lastDay}`);
+      }
+
+      // Handle night ranges
+      if (selectedNightRanges.length > 0) {
+        const minNights = Math.min(
+          ...selectedNightRanges.map((range) => {
+            if (range === "12+") return 12;
+            return parseInt(range.split("-")[0]);
+          }),
+        );
+        const maxNights = Math.max(
+          ...selectedNightRanges.map((range) => {
+            if (range === "12+") return 999;
+            return parseInt(range.split("-")[1] || range.split("-")[0]);
+          }),
+        );
+        params.append("minNights", minNights.toString());
+        if (maxNights < 999) params.append("maxNights", maxNights.toString());
+      }
 
       // Add sorting
       switch (sortBy) {
@@ -377,9 +392,18 @@ export default function CruisesContent() {
 
       if (response.ok) {
         const data = await response.json();
-        // Filter out cruises without any valid prices
+        // Filter out cruises without any valid prices and cruises departing within 1 week
+        const oneWeekFromNow = new Date();
+        oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
+
         const filteredCruises = (data.results || []).filter(
           (cruise: Cruise) => {
+            // Filter out cruises departing within 1 week from today
+            const sailingDate = new Date(cruise.sailingDate);
+            if (sailingDate < oneWeekFromNow) {
+              return false;
+            }
+
             // Check pricing object first
             if (cruise.pricing) {
               const hasValidPrice = [
@@ -445,12 +469,12 @@ export default function CruisesContent() {
     }
   }, [
     page,
-    selectedCruiseLine,
-    selectedDateRange,
-    selectedNights,
-    selectedDeparturePort,
-    selectedShip,
-    selectedRegion,
+    selectedCruiseLines,
+    selectedMonths,
+    selectedNightRanges,
+    selectedDeparturePorts,
+    selectedShips,
+    selectedRegions,
     sortBy,
   ]);
 
@@ -473,60 +497,86 @@ export default function CruisesContent() {
   const appliedFilters = useMemo(() => {
     const filters: AppliedFilter[] = [];
 
-    if (selectedCruiseLine) {
-      const line = cruiseLines.find((cl) => cl.id === selectedCruiseLine);
-      if (line)
+    // Cruise lines
+    selectedCruiseLines.forEach((lineId) => {
+      const line = cruiseLines.find((cl) => cl.id === lineId);
+      if (line) {
         filters.push({
           type: "cruiseLine",
-          value: selectedCruiseLine,
+          value: lineId,
           label: line.name,
         });
-    }
+      }
+    });
 
-    if (selectedDateRange.start || selectedDateRange.end) {
-      const label = `${selectedDateRange.start || "Any"} - ${selectedDateRange.end || "Any"}`;
-      filters.push({ type: "date", value: "date", label });
-    }
+    // Months
+    selectedMonths.forEach((month) => {
+      const [year, monthNum] = month.split("-");
+      const monthName = new Date(
+        parseInt(year),
+        parseInt(monthNum) - 1,
+      ).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+      filters.push({
+        type: "month",
+        value: month,
+        label: monthName,
+      });
+    });
 
-    if (selectedNights.min || selectedNights.max) {
-      const label = `${selectedNights.min || "0"}-${selectedNights.max || "30+"} nights`;
-      filters.push({ type: "nights", value: "nights", label });
-    }
+    // Night ranges
+    selectedNightRanges.forEach((range) => {
+      const label = range === "12+" ? "12+ nights" : `${range} nights`;
+      filters.push({
+        type: "nights",
+        value: range,
+        label: label,
+      });
+    });
 
-    if (selectedDeparturePort) {
-      const port = departurePorts.find((p) => p.id === selectedDeparturePort);
-      if (port)
+    // Departure ports
+    selectedDeparturePorts.forEach((portId) => {
+      const port = departurePorts.find((p) => p.id === portId);
+      if (port) {
         filters.push({
           type: "departurePort",
-          value: selectedDeparturePort,
+          value: portId,
           label: port.name,
         });
-    }
+      }
+    });
 
-    if (selectedShip) {
-      const ship = ships.find((s) => s.id === selectedShip);
-      if (ship)
-        filters.push({ type: "ship", value: selectedShip, label: ship.name });
-    }
+    // Ships
+    selectedShips.forEach((shipId) => {
+      const ship = ships.find((s) => s.id === shipId);
+      if (ship) {
+        filters.push({
+          type: "ship",
+          value: shipId,
+          label: ship.name,
+        });
+      }
+    });
 
-    if (selectedRegion) {
-      const region = regions.find((r) => r.id === selectedRegion);
-      if (region)
+    // Regions
+    selectedRegions.forEach((regionId) => {
+      const region = regions.find((r) => r.id === regionId);
+      if (region) {
         filters.push({
           type: "region",
-          value: selectedRegion,
+          value: regionId,
           label: region.name,
         });
-    }
+      }
+    });
 
     return filters;
   }, [
-    selectedCruiseLine,
-    selectedDateRange,
-    selectedNights,
-    selectedDeparturePort,
-    selectedShip,
-    selectedRegion,
+    selectedCruiseLines,
+    selectedMonths,
+    selectedNightRanges,
+    selectedDeparturePorts,
+    selectedShips,
+    selectedRegions,
     cruiseLines,
     departurePorts,
     ships,
@@ -536,34 +586,40 @@ export default function CruisesContent() {
   const removeFilter = (filter: AppliedFilter) => {
     switch (filter.type) {
       case "cruiseLine":
-        setSelectedCruiseLine(null);
+        setSelectedCruiseLines((prev) =>
+          prev.filter((id) => id !== filter.value),
+        );
         break;
-      case "date":
-        setSelectedDateRange({});
+      case "month":
+        setSelectedMonths((prev) => prev.filter((m) => m !== filter.value));
         break;
       case "nights":
-        setSelectedNights({});
+        setSelectedNightRanges((prev) =>
+          prev.filter((r) => r !== filter.value),
+        );
         break;
       case "departurePort":
-        setSelectedDeparturePort(null);
+        setSelectedDeparturePorts((prev) =>
+          prev.filter((id) => id !== filter.value),
+        );
         break;
       case "ship":
-        setSelectedShip(null);
+        setSelectedShips((prev) => prev.filter((id) => id !== filter.value));
         break;
       case "region":
-        setSelectedRegion(null);
+        setSelectedRegions((prev) => prev.filter((id) => id !== filter.value));
         break;
     }
     setPage(1);
   };
 
   const clearAllFilters = () => {
-    setSelectedCruiseLine(null);
-    setSelectedDateRange({});
-    setSelectedNights({});
-    setSelectedDeparturePort(null);
-    setSelectedShip(null);
-    setSelectedRegion(null);
+    setSelectedCruiseLines([]);
+    setSelectedMonths([]);
+    setSelectedNightRanges([]);
+    setSelectedDeparturePorts([]);
+    setSelectedShips([]);
+    setSelectedRegions([]);
     setPage(1);
   };
 
@@ -582,15 +638,15 @@ export default function CruisesContent() {
   return (
     <div className="min-h-screen bg-[#F6F3ED] pt-[100px]">
       {/* Banner Section */}
-      <div className="max-w-7xl mx-auto px-4 pb-6">
+      <div className="max-w-7xl mx-auto px-4">
         <div
-          className="bg-[#E9B4EB] rounded-[10px] p-8 cursor-pointer"
+          className="bg-[#E9B4EB] rounded-[10px] px-8 py-6 cursor-pointer"
           onClick={handleOpenMissive}
         >
           <div className="flex items-center justify-between">
             <div>
               <h2
-                className="font-whitney font-black text-[#0E1B4D] uppercase mb-2 text-[32px]"
+                className="font-whitney font-black text-[#0E1B4D] uppercase text-[32px]"
                 style={{ letterSpacing: "-0.02em" }}
               >
                 Always the most onboard credit back
@@ -622,9 +678,7 @@ export default function CruisesContent() {
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full bg-white hover:border-gray-400 transition-colors"
             >
               <span className="font-geograph font-medium text-[16px] text-dark-blue">
-                {selectedCruiseLine
-                  ? cruiseLines.find((cl) => cl.id === selectedCruiseLine)?.name
-                  : "Cruise lines"}
+                Cruise lines
               </span>
               <Image
                 src="/images/arrow-down.svg"
@@ -640,20 +694,40 @@ export default function CruisesContent() {
                   <button
                     key={line.id}
                     onClick={() => {
-                      setSelectedCruiseLine(line.id as number);
-                      setIsCruiseLineDropdownOpen(false);
+                      const lineId = line.id as number;
+                      setSelectedCruiseLines((prev) =>
+                        prev.includes(lineId)
+                          ? prev.filter((id) => id !== lineId)
+                          : [...prev, lineId],
+                      );
                       setPage(1);
                     }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors"
+                    className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
                   >
+                    <div
+                      className={`w-4 h-4 border rounded ${
+                        selectedCruiseLines.includes(line.id as number)
+                          ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      {selectedCruiseLines.includes(line.id as number) && (
+                        <svg
+                          className="w-full h-full text-white"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </div>
                     <div className="font-geograph text-[16px] text-dark-blue">
                       {line.name}
                     </div>
-                    {line.count && (
-                      <div className="font-geograph text-[14px] text-gray-500">
-                        {line.count} cruises
-                      </div>
-                    )}
                   </button>
                 ))}
               </div>
@@ -667,9 +741,7 @@ export default function CruisesContent() {
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full bg-white hover:border-gray-400 transition-colors"
             >
               <span className="font-geograph font-medium text-[16px] text-dark-blue">
-                {selectedDateRange.start || selectedDateRange.end
-                  ? "Selected dates"
-                  : "Cruise dates"}
+                Cruise dates
               </span>
               <Image
                 src="/images/arrow-down.svg"
@@ -680,49 +752,53 @@ export default function CruisesContent() {
             </button>
 
             {isDateDropdownOpen && (
-              <div className="absolute top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4">
-                <div className="space-y-3">
-                  <div>
-                    <label className="block font-geograph text-[14px] text-gray-600 mb-1">
-                      Start Date
-                    </label>
-                    <input
-                      type="date"
-                      value={selectedDateRange.start || ""}
-                      onChange={(e) => {
-                        setSelectedDateRange({
-                          ...selectedDateRange,
-                          start: e.target.value,
-                        });
-                        setPage(1);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                    />
+              <div className="absolute top-full mt-2 w-96 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4">
+                {[2025, 2026, 2027, 2028].map((year) => (
+                  <div key={year} className="mb-4">
+                    <div className="font-geograph font-bold text-[14px] text-gray-700 mb-2">
+                      {year}
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        "Jan",
+                        "Feb",
+                        "Mar",
+                        "Apr",
+                        "May",
+                        "Jun",
+                        "Jul",
+                        "Aug",
+                        "Sep",
+                        "Oct",
+                        "Nov",
+                        "Dec",
+                      ].map((month, index) => {
+                        const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
+                        const isSelected = selectedMonths.includes(monthStr);
+                        return (
+                          <button
+                            key={monthStr}
+                            onClick={() => {
+                              setSelectedMonths((prev) =>
+                                isSelected
+                                  ? prev.filter((m) => m !== monthStr)
+                                  : [...prev, monthStr],
+                              );
+                              setPage(1);
+                            }}
+                            className={`px-3 py-1 rounded-full text-[14px] font-geograph transition-colors ${
+                              isSelected
+                                ? "bg-[#0E1B4D] text-white"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            }`}
+                          >
+                            {month}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div>
-                    <label className="block font-geograph text-[14px] text-gray-600 mb-1">
-                      End Date
-                    </label>
-                    <input
-                      type="date"
-                      value={selectedDateRange.end || ""}
-                      onChange={(e) => {
-                        setSelectedDateRange({
-                          ...selectedDateRange,
-                          end: e.target.value,
-                        });
-                        setPage(1);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <button
-                    onClick={() => setIsDateDropdownOpen(false)}
-                    className="w-full py-2 bg-[#0E1B4D] text-white rounded-lg hover:bg-opacity-90 transition-colors font-geograph"
-                  >
-                    Apply
-                  </button>
-                </div>
+                ))}
               </div>
             )}
           </div>
@@ -734,9 +810,7 @@ export default function CruisesContent() {
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full bg-white hover:border-gray-400 transition-colors"
             >
               <span className="font-geograph font-medium text-[16px] text-dark-blue">
-                {selectedNights.min || selectedNights.max
-                  ? `${selectedNights.min || 0}-${selectedNights.max || 30}+ nights`
-                  : "Number of nights"}
+                Number of nights
               </span>
               <Image
                 src="/images/arrow-down.svg"
@@ -747,52 +821,50 @@ export default function CruisesContent() {
             </button>
 
             {isNightsDropdownOpen && (
-              <div className="absolute top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4">
-                <div className="space-y-3">
-                  <div>
-                    <label className="block font-geograph text-[14px] text-gray-600 mb-1">
-                      Min Nights
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="30"
-                      value={selectedNights.min || ""}
-                      onChange={(e) => {
-                        setSelectedNights({
-                          ...selectedNights,
-                          min: parseInt(e.target.value) || undefined,
-                        });
-                        setPage(1);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block font-geograph text-[14px] text-gray-600 mb-1">
-                      Max Nights
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="30"
-                      value={selectedNights.max || ""}
-                      onChange={(e) => {
-                        setSelectedNights({
-                          ...selectedNights,
-                          max: parseInt(e.target.value) || undefined,
-                        });
-                        setPage(1);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                  <button
-                    onClick={() => setIsNightsDropdownOpen(false)}
-                    className="w-full py-2 bg-[#0E1B4D] text-white rounded-lg hover:bg-opacity-90 transition-colors font-geograph"
-                  >
-                    Apply
-                  </button>
+              <div className="absolute top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4">
+                <div className="space-y-2">
+                  {["2-5", "6-8", "9-11", "12+"].map((range) => {
+                    const isSelected = selectedNightRanges.includes(range);
+                    return (
+                      <button
+                        key={range}
+                        onClick={() => {
+                          setSelectedNightRanges((prev) =>
+                            isSelected
+                              ? prev.filter((r) => r !== range)
+                              : [...prev, range],
+                          );
+                          setPage(1);
+                        }}
+                        className="w-full text-left px-3 py-2 rounded hover:bg-gray-50 transition-colors flex items-center gap-2"
+                      >
+                        <div
+                          className={`w-4 h-4 border rounded ${
+                            isSelected
+                              ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                              : "border-gray-300"
+                          }`}
+                        >
+                          {isSelected && (
+                            <svg
+                              className="w-full h-full text-white"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="font-geograph text-[16px] text-dark-blue">
+                          {range === "12+" ? "12+ nights" : `${range} nights`}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -807,10 +879,7 @@ export default function CruisesContent() {
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full bg-white hover:border-gray-400 transition-colors"
             >
               <span className="font-geograph font-medium text-[16px] text-dark-blue">
-                {selectedDeparturePort
-                  ? departurePorts.find((p) => p.id === selectedDeparturePort)
-                      ?.name
-                  : "Departure port"}
+                Departure port
               </span>
               <Image
                 src="/images/arrow-down.svg"
@@ -826,20 +895,40 @@ export default function CruisesContent() {
                   <button
                     key={port.id}
                     onClick={() => {
-                      setSelectedDeparturePort(port.id as number);
-                      setIsDeparturePortDropdownOpen(false);
+                      const portId = port.id as number;
+                      setSelectedDeparturePorts((prev) =>
+                        prev.includes(portId)
+                          ? prev.filter((id) => id !== portId)
+                          : [...prev, portId],
+                      );
                       setPage(1);
                     }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors"
+                    className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
                   >
+                    <div
+                      className={`w-4 h-4 border rounded ${
+                        selectedDeparturePorts.includes(port.id as number)
+                          ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      {selectedDeparturePorts.includes(port.id as number) && (
+                        <svg
+                          className="w-full h-full text-white"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </div>
                     <div className="font-geograph text-[16px] text-dark-blue">
                       {port.name}
                     </div>
-                    {port.count && (
-                      <div className="font-geograph text-[14px] text-gray-500">
-                        {port.count} cruises
-                      </div>
-                    )}
                   </button>
                 ))}
               </div>
@@ -853,9 +942,7 @@ export default function CruisesContent() {
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full bg-white hover:border-gray-400 transition-colors"
             >
               <span className="font-geograph font-medium text-[16px] text-dark-blue">
-                {selectedShip
-                  ? ships.find((s) => s.id === selectedShip)?.name
-                  : "Ships"}
+                Ships
               </span>
               <Image
                 src="/images/arrow-down.svg"
@@ -871,20 +958,40 @@ export default function CruisesContent() {
                   <button
                     key={ship.id}
                     onClick={() => {
-                      setSelectedShip(ship.id as number);
-                      setIsShipDropdownOpen(false);
+                      const shipId = ship.id as number;
+                      setSelectedShips((prev) =>
+                        prev.includes(shipId)
+                          ? prev.filter((id) => id !== shipId)
+                          : [...prev, shipId],
+                      );
                       setPage(1);
                     }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors"
+                    className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
                   >
+                    <div
+                      className={`w-4 h-4 border rounded ${
+                        selectedShips.includes(ship.id as number)
+                          ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      {selectedShips.includes(ship.id as number) && (
+                        <svg
+                          className="w-full h-full text-white"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </div>
                     <div className="font-geograph text-[16px] text-dark-blue">
                       {ship.name}
                     </div>
-                    {ship.count && (
-                      <div className="font-geograph text-[14px] text-gray-500">
-                        {ship.count} cruises
-                      </div>
-                    )}
                   </button>
                 ))}
               </div>
@@ -898,9 +1005,7 @@ export default function CruisesContent() {
               className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full bg-white hover:border-gray-400 transition-colors"
             >
               <span className="font-geograph font-medium text-[16px] text-dark-blue">
-                {selectedRegion
-                  ? regions.find((r) => r.id === selectedRegion)?.name
-                  : "Region"}
+                Region
               </span>
               <Image
                 src="/images/arrow-down.svg"
@@ -916,20 +1021,40 @@ export default function CruisesContent() {
                   <button
                     key={region.id}
                     onClick={() => {
-                      setSelectedRegion(region.id as number);
-                      setIsRegionDropdownOpen(false);
+                      const regionId = region.id as number;
+                      setSelectedRegions((prev) =>
+                        prev.includes(regionId)
+                          ? prev.filter((id) => id !== regionId)
+                          : [...prev, regionId],
+                      );
                       setPage(1);
                     }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors"
+                    className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
                   >
+                    <div
+                      className={`w-4 h-4 border rounded ${
+                        selectedRegions.includes(region.id as number)
+                          ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      {selectedRegions.includes(region.id as number) && (
+                        <svg
+                          className="w-full h-full text-white"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </div>
                     <div className="font-geograph text-[16px] text-dark-blue">
                       {region.name}
                     </div>
-                    {region.count && (
-                      <div className="font-geograph text-[14px] text-gray-500">
-                        {region.count} cruises
-                      </div>
-                    )}
                   </button>
                 ))}
               </div>
@@ -939,10 +1064,10 @@ export default function CruisesContent() {
       </div>
 
       {/* Applied Filters and Sort */}
-      <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="flex justify-between items-start gap-4">
+      <div className="max-w-7xl mx-auto px-4 pb-[10px]">
+        <div className="flex justify-between items-center gap-4">
           {/* Applied Filters */}
-          <div className="flex items-center gap-3 flex-wrap flex-1">
+          <div className="flex items-center gap-3 flex-wrap flex-1 justify-center">
             {appliedFilters.map((filter, index) => (
               <div
                 key={index}
@@ -1038,7 +1163,7 @@ export default function CruisesContent() {
         </div>
 
         {/* Cruise Results */}
-        <div className="max-w-7xl mx-auto px-4 pb-8">
+        <div className="max-w-7xl mx-auto">
           {loading ? (
             <div className="text-center py-12">
               <div className="text-xl text-gray-600">Loading cruises...</div>
@@ -1074,14 +1199,14 @@ export default function CruisesContent() {
                     <div className="flex gap-6">
                       {/* Featured Image */}
                       <div className="w-48 h-32 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                        {cruise.ship?.defaultShipImageHd ||
+                        {cruise.ship?.defaultShipImage ||
                         cruise.ship?.defaultShipImage2k ||
-                        cruise.ship?.defaultShipImage ? (
+                        cruise.ship?.defaultShipImageHd ? (
                           <img
                             src={
-                              cruise.ship.defaultShipImageHd ||
+                              cruise.ship.defaultShipImage ||
                               cruise.ship.defaultShipImage2k ||
-                              cruise.ship.defaultShipImage
+                              cruise.ship.defaultShipImageHd
                             }
                             alt={cruise.ship?.name || cruise.name}
                             className="w-full h-full object-cover"
@@ -1190,7 +1315,7 @@ export default function CruisesContent() {
                       {/* Pricing and CTA */}
                       <div className="flex flex-col items-end justify-between">
                         <div className="text-right">
-                          <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                          <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                             STARTING FROM
                           </div>
                           <div className="font-geograph font-bold text-[24px] text-dark-blue">
@@ -1253,6 +1378,76 @@ export default function CruisesContent() {
                                 : "Call for price";
                             })()}
                           </div>
+                          {/* Onboard Credit Badge */}
+                          {(() => {
+                            const prices: number[] = [];
+
+                            // Check pricing object first (from API)
+                            if (cruise.pricing) {
+                              [
+                                cruise.pricing.interior,
+                                cruise.pricing.oceanview,
+                                cruise.pricing.balcony,
+                                cruise.pricing.suite,
+                                cruise.pricing.lowestPrice,
+                              ].forEach((p) => {
+                                if (p && p !== "0" && p !== "null") {
+                                  const num = Number(p);
+                                  if (!isNaN(num) && num > 0) prices.push(num);
+                                }
+                              });
+                            }
+
+                            // Check combined field (from detail page)
+                            if (cruise.combined) {
+                              [
+                                cruise.combined.inside,
+                                cruise.combined.outside,
+                                cruise.combined.balcony,
+                                cruise.combined.suite,
+                              ].forEach((p) => {
+                                if (p && p !== "0" && p !== "null") {
+                                  const num = Number(p);
+                                  if (!isNaN(num) && num > 0) prices.push(num);
+                                }
+                              });
+                            }
+
+                            // Fallback to individual price fields
+                            if (prices.length === 0) {
+                              [
+                                cruise.cheapestPrice,
+                                cruise.interiorPrice,
+                                cruise.oceanviewPrice,
+                                cruise.oceanViewPrice,
+                                cruise.balconyPrice,
+                                cruise.suitePrice,
+                              ].forEach((p) => {
+                                if (p && p !== "0" && p !== "null") {
+                                  const num = Number(p);
+                                  if (!isNaN(num) && num > 0) prices.push(num);
+                                }
+                              });
+                            }
+
+                            if (prices.length > 0) {
+                              const lowestPrice = Math.min(...prices);
+                              // Calculate 10% of the price as onboard credit, rounded down to nearest $10
+                              const creditPercent = 0.1; // 10%
+                              const rawCredit = lowestPrice * creditPercent;
+                              const onboardCredit =
+                                Math.floor(rawCredit / 10) * 10; // Round down to nearest $10
+
+                              if (onboardCredit > 0) {
+                                return (
+                                  <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                                    +${onboardCredit} onboard credit
+                                  </div>
+                                );
+                              }
+                            }
+                            return null;
+                          })()}
                         </div>
 
                         <button

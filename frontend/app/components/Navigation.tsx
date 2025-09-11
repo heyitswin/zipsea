@@ -563,8 +563,8 @@ export default function Navigation({
               </a>
             </div>
 
-            {/* Browse Cruises Link - Admin only, Hidden on mobile */}
-            {isAdmin && (
+            {/* Browse Cruises Link - Hidden for admins and on mobile */}
+            {!isAdmin && (
               <a
                 href="/cruises"
                 className={`hidden md:block ml-8 px-4 py-2 rounded-lg font-medium transition-colors ${
