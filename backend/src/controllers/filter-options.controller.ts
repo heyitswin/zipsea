@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { sql } from '../config/database';
+import { sql } from '../db/connection';
 import logger from '../config/logger';
 
 export class FilterOptionsController {
