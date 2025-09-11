@@ -32,7 +32,7 @@ export class FilterOptionsController {
       const departurePorts = await sql`
         SELECT DISTINCT p.id, p.name
         FROM ports p
-        INNER JOIN cruises c ON c.embark_port_id = p.id
+        INNER JOIN cruises c ON c.embarkation_port_id = p.id
         WHERE c.is_active = true
         AND c.sailing_date >= CURRENT_DATE
         ORDER BY p.name ASC
