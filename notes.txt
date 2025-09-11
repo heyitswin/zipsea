@@ -60,9 +60,50 @@ JOIN cruise_lines cl ON c.cruise_line_id = cl.id
 JOIN ships s ON c.ship_id = s.id
 LEFT JOIN ports p ON c.embarkation_port_id = p.id
 LIMIT 3;"
+Summary: New Optimized Webhook Processing System
+--------------------------------
+# Test webhook endpoint
+curl -X POST https://zipsea-production.onrender.com/api/webhooks/traveltek/test \
+  -H "Content-Type: application/json" \
+  -d '{"lineId": 22}'
 
+# Check health
+curl https://zipsea-backend.onrender.com/api/webhooks/health
 
+# Check if line 22 exists and has cruises
+psql $DATABASE_URL -c "SELECT id, name FROM cruise_lines WHERE id = 22;"
+psql $DATABASE_URL -c "SELECT COUNT(*) FROM cruises WHERE cruise_line_id = 22 AND departure_date > CURRENT_DATE;"
 
-node scripts/test-webhook-batching.js
-node scripts/test-webhook-traveltek.js 21 production
-curl https://zipsea-production.onrender.com/api/admin/pending-syncs
+# Quick check using psql if available
+echo "SELECT COUNT(*) as cruise_count FROM cruises WHERE cruise_line_id = 22 AND departure_date > CURRENT_DATE;" | psql $DATABASE_URL
+
+curl https://zipsea-production.onrender.com/api/webhooks/traveltek/status
+
+curl -X POST https://zipsea-production.onrender.com/api/webhooks/traveltek/clear-locks
+
+for i in {1..10}; do
+  echo "Check $i ($(date +%H:%M:%S)):"
+  curl -s https://zipsea-production.onrender.com/api/webhooks/traveltek/status | \
+    jq -r '.recentEvents[0] | "Event \(.id): \(.status) - Line \(.line_id)"'
+  sleep 10
+done
+
+frontend tweaks
+- last minute deal images on the homepage only show if the user is logged in i believe, it should be viewable for all users even logged out
+- "starting from" text block on the cabin details page should be all right aligned
+- most importantly, cruises that should be in the database are not showing up in search on the homepage or from the nav bar
+-
+
+Shameless plug: I'm the co-founder of a new modern cruise agency called Zipsea where we try to offer the absolutely highest onboard credits back (obc) from our own commission. This is not automated at all and if this feels too salesy feel free to ignore me!
+
+booking through us vs booking directly graphic on homepage
+
+please deep dive into the recent webhook work. we need to get the traveltek webhook to a point where:
+- pricing but most important cheapest pricing including cabins in the combined field is being extracted and populated in our database
+- syncing happens efficient for all cruise lines starting from [current year /current month] until [final year/final month] of what's available in the ftp server
+- batching and queuing works in case there are a lot of files or another webhook comes in while we're processing one already
+
+there's a recent file in /documentation that has more context about what files to use and not use
+
+# Stop the queue (pauses processing, removes waiting jobs)
+node scripts/stop-webhook-queue.js --force
