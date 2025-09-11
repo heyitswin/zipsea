@@ -381,12 +381,12 @@ export default function CruisesContent() {
 
       // Try to fetch from API with timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased timeout
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?${params.toString()}`,
-        { signal: controller.signal },
-      );
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?${params.toString()}`;
+      console.log("Fetching cruises from:", url);
+
+      const response = await fetch(url, { signal: controller.signal });
 
       clearTimeout(timeoutId);
 
@@ -457,7 +457,8 @@ export default function CruisesContent() {
         );
 
         setCruises(filteredCruises);
-        setTotalCount(filteredCruises.length);
+        // Use total from API pagination if available
+        setTotalCount(data.pagination?.total || filteredCruises.length);
       } else {
         throw new Error("API response not ok");
       }
@@ -667,8 +668,8 @@ export default function CruisesContent() {
       </div>
 
       {/* Filters Section */}
-      <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="flex flex-wrap gap-3 relative z-40">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex flex-wrap gap-3 relative z-40 justify-center">
           {/* Cruise Lines Filter */}
           <div className="relative" ref={cruiseLineDropdownRef}>
             <button
@@ -1064,10 +1065,10 @@ export default function CruisesContent() {
       </div>
 
       {/* Applied Filters and Sort */}
-      <div className="max-w-7xl mx-auto px-4 pb-[10px]">
+      <div className="max-w-7xl mx-auto px-4 pb-8">
         <div className="flex justify-between items-center gap-4">
           {/* Applied Filters */}
-          <div className="flex items-center gap-3 flex-wrap flex-1 justify-center">
+          <div className="flex items-center gap-3 flex-wrap flex-1 justify-start">
             {appliedFilters.map((filter, index) => (
               <div
                 key={index}
@@ -1143,7 +1144,7 @@ export default function CruisesContent() {
                         setIsSortDropdownOpen(false);
                         setPage(1);
                       }}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors font-geograph font-medium text-[16px] text-dark-blue"
+                      className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors font-geograph text-[16px] text-dark-blue"
                     >
                       {option === "soonest"
                         ? "Soonest"
@@ -1163,7 +1164,7 @@ export default function CruisesContent() {
         </div>
 
         {/* Cruise Results */}
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto mt-[10px]">
           {loading ? (
             <div className="text-center py-12">
               <div className="text-xl text-gray-600">Loading cruises...</div>
@@ -1311,74 +1312,14 @@ export default function CruisesContent() {
                           </div>
                         </div>
                       </div>
-
-                      {/* Pricing and CTA */}
-                      <div className="flex flex-col items-end justify-between">
-                        <div className="text-right">
-                          <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                            STARTING FROM
-                          </div>
-                          <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                            {(() => {
-                              const prices: number[] = [];
-
-                              // Check pricing object first (from API)
-                              if (cruise.pricing) {
-                                [
-                                  cruise.pricing.interior,
-                                  cruise.pricing.oceanview,
-                                  cruise.pricing.balcony,
-                                  cruise.pricing.suite,
-                                  cruise.pricing.lowestPrice,
-                                ].forEach((p) => {
-                                  if (p && p !== "0" && p !== "null") {
-                                    const num = Number(p);
-                                    if (!isNaN(num) && num > 0)
-                                      prices.push(num);
-                                  }
-                                });
-                              }
-
-                              // Check combined field (from detail page)
-                              if (cruise.combined) {
-                                [
-                                  cruise.combined.inside,
-                                  cruise.combined.outside,
-                                  cruise.combined.balcony,
-                                  cruise.combined.suite,
-                                ].forEach((p) => {
-                                  if (p && p !== "0" && p !== "null") {
-                                    const num = Number(p);
-                                    if (!isNaN(num) && num > 0)
-                                      prices.push(num);
-                                  }
-                                });
-                              }
-
-                              // Fallback to individual price fields
-                              if (prices.length === 0) {
-                                [
-                                  cruise.cheapestPrice,
-                                  cruise.interiorPrice,
-                                  cruise.oceanviewPrice,
-                                  cruise.oceanViewPrice,
-                                  cruise.balconyPrice,
-                                  cruise.suitePrice,
-                                ].forEach((p) => {
-                                  if (p && p !== "0" && p !== "null") {
-                                    const num = Number(p);
-                                    if (!isNaN(num) && num > 0)
-                                      prices.push(num);
-                                  }
-                                });
-                              }
-
-                              return prices.length > 0
-                                ? formatPrice(Math.min(...prices))
-                                : "Call for price";
-                            })()}
-                          </div>
-                          {/* Onboard Credit Badge */}
+                    </div>
+                    {/* Pricing - moved to bottom right */}
+                    <div className="flex justify-end mt-4">
+                      <div className="text-right">
+                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
+                          STARTING FROM
+                        </div>
+                        <div className="font-geograph font-bold text-[24px] text-dark-blue">
                           {(() => {
                             const prices: number[] = [];
 
@@ -1430,35 +1371,81 @@ export default function CruisesContent() {
                               });
                             }
 
-                            if (prices.length > 0) {
-                              const lowestPrice = Math.min(...prices);
-                              // Calculate 10% of the price as onboard credit, rounded down to nearest $10
-                              const creditPercent = 0.1; // 10%
-                              const rawCredit = lowestPrice * creditPercent;
-                              const onboardCredit =
-                                Math.floor(rawCredit / 10) * 10; // Round down to nearest $10
-
-                              if (onboardCredit > 0) {
-                                return (
-                                  <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                                    +${onboardCredit} onboard credit
-                                  </div>
-                                );
-                              }
-                            }
-                            return null;
+                            return prices.length > 0
+                              ? formatPrice(Math.min(...prices))
+                              : "Call for price";
                           })()}
                         </div>
+                        {/* Onboard Credit Badge */}
+                        {(() => {
+                          const prices: number[] = [];
 
-                        <button
-                          className="px-4 py-2 bg-[#2F7DDD] text-white rounded-full font-geograph font-medium text-[14px] hover:bg-opacity-90 transition-colors"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/cruise/${slug}`);
-                          }}
-                        >
-                          View cruise
-                        </button>
+                          // Check pricing object first (from API)
+                          if (cruise.pricing) {
+                            [
+                              cruise.pricing.interior,
+                              cruise.pricing.oceanview,
+                              cruise.pricing.balcony,
+                              cruise.pricing.suite,
+                              cruise.pricing.lowestPrice,
+                            ].forEach((p) => {
+                              if (p && p !== "0" && p !== "null") {
+                                const num = Number(p);
+                                if (!isNaN(num) && num > 0) prices.push(num);
+                              }
+                            });
+                          }
+
+                          // Check combined field (from detail page)
+                          if (cruise.combined) {
+                            [
+                              cruise.combined.inside,
+                              cruise.combined.outside,
+                              cruise.combined.balcony,
+                              cruise.combined.suite,
+                            ].forEach((p) => {
+                              if (p && p !== "0" && p !== "null") {
+                                const num = Number(p);
+                                if (!isNaN(num) && num > 0) prices.push(num);
+                              }
+                            });
+                          }
+
+                          // Fallback to individual price fields
+                          if (prices.length === 0) {
+                            [
+                              cruise.cheapestPrice,
+                              cruise.interiorPrice,
+                              cruise.oceanviewPrice,
+                              cruise.oceanViewPrice,
+                              cruise.balconyPrice,
+                              cruise.suitePrice,
+                            ].forEach((p) => {
+                              if (p && p !== "0" && p !== "null") {
+                                const num = Number(p);
+                                if (!isNaN(num) && num > 0) prices.push(num);
+                              }
+                            });
+                          }
+
+                          if (prices.length > 0) {
+                            const lowestPrice = Math.min(...prices);
+                            // Calculate 10% of the price as onboard credit, rounded down to nearest $10
+                            const creditPercent = 0.1; // 10%
+                            const rawCredit = lowestPrice * creditPercent;
+                            const onboardCredit =
+                              Math.floor(rawCredit / 10) * 10; // Round down to nearest $10
+
+                            if (onboardCredit > 0) {
+                              return (
+                                <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                                  +${onboardCredit} onboard credit
+                                </div>
+                              );
+                            }
+                          }
+                          return null;
+                        })()}
                       </div>
                     </div>
                   </div>

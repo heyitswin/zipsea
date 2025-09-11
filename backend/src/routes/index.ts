@@ -7,6 +7,7 @@ import webhookPricingRoutes from './webhook-pricing.routes';
 import searchRoutes from './search.routes';
 import searchOptimizedRoutes from './search-optimized.routes';
 import searchComprehensiveRoutes from './search-comprehensive.routes';
+import filterOptionsRoutes from './filter-options.routes';
 import cruiseRoutes from './cruise.routes';
 import shipRoutes from './ship.routes';
 import quoteRoutes from './quote.routes';
@@ -47,6 +48,8 @@ apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/search', searchOptimizedRoutes);
 // Comprehensive search with all filtering capabilities
 apiRouter.use('/search/comprehensive', searchComprehensiveRoutes);
+// Filter options for dropdowns
+apiRouter.use('/filter-options', filterOptionsRoutes);
 // Keep old search routes as fallback at different path if needed
 // apiRouter.use('/search-old', searchRoutes);
 apiRouter.use('/cruises', cruiseRoutes);
