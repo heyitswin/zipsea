@@ -194,7 +194,7 @@ export class ComprehensiveSearchService {
         }
       }
 
-      // Build the main query - VERY simplified to debug timeout
+      // Build the main query - with JOINs for proper data
       let query = db
         .select({
           id: cruises.id,
@@ -205,18 +205,18 @@ export class ComprehensiveSearchService {
           nights: cruises.nights,
           seaDays: cruises.seaDays,
           cruiseLineId: cruises.cruiseLineId,
-          cruiseLineName: sql<string>`''`,
-          cruiseLineCode: sql<string>`''`,
+          cruiseLineName: sql<string>`COALESCE(${cruiseLines.name}, 'Unknown')`,
+          cruiseLineCode: sql<string>`COALESCE(${cruiseLines.code}, '')`,
           shipId: cruises.shipId,
-          shipName: sql<string>`''`,
-          shipCode: sql<string>`''`,
-          shipImage: sql<string>`''`,
-          shipImage2k: sql<string>`''`,
-          shipImageHd: sql<string>`''`,
+          shipName: sql<string>`COALESCE(${ships.name}, 'Unknown')`,
+          shipCode: sql<string>`COALESCE(${ships.code}, '')`,
+          shipImage: sql<string>`COALESCE(${ships.defaultShipImage}, '')`,
+          shipImage2k: sql<string>`COALESCE(${ships.defaultShipImage2k}, '')`,
+          shipImageHd: sql<string>`COALESCE(${ships.defaultShipImageHd}, '')`,
           embarkPortId: cruises.embarkPortId,
-          embarkPortName: sql<string>`''`,
+          embarkPortName: sql<string>`COALESCE(${ports.name}, 'Unknown')`,
           disembarkPortId: cruises.disembarkPortId,
-          disembarkPortName: sql<string>`''`,
+          disembarkPortName: sql<string>`COALESCE(dp.name, 'Unknown')`,
           regionIds: cruises.regionIds,
           portIds: cruises.portIds,
           // Pricing fields
@@ -229,6 +229,10 @@ export class ComprehensiveSearchService {
           updatedAt: cruises.updatedAt,
         })
         .from(cruises)
+        .leftJoin(cruiseLines, eq(cruises.cruiseLineId, cruiseLines.id))
+        .leftJoin(ships, eq(cruises.shipId, ships.id))
+        .leftJoin(ports, eq(cruises.embarkPortId, ports.id))
+        .leftJoin(sql`ports dp`, sql`dp.id = ${cruises.disembarkPortId}`)
         .where(and(...conditions));
 
       // Apply price filters if we have pricing data

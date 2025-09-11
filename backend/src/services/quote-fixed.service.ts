@@ -125,8 +125,6 @@ class QuoteServiceFixed {
 
   async createQuoteRequest(data: QuoteRequestData): Promise<QuoteResponse> {
     try {
-      await this.ensureQuoteRequestsTable();
-
       const referenceNumber = this.generateReferenceNumber();
 
       // Validate cruise exists in the new schema
@@ -143,38 +141,36 @@ class QuoteServiceFixed {
 
       const actualCruiseId = cruiseExists[0].id; // Use the primary key
 
-      // Insert quote request
+      // Create customer_details JSON object with all the extra fields
+      const customerDetails = {
+        reference_number: referenceNumber,
+        user_id: data.userId || null,
+        cabin_type: data.cabinType,
+        adults: data.adults,
+        children: data.children,
+        travel_insurance: data.travelInsurance,
+        special_requests: data.specialRequests || null,
+        discount_qualifiers: data.discountQualifiers || {},
+      };
+
+      // Insert quote request using actual production schema
       const result = await sql`
         INSERT INTO quote_requests (
-          reference_number,
-          user_id,
+          cruise_id,
           email,
           first_name,
           last_name,
           phone,
-          cruise_id,
-          cabin_type,
-          adults,
-          children,
-          travel_insurance,
-          special_requests,
-          discount_qualifiers,
+          customer_details,
           status
         )
         VALUES (
-          ${referenceNumber},
-          ${data.userId || null},
+          ${actualCruiseId},
           ${data.email},
           ${data.firstName || null},
           ${data.lastName || null},
           ${data.phone || null},
-          ${actualCruiseId},
-          ${data.cabinType},
-          ${data.adults},
-          ${data.children},
-          ${data.travelInsurance},
-          ${data.specialRequests || null},
-          ${JSON.stringify(data.discountQualifiers || {})},
+          ${JSON.stringify(customerDetails)},
           'pending'
         )
         RETURNING *
@@ -182,23 +178,29 @@ class QuoteServiceFixed {
 
       const quote = result[0];
 
+      // Parse customer_details back out
+      const details =
+        typeof quote.customer_details === 'string'
+          ? JSON.parse(quote.customer_details)
+          : quote.customer_details || {};
+
       return {
         id: quote.id,
-        referenceNumber: quote.reference_number,
+        referenceNumber: details.reference_number || quote.id,
         status: quote.status,
         createdAt: quote.created_at,
-        userId: quote.user_id,
+        userId: details.user_id || null,
         email: quote.email,
         firstName: quote.first_name,
         lastName: quote.last_name,
         phone: quote.phone,
         cruiseId: quote.cruise_id,
-        cabinType: quote.cabin_type,
-        adults: quote.adults,
-        children: quote.children,
-        travelInsurance: quote.travel_insurance,
-        specialRequests: quote.special_requests,
-        discountQualifiers: quote.discount_qualifiers,
+        cabinType: details.cabin_type || '',
+        adults: details.adults || 2,
+        children: details.children || 0,
+        travelInsurance: details.travel_insurance || false,
+        specialRequests: details.special_requests || null,
+        discountQualifiers: details.discount_qualifiers || {},
       };
     } catch (error) {
       logger.error('Error creating quote request:', error);
@@ -224,40 +226,54 @@ class QuoteServiceFixed {
       }
 
       // Get total count
-      const totalResult = await sql.unsafe(`
+      const totalResult = await sql.unsafe(
+        `
         SELECT COUNT(*) as total
         FROM quote_requests
         ${whereClause}
-      `, params);
+      `,
+        params
+      );
 
       const total = parseInt(totalResult[0].total);
 
       // Get paginated quotes
-      const quotesResult = await sql.unsafe(`
+      const quotesResult = await sql.unsafe(
+        `
         SELECT * FROM quote_requests
         ${whereClause}
         ORDER BY created_at DESC
         LIMIT $${params.length + 1} OFFSET $${params.length + 2}
-      `, [...params, limit, offset]);
+      `,
+        [...params, limit, offset]
+      );
 
-      const quotes = quotesResult.map((quote: any) => ({
-        id: quote.id,
-        referenceNumber: quote.reference_number,
-        status: quote.status,
-        createdAt: quote.created_at,
-        userId: quote.user_id,
-        email: quote.email,
-        firstName: quote.first_name,
-        lastName: quote.last_name,
-        phone: quote.phone,
-        cruiseId: quote.cruise_id,
-        cabinType: quote.cabin_type,
-        adults: quote.adults,
-        children: quote.children,
-        travelInsurance: quote.travel_insurance,
-        specialRequests: quote.special_requests,
-        discountQualifiers: quote.discount_qualifiers,
-      }));
+      const quotes = quotesResult.map((quote: any) => {
+        // Parse customer_details
+        const details =
+          typeof quote.customer_details === 'string'
+            ? JSON.parse(quote.customer_details)
+            : quote.customer_details || {};
+
+        return {
+          id: quote.id,
+          referenceNumber: details.reference_number || quote.id,
+          status: quote.status,
+          createdAt: quote.created_at,
+          userId: details.user_id || null,
+          email: quote.email,
+          firstName: quote.first_name,
+          lastName: quote.last_name,
+          phone: quote.phone,
+          cruiseId: quote.cruise_id,
+          cabinType: details.cabin_type || '',
+          adults: details.adults || 2,
+          children: details.children || 0,
+          travelInsurance: details.travel_insurance || false,
+          specialRequests: details.special_requests || null,
+          discountQualifiers: details.discount_qualifiers || {},
+        };
+      });
 
       return { quotes, total };
     } catch (error) {
@@ -304,23 +320,29 @@ class QuoteServiceFixed {
 
       const row = result[0];
 
+      // Parse customer_details
+      const details =
+        typeof row.customer_details === 'string'
+          ? JSON.parse(row.customer_details)
+          : row.customer_details || {};
+
       const quote: QuoteWithDetails = {
         id: row.id,
-        referenceNumber: row.reference_number,
+        referenceNumber: details.reference_number || row.id,
         status: row.status,
         createdAt: row.created_at,
-        userId: row.user_id,
+        userId: details.user_id || null,
         email: row.email,
         firstName: row.first_name,
         lastName: row.last_name,
         phone: row.phone,
         cruiseId: row.cruise_id,
-        cabinType: row.cabin_type,
-        adults: row.adults,
-        children: row.children,
-        travelInsurance: row.travel_insurance,
-        specialRequests: row.special_requests,
-        discountQualifiers: row.discount_qualifiers,
+        cabinType: details.cabin_type || '',
+        adults: details.adults || 2,
+        children: details.children || 0,
+        travelInsurance: details.travel_insurance || false,
+        specialRequests: details.special_requests || null,
+        discountQualifiers: details.discount_qualifiers || {},
       };
 
       // Add cruise details if available
@@ -330,9 +352,13 @@ class QuoteServiceFixed {
           cruise_id: row.cruise_secondary_id,
           name: row.cruise_name,
           sailing_date: row.sailing_date,
-          return_date: row.return_date || (row.sailing_date && row.nights ?
-            new Date(new Date(row.sailing_date).getTime() + (row.nights * 24 * 60 * 60 * 1000)).toISOString().split('T')[0]
-            : null),
+          return_date:
+            row.return_date ||
+            (row.sailing_date && row.nights
+              ? new Date(new Date(row.sailing_date).getTime() + row.nights * 24 * 60 * 60 * 1000)
+                  .toISOString()
+                  .split('T')[0]
+              : null),
           nights: row.nights,
           ship_name: row.ship_name,
           cruise_line_name: row.cruise_line_name,
@@ -360,11 +386,7 @@ class QuoteServiceFixed {
     }
   }
 
-  async updateQuoteStatus(
-    id: string,
-    status: string,
-    notes?: string
-  ): Promise<QuoteResponse> {
+  async updateQuoteStatus(id: string, status: string, notes?: string): Promise<QuoteResponse> {
     try {
       await this.ensureQuoteRequestsTable();
 
@@ -384,23 +406,29 @@ class QuoteServiceFixed {
 
       const quote = result[0];
 
+      // Parse customer_details
+      const details =
+        typeof quote.customer_details === 'string'
+          ? JSON.parse(quote.customer_details)
+          : quote.customer_details || {};
+
       return {
         id: quote.id,
-        referenceNumber: quote.reference_number,
+        referenceNumber: details.reference_number || quote.id,
         status: quote.status,
         createdAt: quote.created_at,
-        userId: quote.user_id,
+        userId: details.user_id || null,
         email: quote.email,
         firstName: quote.first_name,
         lastName: quote.last_name,
         phone: quote.phone,
         cruiseId: quote.cruise_id,
-        cabinType: quote.cabin_type,
-        adults: quote.adults,
-        children: quote.children,
-        travelInsurance: quote.travel_insurance,
-        specialRequests: quote.special_requests,
-        discountQualifiers: quote.discount_qualifiers,
+        cabinType: details.cabin_type || '',
+        adults: details.adults || 2,
+        children: details.children || 0,
+        travelInsurance: details.travel_insurance || false,
+        specialRequests: details.special_requests || null,
+        discountQualifiers: details.discount_qualifiers || {},
       };
     } catch (error) {
       logger.error('Error updating quote status:', error);
@@ -418,24 +446,32 @@ class QuoteServiceFixed {
         ORDER BY created_at DESC
       `;
 
-      return result.map((quote: any) => ({
-        id: quote.id,
-        referenceNumber: quote.reference_number,
-        status: quote.status,
-        createdAt: quote.created_at,
-        userId: quote.user_id,
-        email: quote.email,
-        firstName: quote.first_name,
-        lastName: quote.last_name,
-        phone: quote.phone,
-        cruiseId: quote.cruise_id,
-        cabinType: quote.cabin_type,
-        adults: quote.adults,
-        children: quote.children,
-        travelInsurance: quote.travel_insurance,
-        specialRequests: quote.special_requests,
-        discountQualifiers: quote.discount_qualifiers,
-      }));
+      return result.map((quote: any) => {
+        // Parse customer_details
+        const details =
+          typeof quote.customer_details === 'string'
+            ? JSON.parse(quote.customer_details)
+            : quote.customer_details || {};
+
+        return {
+          id: quote.id,
+          referenceNumber: details.reference_number || quote.id,
+          status: quote.status,
+          createdAt: quote.created_at,
+          userId: details.user_id || null,
+          email: quote.email,
+          firstName: quote.first_name,
+          lastName: quote.last_name,
+          phone: quote.phone,
+          cruiseId: quote.cruise_id,
+          cabinType: details.cabin_type || '',
+          adults: details.adults || 2,
+          children: details.children || 0,
+          travelInsurance: details.travel_insurance || false,
+          specialRequests: details.special_requests || null,
+          discountQualifiers: details.discount_qualifiers || {},
+        };
+      });
     } catch (error) {
       logger.error('Error getting quotes by user ID:', error);
       throw new Error('Failed to get user quotes');
