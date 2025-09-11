@@ -387,83 +387,8 @@ export default function CruisesContent() {
     sortBy,
   ]);
 
-  // Initial load - fetch cruises on mount with default sorting
+  // Fetch cruises on mount and when dependencies change
   useEffect(() => {
-    const initialFetch = async () => {
-      setLoading(true);
-      setCruises([]);
-      try {
-        const params = new URLSearchParams();
-        params.append("limit", ITEMS_PER_PAGE.toString());
-        params.append("offset", "0");
-        params.append("sortBy", "date");
-        params.append("sortOrder", "asc");
-
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?${params.toString()}`,
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-
-          // Filter out cruises departing within 1 week and those with prices <= $99
-          const oneWeekFromNow = new Date();
-          oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
-
-          const filteredCruises = (data.results || []).filter(
-            (cruise: Cruise) => {
-              const sailingDate = new Date(cruise.sailingDate);
-              if (sailingDate < oneWeekFromNow) return false;
-
-              const allPrices: number[] = [];
-              if (cruise.pricing) {
-                [
-                  cruise.pricing.interior,
-                  cruise.pricing.oceanview,
-                  cruise.pricing.balcony,
-                  cruise.pricing.suite,
-                  cruise.pricing.lowestPrice,
-                ].forEach((price) => {
-                  const num = Number(price);
-                  if (!isNaN(num) && num > 0) allPrices.push(num);
-                });
-              }
-
-              if (allPrices.length === 0) return false;
-              const lowestPrice = Math.min(...allPrices);
-              return lowestPrice > 99;
-            },
-          );
-
-          setCruises(filteredCruises);
-          setTotalCount(data.totalCount || filteredCruises.length);
-        }
-      } catch (error) {
-        console.error("Error on initial load:", error);
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initialFetch();
-  }, []); // Only run once on mount
-
-  // Fetch cruises when filters change (after initial load)
-  useEffect(() => {
-    // Skip initial render since we handle that separately
-    if (
-      page === 1 &&
-      selectedCruiseLines.length === 0 &&
-      selectedMonths.length === 0 &&
-      selectedNightRanges.length === 0 &&
-      selectedDeparturePorts.length === 0 &&
-      selectedShips.length === 0 &&
-      selectedRegions.length === 0 &&
-      sortBy === "soonest"
-    ) {
-      return;
-    }
     fetchCruises();
   }, [fetchCruises]);
 
