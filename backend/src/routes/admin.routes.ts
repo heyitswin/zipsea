@@ -760,18 +760,18 @@ router.get('/quotes', async (req: Request, res: Response) => {
       quotesQuery = sql`
         SELECT
           qr.id,
-          qr.id as reference_number,
+          COALESCE(qr.id::text, '') as reference_number,
           qr.created_at,
-          qr.status,
+          COALESCE(qr.status, 'waiting') as status,
           qr.cruise_id,
-          qr.first_name,
-          qr.last_name,
-          qr.email,
-          qr.phone,
-          qr.passenger_count,
-          qr.preferred_cabin_type as cabin_type,
-          qr.special_requests as special_requirements,
-          qr.total_price,
+          COALESCE(qr.first_name, '') as first_name,
+          COALESCE(qr.last_name, '') as last_name,
+          COALESCE(qr.email, '') as email,
+          COALESCE(qr.phone, '') as phone,
+          1 as passenger_count,
+          COALESCE(qr.cabin_type, '') as cabin_type,
+          COALESCE(qr.special_requirements, '') as special_requirements,
+          COALESCE(qr.total_price, 0) as total_price,
           qr.quote_response,
           c.sailing_date,
           cl.name as cruise_line_name,
@@ -780,7 +780,7 @@ router.get('/quotes', async (req: Request, res: Response) => {
         LEFT JOIN cruises c ON qr.cruise_id = c.id
         LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
         LEFT JOIN ships s ON c.ship_id = s.id
-        WHERE qr.status = ${status}
+        WHERE COALESCE(qr.status, 'waiting') = ${status}
         ORDER BY qr.created_at DESC
         LIMIT ${limit} OFFSET ${offset}
       `;
@@ -788,24 +788,24 @@ router.get('/quotes', async (req: Request, res: Response) => {
       countQuery = sql`
         SELECT COUNT(*) as total
         FROM quote_requests
-        WHERE status = ${status}
+        WHERE COALESCE(status, 'waiting') = ${status}
       `;
     } else {
       quotesQuery = sql`
         SELECT
           qr.id,
-          qr.id as reference_number,
+          COALESCE(qr.id::text, '') as reference_number,
           qr.created_at,
-          qr.status,
+          COALESCE(qr.status, 'waiting') as status,
           qr.cruise_id,
-          qr.first_name,
-          qr.last_name,
-          qr.email,
-          qr.phone,
-          qr.passenger_count,
-          qr.preferred_cabin_type as cabin_type,
-          qr.special_requests as special_requirements,
-          qr.total_price,
+          COALESCE(qr.first_name, '') as first_name,
+          COALESCE(qr.last_name, '') as last_name,
+          COALESCE(qr.email, '') as email,
+          COALESCE(qr.phone, '') as phone,
+          1 as passenger_count,
+          COALESCE(qr.cabin_type, '') as cabin_type,
+          COALESCE(qr.special_requirements, '') as special_requirements,
+          COALESCE(qr.total_price, 0) as total_price,
           qr.quote_response,
           c.sailing_date,
           cl.name as cruise_line_name,
