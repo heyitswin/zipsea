@@ -563,19 +563,7 @@ export default function Navigation({
               </a>
             </div>
 
-            {/* Browse Cruises Link - Hidden for admins and on mobile */}
-            {!isAdmin && (
-              <a
-                href="/cruises"
-                className={`hidden md:block ml-8 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  isScrolled || isCruiseDetailPage || isCruisesPage
-                    ? "text-dark-blue hover:bg-blue-50"
-                    : "text-white hover:bg-white/10"
-                }`}
-              >
-                Browse Cruises
-              </a>
-            )}
+            {/* Browse Cruises Link removed - no longer needed */}
 
             {/* Minimized Search Bar - Show when scrolled on all pages (Hidden on Mobile) */}
             {isScrolled && (
