@@ -45,6 +45,7 @@ export default function Navigation({
   const pathname = usePathname();
   const router = useRouter();
   const isCruiseDetailPage = pathname?.startsWith("/cruise/") || false;
+  const isCruisesPage = pathname === "/cruises";
   const [ships, setShips] = useState<Ship[]>([]);
   const [filteredShips, setFilteredShips] = useState<Ship[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -547,14 +548,16 @@ export default function Navigation({
               <a href="/">
                 <Image
                   src={
-                    isScrolled || (isCruiseDetailPage && !isScrolled)
+                    isScrolled ||
+                    (isCruiseDetailPage && !isScrolled) ||
+                    (isCruisesPage && !isScrolled)
                       ? "/images/zipsea-logo-blue.svg"
                       : "/images/zipsea-logo.svg"
                   }
                   alt="Zipsea"
                   width={110}
                   height={40}
-                  className={`${isScrolled || (isCruiseDetailPage && !isScrolled) ? "" : "brightness-0 invert"} w-[83px] md:w-[110px] h-auto`}
+                  className={`${isScrolled || (isCruiseDetailPage && !isScrolled) || (isCruisesPage && !isScrolled) ? "" : "brightness-0 invert"} w-[83px] md:w-[110px] h-auto`}
                   priority
                 />
               </a>
@@ -565,7 +568,7 @@ export default function Navigation({
               <a
                 href="/cruises"
                 className={`hidden md:block ml-8 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  isScrolled || isCruiseDetailPage
+                  isScrolled || isCruiseDetailPage || isCruisesPage
                     ? "text-dark-blue hover:bg-blue-50"
                     : "text-white hover:bg-white/10"
                 }`}
@@ -740,21 +743,27 @@ export default function Navigation({
           >
             <span
               className={`block w-6 h-0.5 transition-all duration-300 ${
-                isScrolled || (isCruiseDetailPage && !isScrolled)
+                isScrolled ||
+                (isCruiseDetailPage && !isScrolled) ||
+                (isCruisesPage && !isScrolled)
                   ? "bg-[#0E1B4D]"
                   : "bg-white"
               } ${isMobileMenuOpen ? "rotate-45 translate-y-2" : ""}`}
             />
             <span
               className={`block w-6 h-0.5 transition-all duration-300 ${
-                isScrolled || (isCruiseDetailPage && !isScrolled)
+                isScrolled ||
+                (isCruiseDetailPage && !isScrolled) ||
+                (isCruisesPage && !isScrolled)
                   ? "bg-[#0E1B4D]"
                   : "bg-white"
               } ${isMobileMenuOpen ? "opacity-0" : ""}`}
             />
             <span
               className={`block w-6 h-0.5 transition-all duration-300 ${
-                isScrolled || (isCruiseDetailPage && !isScrolled)
+                isScrolled ||
+                (isCruiseDetailPage && !isScrolled) ||
+                (isCruisesPage && !isScrolled)
                   ? "bg-[#0E1B4D]"
                   : "bg-white"
               } ${isMobileMenuOpen ? "-rotate-45 -translate-y-2" : ""}`}
@@ -766,7 +775,9 @@ export default function Navigation({
             <a
               href="/why-zipsea"
               className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                isScrolled || (isCruiseDetailPage && !isScrolled)
+                isScrolled ||
+                (isCruiseDetailPage && !isScrolled) ||
+                (isCruisesPage && !isScrolled)
                   ? "text-[#0E1B4D]"
                   : "text-white"
               }`}
@@ -776,7 +787,9 @@ export default function Navigation({
             <a
               href="/faqs"
               className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                isScrolled || (isCruiseDetailPage && !isScrolled)
+                isScrolled ||
+                (isCruiseDetailPage && !isScrolled) ||
+                (isCruisesPage && !isScrolled)
                   ? "text-[#0E1B4D]"
                   : "text-white"
               }`}
@@ -852,7 +865,9 @@ export default function Navigation({
                   <button
                     onClick={() => setIsLoginModalOpen(true)}
                     className={`px-4 py-1.5 border rounded-full text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                      isScrolled || (isCruiseDetailPage && !isScrolled)
+                      isScrolled ||
+                      (isCruiseDetailPage && !isScrolled) ||
+                      (isCruisesPage && !isScrolled)
                         ? "border-[#0E1B4D] text-[#0E1B4D] bg-transparent"
                         : "border-white text-white bg-transparent"
                     }`}
