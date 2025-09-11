@@ -29,7 +29,7 @@ export const cabinCategories = pgTable(
     isDefault: boolean('is_default').default(false), // cabins.{code}.isdefault
     validFrom: date('valid_from'), // cabins.{code}.validfrom
     validTo: date('valid_to'), // cabins.{code}.validto
-    cabinId: varchar('cabin_id', { length: 20 }), // cabins.{code}.id
+    // cabinId: varchar('cabin_id', { length: 20 }), // cabins.{code}.id - Removed: column doesn't exist in production
     isActive: boolean('is_active').default(true),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at').defaultNow().notNull(),

@@ -26,81 +26,123 @@ function getWebhookProcessor(): WebhookProcessorOptimizedV2 {
 router.post('/traveltek', async (req: Request, res: Response) => {
   try {
     const payload = req.body;
-    // Try to extract lineId from various possible fields, default to 0 if not found
-    const lineId =
-      payload.lineid ||
-      payload.lineId ||
-      payload.line_id ||
-      payload.LineId ||
-      payload.LineID ||
-      payload.cruiseLineId ||
-      payload.cruise_line_id ||
-      0; // Default to 0 if no lineId found
 
-    // Log incoming webhook
-    logger.info('📨 Webhook received', {
-      event: payload.event,
-      lineId: lineId,
-      timestamp: new Date().toISOString(),
-      payloadKeys: Object.keys(payload), // Log payload keys to debug missing lineId
-    });
+    // For cruises_live_pricing_updated events, extract lineIds from paths
+    let lineIds: number[] = [];
 
-    // Warn if lineId was not found in payload
-    if (lineId === 0) {
-      logger.warn('⚠️ No lineId found in webhook payload, using default value 0', {
-        payloadKeys: Object.keys(payload),
-        payload: JSON.stringify(payload).substring(0, 500), // Log first 500 chars of payload
+    if (
+      payload.event === 'cruises_live_pricing_updated' &&
+      payload.paths &&
+      Array.isArray(payload.paths)
+    ) {
+      // Extract unique lineIds from paths (format: year/month/lineId/shipId/cruiseId.json)
+      const uniqueLineIds = new Set<number>();
+
+      for (const path of payload.paths) {
+        const parts = path.split('/');
+        if (parts.length >= 3) {
+          const lineId = parseInt(parts[2]);
+          if (!isNaN(lineId) && lineId > 0) {
+            uniqueLineIds.add(lineId);
+          }
+        }
+      }
+
+      lineIds = Array.from(uniqueLineIds);
+      logger.info('📨 Webhook received with pricing updates', {
+        event: payload.event,
+        lineIds: lineIds,
+        pathCount: payload.paths.length,
+        timestamp: new Date().toISOString(),
       });
+    } else {
+      // Try to extract single lineId from various possible fields, default to 0 if not found
+      const lineId =
+        payload.lineid ||
+        payload.lineId ||
+        payload.line_id ||
+        payload.LineId ||
+        payload.LineID ||
+        payload.cruiseLineId ||
+        payload.cruise_line_id ||
+        0; // Default to 0 if no lineId found
+
+      lineIds = [lineId];
+
+      // Log incoming webhook
+      logger.info('📨 Webhook received', {
+        event: payload.event,
+        lineId: lineId,
+        timestamp: new Date().toISOString(),
+        payloadKeys: Object.keys(payload), // Log payload keys to debug missing lineId
+      });
+
+      // Warn if lineId was not found in payload
+      if (lineId === 0) {
+        logger.warn('⚠️ No lineId found in webhook payload, using default value 0', {
+          payloadKeys: Object.keys(payload),
+          payload: JSON.stringify(payload).substring(0, 500), // Log first 500 chars of payload
+        });
+      }
     }
 
-    // Store webhook event in database
-    // Using raw SQL temporarily due to Drizzle caching issue
-    const result = await pgSql`
-      INSERT INTO webhook_events (line_id, webhook_type, status, metadata)
-      VALUES (${lineId}, ${payload.event || 'update'}, 'pending', ${JSON.stringify(payload)})
-      RETURNING *
-    `;
-    const webhookEvent = result[0];
+    // Store webhook event in database for each lineId
+    const webhookEventIds: number[] = [];
+
+    for (const lineId of lineIds) {
+      const result = await pgSql`
+        INSERT INTO webhook_events (line_id, webhook_type, status, metadata)
+        VALUES (${lineId}, ${payload.event || 'update'}, 'pending', ${JSON.stringify(payload)})
+        RETURNING *
+      `;
+      webhookEventIds.push(result[0].id);
+    }
 
     // Immediately acknowledge webhook to prevent timeout
     res.status(200).json({
       status: 'accepted',
       message: 'Webhook received and queued for processing',
-      eventId: webhookEvent.id,
+      eventIds: webhookEventIds,
+      lineIds: lineIds,
       timestamp: new Date().toISOString(),
     });
 
-    // Queue webhook for processing
+    // Queue webhook for processing for each lineId
     setImmediate(async () => {
-      try {
-        // Use V2 processor (the only one we should be using)
-        const result = await getWebhookProcessor().processWebhooks(lineId);
+      for (let i = 0; i < lineIds.length; i++) {
+        const lineId = lineIds[i];
+        const webhookEventId = webhookEventIds[i];
 
-        // Update webhook status based on result
-        await db
-          .update(webhookEvents)
-          .set({
-            status: result.status === 'queued' ? 'processing' : result.status,
-            processedAt: new Date(),
-            metadata: {
-              ...payload,
-              result,
-            },
-          })
-          .where(eq(webhookEvents.id, webhookEvent.id));
+        try {
+          // Use V2 processor (the only one we should be using)
+          const result = await getWebhookProcessor().processWebhooks(lineId);
 
-        logger.info(`Webhook ${webhookEvent.id} status: ${result.status}`);
-      } catch (error) {
-        logger.error('Failed to process webhook:', error);
+          // Update webhook status based on result
+          await db
+            .update(webhookEvents)
+            .set({
+              status: result.status === 'queued' ? 'processing' : result.status,
+              processedAt: new Date(),
+              metadata: {
+                ...payload,
+                result,
+              },
+            })
+            .where(eq(webhookEvents.id, webhookEventId));
 
-        // Update webhook status to failed
-        await db
-          .update(webhookEvents)
-          .set({
-            status: 'failed',
-            errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          })
-          .where(eq(webhookEvents.id, webhookEvent.id));
+          logger.info(`Webhook ${webhookEventId} for lineId ${lineId} status: ${result.status}`);
+        } catch (error) {
+          logger.error(`Failed to process webhook for lineId ${lineId}:`, error);
+
+          // Update webhook status to failed
+          await db
+            .update(webhookEvents)
+            .set({
+              status: 'failed',
+              errorMessage: error instanceof Error ? error.message : 'Unknown error',
+            })
+            .where(eq(webhookEvents.id, webhookEventId));
+        }
       }
     });
   } catch (error) {
@@ -135,6 +177,7 @@ router.post('/traveltek/test-queue', async (req: Request, res: Response) => {
       VALUES (${lineId}, 'test_queue', 'processing', ${JSON.stringify({ test: true, lineId, queue: true })})
       RETURNING *
     `;
+
     const webhookEvent = result[0];
 
     // Queue for processing
@@ -149,46 +192,49 @@ router.post('/traveltek/test-queue', async (req: Request, res: Response) => {
           metadata: {
             test: true,
             lineId,
-            queue: true,
             jobIds: queueResult.jobIds,
-            jobCount: queueResult.jobIds.length,
+            queue: true,
           },
         })
         .where(eq(webhookEvents.id, webhookEvent.id));
 
-      res.json({
+      res.status(200).json({
         status: 'success',
-        message: `Queued ${queueResult.jobIds.length} jobs for processing`,
+        message: 'Test webhook queued for processing',
         eventId: webhookEvent.id,
-        lineId: lineId,
-        jobCount: queueResult.jobIds.length,
         jobIds: queueResult.jobIds,
-        timestamp: new Date().toISOString(),
+        lineId: lineId,
       });
-    } catch (error) {
-      // Update status to failed
+    } catch (queueError) {
+      logger.error('Failed to queue test webhook:', queueError);
+
+      // Update webhook status
       await db
         .update(webhookEvents)
         .set({
           status: 'failed',
-          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          errorMessage: queueError instanceof Error ? queueError.message : 'Unknown error',
         })
         .where(eq(webhookEvents.id, webhookEvent.id));
 
-      throw error;
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to queue test webhook',
+        error: queueError instanceof Error ? queueError.message : 'Unknown error',
+      });
     }
   } catch (error) {
-    logger.error('Test webhook with queue failed:', error);
+    logger.error('Failed to handle test webhook:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Test webhook failed',
+      message: 'Failed to process test webhook',
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
 
 /**
- * Test webhook endpoint - for testing webhook processing
+ * Test webhook - directly processes without queue
  * POST /api/webhooks/traveltek/test
  */
 router.post('/traveltek/test', async (req: Request, res: Response) => {
@@ -201,179 +247,137 @@ router.post('/traveltek/test', async (req: Request, res: Response) => {
     });
 
     // Store test webhook event
-    // Using raw SQL temporarily due to Drizzle caching issue
     const result = await pgSql`
       INSERT INTO webhook_events (line_id, webhook_type, status, metadata)
-      VALUES (${lineId}, 'test', 'pending', ${JSON.stringify({ test: true, lineId })})
+      VALUES (${lineId}, 'test', 'processing', ${JSON.stringify({ test: true, lineId })})
       RETURNING *
     `;
+
     const webhookEvent = result[0];
 
-    res.json({
-      status: 'accepted',
-      message: 'Test webhook queued for processing',
-      eventId: webhookEvent.id,
-      lineId: lineId,
-      timestamp: new Date().toISOString(),
-    });
+    // Process immediately
+    try {
+      const processingResult = await getWebhookProcessor().processWebhooks(lineId);
 
-    // Process test webhook
-    setImmediate(async () => {
-      try {
-        await getWebhookProcessor().processWebhooks(lineId);
+      // Update webhook with result
+      await db
+        .update(webhookEvents)
+        .set({
+          status: processingResult.status === 'queued' ? 'processing' : processingResult.status,
+          processedAt: new Date(),
+          metadata: {
+            test: true,
+            lineId,
+            result: processingResult,
+          },
+        })
+        .where(eq(webhookEvents.id, webhookEvent.id));
 
-        await db
-          .update(webhookEvents)
-          .set({
-            status: 'processed',
-            processedAt: new Date(),
-          })
-          .where(eq(webhookEvents.id, webhookEvent.id));
-      } catch (error) {
-        logger.error('Failed to process test webhook:', error);
+      res.status(200).json({
+        status: 'success',
+        message: 'Test webhook processed',
+        eventId: webhookEvent.id,
+        result: processingResult,
+      });
+    } catch (processingError) {
+      logger.error('Failed to process test webhook:', processingError);
 
-        await db
-          .update(webhookEvents)
-          .set({
-            status: 'failed',
-            errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          })
-          .where(eq(webhookEvents.id, webhookEvent.id));
-      }
-    });
+      // Update webhook status
+      await db
+        .update(webhookEvents)
+        .set({
+          status: 'failed',
+          errorMessage:
+            processingError instanceof Error ? processingError.message : 'Unknown error',
+        })
+        .where(eq(webhookEvents.id, webhookEvent.id));
+
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to process test webhook',
+        error: processingError instanceof Error ? processingError.message : 'Unknown error',
+      });
+    }
   } catch (error) {
-    logger.error('Test webhook failed:', error);
+    logger.error('Failed to handle test webhook:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Test webhook failed',
+      message: 'Failed to handle test webhook',
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
 
 /**
- * Get webhook processing status
- * GET /api/webhooks/traveltek/status
+ * Get webhook event status
+ * GET /api/webhooks/status/:eventId
  */
-router.get('/traveltek/status', async (req: Request, res: Response) => {
+router.get('/status/:eventId', async (req: Request, res: Response) => {
   try {
-    // Get recent webhook events
-    const recentEvents = await db
+    const eventId = parseInt(req.params.eventId);
+
+    if (isNaN(eventId)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid event ID',
+      });
+    }
+
+    const event = await db
       .select()
       .from(webhookEvents)
-      .orderBy(sql`${webhookEvents.receivedAt} DESC`)
-      .limit(10);
+      .where(eq(webhookEvents.id, eventId))
+      .limit(1);
 
-    // Get processing stats
-    const stats = await db
-      .select({
-        status: webhookEvents.status,
-        count: sql<number>`COUNT(*)::int`,
-      })
-      .from(webhookEvents)
-      .groupBy(webhookEvents.status);
+    if (event.length === 0) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Webhook event not found',
+      });
+    }
 
-    res.json({
-      status: 'operational',
-      recentEvents: recentEvents,
-      statistics: stats,
-      timestamp: new Date().toISOString(),
+    res.status(200).json({
+      status: 'success',
+      event: event[0],
     });
   } catch (error) {
     logger.error('Failed to get webhook status:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Failed to retrieve webhook status',
-    });
-  }
-});
-
-/**
- * Health check endpoint
- * GET /api/webhooks/health
- */
-router.get('/health', async (req: Request, res: Response) => {
-  res.json({
-    status: 'healthy',
-    message: 'Webhook endpoint is operational',
-    timestamp: new Date().toISOString(),
-  });
-});
-
-/**
- * Get queue status
- * GET /api/webhooks/traveltek/queue-status
- */
-router.get('/traveltek/queue-status', async (req: Request, res: Response) => {
-  try {
-    const status = await webhookQueueProcessor.getQueueStatus();
-    res.json({
-      status: 'success',
-      queue: status,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    logger.error('Failed to get queue status:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to retrieve queue status',
-    });
-  }
-});
-
-/**
- * Clear queue (admin only)
- * POST /api/webhooks/traveltek/clear-queue
- */
-router.post('/traveltek/clear-queue', async (req: Request, res: Response) => {
-  try {
-    await webhookQueueProcessor.clearQueue();
-    res.json({
-      status: 'success',
-      message: 'Queue cleared successfully',
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    logger.error('Failed to clear queue:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Failed to clear queue',
-    });
-  }
-});
-
-/**
- * Debug endpoint - test direct SQL insert
- * GET /api/webhooks/traveltek/debug
- */
-router.get('/traveltek/debug', async (req: Request, res: Response) => {
-  try {
-    // Test what Drizzle is actually generating
-    const testInsert = {
-      lineId: 99,
-      webhookType: 'debug_test',
-      status: 'pending',
-      metadata: { debug: true, timestamp: new Date().toISOString() },
-    };
-
-    // Try the insert
-    const [result] = await db.insert(webhookEvents).values(testInsert).returning();
-
-    // Clean up
-    await db.delete(webhookEvents).where(eq(webhookEvents.id, result.id));
-
-    res.json({
-      status: 'success',
-      message: 'Debug insert successful',
-      insertedAndDeleted: result,
-      testData: testInsert,
-    });
-  } catch (error) {
-    res.json({
-      status: 'error',
-      message: 'Debug insert failed',
+      message: 'Failed to get webhook status',
       error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
+    });
+  }
+});
+
+/**
+ * List recent webhook events
+ * GET /api/webhooks/recent
+ */
+router.get('/recent', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 10;
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    const events = await db
+      .select()
+      .from(webhookEvents)
+      .orderBy(sql`created_at DESC`)
+      .limit(limit)
+      .offset(offset);
+
+    res.status(200).json({
+      status: 'success',
+      events: events,
+      limit: limit,
+      offset: offset,
+    });
+  } catch (error) {
+    logger.error('Failed to list recent webhooks:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to list recent webhooks',
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
