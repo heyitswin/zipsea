@@ -760,24 +760,24 @@ router.get('/quotes', async (req: Request, res: Response) => {
       quotesQuery = sql`
         SELECT
           qr.id,
-          COALESCE(qr.reference_number, qr.id::text, '') as reference_number,
+          COALESCE(qr.id::text, '') as reference_number,
           qr.created_at,
           COALESCE(qr.status, 'waiting') as status,
           qr.cruise_id,
-          COALESCE(qr.first_name, '') as first_name,
-          COALESCE(qr.last_name, '') as last_name,
-          COALESCE(qr.email, '') as email,
-          COALESCE(qr.phone, '') as phone,
-          COALESCE(qr.adults, 2) + COALESCE(qr.children, 0) as passenger_count,
-          COALESCE(qr.cabin_type, '') as cabin_type,
-          COALESCE(qr.special_requests, '') as special_requirements,
+          COALESCE(qr.contact_info->>'firstName', qr.contact_info->>'first_name', '') as first_name,
+          COALESCE(qr.contact_info->>'lastName', qr.contact_info->>'last_name', '') as last_name,
+          COALESCE(qr.contact_info->>'email', '') as email,
+          COALESCE(qr.contact_info->>'phone', '') as phone,
+          COALESCE(qr.passenger_count, 2) as passenger_count,
+          COALESCE(qr.cabin_type, qr.cabin_code, '') as cabin_type,
+          COALESCE(qr.special_requirements, '') as special_requirements,
           COALESCE(qr.total_price, 0) as total_price,
           qr.quote_response,
           c.sailing_date,
           cl.name as cruise_line_name,
           s.name as ship_name
         FROM quote_requests qr
-        LEFT JOIN cruises c ON qr.cruise_id = c.id
+        LEFT JOIN cruises c ON qr.cruise_id::text = c.id
         LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
         LEFT JOIN ships s ON c.ship_id = s.id
         WHERE COALESCE(qr.status, 'waiting') = ${status}
@@ -794,24 +794,24 @@ router.get('/quotes', async (req: Request, res: Response) => {
       quotesQuery = sql`
         SELECT
           qr.id,
-          COALESCE(qr.reference_number, qr.id::text, '') as reference_number,
+          COALESCE(qr.id::text, '') as reference_number,
           qr.created_at,
           COALESCE(qr.status, 'waiting') as status,
           qr.cruise_id,
-          COALESCE(qr.first_name, '') as first_name,
-          COALESCE(qr.last_name, '') as last_name,
-          COALESCE(qr.email, '') as email,
-          COALESCE(qr.phone, '') as phone,
-          COALESCE(qr.adults, 2) + COALESCE(qr.children, 0) as passenger_count,
-          COALESCE(qr.cabin_type, '') as cabin_type,
-          COALESCE(qr.special_requests, '') as special_requirements,
+          COALESCE(qr.contact_info->>'firstName', qr.contact_info->>'first_name', '') as first_name,
+          COALESCE(qr.contact_info->>'lastName', qr.contact_info->>'last_name', '') as last_name,
+          COALESCE(qr.contact_info->>'email', '') as email,
+          COALESCE(qr.contact_info->>'phone', '') as phone,
+          COALESCE(qr.passenger_count, 2) as passenger_count,
+          COALESCE(qr.cabin_type, qr.cabin_code, '') as cabin_type,
+          COALESCE(qr.special_requirements, '') as special_requirements,
           COALESCE(qr.total_price, 0) as total_price,
           qr.quote_response,
           c.sailing_date,
           cl.name as cruise_line_name,
           s.name as ship_name
         FROM quote_requests qr
-        LEFT JOIN cruises c ON qr.cruise_id = c.id
+        LEFT JOIN cruises c ON qr.cruise_id::text = c.id
         LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
         LEFT JOIN ships s ON c.ship_id = s.id
         ORDER BY qr.created_at DESC
