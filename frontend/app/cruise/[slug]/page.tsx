@@ -282,29 +282,53 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     const normalizedType = cabinType.toLowerCase();
     let targetCategory = "";
 
-    // Map cabin types to categories
+    // Map cabin types to categories - use same naming as pricing fields
     if (
       normalizedType.includes("interior") ||
       normalizedType.includes("inside")
     ) {
-      targetCategory = "interior";
+      targetCategory = "inside";
     } else if (
       normalizedType.includes("oceanview") ||
       normalizedType.includes("outside")
     ) {
-      targetCategory = "oceanview";
+      targetCategory = "outside";
     } else if (normalizedType.includes("balcony")) {
       targetCategory = "balcony";
     } else if (normalizedType.includes("suite")) {
       targetCategory = "suite";
     }
 
-    // Find matching cabin category
-    const cabinCategory = cruiseData.cabinCategories.find(
-      (cabin) =>
-        cabin.category.toLowerCase().includes(targetCategory) ||
-        cabin.name.toLowerCase().includes(targetCategory),
-    );
+    // Try to use the pricing source field to find the right cabin
+    const sourceField = pricing?.raw?.combined?.[`${targetCategory}source`];
+    const priceCode = pricing?.raw?.combined?.[`${targetCategory}pricecode`];
+
+    // Find matching cabin category - check both naming conventions
+    const cabinCategory = cruiseData.cabinCategories.find((cabin) => {
+      const cabinCat = cabin.category?.toLowerCase() || "";
+      const cabinName = cabin.name?.toLowerCase() || "";
+
+      // Handle different naming conventions between DB and API
+      if (targetCategory === "inside") {
+        return (
+          cabinCat === "inside" ||
+          cabinCat === "interior" ||
+          cabinName.includes("inside") ||
+          cabinName.includes("interior")
+        );
+      } else if (targetCategory === "outside") {
+        return (
+          cabinCat === "outside" ||
+          cabinCat === "oceanview" ||
+          cabinName.includes("outside") ||
+          cabinName.includes("oceanview")
+        );
+      } else {
+        return (
+          cabinCat === targetCategory || cabinName.includes(targetCategory)
+        );
+      }
+    });
 
     return {
       image: cabinCategory
@@ -721,16 +745,22 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     </div>
                     <div className="font-geograph font-bold text-[24px] text-dark-blue">
                       {formatPrice(
-                        pricing?.interiorPrice || cruise?.interiorPrice,
+                        pricing?.raw?.combined?.inside ||
+                          pricing?.interiorPrice ||
+                          cruise?.interiorPrice,
                       )}
                     </div>
                     {isPriceAvailable(
-                      pricing?.interiorPrice || cruise?.interiorPrice,
+                      pricing?.raw?.combined?.inside ||
+                        pricing?.interiorPrice ||
+                        cruise?.interiorPrice,
                     ) && (
                       <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
                         +$
                         {calculateOnboardCredit(
-                          pricing?.interiorPrice || cruise?.interiorPrice,
+                          pricing?.raw?.combined?.inside ||
+                            pricing?.interiorPrice ||
+                            cruise?.interiorPrice,
                         )}{" "}
                         onboard credit
                       </div>
@@ -743,7 +773,9 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       onClick={() =>
                         handleGetQuote(
                           "Interior Cabin",
-                          pricing?.interiorPrice || cruise?.interiorPrice,
+                          pricing?.raw?.combined?.inside ||
+                            pricing?.interiorPrice ||
+                            cruise?.interiorPrice,
                         )
                       }
                       disabled={
@@ -811,16 +843,22 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     </div>
                     <div className="font-geograph font-bold text-[24px] text-dark-blue">
                       {formatPrice(
-                        pricing?.oceanviewPrice || cruise?.oceanviewPrice,
+                        pricing?.raw?.combined?.outside ||
+                          pricing?.oceanviewPrice ||
+                          cruise?.oceanviewPrice,
                       )}
                     </div>
                     {isPriceAvailable(
-                      pricing?.oceanviewPrice || cruise?.oceanviewPrice,
+                      pricing?.raw?.combined?.outside ||
+                        pricing?.oceanviewPrice ||
+                        cruise?.oceanviewPrice,
                     ) && (
                       <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
                         +$
                         {calculateOnboardCredit(
-                          pricing?.oceanviewPrice || cruise?.oceanviewPrice,
+                          pricing?.raw?.combined?.outside ||
+                            pricing?.oceanviewPrice ||
+                            cruise?.oceanviewPrice,
                         )}{" "}
                         onboard credit
                       </div>
@@ -833,17 +871,23 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       onClick={() =>
                         handleGetQuote(
                           "Outside Cabin",
-                          pricing?.oceanviewPrice || cruise?.oceanviewPrice,
+                          pricing?.raw?.combined?.outside ||
+                            pricing?.oceanviewPrice ||
+                            cruise?.oceanviewPrice,
                         )
                       }
                       disabled={
                         !isPriceAvailable(
-                          pricing?.oceanviewPrice || cruise?.oceanviewPrice,
+                          pricing?.raw?.combined?.outside ||
+                            pricing?.oceanviewPrice ||
+                            cruise?.oceanviewPrice,
                         )
                       }
                       className={`w-full md:w-auto font-geograph font-medium text-[16px] px-4 py-3 rounded-full transition-colors ${
                         isPriceAvailable(
-                          pricing?.oceanviewPrice || cruise?.oceanviewPrice,
+                          pricing?.raw?.combined?.outside ||
+                            pricing?.oceanviewPrice ||
+                            cruise?.oceanviewPrice,
                         )
                           ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
                           : "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -901,16 +945,22 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     </div>
                     <div className="font-geograph font-bold text-[24px] text-dark-blue">
                       {formatPrice(
-                        pricing?.balconyPrice || cruise?.balconyPrice,
+                        pricing?.raw?.combined?.balcony ||
+                          pricing?.balconyPrice ||
+                          cruise?.balconyPrice,
                       )}
                     </div>
                     {isPriceAvailable(
-                      pricing?.balconyPrice || cruise?.balconyPrice,
+                      pricing?.raw?.combined?.balcony ||
+                        pricing?.balconyPrice ||
+                        cruise?.balconyPrice,
                     ) && (
                       <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
                         +$
                         {calculateOnboardCredit(
-                          pricing?.balconyPrice || cruise?.balconyPrice,
+                          pricing?.raw?.combined?.balcony ||
+                            pricing?.balconyPrice ||
+                            cruise?.balconyPrice,
                         )}{" "}
                         onboard credit
                       </div>
@@ -923,17 +973,23 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       onClick={() =>
                         handleGetQuote(
                           "Balcony Cabin",
-                          pricing?.balconyPrice || cruise?.balconyPrice,
+                          pricing?.raw?.combined?.balcony ||
+                            pricing?.balconyPrice ||
+                            cruise?.balconyPrice,
                         )
                       }
                       disabled={
                         !isPriceAvailable(
-                          pricing?.balconyPrice || cruise?.balconyPrice,
+                          pricing?.raw?.combined?.balcony ||
+                            pricing?.balconyPrice ||
+                            cruise?.balconyPrice,
                         )
                       }
                       className={`w-full md:w-auto font-geograph font-medium text-[16px] px-4 py-3 rounded-full transition-colors ${
                         isPriceAvailable(
-                          pricing?.balconyPrice || cruise?.balconyPrice,
+                          pricing?.raw?.combined?.balcony ||
+                            pricing?.balconyPrice ||
+                            cruise?.balconyPrice,
                         )
                           ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
                           : "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -990,15 +1046,23 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       STARTING FROM
                     </div>
                     <div className="font-geograph font-bold text-[24px] text-dark-blue">
-                      {formatPrice(pricing?.suitePrice || cruise?.suitePrice)}
+                      {formatPrice(
+                        pricing?.raw?.combined?.suite ||
+                          pricing?.suitePrice ||
+                          cruise?.suitePrice,
+                      )}
                     </div>
                     {isPriceAvailable(
-                      pricing?.suitePrice || cruise?.suitePrice,
+                      pricing?.raw?.combined?.suite ||
+                        pricing?.suitePrice ||
+                        cruise?.suitePrice,
                     ) && (
                       <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
                         +$
                         {calculateOnboardCredit(
-                          pricing?.suitePrice || cruise?.suitePrice,
+                          pricing?.raw?.combined?.suite ||
+                            pricing?.suitePrice ||
+                            cruise?.suitePrice,
                         )}{" "}
                         onboard credit
                       </div>
@@ -1011,17 +1075,23 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       onClick={() =>
                         handleGetQuote(
                           "Suite Cabin",
-                          pricing?.suitePrice || cruise?.suitePrice,
+                          pricing?.raw?.combined?.suite ||
+                            pricing?.suitePrice ||
+                            cruise?.suitePrice,
                         )
                       }
                       disabled={
                         !isPriceAvailable(
-                          pricing?.suitePrice || cruise?.suitePrice,
+                          pricing?.raw?.combined?.suite ||
+                            pricing?.suitePrice ||
+                            cruise?.suitePrice,
                         )
                       }
                       className={`w-full md:w-auto font-geograph font-medium text-[16px] px-4 py-3 rounded-full transition-colors ${
                         isPriceAvailable(
-                          pricing?.suitePrice || cruise?.suitePrice,
+                          pricing?.raw?.combined?.suite ||
+                            pricing?.suitePrice ||
+                            cruise?.suitePrice,
                         )
                           ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
                           : "bg-gray-300 text-gray-500 cursor-not-allowed"
