@@ -777,7 +777,7 @@ router.get('/quotes', async (req: Request, res: Response) => {
           cl.name as cruise_line_name,
           s.name as ship_name
         FROM quote_requests qr
-        LEFT JOIN cruises c ON qr.cruise_id::text = c.id
+        LEFT JOIN cruises c ON qr.cruise_id = c.id
         LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
         LEFT JOIN ships s ON c.ship_id = s.id
         WHERE qr.status = ${status}
@@ -811,7 +811,7 @@ router.get('/quotes', async (req: Request, res: Response) => {
           cl.name as cruise_line_name,
           s.name as ship_name
         FROM quote_requests qr
-        LEFT JOIN cruises c ON qr.cruise_id::text = c.id
+        LEFT JOIN cruises c ON qr.cruise_id = c.id
         LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
         LEFT JOIN ships s ON c.ship_id = s.id
         ORDER BY qr.created_at DESC

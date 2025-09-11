@@ -774,13 +774,69 @@ export class WebhookProcessorOptimizedV2 {
         }
       });
 
-      // Update cruises table with basic pricing
+      // Store the combined pricing structure in raw_json
+      const combinedPricing = {
+        inside:
+          data.cheapest?.combined?.inside ||
+          data.cheapest?.cachedprices?.inside ||
+          data.cheapestinside?.price ||
+          null,
+        outside:
+          data.cheapest?.combined?.outside ||
+          data.cheapest?.cachedprices?.outside ||
+          data.cheapestoutside?.price ||
+          null,
+        balcony:
+          data.cheapest?.combined?.balcony ||
+          data.cheapest?.cachedprices?.balcony ||
+          data.cheapestbalcony?.price ||
+          null,
+        suite:
+          data.cheapest?.combined?.suite ||
+          data.cheapest?.cachedprices?.suite ||
+          data.cheapestsuite?.price ||
+          null,
+        insidepricecode:
+          data.cheapest?.combined?.insidepricecode || data.cheapestinsidepricecode || null,
+        outsidepricecode:
+          data.cheapest?.combined?.outsidepricecode || data.cheapestoutsidepricecode || null,
+        balconypricecode:
+          data.cheapest?.combined?.balconypricecode || data.cheapestbalconypricecode || null,
+        suitepricecode:
+          data.cheapest?.combined?.suitepricecode || data.cheapestsuitepricecode || null,
+        insidesource: data.cheapest?.combined?.insidesource || 'prices',
+        outsidesource: data.cheapest?.combined?.outsidesource || 'prices',
+        balconysource: data.cheapest?.combined?.balconysource || 'prices',
+        suitesource: data.cheapest?.combined?.suitesource || 'prices',
+      };
+
+      // Update cruises table with basic pricing AND combined structure
       if (
         cheapestData.interiorPrice ||
         cheapestData.oceanviewPrice ||
         cheapestData.balconyPrice ||
         cheapestData.suitePrice
       ) {
+        // Get existing raw_json first
+        const existingCruise = await db
+          .select({ rawData: cruises.rawData })
+          .from(cruises)
+          .where(eq(cruises.cruiseId, cruiseId))
+          .limit(1);
+
+        const currentRawJson = existingCruise[0]?.rawData || {};
+
+        // Update raw_json with combined pricing
+        const updatedRawJson = {
+          ...currentRawJson,
+          cheapest: {
+            ...currentRawJson.cheapest,
+            combined: combinedPricing,
+            prices: data.cheapest?.prices || currentRawJson.cheapest?.prices,
+            cachedprices: data.cheapest?.cachedprices || currentRawJson.cheapest?.cachedprices,
+          },
+        };
+
         await db
           .update(cruises)
           .set({
@@ -788,6 +844,7 @@ export class WebhookProcessorOptimizedV2 {
             oceanviewPrice: cheapestData.oceanviewPrice?.toString(),
             balconyPrice: cheapestData.balconyPrice?.toString(),
             suitePrice: cheapestData.suitePrice?.toString(),
+            rawData: updatedRawJson,
             updatedAt: new Date(),
           })
           .where(eq(cruises.id, cruiseId));
@@ -1070,9 +1127,22 @@ export class WebhookProcessorOptimizedV2 {
         `Total progress: ${jobTracking.processedFiles} files processed`
     );
 
-    // Check if this might be the last batch
+    // Only check for completion on the last batch to avoid race conditions
+    if (batchNumber !== totalBatches) {
+      return; // Not the last batch, don't check for completion yet
+    }
+
+    // This is the last batch - wait a bit to ensure all operations complete
+    console.log(`[OPTIMIZED-V2] Last batch completed, waiting for queue to clear...`);
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // Now check if the queue is truly empty
     const activeCount = await WebhookProcessorOptimizedV2.webhookQueue.getActiveCount();
     const waitingCount = await WebhookProcessorOptimizedV2.webhookQueue.getWaitingCount();
+
+    console.log(
+      `[OPTIMIZED-V2] Final queue check - Active: ${activeCount}, Waiting: ${waitingCount}`
+    );
 
     if (activeCount === 0 && waitingCount === 0) {
       // All processing complete
