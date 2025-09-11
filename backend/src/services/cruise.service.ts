@@ -897,11 +897,13 @@ export class CruiseService {
     try {
       const regionIds = Array.isArray(cruise.regionIds)
         ? cruise.regionIds
-        : Array.isArray(cruise.regionIds)
+        : typeof cruise.regionIds === 'string'
           ? cruise.regionIds
-          : cruise.regionIds
-            ? JSON.parse(cruise.regionIds)
-            : [];
+              .split(',')
+              .map((id: string) => id.trim())
+              .filter(id => id)
+              .map(Number)
+          : [];
 
       if (regionIds.length === 0) return [];
 
@@ -926,11 +928,13 @@ export class CruiseService {
     try {
       const portIds = Array.isArray(cruise.portIds)
         ? cruise.portIds
-        : Array.isArray(cruise.portIds)
+        : typeof cruise.portIds === 'string'
           ? cruise.portIds
-          : cruise.portIds
-            ? JSON.parse(cruise.portIds)
-            : [];
+              .split(',')
+              .map((id: string) => id.trim())
+              .filter(id => id)
+              .map(Number)
+          : [];
 
       if (portIds.length === 0) return [];
 

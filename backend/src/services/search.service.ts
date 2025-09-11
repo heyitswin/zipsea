@@ -714,12 +714,17 @@ export class SearchService {
     let portIds = [];
     let regionIds = [];
 
+    // Parse portIds - handle comma-separated strings
     try {
       if (cruise.portIds) {
         if (Array.isArray(cruise.portIds)) {
           portIds = cruise.portIds;
         } else if (typeof cruise.portIds === 'string') {
-          portIds = JSON.parse(cruise.portIds);
+          // Handle comma-separated string format
+          portIds = cruise.portIds
+            .split(',')
+            .map(id => id.trim())
+            .filter(id => id);
         }
       }
     } catch (e) {
@@ -727,12 +732,17 @@ export class SearchService {
       portIds = [];
     }
 
+    // Parse regionIds - handle comma-separated strings
     try {
       if (cruise.regionIds) {
         if (Array.isArray(cruise.regionIds)) {
           regionIds = cruise.regionIds;
         } else if (typeof cruise.regionIds === 'string') {
-          regionIds = JSON.parse(cruise.regionIds);
+          // Handle comma-separated string format
+          regionIds = cruise.regionIds
+            .split(',')
+            .map(id => id.trim())
+            .filter(id => id);
         }
       }
     } catch (e) {

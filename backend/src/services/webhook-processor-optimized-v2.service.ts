@@ -1132,19 +1132,32 @@ export class WebhookProcessorOptimizedV2 {
       return; // Not the last batch, don't check for completion yet
     }
 
-    // This is the last batch - wait a bit to ensure all operations complete
+    // This is the last batch - wait for queue to clear with retries
     console.log(`[OPTIMIZED-V2] Last batch completed, waiting for queue to clear...`);
-    await new Promise(resolve => setTimeout(resolve, 5000));
 
-    // Now check if the queue is truly empty
-    const activeCount = await WebhookProcessorOptimizedV2.webhookQueue.getActiveCount();
-    const waitingCount = await WebhookProcessorOptimizedV2.webhookQueue.getWaitingCount();
+    // Wait up to 60 seconds for queue to clear, checking every 5 seconds
+    let attemptsLeft = 12; // 12 attempts * 5 seconds = 60 seconds max
+    let queueEmpty = false;
 
-    console.log(
-      `[OPTIMIZED-V2] Final queue check - Active: ${activeCount}, Waiting: ${waitingCount}`
-    );
+    while (attemptsLeft > 0) {
+      await new Promise(resolve => setTimeout(resolve, 5000));
 
-    if (activeCount === 0 && waitingCount === 0) {
+      const activeCount = await WebhookProcessorOptimizedV2.webhookQueue.getActiveCount();
+      const waitingCount = await WebhookProcessorOptimizedV2.webhookQueue.getWaitingCount();
+
+      console.log(
+        `[OPTIMIZED-V2] Queue check (${13 - attemptsLeft}/12) - Active: ${activeCount}, Waiting: ${waitingCount}`
+      );
+
+      if (activeCount === 0 && waitingCount === 0) {
+        queueEmpty = true;
+        break;
+      }
+
+      attemptsLeft--;
+    }
+
+    if (queueEmpty) {
       // All processing complete
       const endTime = new Date();
       const processingTimeMs = endTime.getTime() - jobTracking.startTime.getTime();
@@ -1178,6 +1191,38 @@ export class WebhookProcessorOptimizedV2 {
           `Final stats: ${jobTracking.successful} successful, ${jobTracking.failed} failed, ` +
           `${this.stats.priceSnapshotsCreated} snapshots created, ${processingTimeMs}ms total time`
       );
+    } else {
+      // Queue didn't clear in time - log warning but still send notification with what we have
+      console.warn(
+        `[OPTIMIZED-V2] WARNING: Queue did not clear within 60 seconds for line ${lineId}. ` +
+          `Sending completion notification anyway.`
+      );
+
+      const endTime = new Date();
+      const processingTimeMs = endTime.getTime() - jobTracking.startTime.getTime();
+
+      const result: WebhookProcessingResult = {
+        successful: jobTracking.successful,
+        failed: jobTracking.failed,
+        errors: [...jobTracking.errors, { error: 'Queue did not clear within timeout period' }],
+        startTime: jobTracking.startTime,
+        endTime,
+        processingTimeMs,
+        totalCruises: jobTracking.processedFiles,
+        priceSnapshotsCreated: this.stats.priceSnapshotsCreated,
+      };
+
+      await slackService.notifyWebhookProcessingCompleted(
+        {
+          eventType: 'cruise_line_update',
+          lineId,
+          timestamp: endTime.toISOString(),
+        },
+        result
+      );
+
+      // Clean up tracking
+      this.processingJobs.delete(lineId);
     }
   }
 }
