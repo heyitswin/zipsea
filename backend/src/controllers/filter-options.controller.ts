@@ -30,22 +30,25 @@ export class FilterOptionsController {
 
       // Get unique departure ports
       const departurePorts = await sql`
-        SELECT DISTINCT dp.id, dp.name
-        FROM departure_ports dp
-        INNER JOIN cruises c ON c.departure_port_id = dp.id
+        SELECT DISTINCT p.id, p.name
+        FROM ports p
+        INNER JOIN cruises c ON c.embark_port_id = p.id
         WHERE c.is_active = true
         AND c.sailing_date >= CURRENT_DATE
-        ORDER BY dp.name ASC
+        ORDER BY p.name ASC
       `;
 
       // Get unique regions
+      // Note: region_ids is stored as a JSONB array in cruises table
       const regions = await sql`
         SELECT DISTINCT r.id, r.name
         FROM regions r
-        INNER JOIN cruise_regions cr ON cr.region_id = r.id
-        INNER JOIN cruises c ON c.id = cr.cruise_id
-        WHERE c.is_active = true
-        AND c.sailing_date >= CURRENT_DATE
+        WHERE EXISTS (
+          SELECT 1 FROM cruises c
+          WHERE c.is_active = true
+          AND c.sailing_date >= CURRENT_DATE
+          AND c.region_ids::jsonb @> to_jsonb(r.id)
+        )
         ORDER BY r.name ASC
       `;
 
