@@ -1,108 +1,152 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Search,
-  Filter,
-  ChevronDown,
-  Calendar,
-  DollarSign,
-  Moon,
-  Ship,
-  MapPin,
-  Users,
-} from "lucide-react";
-import Link from "next/link";
 import Image from "next/image";
-import { useAdmin } from "../hooks/useAdmin";
-import { useUser } from "../hooks/useClerkHooks";
+import Navigation from "../components/Navigation";
+import { formatPrice } from "../../lib/utils";
+import { createSlugFromCruise } from "../../lib/slug";
 
 interface Cruise {
   id: string;
+  cruiseId?: string;
   name: string;
-  shipName: string;
-  cruiseLineName: string;
-  cruiseLineLogo?: string;
+  voyageCode?: string;
   nights: number;
   sailingDate: string;
   embarkPortName: string;
   disembarkPortName: string;
-  interiorPrice?: number;
-  oceanviewPrice?: number;
-  balconyPrice?: number;
-  suitePrice?: number;
-  cheapestPrice?: number;
-  slug?: string;
-  imageUrl?: string;
+  interiorPrice?: string;
+  oceanviewPrice?: string;
+  balconyPrice?: string;
+  suitePrice?: string;
+  cheapestPrice?: string;
+  cruiseLine?: {
+    id: number;
+    name: string;
+  };
+  ship?: {
+    id: number;
+    name: string;
+  };
+  embarkPort?: {
+    id: number;
+    name: string;
+  };
+  featuredImageUrl?: string;
 }
 
-interface FilterState {
-  cruiseLine: string[];
-  nights: { min?: number; max?: number };
-  price: { min?: number; max?: number };
-  sailingDate: { start?: string; end?: string };
-  embarkPort: string[];
-  sort: "price" | "date" | "nights" | "recommended";
-  sortDirection: "asc" | "desc";
+interface FilterOption {
+  id: number | string;
+  name: string;
+  count?: number;
+}
+
+interface AppliedFilter {
+  type: string;
+  value: string | number;
+  label: string;
 }
 
 export default function CruisesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isAdmin, isLoading: adminLoading } = useAdmin();
-  const { isLoaded } = useUser();
+
+  // State management
   const [cruises, setCruises] = useState<Cruise[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
-  const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<string>("soonest");
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
-  // Available filter options
-  const [availableCruiseLines, setAvailableCruiseLines] = useState<
-    Array<{ id: string; name: string }>
-  >([]);
-  const [availablePorts, setAvailablePorts] = useState<
-    Array<{ id: string; name: string }>
-  >([]);
+  // Filter states
+  const [selectedCruiseLine, setSelectedCruiseLine] = useState<number | null>(
+    null,
+  );
+  const [selectedDateRange, setSelectedDateRange] = useState<{
+    start?: string;
+    end?: string;
+  }>({});
+  const [selectedNights, setSelectedNights] = useState<{
+    min?: number;
+    max?: number;
+  }>({});
+  const [selectedDeparturePort, setSelectedDeparturePort] = useState<
+    number | null
+  >(null);
+  const [selectedShip, setSelectedShip] = useState<number | null>(null);
+  const [selectedRegion, setSelectedRegion] = useState<number | null>(null);
 
-  // Check admin access
-  useEffect(() => {
-    if (isLoaded && !adminLoading && !isAdmin) {
-      router.push("/");
-    }
-  }, [isLoaded, adminLoading, isAdmin, router]);
+  // Filter dropdown states
+  const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] =
+    useState(false);
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const [isNightsDropdownOpen, setIsNightsDropdownOpen] = useState(false);
+  const [isDeparturePortDropdownOpen, setIsDeparturePortDropdownOpen] =
+    useState(false);
+  const [isShipDropdownOpen, setIsShipDropdownOpen] = useState(false);
+  const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
 
-  // Filter state
-  const [filters, setFilters] = useState<FilterState>({
-    cruiseLine: [],
-    nights: {},
-    price: {},
-    sailingDate: {},
-    embarkPort: [],
-    sort: "price",
-    sortDirection: "asc",
-  });
+  // Filter options from API
+  const [cruiseLines, setCruiseLines] = useState<FilterOption[]>([]);
+  const [departurePorts, setDeparturePorts] = useState<FilterOption[]>([]);
+  const [ships, setShips] = useState<FilterOption[]>([]);
+  const [regions, setRegions] = useState<FilterOption[]>([]);
 
-  // Fetch filter options
+  // Refs for dropdown click outside detection
+  const cruiseLineDropdownRef = useRef<HTMLDivElement>(null);
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
+  const nightsDropdownRef = useRef<HTMLDivElement>(null);
+  const departurePortDropdownRef = useRef<HTMLDivElement>(null);
+  const shipDropdownRef = useRef<HTMLDivElement>(null);
+  const regionDropdownRef = useRef<HTMLDivElement>(null);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
+
+  const ITEMS_PER_PAGE = 20;
+
+  // Fetch filter options from API
   useEffect(() => {
     const fetchFilterOptions = async () => {
       try {
-        const [cruiseLinesRes, portsRes] = await Promise.all([
-          fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/search/filters/cruise-lines`,
-          ),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/search/filters/ports`),
-        ]);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-        if (cruiseLinesRes.ok) {
-          const data = await cruiseLinesRes.json();
-          setAvailableCruiseLines(data.cruiseLines || []);
-        }
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/search/comprehensive?includeFacets=true&limit=1`,
+          { signal: controller.signal },
+        );
 
-        if (portsRes.ok) {
-          const data = await portsRes.json();
-          setAvailablePorts(data.ports || []);
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.facets) {
+            // Sort each by count
+            setCruiseLines(
+              (data.facets.cruiseLines || []).sort(
+                (a: any, b: any) => parseInt(b.count) - parseInt(a.count),
+              ),
+            );
+            setDeparturePorts(
+              (data.facets.departurePorts || []).sort(
+                (a: any, b: any) => parseInt(b.count) - parseInt(a.count),
+              ),
+            );
+            setShips(
+              (data.facets.ships || []).sort(
+                (a: any, b: any) => parseInt(b.count) - parseInt(a.count),
+              ),
+            );
+            setRegions(
+              (data.facets.regions || []).sort(
+                (a: any, b: any) => parseInt(b.count) - parseInt(a.count),
+              ),
+            );
+          }
+        } else {
+          throw new Error("API response not ok");
         }
       } catch (error) {
         console.error("Error fetching filter options:", error);
@@ -112,512 +156,963 @@ export default function CruisesContent() {
     fetchFilterOptions();
   }, []);
 
-  // Parse URL params on mount
+  // Handle click outside for dropdowns
   useEffect(() => {
-    const cruiseLineParam = searchParams.get("cruiseLine");
-    const nightsMin = searchParams.get("nightsMin");
-    const nightsMax = searchParams.get("nightsMax");
-    const priceMin = searchParams.get("priceMin");
-    const priceMax = searchParams.get("priceMax");
-    const sailingStart = searchParams.get("sailingStart");
-    const sailingEnd = searchParams.get("sailingEnd");
-    const embarkPort = searchParams.get("embarkPort");
-    const sort = searchParams.get("sort");
-    const sortDirection = searchParams.get("sortDirection");
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        cruiseLineDropdownRef.current &&
+        !cruiseLineDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsCruiseLineDropdownOpen(false);
+      }
+      if (
+        dateDropdownRef.current &&
+        !dateDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDateDropdownOpen(false);
+      }
+      if (
+        nightsDropdownRef.current &&
+        !nightsDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsNightsDropdownOpen(false);
+      }
+      if (
+        departurePortDropdownRef.current &&
+        !departurePortDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDeparturePortDropdownOpen(false);
+      }
+      if (
+        shipDropdownRef.current &&
+        !shipDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsShipDropdownOpen(false);
+      }
+      if (
+        regionDropdownRef.current &&
+        !regionDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsRegionDropdownOpen(false);
+      }
+      if (
+        sortDropdownRef.current &&
+        !sortDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsSortDropdownOpen(false);
+      }
+    };
 
-    setFilters((prev) => ({
-      ...prev,
-      cruiseLine: cruiseLineParam ? cruiseLineParam.split(",") : [],
-      nights: {
-        ...(nightsMin && { min: parseInt(nightsMin) }),
-        ...(nightsMax && { max: parseInt(nightsMax) }),
-      },
-      price: {
-        ...(priceMin && { min: parseInt(priceMin) }),
-        ...(priceMax && { max: parseInt(priceMax) }),
-      },
-      sailingDate: {
-        ...(sailingStart && { start: sailingStart }),
-        ...(sailingEnd && { end: sailingEnd }),
-      },
-      embarkPort: embarkPort ? embarkPort.split(",") : [],
-      sort: (sort as FilterState["sort"]) || "price",
-      sortDirection: (sortDirection as FilterState["sortDirection"]) || "asc",
-    }));
-  }, [searchParams]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
+  // Fetch cruises based on filters
   const fetchCruises = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const params = new URLSearchParams();
-      params.append("page", page.toString());
-      params.append("limit", "20");
 
-      if (filters.cruiseLine.length > 0) {
-        params.append("cruiseLine", filters.cruiseLine.join(","));
+      // Add pagination
+      params.append("limit", ITEMS_PER_PAGE.toString());
+      params.append("offset", ((page - 1) * ITEMS_PER_PAGE).toString());
+
+      // Add filters
+      if (selectedCruiseLine)
+        params.append("cruiseLineId", selectedCruiseLine.toString());
+      if (selectedDeparturePort)
+        params.append("departurePortId", selectedDeparturePort.toString());
+      if (selectedShip) params.append("shipId", selectedShip.toString());
+      if (selectedRegion) params.append("regionId", selectedRegion.toString());
+      if (selectedDateRange.start)
+        params.append("startDate", selectedDateRange.start);
+      if (selectedDateRange.end)
+        params.append("endDate", selectedDateRange.end);
+      if (selectedNights.min)
+        params.append("minNights", selectedNights.min.toString());
+      if (selectedNights.max)
+        params.append("maxNights", selectedNights.max.toString());
+
+      // Add sorting
+      switch (sortBy) {
+        case "soonest":
+          params.append("sortBy", "date");
+          params.append("sortOrder", "asc");
+          break;
+        case "lowest_price":
+          params.append("sortBy", "price");
+          params.append("sortOrder", "asc");
+          break;
+        case "highest_price":
+          params.append("sortBy", "price");
+          params.append("sortOrder", "desc");
+          break;
+        case "shortest":
+          params.append("sortBy", "nights");
+          params.append("sortOrder", "asc");
+          break;
+        case "longest":
+          params.append("sortBy", "nights");
+          params.append("sortOrder", "desc");
+          break;
       }
-      if (filters.nights.min)
-        params.append("nightsMin", filters.nights.min.toString());
-      if (filters.nights.max)
-        params.append("nightsMax", filters.nights.max.toString());
-      if (filters.price.min)
-        params.append("priceMin", filters.price.min.toString());
-      if (filters.price.max)
-        params.append("priceMax", filters.price.max.toString());
-      if (filters.sailingDate.start)
-        params.append("sailingStart", filters.sailingDate.start);
-      if (filters.sailingDate.end)
-        params.append("sailingEnd", filters.sailingDate.end);
-      if (filters.embarkPort.length > 0) {
-        params.append("embarkPort", filters.embarkPort.join(","));
-      }
-      params.append("sort", filters.sort);
-      params.append("sortDirection", filters.sortDirection);
+
+      // Try to fetch from API with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/search/cruises?${params.toString()}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/search/comprehensive?${params.toString()}`,
+        { signal: controller.signal },
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch cruises");
-      }
+      clearTimeout(timeoutId);
 
-      const data = await response.json();
-      setCruises(data.cruises || []);
-      setTotalCount(data.totalCount || 0);
+      if (response.ok) {
+        const data = await response.json();
+        setCruises(data.results || []);
+        setTotalCount(data.totalResults || 0);
+      } else {
+        throw new Error("API response not ok");
+      }
     } catch (error) {
       console.error("Error fetching cruises:", error);
-      setCruises([]);
+      setError(true);
     } finally {
       setLoading(false);
     }
-  }, [page, filters]);
+  }, [
+    page,
+    selectedCruiseLine,
+    selectedDateRange,
+    selectedNights,
+    selectedDeparturePort,
+    selectedShip,
+    selectedRegion,
+    sortBy,
+  ]);
 
   useEffect(() => {
     fetchCruises();
   }, [fetchCruises]);
 
-  const updateFilters = (newFilters: Partial<FilterState>) => {
-    setFilters((prev) => ({ ...prev, ...newFilters }));
+  // Get applied filters for display - memoized for performance
+  const appliedFilters = useMemo(() => {
+    const filters: AppliedFilter[] = [];
+
+    if (selectedCruiseLine) {
+      const line = cruiseLines.find((cl) => cl.id === selectedCruiseLine);
+      if (line)
+        filters.push({
+          type: "cruiseLine",
+          value: selectedCruiseLine,
+          label: line.name,
+        });
+    }
+
+    if (selectedDateRange.start || selectedDateRange.end) {
+      const label = `${selectedDateRange.start || "Any"} - ${selectedDateRange.end || "Any"}`;
+      filters.push({ type: "date", value: "date", label });
+    }
+
+    if (selectedNights.min || selectedNights.max) {
+      const label = `${selectedNights.min || "0"}-${selectedNights.max || "30+"} nights`;
+      filters.push({ type: "nights", value: "nights", label });
+    }
+
+    if (selectedDeparturePort) {
+      const port = departurePorts.find((p) => p.id === selectedDeparturePort);
+      if (port)
+        filters.push({
+          type: "departurePort",
+          value: selectedDeparturePort,
+          label: port.name,
+        });
+    }
+
+    if (selectedShip) {
+      const ship = ships.find((s) => s.id === selectedShip);
+      if (ship)
+        filters.push({ type: "ship", value: selectedShip, label: ship.name });
+    }
+
+    if (selectedRegion) {
+      const region = regions.find((r) => r.id === selectedRegion);
+      if (region)
+        filters.push({
+          type: "region",
+          value: selectedRegion,
+          label: region.name,
+        });
+    }
+
+    return filters;
+  }, [
+    selectedCruiseLine,
+    selectedDateRange,
+    selectedNights,
+    selectedDeparturePort,
+    selectedShip,
+    selectedRegion,
+    cruiseLines,
+    departurePorts,
+    ships,
+    regions,
+  ]);
+
+  const removeFilter = (filter: AppliedFilter) => {
+    switch (filter.type) {
+      case "cruiseLine":
+        setSelectedCruiseLine(null);
+        break;
+      case "date":
+        setSelectedDateRange({});
+        break;
+      case "nights":
+        setSelectedNights({});
+        break;
+      case "departurePort":
+        setSelectedDeparturePort(null);
+        break;
+      case "ship":
+        setSelectedShip(null);
+        break;
+      case "region":
+        setSelectedRegion(null);
+        break;
+    }
     setPage(1);
-
-    // Update URL
-    const params = new URLSearchParams();
-    const merged = { ...filters, ...newFilters };
-
-    if (merged.cruiseLine.length > 0)
-      params.set("cruiseLine", merged.cruiseLine.join(","));
-    if (merged.nights.min)
-      params.set("nightsMin", merged.nights.min.toString());
-    if (merged.nights.max)
-      params.set("nightsMax", merged.nights.max.toString());
-    if (merged.price.min) params.set("priceMin", merged.price.min.toString());
-    if (merged.price.max) params.set("priceMax", merged.price.max.toString());
-    if (merged.sailingDate.start)
-      params.set("sailingStart", merged.sailingDate.start);
-    if (merged.sailingDate.end)
-      params.set("sailingEnd", merged.sailingDate.end);
-    if (merged.embarkPort.length > 0)
-      params.set("embarkPort", merged.embarkPort.join(","));
-    if (merged.sort !== "recommended") params.set("sort", merged.sort);
-    if (merged.sortDirection !== "asc")
-      params.set("sortDirection", merged.sortDirection);
-
-    router.push(`/cruises?${params.toString()}`);
   };
 
-  const toggleCruiseLine = (cruiseLineId: string) => {
-    const newCruiseLines = filters.cruiseLine.includes(cruiseLineId)
-      ? filters.cruiseLine.filter((id) => id !== cruiseLineId)
-      : [...filters.cruiseLine, cruiseLineId];
-    updateFilters({ cruiseLine: newCruiseLines });
+  const clearAllFilters = () => {
+    setSelectedCruiseLine(null);
+    setSelectedDateRange({});
+    setSelectedNights({});
+    setSelectedDeparturePort(null);
+    setSelectedShip(null);
+    setSelectedRegion(null);
+    setPage(1);
   };
 
-  const togglePort = (portId: string) => {
-    const newPorts = filters.embarkPort.includes(portId)
-      ? filters.embarkPort.filter((id) => id !== portId)
-      : [...filters.embarkPort, portId];
-    updateFilters({ embarkPort: newPorts });
+  const handleOpenMissive = () => {
+    // Open Missive chat widget using the correct API
+    if (typeof window !== "undefined" && (window as any).MissiveChat) {
+      (window as any).MissiveChat.open();
+    }
   };
 
-  const getCheapestPrice = (cruise: Cruise) => {
-    const prices = [
-      cruise.interiorPrice,
-      cruise.oceanviewPrice,
-      cruise.balconyPrice,
-      cruise.suitePrice,
-    ].filter((p): p is number => p !== undefined && p !== null && p > 0);
-
-    return prices.length > 0 ? Math.min(...prices) : cruise.cheapestPrice;
-  };
-
-  // Show loading while checking admin status
-  if (!isLoaded || adminLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">Loading...</div>
-      </div>
-    );
-  }
-
-  // Don't render content if not admin (redirect will happen)
-  if (!isAdmin) {
-    return null;
-  }
+  const totalPages = useMemo(
+    () => Math.ceil(totalCount / ITEMS_PER_PAGE),
+    [totalCount],
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">Browse Cruises</h1>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
-                {totalCount} cruises found
-              </span>
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="md:hidden px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2"
+    <div className="min-h-screen bg-white">
+      {/* Custom Navigation for Cruises Page */}
+      <nav className="bg-white border-b border-[#0E1B4D] py-[20px] px-[28px]">
+        <div className="flex items-center justify-between h-[44px]">
+          <div className="flex items-center">
+            <div className="w-[110px]">
+              <a href="/">
+                <Image
+                  src="/images/zipsea-logo-blue.svg"
+                  alt="Zipsea"
+                  width={110}
+                  height={40}
+                  className="w-[110px] h-auto"
+                  priority
+                />
+              </a>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-8">
+            <a
+              href="/why-zipsea"
+              className="text-[16px] font-medium font-geograph text-[#0E1B4D] hover:opacity-80 transition-all"
+            >
+              Why Zipsea
+            </a>
+            <a
+              href="/faqs"
+              className="text-[16px] font-medium font-geograph text-[#0E1B4D] hover:opacity-80 transition-all"
+            >
+              FAQs
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      {/* Banner Section */}
+      <div
+        className="bg-[#E9B4EB] bg-opacity-20 p-8 cursor-pointer"
+        onClick={handleOpenMissive}
+      >
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <Image
+              src="/images/zippy.png"
+              alt="Zippy"
+              width={100}
+              height={100}
+              className="w-[100px] h-auto"
+            />
+            <div>
+              <h2
+                className="font-whitney font-black text-[#0E1B4D] uppercase mb-2"
+                style={{ letterSpacing: "-0.02em" }}
               >
-                <Filter className="h-4 w-4" />
-                Filters
-              </button>
+                Always the most onboard credit back
+              </h2>
+              <p className="font-geograph text-[20px] text-[#0E1B4D]">
+                Have a question? We're here to help, just click to chat →
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex gap-6">
-          {/* Filters Sidebar */}
-          <aside
-            className={`${
-              showFilters ? "block" : "hidden"
-            } md:block w-full md:w-64 lg:w-80`}
-          >
-            <div className="bg-white rounded-lg shadow p-6 sticky top-20">
-              <h2 className="font-semibold text-lg mb-4">Filters</h2>
-
-              {/* Sort */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-2">Sort By</h3>
-                <select
-                  value={`${filters.sort}-${filters.sortDirection}`}
-                  onChange={(e) => {
-                    const [sort, direction] = e.target.value.split("-");
-                    updateFilters({
-                      sort: sort as FilterState["sort"],
-                      sortDirection: direction as FilterState["sortDirection"],
-                    });
-                  }}
-                  className="w-full px-3 py-2 border rounded-lg"
-                >
-                  <option value="price-asc">Price: Low to High</option>
-                  <option value="price-desc">Price: High to Low</option>
-                  <option value="date-asc">Date: Soonest First</option>
-                  <option value="date-desc">Date: Latest First</option>
-                  <option value="nights-asc">Duration: Shortest First</option>
-                  <option value="nights-desc">Duration: Longest First</option>
-                </select>
-              </div>
-
-              {/* Cruise Lines - Only show if we have data */}
-              {availableCruiseLines.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="font-medium mb-2">Cruise Lines</h3>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {availableCruiseLines.map((line) => (
-                      <label key={line.id} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={filters.cruiseLine.includes(line.id)}
-                          onChange={() => toggleCruiseLine(line.id)}
-                          className="mr-2"
-                        />
-                        <span className="text-sm">{line.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Nights Range */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-2">Number of Nights</h3>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    placeholder="Min"
-                    value={filters.nights.min || ""}
-                    onChange={(e) =>
-                      updateFilters({
-                        nights: {
-                          ...filters.nights,
-                          min: parseInt(e.target.value) || undefined,
-                        },
-                      })
-                    }
-                    className="w-1/2 px-3 py-2 border rounded-lg"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Max"
-                    value={filters.nights.max || ""}
-                    onChange={(e) =>
-                      updateFilters({
-                        nights: {
-                          ...filters.nights,
-                          max: parseInt(e.target.value) || undefined,
-                        },
-                      })
-                    }
-                    className="w-1/2 px-3 py-2 border rounded-lg"
-                  />
-                </div>
-              </div>
-
-              {/* Price Range */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-2">Price Range</h3>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    placeholder="Min $"
-                    value={filters.price.min || ""}
-                    onChange={(e) =>
-                      updateFilters({
-                        price: {
-                          ...filters.price,
-                          min: parseInt(e.target.value) || undefined,
-                        },
-                      })
-                    }
-                    className="w-1/2 px-3 py-2 border rounded-lg"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Max $"
-                    value={filters.price.max || ""}
-                    onChange={(e) =>
-                      updateFilters({
-                        price: {
-                          ...filters.price,
-                          max: parseInt(e.target.value) || undefined,
-                        },
-                      })
-                    }
-                    className="w-1/2 px-3 py-2 border rounded-lg"
-                  />
-                </div>
-              </div>
-
-              {/* Sailing Dates */}
-              <div className="mb-6">
-                <h3 className="font-medium mb-2">Sailing Dates</h3>
-                <div className="space-y-2">
-                  <input
-                    type="date"
-                    value={filters.sailingDate.start || ""}
-                    onChange={(e) =>
-                      updateFilters({
-                        sailingDate: {
-                          ...filters.sailingDate,
-                          start: e.target.value,
-                        },
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                  <input
-                    type="date"
-                    value={filters.sailingDate.end || ""}
-                    onChange={(e) =>
-                      updateFilters({
-                        sailingDate: {
-                          ...filters.sailingDate,
-                          end: e.target.value,
-                        },
-                      })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-              </div>
-
-              {/* Embark Ports - Only show if we have data */}
-              {availablePorts.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="font-medium mb-2">Departure Port</h3>
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {availablePorts.map((port) => (
-                      <label key={port.id} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={filters.embarkPort.includes(port.id)}
-                          onChange={() => togglePort(port.id)}
-                          className="mr-2"
-                        />
-                        <span className="text-sm">{port.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Clear Filters */}
+      {/* Filters Section */}
+      <div className="border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex flex-wrap gap-3">
+            {/* Cruise Lines Filter */}
+            <div className="relative" ref={cruiseLineDropdownRef}>
               <button
-                onClick={() => {
-                  updateFilters({
-                    cruiseLine: [],
-                    nights: {},
-                    price: {},
-                    sailingDate: {},
-                    embarkPort: [],
-                    sort: "price",
-                    sortDirection: "asc",
-                  });
-                }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                onClick={() =>
+                  setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
+                }
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full bg-white hover:border-gray-400 transition-colors"
               >
-                Clear All Filters
+                <span className="font-geograph text-[16px] text-dark-blue">
+                  {selectedCruiseLine
+                    ? cruiseLines.find((cl) => cl.id === selectedCruiseLine)
+                        ?.name
+                    : "Cruise lines"}
+                </span>
+                <Image
+                  src="/images/arrow-down.svg"
+                  alt="Arrow"
+                  width={12}
+                  height={12}
+                />
               </button>
-            </div>
-          </aside>
 
-          {/* Cruise Results */}
-          <main className="flex-1">
-            {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-white rounded-lg shadow overflow-hidden animate-pulse"
-                  >
-                    <div className="h-48 bg-gray-200" />
-                    <div className="p-4">
-                      <div className="h-4 bg-gray-200 rounded mb-2" />
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-4" />
-                      <div className="h-3 bg-gray-200 rounded w-1/2" />
+              {isCruiseLineDropdownOpen && (
+                <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  {cruiseLines.map((line) => (
+                    <button
+                      key={line.id}
+                      onClick={() => {
+                        setSelectedCruiseLine(line.id as number);
+                        setIsCruiseLineDropdownOpen(false);
+                        setPage(1);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="font-geograph text-[16px] text-dark-blue">
+                        {line.name}
+                      </div>
+                      {line.count && (
+                        <div className="font-geograph text-[14px] text-gray-500">
+                          {line.count} cruises
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Cruise Dates Filter */}
+            <div className="relative" ref={dateDropdownRef}>
+              <button
+                onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full bg-white hover:border-gray-400 transition-colors"
+              >
+                <span className="font-geograph text-[16px] text-dark-blue">
+                  {selectedDateRange.start || selectedDateRange.end
+                    ? "Selected dates"
+                    : "Cruise dates"}
+                </span>
+                <Image
+                  src="/images/arrow-down.svg"
+                  alt="Arrow"
+                  width={12}
+                  height={12}
+                />
+              </button>
+
+              {isDateDropdownOpen && (
+                <div className="absolute top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block font-geograph text-[14px] text-gray-600 mb-1">
+                        Start Date
+                      </label>
+                      <input
+                        type="date"
+                        value={selectedDateRange.start || ""}
+                        onChange={(e) => {
+                          setSelectedDateRange({
+                            ...selectedDateRange,
+                            start: e.target.value,
+                          });
+                          setPage(1);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                      />
                     </div>
+                    <div>
+                      <label className="block font-geograph text-[14px] text-gray-600 mb-1">
+                        End Date
+                      </label>
+                      <input
+                        type="date"
+                        value={selectedDateRange.end || ""}
+                        onChange={(e) => {
+                          setSelectedDateRange({
+                            ...selectedDateRange,
+                            end: e.target.value,
+                          });
+                          setPage(1);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                    <button
+                      onClick={() => setIsDateDropdownOpen(false)}
+                      className="w-full py-2 bg-[#0E1B4D] text-white rounded-lg hover:bg-opacity-90 transition-colors font-geograph"
+                    >
+                      Apply
+                    </button>
                   </div>
+                </div>
+              )}
+            </div>
+
+            {/* Number of Nights Filter */}
+            <div className="relative" ref={nightsDropdownRef}>
+              <button
+                onClick={() => setIsNightsDropdownOpen(!isNightsDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full bg-white hover:border-gray-400 transition-colors"
+              >
+                <span className="font-geograph text-[16px] text-dark-blue">
+                  {selectedNights.min || selectedNights.max
+                    ? `${selectedNights.min || 0}-${selectedNights.max || 30}+ nights`
+                    : "Number of nights"}
+                </span>
+                <Image
+                  src="/images/arrow-down.svg"
+                  alt="Arrow"
+                  width={12}
+                  height={12}
+                />
+              </button>
+
+              {isNightsDropdownOpen && (
+                <div className="absolute top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block font-geograph text-[14px] text-gray-600 mb-1">
+                        Min Nights
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="30"
+                        value={selectedNights.min || ""}
+                        onChange={(e) => {
+                          setSelectedNights({
+                            ...selectedNights,
+                            min: parseInt(e.target.value) || undefined,
+                          });
+                          setPage(1);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-geograph text-[14px] text-gray-600 mb-1">
+                        Max Nights
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="30"
+                        value={selectedNights.max || ""}
+                        onChange={(e) => {
+                          setSelectedNights({
+                            ...selectedNights,
+                            max: parseInt(e.target.value) || undefined,
+                          });
+                          setPage(1);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                    <button
+                      onClick={() => setIsNightsDropdownOpen(false)}
+                      className="w-full py-2 bg-[#0E1B4D] text-white rounded-lg hover:bg-opacity-90 transition-colors font-geograph"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Departure Port Filter */}
+            <div className="relative" ref={departurePortDropdownRef}>
+              <button
+                onClick={() =>
+                  setIsDeparturePortDropdownOpen(!isDeparturePortDropdownOpen)
+                }
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full bg-white hover:border-gray-400 transition-colors"
+              >
+                <span className="font-geograph text-[16px] text-dark-blue">
+                  {selectedDeparturePort
+                    ? departurePorts.find((p) => p.id === selectedDeparturePort)
+                        ?.name
+                    : "Departure port"}
+                </span>
+                <Image
+                  src="/images/arrow-down.svg"
+                  alt="Arrow"
+                  width={12}
+                  height={12}
+                />
+              </button>
+
+              {isDeparturePortDropdownOpen && (
+                <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  {departurePorts.map((port) => (
+                    <button
+                      key={port.id}
+                      onClick={() => {
+                        setSelectedDeparturePort(port.id as number);
+                        setIsDeparturePortDropdownOpen(false);
+                        setPage(1);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="font-geograph text-[16px] text-dark-blue">
+                        {port.name}
+                      </div>
+                      {port.count && (
+                        <div className="font-geograph text-[14px] text-gray-500">
+                          {port.count} cruises
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Ships Filter */}
+            <div className="relative" ref={shipDropdownRef}>
+              <button
+                onClick={() => setIsShipDropdownOpen(!isShipDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full bg-white hover:border-gray-400 transition-colors"
+              >
+                <span className="font-geograph text-[16px] text-dark-blue">
+                  {selectedShip
+                    ? ships.find((s) => s.id === selectedShip)?.name
+                    : "Ships"}
+                </span>
+                <Image
+                  src="/images/arrow-down.svg"
+                  alt="Arrow"
+                  width={12}
+                  height={12}
+                />
+              </button>
+
+              {isShipDropdownOpen && (
+                <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  {ships.map((ship) => (
+                    <button
+                      key={ship.id}
+                      onClick={() => {
+                        setSelectedShip(ship.id as number);
+                        setIsShipDropdownOpen(false);
+                        setPage(1);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="font-geograph text-[16px] text-dark-blue">
+                        {ship.name}
+                      </div>
+                      {ship.count && (
+                        <div className="font-geograph text-[14px] text-gray-500">
+                          {ship.count} cruises
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Region Filter */}
+            <div className="relative" ref={regionDropdownRef}>
+              <button
+                onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full bg-white hover:border-gray-400 transition-colors"
+              >
+                <span className="font-geograph text-[16px] text-dark-blue">
+                  {selectedRegion
+                    ? regions.find((r) => r.id === selectedRegion)?.name
+                    : "Region"}
+                </span>
+                <Image
+                  src="/images/arrow-down.svg"
+                  alt="Arrow"
+                  width={12}
+                  height={12}
+                />
+              </button>
+
+              {isRegionDropdownOpen && (
+                <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  {regions.map((region) => (
+                    <button
+                      key={region.id}
+                      onClick={() => {
+                        setSelectedRegion(region.id as number);
+                        setIsRegionDropdownOpen(false);
+                        setPage(1);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="font-geograph text-[16px] text-dark-blue">
+                        {region.name}
+                      </div>
+                      {region.count && (
+                        <div className="font-geograph text-[14px] text-gray-500">
+                          {region.count} cruises
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Applied Filters and Sort */}
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 flex-wrap">
+            {appliedFilters.map((filter, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2 px-3 py-1 bg-[#0E1B4D] rounded-full"
+              >
+                <span className="font-geograph font-medium text-[14px] text-white">
+                  {filter.label}
+                </span>
+                <button
+                  onClick={() => removeFilter(filter)}
+                  className="flex items-center justify-center"
+                >
+                  <Image
+                    src="/images/close-white.svg"
+                    alt="Remove"
+                    width={12}
+                    height={12}
+                  />
+                </button>
+              </div>
+            ))}
+
+            {appliedFilters.length > 0 && (
+              <button
+                onClick={clearAllFilters}
+                className="font-geograph font-medium text-[14px] text-[#0E1B4D] underline hover:opacity-80 transition-opacity"
+              >
+                Clear all filters
+              </button>
+            )}
+          </div>
+
+          {/* Sort Dropdown */}
+          <div className="relative" ref={sortDropdownRef}>
+            <button
+              onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
+              className="flex items-center gap-2 font-geograph text-[16px] text-dark-blue hover:opacity-80 transition-opacity"
+            >
+              Sort by:{" "}
+              {sortBy === "soonest"
+                ? "Soonest"
+                : sortBy === "lowest_price"
+                  ? "Lowest price"
+                  : sortBy === "highest_price"
+                    ? "Highest price"
+                    : sortBy === "shortest"
+                      ? "Shortest cruises"
+                      : "Longest cruises"}
+              <Image
+                src="/images/arrow-down.svg"
+                alt="Arrow"
+                width={12}
+                height={12}
+              />
+            </button>
+
+            {isSortDropdownOpen && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                {[
+                  "soonest",
+                  "lowest_price",
+                  "highest_price",
+                  "shortest",
+                  "longest",
+                ].map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => {
+                      setSortBy(option);
+                      setIsSortDropdownOpen(false);
+                      setPage(1);
+                    }}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors font-geograph text-[16px] text-dark-blue"
+                  >
+                    {option === "soonest"
+                      ? "Soonest"
+                      : option === "lowest_price"
+                        ? "Lowest price"
+                        : option === "highest_price"
+                          ? "Highest price"
+                          : option === "shortest"
+                            ? "Shortest cruises"
+                            : "Longest cruises"}
+                  </button>
                 ))}
               </div>
-            ) : cruises.length === 0 ? (
-              <div className="bg-white rounded-lg shadow p-12 text-center">
-                <p className="text-gray-500">
-                  No cruises found matching your criteria. Try adjusting your
-                  filters.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {cruises.map((cruise) => (
-                  <Link
-                    key={cruise.id}
-                    href={`/cruise/${cruise.slug || cruise.id}`}
-                    className="bg-white rounded-lg shadow overflow-hidden hover:shadow-lg transition-shadow"
-                  >
-                    <div className="relative h-48">
-                      {cruise.imageUrl ? (
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Cruise Results */}
+      <div className="max-w-7xl mx-auto px-4 pb-8">
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="text-xl text-gray-600">Loading cruises...</div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <div className="text-xl text-gray-600">
+              There was a problem fetching cruises, try reloading the page in a
+              couple seconds
+            </div>
+          </div>
+        ) : cruises.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-xl text-gray-600">
+              No cruises found matching your criteria
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {cruises.map((cruise) => {
+              const slug = createSlugFromCruise({
+                id: cruise.id,
+                shipName: cruise.ship?.name || "unknown",
+                sailingDate: cruise.sailingDate,
+              });
+
+              return (
+                <div
+                  key={cruise.id}
+                  onClick={() => router.push(`/cruise/${slug}`)}
+                  className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                >
+                  <div className="flex gap-6">
+                    {/* Featured Image */}
+                    <div className="w-48 h-32 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                      {cruise.featuredImageUrl ? (
                         <Image
-                          src={cruise.imageUrl}
+                          src={cruise.featuredImageUrl}
                           alt={cruise.name}
-                          fill
-                          className="object-cover"
+                          width={192}
+                          height={128}
+                          className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                          <Ship className="h-16 w-16 text-white opacity-50" />
-                        </div>
-                      )}
-                      {cruise.cruiseLineLogo && (
-                        <div className="absolute top-2 left-2 bg-white rounded px-2 py-1">
-                          <Image
-                            src={cruise.cruiseLineLogo}
-                            alt={cruise.cruiseLineName}
-                            width={60}
-                            height={20}
-                            className="object-contain"
-                          />
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          No image
                         </div>
                       )}
                     </div>
-                    <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 mb-1">
+
+                    {/* Cruise Details */}
+                    <div className="flex-1">
+                      <h3
+                        className="font-whitney font-black uppercase text-[#2F2F2F] text-[24px] mb-2"
+                        style={{ letterSpacing: "-0.02em" }}
+                      >
                         {cruise.name}
                       </h3>
-                      <p className="text-sm text-gray-600 mb-3">
-                        {cruise.shipName} • {cruise.cruiseLineName}
+
+                      <p className="font-geograph text-[16px] text-[#606060] mb-4">
+                        {cruise.cruiseLine?.name || "Unknown Line"} |{" "}
+                        {cruise.ship?.name || "Unknown Ship"}
                       </p>
 
-                      <div className="space-y-1 text-sm text-gray-700">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          <span>
-                            {new Date(cruise.sailingDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Moon className="h-4 w-4" />
-                          <span>{cruise.nights} nights</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          <span>
-                            {cruise.embarkPortName} → {cruise.disembarkPortName}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 pt-4 border-t">
-                        <div className="flex items-end justify-between">
-                          <div>
-                            <p className="text-xs text-gray-500">From</p>
-                            <p className="text-2xl font-bold text-blue-600">
-                              $
-                              {getCheapestPrice(cruise)?.toLocaleString() ||
-                                "N/A"}
-                            </p>
-                            <p className="text-xs text-gray-500">per person</p>
+                      <div className="grid grid-cols-4 gap-4">
+                        <div>
+                          <div
+                            className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                            style={{ letterSpacing: "0.1em" }}
+                          >
+                            DEPART
                           </div>
-                          <span className="text-sm text-blue-600 hover:text-blue-700">
-                            View Details →
-                          </span>
+                          <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                            {new Date(cruise.sailingDate).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              },
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div
+                            className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                            style={{ letterSpacing: "0.1em" }}
+                          >
+                            RETURN
+                          </div>
+                          <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                            {new Date(
+                              new Date(cruise.sailingDate).getTime() +
+                                cruise.nights * 24 * 60 * 60 * 1000,
+                            ).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div
+                            className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                            style={{ letterSpacing: "0.1em" }}
+                          >
+                            DEPARTURE PORT
+                          </div>
+                          <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                            {cruise.embarkPort?.name ||
+                              cruise.embarkPortName ||
+                              "Unknown"}
+                          </div>
+                        </div>
+
+                        <div>
+                          <div
+                            className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                            style={{ letterSpacing: "0.1em" }}
+                          >
+                            NIGHTS
+                          </div>
+                          <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                            {cruise.nights}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </Link>
-                ))}
-              </div>
-            )}
 
-            {/* Pagination */}
-            {totalCount > 20 && (
-              <div className="mt-8 flex justify-center">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setPage(Math.max(1, page - 1))}
-                    disabled={page === 1}
-                    className="px-4 py-2 border rounded-lg disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <span className="px-4 py-2">
-                    Page {page} of {Math.ceil(totalCount / 20)}
-                  </span>
-                  <button
-                    onClick={() => setPage(page + 1)}
-                    disabled={page >= Math.ceil(totalCount / 20)}
-                    className="px-4 py-2 border rounded-lg disabled:opacity-50"
-                  >
-                    Next
-                  </button>
+                    {/* Pricing and CTA */}
+                    <div className="flex flex-col items-end justify-between">
+                      <div className="text-right">
+                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                          STARTING FROM
+                        </div>
+                        <div className="font-geograph font-bold text-[24px] text-dark-blue">
+                          {formatPrice(
+                            Number(cruise.cheapestPrice) ||
+                              Number(cruise.interiorPrice) ||
+                              0,
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        className="px-6 py-3 bg-[#F953A4] text-white rounded-full font-geograph font-medium text-[16px] hover:bg-opacity-90 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          router.push(`/cruise/${slug}`);
+                        }}
+                      >
+                        View cruise
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-          </main>
-        </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!error && totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-8">
+            <button
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page === 1}
+              className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+            >
+              Previous
+            </button>
+
+            <div className="flex gap-2">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (page <= 3) {
+                  pageNum = i + 1;
+                } else if (page >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = page - 2 + i;
+                }
+
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setPage(pageNum)}
+                    className={`w-10 h-10 rounded-lg transition-colors ${
+                      pageNum === page
+                        ? "bg-[#0E1B4D] text-white"
+                        : "border border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              disabled={page === totalPages}
+              className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
