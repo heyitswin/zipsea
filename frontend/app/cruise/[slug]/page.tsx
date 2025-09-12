@@ -299,36 +299,106 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       targetCategory = "suite";
     }
 
-    // Try to use the pricing source field to find the right cabin
+    // Try to use the pricing source field to find the exact cabin
     const sourceField = pricing?.raw?.combined?.[`${targetCategory}source`];
     const priceCode = pricing?.raw?.combined?.[`${targetCategory}pricecode`];
 
-    // Find matching cabin category - check both naming conventions
-    const cabinCategory = cruiseData.cabinCategories.find((cabin) => {
-      const cabinCat = cabin.category?.toLowerCase() || "";
-      const cabinName = cabin.name?.toLowerCase() || "";
+    let cabinCategory = null;
 
-      // Handle different naming conventions between DB and API
-      if (targetCategory === "inside") {
-        return (
-          cabinCat === "inside" ||
-          cabinCat === "interior" ||
-          cabinName.includes("inside") ||
-          cabinName.includes("interior")
-        );
-      } else if (targetCategory === "outside") {
-        return (
-          cabinCat === "outside" ||
-          cabinCat === "oceanview" ||
-          cabinName.includes("outside") ||
-          cabinName.includes("oceanview")
-        );
-      } else {
-        return (
-          cabinCat === targetCategory || cabinName.includes(targetCategory)
-        );
-      }
-    });
+    // First, try to match using the exact cabin code from pricing
+    if (priceCode || sourceField) {
+      cabinCategory = cruiseData.cabinCategories.find((cabin) => {
+        const cabinCode = cabin.cabinCode?.toLowerCase() || "";
+        const cabinCodeAlt = cabin.cabinCodeAlt?.toLowerCase() || "";
+        const searchCode = (priceCode || sourceField || "").toLowerCase();
+
+        // Try exact match on cabin codes
+        return cabinCode === searchCode || cabinCodeAlt === searchCode;
+      });
+    }
+
+    // If no exact match found using pricing codes, fall back to category matching
+    // but be more specific about the category type
+    if (!cabinCategory) {
+      cabinCategory = cruiseData.cabinCategories.find((cabin) => {
+        const cabinCat = cabin.category?.toLowerCase() || "";
+        const cabinName = cabin.name?.toLowerCase() || "";
+
+        // More specific matching based on category
+        if (targetCategory === "inside") {
+          // For inside cabins, avoid matching balcony or suite cabins
+          return (
+            (cabinCat === "inside" || cabinCat === "interior") &&
+            !cabinName.includes("balcony") &&
+            !cabinName.includes("suite") &&
+            !cabinName.includes("oceanview") &&
+            !cabinName.includes("outside")
+          );
+        } else if (targetCategory === "outside") {
+          // For outside cabins, avoid matching balcony or suite cabins
+          return (
+            (cabinCat === "outside" || cabinCat === "oceanview") &&
+            !cabinName.includes("balcony") &&
+            !cabinName.includes("suite") &&
+            !cabinName.includes("interior") &&
+            !cabinName.includes("inside")
+          );
+        } else if (targetCategory === "balcony") {
+          // For balcony cabins, avoid matching suite cabins
+          return (
+            cabinCat === "balcony" &&
+            !cabinName.includes("suite") &&
+            !cabinName.includes("penthouse")
+          );
+        } else if (targetCategory === "suite") {
+          // For suites, match actual suites
+          return (
+            cabinCat === "suite" ||
+            cabinName.includes("suite") ||
+            cabinName.includes("penthouse")
+          );
+        }
+        return false;
+      });
+    }
+
+    // Final fallback: if still no match, try a looser match but prioritize lower categories
+    if (!cabinCategory && targetCategory !== "suite") {
+      const allCabins = cruiseData.cabinCategories
+        .filter((cabin) => {
+          const cabinCat = cabin.category?.toLowerCase() || "";
+          const cabinName = cabin.name?.toLowerCase() || "";
+
+          if (targetCategory === "inside") {
+            return (
+              cabinCat.includes("inside") ||
+              cabinCat.includes("interior") ||
+              cabinName.includes("inside") ||
+              cabinName.includes("interior")
+            );
+          } else if (targetCategory === "outside") {
+            return (
+              cabinCat.includes("outside") ||
+              cabinCat.includes("oceanview") ||
+              cabinName.includes("outside") ||
+              cabinName.includes("oceanview")
+            );
+          } else if (targetCategory === "balcony") {
+            return (
+              cabinCat.includes("balcony") || cabinName.includes("balcony")
+            );
+          }
+          return false;
+        })
+        .sort((a, b) => {
+          // Sort to prefer simpler cabin names (likely to be standard cabins)
+          const aLen = (a.name || "").length;
+          const bLen = (b.name || "").length;
+          return aLen - bLen;
+        });
+
+      cabinCategory = allCabins[0] || null;
+    }
 
     return {
       image: cabinCategory
