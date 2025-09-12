@@ -87,6 +87,10 @@ export default function CruisesContent() {
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // Track requests to prevent race conditions
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const requestCounterRef = useRef(0);
+
   // Filter states - support multi-select
   const [selectedCruiseLines, setSelectedCruiseLines] = useState<number[]>([]);
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
@@ -249,6 +253,20 @@ export default function CruisesContent() {
 
   // Fetch cruises based on filters - NOT using useCallback to avoid stale closures
   const fetchCruises = async () => {
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      console.log("=== CANCELLING PREVIOUS REQUEST ===");
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    // Increment request counter and save the current request ID
+    const currentRequestId = ++requestCounterRef.current;
+    console.log(`=== STARTING REQUEST #${currentRequestId} ===`);
+
     setLoading(true);
     setError(false);
     // Clear existing cruises to prevent showing stale data
@@ -312,13 +330,13 @@ export default function CruisesContent() {
       // Log filter state for debugging
 
       // Try to fetch from API with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased timeout
+      // Use the abort controller we created at the beginning of fetchCruises
+      const timeoutId = setTimeout(() => abortController.abort(), 10000); // Increased timeout
 
       const url = `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?${params.toString()}`;
 
       const response = await fetch(url, {
-        signal: controller.signal,
+        signal: abortController.signal,
         cache: "no-store", // Prevent caching
         headers: {
           "Cache-Control": "no-cache",
@@ -327,11 +345,33 @@ export default function CruisesContent() {
 
       clearTimeout(timeoutId);
 
+      // Check if this is still the current request
+      if (currentRequestId !== requestCounterRef.current) {
+        console.log(
+          `=== IGNORING STALE RESPONSE #${currentRequestId} (current: ${requestCounterRef.current}) ===`,
+        );
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
+
+        // Double-check this is still the current request before updating state
+        if (currentRequestId !== requestCounterRef.current) {
+          console.log(
+            `=== IGNORING STALE DATA #${currentRequestId} (current: ${requestCounterRef.current}) ===`,
+          );
+          return;
+        }
+
         // Backend now filters out cruises with no prices or prices <= $99
         // So we can directly use the results without frontend filtering
         const cruisesData = data.results || data.cruises || [];
+
+        console.log(
+          `=== UPDATING CRUISES FROM REQUEST #${currentRequestId} ===`,
+        );
+        console.log(`Found ${cruisesData.length} cruises matching filters`);
 
         setCruises(cruisesData);
         // Use total from API pagination if available
@@ -476,6 +516,15 @@ export default function CruisesContent() {
       sortBy,
     });
     fetchCruises();
+
+    // Cleanup: cancel any pending request when dependencies change
+    return () => {
+      if (abortControllerRef.current) {
+        console.log("=== CLEANUP: Cancelling pending request ===");
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
   }, [
     isInitialized,
     page,
