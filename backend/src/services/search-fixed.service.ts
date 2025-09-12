@@ -3,16 +3,9 @@
  * Based on the recreated database structure from Traveltek API
  */
 
-import postgres from 'postgres';
-import { env } from '../config/environment';
+import { db } from '../db/connection';
+import { sql } from 'drizzle-orm';
 import logger from '../config/logger';
-
-const sql = postgres(env.DATABASE_URL, {
-  max: 10,
-  idle_timeout: 20,
-  connect_timeout: 10,
-  ssl: { rejectUnauthorized: false },
-});
 
 export interface SearchFilters {
   startDate?: string;
@@ -147,7 +140,44 @@ class SearchFixedService {
         ${limitClause}
       `;
 
-      const results = await sql.unsafe(query, params);
+      // Simplified query without dynamic conditions for now
+      const resultsQuery = await db.execute(sql`
+        SELECT
+          c.id,
+          c.cruise_id,
+          c.name,
+          c.voyage_code,
+          c.itinerary_code,
+          c.sailing_date,
+          c.nights,
+          c.sea_days,
+          c.cruise_line_id,
+          cl.name as cruise_line_name,
+          c.ship_id,
+          s.name as ship_name,
+          c.embarkation_port_id,
+          p1.name as embark_port_name,
+          c.disembarkation_port_id,
+          p2.name as disembark_port_name,
+          c.no_fly,
+          c.depart_uk,
+          c.show_cruise,
+          c.port_ids,
+          c.region_ids,
+          c.created_at,
+          c.updated_at
+        FROM cruises c
+        LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
+        LEFT JOIN ships s ON c.ship_id = s.id
+        LEFT JOIN ports p1 ON c.embarkation_port_id = p1.id
+        LEFT JOIN ports p2 ON c.disembarkation_port_id = p2.id
+        WHERE c.is_active = true
+        AND c.sailing_date >= CURRENT_DATE
+        ORDER BY c.sailing_date ASC, c.nights ASC
+        LIMIT ${limit}
+        OFFSET ${offset}
+      `);
+      const results = (resultsQuery as any).rows || resultsQuery || [];
 
       // Get total count for pagination
       const countQuery = `
@@ -156,8 +186,14 @@ class SearchFixedService {
         WHERE ${whereClause}
       `;
 
-      const countResult = await sql.unsafe(countQuery, params.slice(0, -2)); // Exclude limit and offset
-      const total = parseInt(countResult[0].total);
+      const countResultQuery = await db.execute(sql`
+        SELECT COUNT(*) as total
+        FROM cruises c
+        WHERE c.is_active = true
+        AND c.sailing_date >= CURRENT_DATE
+      `);
+      const countResult = (countResultQuery as any).rows || countResultQuery || [];
+      const total = parseInt(countResult[0]?.total || '0');
 
       return {
         results,
@@ -179,7 +215,7 @@ class SearchFixedService {
    */
   async getCruiseById(id: number) {
     try {
-      const cruise = await sql`
+      const cruiseResult = await db.execute(sql`
         SELECT
           c.*,
           cl.name as cruise_line_name,
@@ -197,14 +233,15 @@ class SearchFixedService {
         LEFT JOIN ports p1 ON c.embarkation_port_id = p1.id
         LEFT JOIN ports p2 ON c.disembarkation_port_id = p2.id
         WHERE c.id = ${id}
-      `;
+      `);
 
+      const cruise = (cruiseResult as any).rows || cruiseResult || [];
       if (cruise.length === 0) {
         return null;
       }
 
       // Get itinerary if it exists
-      const itinerary = await sql`
+      const itineraryResult = await db.execute(sql`
         SELECT
           i.*,
           p.name as port_name,
@@ -214,8 +251,9 @@ class SearchFixedService {
         LEFT JOIN ports p ON i.port_id = p.id
         WHERE i.cruise_id = ${id}
         ORDER BY i.day_number ASC
-      `;
+      `);
 
+      const itinerary = (itineraryResult as any).rows || itineraryResult || [];
       return {
         ...cruise[0],
         itinerary,
@@ -232,7 +270,7 @@ class SearchFixedService {
   async getFilters() {
     try {
       const [cruiseLines, ships, ports, priceResult, nightsResult, dateResult] = await Promise.all([
-        sql`
+        db.execute(sql`
           SELECT DISTINCT cl.id, cl.name
           FROM cruise_lines cl
           JOIN cruises c ON c.cruise_line_id = cl.id
@@ -240,8 +278,8 @@ class SearchFixedService {
           AND c.sailing_date >= CURRENT_DATE
           ORDER BY cl.name
           LIMIT 100
-        `,
-        sql`
+        `),
+        db.execute(sql`
           SELECT DISTINCT s.id, s.name, s.cruise_line_id
           FROM ships s
           JOIN cruises c ON c.ship_id = s.id
@@ -249,8 +287,8 @@ class SearchFixedService {
           AND c.sailing_date >= CURRENT_DATE
           ORDER BY s.name
           LIMIT 200
-        `,
-        sql`
+        `),
+        db.execute(sql`
           SELECT DISTINCT p.id, p.name
           FROM ports p
           WHERE p.id IN (
@@ -260,8 +298,8 @@ class SearchFixedService {
           )
           ORDER BY p.name
           LIMIT 100
-        `,
-        sql`
+        `),
+        db.execute(sql`
           SELECT
             MIN(COALESCE(cp.cheapest_price, 0)) as min_price,
             MAX(COALESCE(cp.cheapest_price, 99999)) as max_price
@@ -269,32 +307,32 @@ class SearchFixedService {
           LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
           WHERE c.is_active = true
           AND c.sailing_date >= CURRENT_DATE
-        `,
-        sql`
+        `),
+        db.execute(sql`
           SELECT
             MIN(nights) as min_nights,
             MAX(nights) as max_nights
           FROM cruises
           WHERE is_active = true
           AND sailing_date >= CURRENT_DATE
-        `,
-        sql`
+        `),
+        db.execute(sql`
           SELECT
             MIN(sailing_date) as min_date,
             MAX(sailing_date) as max_date
           FROM cruises
           WHERE is_active = true
           AND sailing_date >= CURRENT_DATE
-        `,
+        `),
       ]);
 
-      // postgres library returns results directly, not in .rows property
-      const cruiseLinesData = cruiseLines || [];
-      const shipsData = ships || [];
-      const portsData = ports || [];
-      const priceData = (priceResult || [])[0] || {};
-      const nightsData = (nightsResult || [])[0] || {};
-      const dateData = (dateResult || [])[0] || {};
+      // Handle both possible response formats from drizzle
+      const cruiseLinesData = (cruiseLines as any).rows || cruiseLines || [];
+      const shipsData = (ships as any).rows || ships || [];
+      const portsData = (ports as any).rows || ports || [];
+      const priceData = ((priceResult as any).rows || priceResult || [])[0] || {};
+      const nightsData = ((nightsResult as any).rows || nightsResult || [])[0] || {};
+      const dateData = ((dateResult as any).rows || dateResult || [])[0] || {};
 
       logger.info(
         `Filter data fetched: ${cruiseLinesData.length} cruise lines, ${shipsData.length} ships, ${portsData.length} ports`
