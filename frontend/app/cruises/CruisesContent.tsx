@@ -600,10 +600,12 @@ export default function CruisesContent() {
   const removeFilter = (filter: AppliedFilter) => {
     let updates: Record<string, any> = {};
 
-    // Read from URL to get current values, not from state
+    // Read from actual URL to avoid stale closures
+    const urlParams = new URLSearchParams(window.location.search);
+
     switch (filter.type) {
       case "cruiseLine":
-        const currentCruiseLines = searchParams.get("cruiseLines");
+        const currentCruiseLines = urlParams.get("cruiseLines");
         const lines = currentCruiseLines
           ? currentCruiseLines
               .split(",")
@@ -613,17 +615,17 @@ export default function CruisesContent() {
         updates.cruiseLines = lines.filter((id) => id !== filter.value);
         break;
       case "month":
-        const currentMonths = searchParams.get("months");
+        const currentMonths = urlParams.get("months");
         const months = currentMonths ? currentMonths.split(",") : [];
         updates.months = months.filter((m) => m !== filter.value);
         break;
       case "nights":
-        const currentNights = searchParams.get("nights");
+        const currentNights = urlParams.get("nights");
         const nights = currentNights ? currentNights.split(",") : [];
         updates.nights = nights.filter((r) => r !== filter.value);
         break;
       case "departurePort":
-        const currentPorts = searchParams.get("ports");
+        const currentPorts = urlParams.get("ports");
         const ports = currentPorts
           ? currentPorts
               .split(",")
@@ -633,7 +635,7 @@ export default function CruisesContent() {
         updates.ports = ports.filter((id) => id !== filter.value);
         break;
       case "ship":
-        const currentShips = searchParams.get("ships");
+        const currentShips = urlParams.get("ships");
         const ships = currentShips
           ? currentShips
               .split(",")
@@ -643,7 +645,7 @@ export default function CruisesContent() {
         updates.ships = ships.filter((id) => id !== filter.value);
         break;
       case "region":
-        const currentRegions = searchParams.get("regions");
+        const currentRegions = urlParams.get("regions");
         const regions = currentRegions
           ? currentRegions
               .split(",")
@@ -735,8 +737,11 @@ export default function CruisesContent() {
                     key={line.id}
                     onClick={() => {
                       const lineId = line.id as number;
-                      // Read current selection from URL, not from state to avoid stale values
-                      const currentParam = searchParams.get("cruiseLines");
+                      // Read current selection from actual URL to avoid stale closures
+                      const urlParams = new URLSearchParams(
+                        window.location.search,
+                      );
+                      const currentParam = urlParams.get("cruiseLines");
                       const currentLines = currentParam
                         ? currentParam
                             .split(",")
@@ -842,9 +847,11 @@ export default function CruisesContent() {
                               key={monthStr}
                               onClick={() => {
                                 if (!isPast) {
-                                  // Read current selection from URL, not from state
-                                  const currentParam =
-                                    searchParams.get("months");
+                                  // Read current selection from actual URL to avoid stale closures
+                                  const urlParams = new URLSearchParams(
+                                    window.location.search,
+                                  );
+                                  const currentParam = urlParams.get("months");
                                   const currentMonths = currentParam
                                     ? currentParam.split(",")
                                     : [];
@@ -912,8 +919,11 @@ export default function CruisesContent() {
                       <button
                         key={range}
                         onClick={() => {
-                          // Read current selection from URL, not from state
-                          const currentParam = searchParams.get("nights");
+                          // Read current selection from actual URL to avoid stale closures
+                          const urlParams = new URLSearchParams(
+                            window.location.search,
+                          );
+                          const currentParam = urlParams.get("nights");
                           const currentNights = currentParam
                             ? currentParam.split(",")
                             : [];
@@ -987,8 +997,11 @@ export default function CruisesContent() {
                     key={port.id}
                     onClick={() => {
                       const portId = port.id as number;
-                      // Read current selection from URL, not from state
-                      const currentParam = searchParams.get("ports");
+                      // Read current selection from actual URL to avoid stale closures
+                      const urlParams = new URLSearchParams(
+                        window.location.search,
+                      );
+                      const currentParam = urlParams.get("ports");
                       const currentPorts = currentParam
                         ? currentParam
                             .split(",")
@@ -1060,8 +1073,11 @@ export default function CruisesContent() {
                     key={ship.id}
                     onClick={() => {
                       const shipId = ship.id as number;
-                      // Read current selection from URL, not from state
-                      const currentParam = searchParams.get("ships");
+                      // Read current selection from actual URL to avoid stale closures
+                      const urlParams = new URLSearchParams(
+                        window.location.search,
+                      );
+                      const currentParam = urlParams.get("ships");
                       const currentShips = currentParam
                         ? currentParam
                             .split(",")
@@ -1133,8 +1149,11 @@ export default function CruisesContent() {
                     key={region.id}
                     onClick={() => {
                       const regionId = region.id as number;
-                      // Read current selection from URL, not from state
-                      const currentParam = searchParams.get("regions");
+                      // Read current selection from actual URL to avoid stale closures
+                      const urlParams = new URLSearchParams(
+                        window.location.search,
+                      );
+                      const currentParam = urlParams.get("regions");
                       const currentRegions = currentParam
                         ? currentParam
                             .split(",")
