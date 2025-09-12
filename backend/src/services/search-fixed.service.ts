@@ -334,10 +334,6 @@ class SearchFixedService {
       const nightsData = ((nightsResult as any).rows || nightsResult || [])[0] || {};
       const dateData = ((dateResult as any).rows || dateResult || [])[0] || {};
 
-      logger.info(
-        `Filter data fetched: ${cruiseLinesData.length} cruise lines, ${shipsData.length} ships, ${portsData.length} ports`
-      );
-
       return {
         cruiseLines: cruiseLinesData,
         ships: shipsData,
