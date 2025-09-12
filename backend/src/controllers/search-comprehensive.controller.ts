@@ -209,6 +209,16 @@ class SearchComprehensiveController {
         });
       }
 
+      // Add headers to prevent caching
+      res.set({
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        Pragma: 'no-cache',
+        Expires: '0',
+        'Surrogate-Control': 'no-store',
+        'X-Response-Time': `${Date.now() - startTime}ms`,
+        'X-Request-ID': `search-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      });
+
       res.json(results);
     } catch (error: any) {
       logger.error('Comprehensive search failed:', error);
