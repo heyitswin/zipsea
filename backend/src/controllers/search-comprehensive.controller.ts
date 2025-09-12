@@ -145,9 +145,22 @@ class SearchComprehensiveController {
       };
 
       // Parse options
+      // Handle both page and offset parameters for compatibility
+      const limit = req.query.limit ? Math.min(Number(req.query.limit), 100) : 20;
+      let page = 1;
+
+      if (req.query.page) {
+        page = Number(req.query.page);
+      } else if (req.query.offset) {
+        // If offset is provided instead of page, calculate page from it
+        const offset = Number(req.query.offset);
+        page = Math.floor(offset / limit) + 1;
+        logger.info(`Calculated page ${page} from offset ${offset} and limit ${limit}`);
+      }
+
       const options: SearchOptions = {
-        page: req.query.page ? Number(req.query.page) : 1,
-        limit: req.query.limit ? Math.min(Number(req.query.limit), 100) : 20,
+        page,
+        limit,
         sortBy: (req.query.sortBy as 'date' | 'price' | 'nights' | 'popularity') || 'date',
         sortOrder: (req.query.sortOrder as 'asc' | 'desc') || 'asc',
         includeFacets: req.query.includeFacets === 'true',

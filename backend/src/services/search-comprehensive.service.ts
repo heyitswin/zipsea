@@ -92,6 +92,21 @@ export class ComprehensiveSearchService {
       const conditions: any[] = [
         eq(cruises.isActive, true),
         gte(cruises.sailingDate, minDepartureDate),
+        // Filter out cruises with no valid prices or prices <= $99
+        sql`(
+          LEAST(
+            COALESCE(${cruises.interiorPrice}, 999999),
+            COALESCE(${cruises.oceanviewPrice}, 999999),
+            COALESCE(${cruises.balconyPrice}, 999999),
+            COALESCE(${cruises.suitePrice}, 999999)
+          ) > 99
+          AND (
+            ${cruises.interiorPrice} IS NOT NULL OR
+            ${cruises.oceanviewPrice} IS NOT NULL OR
+            ${cruises.balconyPrice} IS NOT NULL OR
+            ${cruises.suitePrice} IS NOT NULL
+          )
+        )`,
       ];
 
       // Text search

@@ -309,24 +309,12 @@ export default function CruisesContent() {
       }
 
       // Log filter state for debugging
-      console.log("=== FILTER DEBUG ===");
-      console.log("Selected filters:", {
-        cruiseLines: selectedCruiseLines,
-        departurePorts: selectedDeparturePorts,
-        ships: selectedShips,
-        regions: selectedRegions,
-        months: selectedMonths,
-        nightRanges: selectedNightRanges,
-        sortBy,
-      });
-      console.log("URL params:", params.toString());
 
       // Try to fetch from API with timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased timeout
 
       const url = `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?${params.toString()}`;
-      console.log("Fetching URL:", url);
 
       const response = await fetch(url, {
         signal: controller.signal,
@@ -337,104 +325,20 @@ export default function CruisesContent() {
       });
 
       clearTimeout(timeoutId);
-      console.log("Response status:", response.status);
 
       if (response.ok) {
         const data = await response.json();
-        console.log("API Response:", {
-          totalResults: data.results?.length || 0,
-          pagination: data.pagination,
-          firstResult: data.results?.[0]
-            ? {
-                id: data.results[0].id,
-                name: data.results[0].name,
-                cruiseLine: data.results[0].cruiseLine?.name,
-                ship: data.results[0].ship?.name,
-                embarkPort: data.results[0].embarkPort?.name,
-                nights: data.results[0].nights,
-              }
-            : null,
-        });
-        // Filter out cruises without any valid prices
-        const filteredCruises = (data.results || data.cruises || []).filter(
-          (cruise: Cruise) => {
-            // Collect all valid prices to check minimum
-            const allPrices: number[] = [];
+        // Backend now filters out cruises with no prices or prices <= $99
+        // So we can directly use the results without frontend filtering
+        const cruisesData = data.results || data.cruises || [];
 
-            // Check pricing object first
-            if (cruise.pricing) {
-              [
-                cruise.pricing.interior,
-                cruise.pricing.oceanview,
-                cruise.pricing.balcony,
-                cruise.pricing.suite,
-                cruise.pricing.lowestPrice,
-              ].forEach((price) => {
-                if (price && price !== "0" && price !== "null") {
-                  const num = Number(price);
-                  if (!isNaN(num) && num > 0) {
-                    allPrices.push(num);
-                  }
-                }
-              });
-            }
-
-            // Check combined field
-            if (cruise.combined) {
-              [
-                cruise.combined.inside,
-                cruise.combined.outside,
-                cruise.combined.balcony,
-                cruise.combined.suite,
-              ].forEach((price) => {
-                if (price && price !== "0" && price !== "null") {
-                  const num = Number(price);
-                  if (!isNaN(num) && num > 0) {
-                    allPrices.push(num);
-                  }
-                }
-              });
-            }
-
-            // Fallback to individual price fields
-            [
-              cruise.cheapestPrice,
-              cruise.interiorPrice,
-              cruise.oceanviewPrice,
-              cruise.oceanViewPrice,
-              cruise.balconyPrice,
-              cruise.suitePrice,
-            ].forEach((price) => {
-              if (price && price !== "0" && price !== "null") {
-                const num = Number(price);
-                if (!isNaN(num) && num > 0) {
-                  allPrices.push(num);
-                }
-              }
-            });
-
-            // Filter out cruises with no valid prices
-            if (allPrices.length === 0) return false;
-
-            // Filter out cruises with lowest price of $99 or less
-            const lowestPrice = Math.min(...allPrices);
-            if (lowestPrice <= 99) return false;
-
-            return true;
-          },
-        );
-
-        console.log(
-          `Filtered ${data.results?.length || 0} cruises to ${filteredCruises.length} (removed cruises with no prices or prices <= $99)`,
-        );
-
-        setCruises(filteredCruises);
+        setCruises(cruisesData);
         // Use total from API pagination if available
         setTotalCount(
           data.pagination?.total ||
             data.totalCount ||
             data.total ||
-            filteredCruises.length,
+            cruisesData.length,
         );
       } else {
         const errorText = await response.text();
@@ -475,10 +379,8 @@ export default function CruisesContent() {
         .split(",")
         .map(Number)
         .filter((n) => !isNaN(n));
-      console.log("Setting cruise lines from URL:", lines);
       setSelectedCruiseLines(lines);
     } else {
-      console.log("Clearing cruise lines");
       setSelectedCruiseLines([]);
     }
 
