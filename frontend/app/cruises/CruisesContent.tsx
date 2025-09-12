@@ -672,12 +672,15 @@ export default function CruisesContent() {
                     key={line.id}
                     onClick={() => {
                       const lineId = line.id as number;
-                      setSelectedCruiseLines((prev) =>
-                        prev.includes(lineId)
-                          ? prev.filter((id) => id !== lineId)
-                          : [...prev, lineId],
-                      );
+                      const newSelection = selectedCruiseLines.includes(lineId)
+                        ? selectedCruiseLines.filter((id) => id !== lineId)
+                        : [...selectedCruiseLines, lineId];
+                      setSelectedCruiseLines(newSelection);
                       setPage(1);
+                      updateURLParams({
+                        cruiseLines: newSelection,
+                        page: 1,
+                      });
                     }}
                     className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
                   >
@@ -768,12 +771,17 @@ export default function CruisesContent() {
                               key={monthStr}
                               onClick={() => {
                                 if (!isPast) {
-                                  setSelectedMonths((prev) =>
-                                    isSelected
-                                      ? prev.filter((m) => m !== monthStr)
-                                      : [...prev, monthStr],
-                                  );
+                                  const newSelection = isSelected
+                                    ? selectedMonths.filter(
+                                        (m) => m !== monthStr,
+                                      )
+                                    : [...selectedMonths, monthStr];
+                                  setSelectedMonths(newSelection);
                                   setPage(1);
+                                  updateURLParams({
+                                    months: newSelection,
+                                    page: 1,
+                                  });
                                 }
                               }}
                               disabled={isPast}
@@ -823,12 +831,15 @@ export default function CruisesContent() {
                       <button
                         key={range}
                         onClick={() => {
-                          setSelectedNightRanges((prev) =>
-                            isSelected
-                              ? prev.filter((r) => r !== range)
-                              : [...prev, range],
-                          );
+                          const newSelection = isSelected
+                            ? selectedNightRanges.filter((r) => r !== range)
+                            : [...selectedNightRanges, range];
+                          setSelectedNightRanges(newSelection);
                           setPage(1);
+                          updateURLParams({
+                            nights: newSelection,
+                            page: 1,
+                          });
                         }}
                         className="w-full text-left px-3 py-2 rounded hover:bg-gray-50 transition-colors flex items-center gap-2"
                       >
@@ -890,12 +901,17 @@ export default function CruisesContent() {
                     key={port.id}
                     onClick={() => {
                       const portId = port.id as number;
-                      setSelectedDeparturePorts((prev) =>
-                        prev.includes(portId)
-                          ? prev.filter((id) => id !== portId)
-                          : [...prev, portId],
-                      );
+                      const newSelection = selectedDeparturePorts.includes(
+                        portId,
+                      )
+                        ? selectedDeparturePorts.filter((id) => id !== portId)
+                        : [...selectedDeparturePorts, portId];
+                      setSelectedDeparturePorts(newSelection);
                       setPage(1);
+                      updateURLParams({
+                        ports: newSelection,
+                        page: 1,
+                      });
                     }}
                     className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
                   >
@@ -953,12 +969,15 @@ export default function CruisesContent() {
                     key={ship.id}
                     onClick={() => {
                       const shipId = ship.id as number;
-                      setSelectedShips((prev) =>
-                        prev.includes(shipId)
-                          ? prev.filter((id) => id !== shipId)
-                          : [...prev, shipId],
-                      );
+                      const newSelection = selectedShips.includes(shipId)
+                        ? selectedShips.filter((id) => id !== shipId)
+                        : [...selectedShips, shipId];
+                      setSelectedShips(newSelection);
                       setPage(1);
+                      updateURLParams({
+                        ships: newSelection,
+                        page: 1,
+                      });
                     }}
                     className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
                   >
@@ -1016,12 +1035,15 @@ export default function CruisesContent() {
                     key={region.id}
                     onClick={() => {
                       const regionId = region.id as number;
-                      setSelectedRegions((prev) =>
-                        prev.includes(regionId)
-                          ? prev.filter((id) => id !== regionId)
-                          : [...prev, regionId],
-                      );
+                      const newSelection = selectedRegions.includes(regionId)
+                        ? selectedRegions.filter((id) => id !== regionId)
+                        : [...selectedRegions, regionId];
+                      setSelectedRegions(newSelection);
                       setPage(1);
+                      updateURLParams({
+                        regions: newSelection,
+                        page: 1,
+                      });
                     }}
                     className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
                   >
@@ -1136,6 +1158,10 @@ export default function CruisesContent() {
                         setSortBy(option);
                         setIsSortDropdownOpen(false);
                         setPage(1);
+                        updateURLParams({
+                          sort: option,
+                          page: 1,
+                        });
                       }}
                       className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors font-geograph text-[16px] text-dark-blue"
                     >

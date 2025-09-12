@@ -226,21 +226,40 @@ export class WebhookProcessorOptimizedV2 {
 
     // Create connection pool
     for (let i = 0; i < WebhookProcessorOptimizedV2.MAX_CONNECTIONS; i++) {
-      const client = new ftp.Client();
-      client.ftp.verbose = false;
+      let retries = 3;
+      let connected = false;
 
-      try {
-        await client.access(ftpConfig);
-        WebhookProcessorOptimizedV2.ftpPool.push({
-          client,
-          inUse: false,
-          lastUsed: Date.now(),
-        });
-        console.log(
-          `[OPTIMIZED-V2] Connection ${i + 1}/${WebhookProcessorOptimizedV2.MAX_CONNECTIONS} established`
-        );
-      } catch (error) {
-        console.error(`[OPTIMIZED-V2] Failed to create connection ${i + 1}:`, error);
+      while (retries > 0 && !connected) {
+        const client = new ftp.Client();
+        client.ftp.verbose = false;
+
+        try {
+          await client.access(ftpConfig);
+          WebhookProcessorOptimizedV2.ftpPool.push({
+            client,
+            inUse: false,
+            lastUsed: Date.now(),
+          });
+          console.log(
+            `[OPTIMIZED-V2] Connection ${i + 1}/${WebhookProcessorOptimizedV2.MAX_CONNECTIONS} established`
+          );
+          connected = true;
+        } catch (error) {
+          retries--;
+          console.error(
+            `[OPTIMIZED-V2] Failed to create connection ${i + 1}, ${retries} retries left:`,
+            error
+          );
+
+          if (retries > 0) {
+            // Wait before retrying with exponential backoff
+            await new Promise(resolve => setTimeout(resolve, (4 - retries) * 1000));
+          }
+        }
+      }
+
+      if (!connected) {
+        console.error(`[OPTIMIZED-V2] Could not establish connection ${i + 1} after all retries`);
       }
     }
 
@@ -285,7 +304,7 @@ export class WebhookProcessorOptimizedV2 {
         await availableConn.client.pwd();
         return availableConn;
       } catch (error) {
-        // Connection dead, recreate it
+        // Connection dead, recreate it with retry logic
         console.log('[OPTIMIZED-V2] Recreating dead connection...');
         const ftpConfig = {
           host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
@@ -296,10 +315,47 @@ export class WebhookProcessorOptimizedV2 {
           verbose: false,
         };
 
-        availableConn.client = new ftp.Client();
-        availableConn.client.ftp.verbose = false;
-        await availableConn.client.access(ftpConfig);
-        return availableConn;
+        // Try to recreate connection with retries
+        let retries = 3;
+        let lastError: any;
+
+        while (retries > 0) {
+          try {
+            availableConn.client = new ftp.Client();
+            availableConn.client.ftp.verbose = false;
+            await availableConn.client.access(ftpConfig);
+            console.log('[OPTIMIZED-V2] Successfully recreated FTP connection');
+            return availableConn;
+          } catch (reconnectError) {
+            lastError = reconnectError;
+            retries--;
+            console.error(
+              `[OPTIMIZED-V2] Failed to recreate connection, ${retries} retries left:`,
+              reconnectError
+            );
+
+            if (retries > 0) {
+              // Wait before retrying (exponential backoff)
+              await new Promise(resolve => setTimeout(resolve, (4 - retries) * 1000));
+            }
+          }
+        }
+
+        // If all retries failed, mark connection as unusable
+        availableConn.inUse = true; // Keep it marked as in use so it won't be selected again
+        console.error('[OPTIMIZED-V2] Failed to recreate connection after all retries:', lastError);
+
+        // Try to get another connection from the pool
+        const otherConn = WebhookProcessorOptimizedV2.ftpPool.find(
+          c => !c.inUse && c !== availableConn
+        );
+        if (otherConn) {
+          return this.getFtpConnection();
+        }
+
+        throw new Error(
+          `FTP connection failed after retries: ${lastError?.message || 'Unknown error'}`
+        );
       }
     }
 
@@ -535,7 +591,15 @@ export class WebhookProcessorOptimizedV2 {
   }
 
   private async processFile(file: any): Promise<boolean> {
-    const conn = await this.getFtpConnection();
+    let conn;
+
+    try {
+      conn = await this.getFtpConnection();
+    } catch (error) {
+      console.error(`[OPTIMIZED-V2] Failed to get FTP connection for ${file.path}:`, error);
+      // Return false to indicate processing failed, but don't crash the whole batch
+      return false;
+    }
 
     try {
       // Download file to memory (like sync-complete-enhanced.js)
