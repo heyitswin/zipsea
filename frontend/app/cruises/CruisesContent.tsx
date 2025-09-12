@@ -341,6 +341,20 @@ export default function CruisesContent() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log("API Response:", {
+          totalResults: data.results?.length || 0,
+          pagination: data.pagination,
+          firstResult: data.results?.[0]
+            ? {
+                id: data.results[0].id,
+                name: data.results[0].name,
+                cruiseLine: data.results[0].cruiseLine?.name,
+                ship: data.results[0].ship?.name,
+                embarkPort: data.results[0].embarkPort?.name,
+                nights: data.results[0].nights,
+              }
+            : null,
+        });
         // Filter out cruises without any valid prices
         const filteredCruises = (data.results || data.cruises || []).filter(
           (cruise: Cruise) => {
@@ -410,6 +424,10 @@ export default function CruisesContent() {
           },
         );
 
+        console.log(
+          `Filtered ${data.results?.length || 0} cruises to ${filteredCruises.length} (removed cruises with no prices or prices <= $99)`,
+        );
+
         setCruises(filteredCruises);
         // Use total from API pagination if available
         setTotalCount(
@@ -419,11 +437,18 @@ export default function CruisesContent() {
             filteredCruises.length,
         );
       } else {
-        throw new Error("API response not ok");
+        const errorText = await response.text();
+        console.error("API response not ok:", response.status, errorText);
+        throw new Error(`API response not ok: ${response.status}`);
       }
     } catch (error) {
       console.error("Error fetching cruises:", error);
+      if (error instanceof Error && error.message.includes("abort")) {
+        console.log("Request was aborted (timeout)");
+      }
       setError(true);
+      setCruises([]); // Clear cruises on error
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -702,6 +727,7 @@ export default function CruisesContent() {
   };
 
   const clearAllFilters = () => {
+    console.log("=== CLEARING ALL FILTERS ===");
     // Clear URL completely and navigate to base path
     router.push("/cruises", { scroll: false });
   };
