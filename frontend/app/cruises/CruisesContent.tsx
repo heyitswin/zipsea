@@ -76,24 +76,49 @@ export default function CruisesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Initialize state from URL parameters
+  const getInitialState = <T extends string | number>(
+    param: string,
+    isNumber: boolean = false,
+  ): T[] => {
+    const value = searchParams.get(param);
+    if (!value) return [];
+    const items = value.split(",");
+    return isNumber ? items.map((i) => parseInt(i) as T) : (items as T[]);
+  };
+
   // State management
   const [cruises, setCruises] = useState<Cruise[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
-  const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState<string>("soonest");
+  const [page, setPage] = useState(
+    searchParams.get("page") ? parseInt(searchParams.get("page")!) : 1,
+  );
+  const [sortBy, setSortBy] = useState<string>(
+    searchParams.get("sort") || "soonest",
+  );
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
-  // Filter states - support multi-select
-  const [selectedCruiseLines, setSelectedCruiseLines] = useState<number[]>([]);
-  const [selectedMonths, setSelectedMonths] = useState<string[]>([]); // Format: "YYYY-MM"
-  const [selectedNightRanges, setSelectedNightRanges] = useState<string[]>([]); // "2-5", "6-8", "9-11", "12+"
+  // Filter states - support multi-select - initialized from URL
+  const [selectedCruiseLines, setSelectedCruiseLines] = useState<number[]>(
+    getInitialState<number>("cruiseLines", true),
+  );
+  const [selectedMonths, setSelectedMonths] = useState<string[]>(
+    getInitialState<string>("months"),
+  );
+  const [selectedNightRanges, setSelectedNightRanges] = useState<string[]>(
+    getInitialState<string>("nights"),
+  );
   const [selectedDeparturePorts, setSelectedDeparturePorts] = useState<
     number[]
-  >([]);
-  const [selectedShips, setSelectedShips] = useState<number[]>([]);
-  const [selectedRegions, setSelectedRegions] = useState<number[]>([]);
+  >(getInitialState<number>("ports", true));
+  const [selectedShips, setSelectedShips] = useState<number[]>(
+    getInitialState<number>("ships", true),
+  );
+  const [selectedRegions, setSelectedRegions] = useState<number[]>(
+    getInitialState<number>("regions", true),
+  );
 
   // Filter dropdown states
   const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] =
@@ -121,6 +146,35 @@ export default function CruisesContent() {
   const sortDropdownRef = useRef<HTMLDivElement>(null);
 
   const ITEMS_PER_PAGE = 20;
+
+  // Function to update URL parameters
+  const updateURLParams = (
+    updates: Record<string, string | number | string[] | number[] | null>,
+  ) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    Object.entries(updates).forEach(([key, value]) => {
+      if (
+        value === null ||
+        value === "" ||
+        (Array.isArray(value) && value.length === 0)
+      ) {
+        params.delete(key);
+      } else if (Array.isArray(value)) {
+        params.set(key, value.join(","));
+      } else {
+        params.set(key, String(value));
+      }
+    });
+
+    // Always reset to page 1 when filters change (unless we're updating page itself)
+    if (!updates.hasOwnProperty("page")) {
+      params.set("page", "1");
+    }
+
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    router.push(newUrl, { scroll: false });
+  };
 
   // Fetch filter options from API
   useEffect(() => {
@@ -481,51 +535,47 @@ export default function CruisesContent() {
   ]);
 
   const removeFilter = (filter: AppliedFilter) => {
+    let updates: Record<string, any> = {};
+
     switch (filter.type) {
       case "cruiseLine":
-        setSelectedCruiseLines((prev) => {
-          const newValue = prev.filter((id) => id !== filter.value);
-
-          return newValue;
-        });
+        const newCruiseLines = selectedCruiseLines.filter(
+          (id) => id !== filter.value,
+        );
+        setSelectedCruiseLines(newCruiseLines);
+        updates.cruiseLines = newCruiseLines;
         break;
       case "month":
-        setSelectedMonths((prev) => {
-          const newValue = prev.filter((m) => m !== filter.value);
-
-          return newValue;
-        });
+        const newMonths = selectedMonths.filter((m) => m !== filter.value);
+        setSelectedMonths(newMonths);
+        updates.months = newMonths;
         break;
       case "nights":
-        setSelectedNightRanges((prev) => {
-          const newValue = prev.filter((r) => r !== filter.value);
-
-          return newValue;
-        });
+        const newNights = selectedNightRanges.filter((r) => r !== filter.value);
+        setSelectedNightRanges(newNights);
+        updates.nights = newNights;
         break;
       case "departurePort":
-        setSelectedDeparturePorts((prev) => {
-          const newValue = prev.filter((id) => id !== filter.value);
-
-          return newValue;
-        });
+        const newPorts = selectedDeparturePorts.filter(
+          (id) => id !== filter.value,
+        );
+        setSelectedDeparturePorts(newPorts);
+        updates.ports = newPorts;
         break;
       case "ship":
-        setSelectedShips((prev) => {
-          const newValue = prev.filter((id) => id !== filter.value);
-
-          return newValue;
-        });
+        const newShips = selectedShips.filter((id) => id !== filter.value);
+        setSelectedShips(newShips);
+        updates.ships = newShips;
         break;
       case "region":
-        setSelectedRegions((prev) => {
-          const newValue = prev.filter((id) => id !== filter.value);
-
-          return newValue;
-        });
+        const newRegions = selectedRegions.filter((id) => id !== filter.value);
+        setSelectedRegions(newRegions);
+        updates.regions = newRegions;
         break;
     }
+
     setPage(1);
+    updateURLParams(updates);
   };
 
   const clearAllFilters = () => {
@@ -536,6 +586,17 @@ export default function CruisesContent() {
     setSelectedShips([]);
     setSelectedRegions([]);
     setPage(1);
+
+    // Clear all filter params from URL
+    updateURLParams({
+      cruiseLines: null,
+      months: null,
+      nights: null,
+      ports: null,
+      ships: null,
+      regions: null,
+      page: null,
+    });
   };
 
   const handleOpenMissive = () => {
@@ -1186,15 +1247,22 @@ export default function CruisesContent() {
                                 DEPART
                               </div>
                               <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
-                                {cruise.sailingDate
-                                  ? new Date(
+                                {(() => {
+                                  if (!cruise.sailingDate) return "TBA";
+                                  try {
+                                    const date = new Date(
                                       cruise.sailingDate + "T00:00:00",
-                                    ).toLocaleDateString("en-US", {
+                                    );
+                                    if (isNaN(date.getTime())) return "TBA";
+                                    return date.toLocaleDateString("en-US", {
                                       month: "short",
                                       day: "numeric",
                                       year: "numeric",
-                                    })
-                                  : "TBA"}
+                                    });
+                                  } catch {
+                                    return "TBA";
+                                  }
+                                })()}
                               </div>
                             </div>
 
@@ -1206,18 +1274,33 @@ export default function CruisesContent() {
                                 RETURN
                               </div>
                               <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
-                                {cruise.sailingDate && cruise.nights
-                                  ? new Date(
-                                      new Date(
-                                        cruise.sailingDate + "T00:00:00",
-                                      ).getTime() +
+                                {(() => {
+                                  if (!cruise.sailingDate || !cruise.nights)
+                                    return "TBA";
+                                  try {
+                                    const departDate = new Date(
+                                      cruise.sailingDate + "T00:00:00",
+                                    );
+                                    if (isNaN(departDate.getTime()))
+                                      return "TBA";
+                                    const returnDate = new Date(
+                                      departDate.getTime() +
                                         cruise.nights * 24 * 60 * 60 * 1000,
-                                    ).toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    })
-                                  : "TBA"}
+                                    );
+                                    if (isNaN(returnDate.getTime()))
+                                      return "TBA";
+                                    return returnDate.toLocaleDateString(
+                                      "en-US",
+                                      {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                      },
+                                    );
+                                  } catch {
+                                    return "TBA";
+                                  }
+                                })()}
                               </div>
                             </div>
 
@@ -1409,7 +1492,11 @@ export default function CruisesContent() {
           {!error && totalPages > 1 && (
             <div className="flex justify-center items-center gap-2 mt-8">
               <button
-                onClick={() => setPage(Math.max(1, page - 1))}
+                onClick={() => {
+                  const newPage = Math.max(1, page - 1);
+                  setPage(newPage);
+                  updateURLParams({ page: newPage });
+                }}
                 disabled={page === 1}
                 className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
               >
@@ -1432,7 +1519,10 @@ export default function CruisesContent() {
                   return (
                     <button
                       key={pageNum}
-                      onClick={() => setPage(pageNum)}
+                      onClick={() => {
+                        setPage(pageNum);
+                        updateURLParams({ page: pageNum });
+                      }}
                       className={`w-10 h-10 rounded-lg transition-colors ${
                         pageNum === page
                           ? "bg-[#0E1B4D] text-white"
@@ -1446,7 +1536,11 @@ export default function CruisesContent() {
               </div>
 
               <button
-                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                onClick={() => {
+                  const newPage = Math.min(totalPages, page + 1);
+                  setPage(newPage);
+                  updateURLParams({ page: newPage });
+                }}
                 disabled={page === totalPages}
                 className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
               >
