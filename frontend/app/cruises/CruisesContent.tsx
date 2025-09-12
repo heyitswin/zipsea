@@ -1131,11 +1131,17 @@ export default function CruisesContent() {
                     <div className="flex gap-6">
                       {/* Featured Image */}
                       <div className="w-48 h-32 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                        {cruise.shipImage ||
+                        {cruise.ship?.defaultShipImageHd ||
+                        cruise.ship?.defaultShipImage2k ||
+                        cruise.ship?.defaultShipImage ||
+                        cruise.shipImageHd ||
                         cruise.shipImage2k ||
-                        cruise.shipImageHd ? (
+                        cruise.shipImage ? (
                           <img
                             src={
+                              cruise.ship?.defaultShipImageHd ||
+                              cruise.ship?.defaultShipImage2k ||
+                              cruise.ship?.defaultShipImage ||
                               cruise.shipImageHd ||
                               cruise.shipImage2k ||
                               cruise.shipImage
@@ -1157,21 +1163,21 @@ export default function CruisesContent() {
                       </div>
 
                       {/* Cruise Details */}
-                      <div className="flex-1">
-                        <h3
-                          className="font-whitney font-black uppercase text-[#2F2F2F] text-[24px] mb-1"
-                          style={{ letterSpacing: "-0.02em" }}
-                        >
-                          {cruise.name}
-                        </h3>
+                      <div className="flex-1 flex justify-between">
+                        <div className="flex-1">
+                          <h3
+                            className="font-whitney font-black uppercase text-[#2F2F2F] text-[24px] mb-1"
+                            style={{ letterSpacing: "-0.02em" }}
+                          >
+                            {cruise.name}
+                          </h3>
 
-                        <p className="font-geograph text-[16px] text-[#606060] mb-4">
-                          {cruise.cruiseLine?.name || "Unknown Line"} |{" "}
-                          {cruise.ship?.name || "Unknown Ship"}
-                        </p>
+                          <p className="font-geograph text-[16px] text-[#606060] mb-4">
+                            {cruise.cruiseLine?.name || "Unknown Line"} |{" "}
+                            {cruise.ship?.name || "Unknown Ship"}
+                          </p>
 
-                        <div className="flex justify-between items-end">
-                          <div className="grid grid-cols-4 gap-2">
+                          <div className="grid grid-cols-4 gap-8">
                             <div>
                               <div
                                 className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
@@ -1181,7 +1187,7 @@ export default function CruisesContent() {
                               </div>
                               <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
                                 {new Date(
-                                  cruise.sailingDate,
+                                  cruise.sailingDate + "T00:00:00",
                                 ).toLocaleDateString("en-US", {
                                   month: "short",
                                   day: "numeric",
@@ -1199,7 +1205,7 @@ export default function CruisesContent() {
                               </div>
                               <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
                                 {new Date(
-                                  new Date(cruise.sailingDate).getTime() +
+                                  new Date(cruise.sailingDate + "T00:00:00").getTime() +
                                     cruise.nights * 24 * 60 * 60 * 1000,
                                 ).toLocaleDateString("en-US", {
                                   month: "short",
@@ -1242,11 +1248,14 @@ export default function CruisesContent() {
                               </div>
                             </div>
                           </div>
-                          {/* Pricing - inline with details */}
+                        </div>
+
+                        {/* Pricing - separate section */}
+                        <div className="flex flex-col items-end">
+                          <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                            STARTING FROM
+                          </div>
                           <div className="text-right">
-                            <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                              STARTING FROM
-                            </div>
                             <div className="font-geograph font-bold text-[24px] text-dark-blue">
                               {(() => {
                                 const prices: number[] = [];
@@ -1381,6 +1390,7 @@ export default function CruisesContent() {
                               return null;
                             })()}
                           </div>
+                        </div>
                         </div>
                       </div>
                     </div>
