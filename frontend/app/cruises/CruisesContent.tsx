@@ -218,6 +218,19 @@ export default function CruisesContent() {
     setError(false);
     // Clear existing cruises to prevent showing stale data
     setCruises([]);
+
+    // Debug logging for filters
+    console.log("Fetching cruises with filters:", {
+      selectedCruiseLines,
+      selectedMonths,
+      selectedNightRanges,
+      selectedDeparturePorts,
+      selectedShips,
+      selectedRegions,
+      sortBy,
+      page,
+    });
+
     try {
       const params = new URLSearchParams();
 
@@ -481,36 +494,56 @@ export default function CruisesContent() {
   ]);
 
   const removeFilter = (filter: AppliedFilter) => {
+    console.log("Removing filter:", filter);
     switch (filter.type) {
       case "cruiseLine":
-        setSelectedCruiseLines((prev) =>
-          prev.filter((id) => id !== filter.value),
-        );
+        setSelectedCruiseLines((prev) => {
+          const newValue = prev.filter((id) => id !== filter.value);
+          console.log("CruiseLines after removal:", newValue);
+          return newValue;
+        });
         break;
       case "month":
-        setSelectedMonths((prev) => prev.filter((m) => m !== filter.value));
+        setSelectedMonths((prev) => {
+          const newValue = prev.filter((m) => m !== filter.value);
+          console.log("Months after removal:", newValue);
+          return newValue;
+        });
         break;
       case "nights":
-        setSelectedNightRanges((prev) =>
-          prev.filter((r) => r !== filter.value),
-        );
+        setSelectedNightRanges((prev) => {
+          const newValue = prev.filter((r) => r !== filter.value);
+          console.log("NightRanges after removal:", newValue);
+          return newValue;
+        });
         break;
       case "departurePort":
-        setSelectedDeparturePorts((prev) =>
-          prev.filter((id) => id !== filter.value),
-        );
+        setSelectedDeparturePorts((prev) => {
+          const newValue = prev.filter((id) => id !== filter.value);
+          console.log("DeparturePorts after removal:", newValue);
+          return newValue;
+        });
         break;
       case "ship":
-        setSelectedShips((prev) => prev.filter((id) => id !== filter.value));
+        setSelectedShips((prev) => {
+          const newValue = prev.filter((id) => id !== filter.value);
+          console.log("Ships after removal:", newValue);
+          return newValue;
+        });
         break;
       case "region":
-        setSelectedRegions((prev) => prev.filter((id) => id !== filter.value));
+        setSelectedRegions((prev) => {
+          const newValue = prev.filter((id) => id !== filter.value);
+          console.log("Regions after removal:", newValue);
+          return newValue;
+        });
         break;
     }
     setPage(1);
   };
 
   const clearAllFilters = () => {
+    console.log("Clearing all filters");
     setSelectedCruiseLines([]);
     setSelectedMonths([]);
     setSelectedNightRanges([]);
