@@ -218,7 +218,19 @@ class QuoteService {
         .where(eq(quoteRequests.id, quoteId))
         .limit(1);
 
-      return result[0] || null;
+      if (!result[0]) return null;
+
+      // Add referenceNumber from customer_details
+      const quote = result[0];
+      const details =
+        typeof quote.customer_details === 'string'
+          ? JSON.parse(quote.customer_details as string)
+          : (quote.customer_details as any) || {};
+
+      return {
+        ...quote,
+        referenceNumber: details.reference_number || quote.id,
+      } as any;
     } catch (error) {
       logger.error('Error getting quote by ID:', error);
       throw error;
@@ -238,10 +250,12 @@ class QuoteService {
   }> {
     try {
       // Get quotes
+      // Since userId doesn't exist in production schema, we need to filter by customer_details
+      // For now, return empty array as we can't filter by userId without that column
       const quotes = await db
         .select()
         .from(quoteRequests)
-        .where(eq(quoteRequests.userId, userId))
+        .where(sql`customer_details->>'user_id' = ${userId}`)
         .orderBy(desc(quoteRequests.createdAt))
         .limit(limit)
         .offset(offset);
@@ -250,11 +264,23 @@ class QuoteService {
       const countResult = await db
         .select({ count: sql`count(*)` })
         .from(quoteRequests)
-        .where(eq(quoteRequests.userId, userId));
+        .where(sql`customer_details->>'user_id' = ${userId}`);
 
       const total = Number(countResult[0]?.count || 0);
 
-      return { quotes, total };
+      // Add referenceNumber to each quote from customer_details
+      const quotesWithReferenceNumber = quotes.map(quote => {
+        const details =
+          typeof quote.customer_details === 'string'
+            ? JSON.parse(quote.customer_details as string)
+            : (quote.customer_details as any) || {};
+        return {
+          ...quote,
+          referenceNumber: details.reference_number || quote.id,
+        };
+      });
+
+      return { quotes: quotesWithReferenceNumber, total };
     } catch (error) {
       logger.error('Error getting user quotes:', error);
       throw error;

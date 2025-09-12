@@ -890,14 +890,18 @@ router.post('/quotes/:quoteId/respond', async (req: Request, res: Response) => {
     const quote = await quoteService.getQuoteById(quoteId);
 
     if (quote) {
-      // Get email from either contactInfo or the direct email field
-      const customerEmail = (quote.contactInfo as any)?.email || (quote as any).email;
+      // Get email from customer_details or the direct email field
+      const customerDetails =
+        typeof quote.customer_details === 'string'
+          ? JSON.parse(quote.customer_details as string)
+          : (quote.customer_details as any) || {};
+      const customerEmail = customerDetails.contact_info?.email || (quote as any).email;
 
       if (customerEmail) {
         logger.info('🎯 Starting quote response email process', {
           quoteId,
           customerEmail,
-          referenceNumber: (quote as any).referenceNumber,
+          referenceNumber: customerDetails.reference_number || quote.id,
           categoriesCount: categories.length,
           hasNotes: !!notes,
           emailType: 'quote_ready',

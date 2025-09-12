@@ -23,7 +23,7 @@ class QuoteController {
       // Get user ID if authenticated
       const clerkUserId = req.headers['x-clerk-user-id'] as string;
       let userId: string | undefined;
-      
+
       if (clerkUserId) {
         const user = await userService.getByClerkId(clerkUserId);
         userId = user?.id;
@@ -45,9 +45,15 @@ class QuoteController {
         discountQualifiers,
       });
 
+      // Extract referenceNumber from customer_details for backward compatibility
+      const customerDetails =
+        typeof quote.customer_details === 'string'
+          ? JSON.parse(quote.customer_details as string)
+          : (quote.customer_details as any) || {};
+
       res.json({
         id: quote.id,
-        referenceNumber: quote.referenceNumber,
+        referenceNumber: customerDetails.reference_number || quote.id,
         status: quote.status,
         createdAt: quote.createdAt,
         success: true,
@@ -151,9 +157,9 @@ class QuoteController {
         meta: {
           page: 1,
           limit: 20,
-          total: 0
-        }
-      }
+          total: 0,
+        },
+      },
     });
   }
 
@@ -163,8 +169,8 @@ class QuoteController {
       data: {
         id: req.params.id,
         summary: {},
-        message: 'Quote summary - implementation pending'
-      }
+        message: 'Quote summary - implementation pending',
+      },
     });
   }
 
@@ -174,8 +180,8 @@ class QuoteController {
       data: {
         id: req.params.id,
         details: {},
-        message: 'Quote details - implementation pending'
-      }
+        message: 'Quote details - implementation pending',
+      },
     });
   }
 
@@ -185,8 +191,8 @@ class QuoteController {
       data: {
         id: req.params.id,
         updated: true,
-        message: 'Quote updated - implementation pending'
-      }
+        message: 'Quote updated - implementation pending',
+      },
     });
   }
 
@@ -196,8 +202,8 @@ class QuoteController {
       data: {
         id: req.params.id,
         cancelled: true,
-        message: 'Quote cancelled - implementation pending'
-      }
+        message: 'Quote cancelled - implementation pending',
+      },
     });
   }
 }
