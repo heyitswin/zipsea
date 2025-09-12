@@ -40,31 +40,59 @@ class SearchComprehensiveController {
         endDate: req.query.endDate as string,
 
         // Location filters - support both single and array values
-        cruiseLineId: req.query.cruiseLineId
-          ? Array.isArray(req.query.cruiseLineId)
-            ? req.query.cruiseLineId.map(Number)
-            : Number(req.query.cruiseLineId)
-          : undefined,
-        shipId: req.query.shipId
-          ? Array.isArray(req.query.shipId)
-            ? req.query.shipId.map(Number)
-            : Number(req.query.shipId)
-          : undefined,
-        departurePortId: req.query.departurePortId
-          ? Array.isArray(req.query.departurePortId)
-            ? req.query.departurePortId.map(Number)
-            : Number(req.query.departurePortId)
-          : undefined,
-        arrivalPortId: req.query.arrivalPortId
-          ? Array.isArray(req.query.arrivalPortId)
-            ? req.query.arrivalPortId.map(Number)
-            : Number(req.query.arrivalPortId)
-          : undefined,
-        regionId: req.query.regionId
-          ? Array.isArray(req.query.regionId)
-            ? req.query.regionId.map(Number)
-            : Number(req.query.regionId)
-          : undefined,
+        cruiseLineId: (() => {
+          const param = req.query.cruiseLineId;
+          console.log(
+            'Raw cruiseLineId param:',
+            param,
+            'Type:',
+            typeof param,
+            'IsArray:',
+            Array.isArray(param)
+          );
+          if (!param) return undefined;
+          if (Array.isArray(param)) {
+            return param.map(Number).filter(n => !isNaN(n));
+          }
+          const num = Number(param);
+          return !isNaN(num) ? num : undefined;
+        })(),
+        shipId: (() => {
+          const param = req.query.shipId;
+          if (!param) return undefined;
+          if (Array.isArray(param)) {
+            return param.map(Number).filter(n => !isNaN(n));
+          }
+          const num = Number(param);
+          return !isNaN(num) ? num : undefined;
+        })(),
+        departurePortId: (() => {
+          const param = req.query.departurePortId;
+          if (!param) return undefined;
+          if (Array.isArray(param)) {
+            return param.map(Number).filter(n => !isNaN(n));
+          }
+          const num = Number(param);
+          return !isNaN(num) ? num : undefined;
+        })(),
+        arrivalPortId: (() => {
+          const param = req.query.arrivalPortId;
+          if (!param) return undefined;
+          if (Array.isArray(param)) {
+            return param.map(Number).filter(n => !isNaN(n));
+          }
+          const num = Number(param);
+          return !isNaN(num) ? num : undefined;
+        })(),
+        regionId: (() => {
+          const param = req.query.regionId;
+          if (!param) return undefined;
+          if (Array.isArray(param)) {
+            return param.map(Number).filter(n => !isNaN(n));
+          }
+          const num = Number(param);
+          return !isNaN(num) ? num : undefined;
+        })(),
 
         // Trip characteristics - handle nightRange parameter from frontend
         minNights: (() => {

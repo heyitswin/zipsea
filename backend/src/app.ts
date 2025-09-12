@@ -30,6 +30,9 @@ app.use('/api/v1/users/webhook/clerk', express.raw({ type: 'application/json' })
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Configure query string parsing to handle arrays (e.g., ?id=1&id=2 becomes id: [1,2])
+app.set('query parser', 'extended');
+
 // Request logging
 app.use(requestLogger);
 
