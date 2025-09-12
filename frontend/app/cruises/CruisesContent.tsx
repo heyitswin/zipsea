@@ -590,57 +590,44 @@ export default function CruisesContent() {
   const removeFilter = (filter: AppliedFilter) => {
     let updates: Record<string, any> = {};
 
+    // Only update URL, let useEffect sync state
     switch (filter.type) {
       case "cruiseLine":
         const newCruiseLines = selectedCruiseLines.filter(
           (id) => id !== filter.value,
         );
-        setSelectedCruiseLines(newCruiseLines);
         updates.cruiseLines = newCruiseLines;
         break;
       case "month":
         const newMonths = selectedMonths.filter((m) => m !== filter.value);
-        setSelectedMonths(newMonths);
         updates.months = newMonths;
         break;
       case "nights":
         const newNights = selectedNightRanges.filter((r) => r !== filter.value);
-        setSelectedNightRanges(newNights);
         updates.nights = newNights;
         break;
       case "departurePort":
         const newPorts = selectedDeparturePorts.filter(
           (id) => id !== filter.value,
         );
-        setSelectedDeparturePorts(newPorts);
         updates.ports = newPorts;
         break;
       case "ship":
         const newShips = selectedShips.filter((id) => id !== filter.value);
-        setSelectedShips(newShips);
         updates.ships = newShips;
         break;
       case "region":
         const newRegions = selectedRegions.filter((id) => id !== filter.value);
-        setSelectedRegions(newRegions);
         updates.regions = newRegions;
         break;
     }
 
-    setPage(1);
+    updates.page = 1;
     updateURLParams(updates);
   };
 
   const clearAllFilters = () => {
-    setSelectedCruiseLines([]);
-    setSelectedMonths([]);
-    setSelectedNightRanges([]);
-    setSelectedDeparturePorts([]);
-    setSelectedShips([]);
-    setSelectedRegions([]);
-    setPage(1);
-
-    // Clear all filter params from URL
+    // Only update URL, let useEffect sync state
     updateURLParams({
       cruiseLines: null,
       months: null,
@@ -727,8 +714,7 @@ export default function CruisesContent() {
                       const newSelection = selectedCruiseLines.includes(lineId)
                         ? selectedCruiseLines.filter((id) => id !== lineId)
                         : [...selectedCruiseLines, lineId];
-                      setSelectedCruiseLines(newSelection);
-                      setPage(1);
+                      // Only update URL, let useEffect sync state
                       updateURLParams({
                         cruiseLines: newSelection,
                         page: 1,
@@ -828,8 +814,7 @@ export default function CruisesContent() {
                                         (m) => m !== monthStr,
                                       )
                                     : [...selectedMonths, monthStr];
-                                  setSelectedMonths(newSelection);
-                                  setPage(1);
+                                  // Only update URL, let useEffect sync state
                                   updateURLParams({
                                     months: newSelection,
                                     page: 1,
@@ -886,8 +871,7 @@ export default function CruisesContent() {
                           const newSelection = isSelected
                             ? selectedNightRanges.filter((r) => r !== range)
                             : [...selectedNightRanges, range];
-                          setSelectedNightRanges(newSelection);
-                          setPage(1);
+                          // Only update URL, let useEffect sync state
                           updateURLParams({
                             nights: newSelection,
                             page: 1,
@@ -958,8 +942,7 @@ export default function CruisesContent() {
                       )
                         ? selectedDeparturePorts.filter((id) => id !== portId)
                         : [...selectedDeparturePorts, portId];
-                      setSelectedDeparturePorts(newSelection);
-                      setPage(1);
+                      // Only update URL, let useEffect sync state
                       updateURLParams({
                         ports: newSelection,
                         page: 1,
@@ -1024,8 +1007,7 @@ export default function CruisesContent() {
                       const newSelection = selectedShips.includes(shipId)
                         ? selectedShips.filter((id) => id !== shipId)
                         : [...selectedShips, shipId];
-                      setSelectedShips(newSelection);
-                      setPage(1);
+                      // Only update URL, let useEffect sync state
                       updateURLParams({
                         ships: newSelection,
                         page: 1,
@@ -1090,8 +1072,7 @@ export default function CruisesContent() {
                       const newSelection = selectedRegions.includes(regionId)
                         ? selectedRegions.filter((id) => id !== regionId)
                         : [...selectedRegions, regionId];
-                      setSelectedRegions(newSelection);
-                      setPage(1);
+                      // Only update URL, let useEffect sync state
                       updateURLParams({
                         regions: newSelection,
                         page: 1,
@@ -1207,9 +1188,8 @@ export default function CruisesContent() {
                     <button
                       key={option}
                       onClick={() => {
-                        setSortBy(option);
                         setIsSortDropdownOpen(false);
-                        setPage(1);
+                        // Only update URL, let useEffect sync state
                         updateURLParams({
                           sort: option,
                           page: 1,
@@ -1580,7 +1560,7 @@ export default function CruisesContent() {
               <button
                 onClick={() => {
                   const newPage = Math.max(1, page - 1);
-                  setPage(newPage);
+                  // Only update URL, let useEffect sync state
                   updateURLParams({ page: newPage });
                 }}
                 disabled={page === 1}
@@ -1606,7 +1586,7 @@ export default function CruisesContent() {
                     <button
                       key={pageNum}
                       onClick={() => {
-                        setPage(pageNum);
+                        // Only update URL, let useEffect sync state
                         updateURLParams({ page: pageNum });
                       }}
                       className={`w-10 h-10 rounded-lg transition-colors ${
@@ -1624,7 +1604,7 @@ export default function CruisesContent() {
               <button
                 onClick={() => {
                   const newPage = Math.min(totalPages, page + 1);
-                  setPage(newPage);
+                  // Only update URL, let useEffect sync state
                   updateURLParams({ page: newPage });
                 }}
                 disabled={page === totalPages}
