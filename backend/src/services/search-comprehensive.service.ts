@@ -121,9 +121,12 @@ export class ComprehensiveSearchService {
         const monthConditions = months.map(monthStr => {
           const [year, month] = monthStr.split('-');
           const startOfMonth = `${year}-${month}-01`;
+          // Fix: JavaScript months are 0-indexed, but our month string is 1-indexed
+          // So for "2025-09", we need new Date(2025, 9, 0) to get last day of September
           const endOfMonth = new Date(parseInt(year), parseInt(month), 0)
             .toISOString()
             .split('T')[0];
+          logger.info(`Date filter for ${monthStr}: ${startOfMonth} to ${endOfMonth}`);
           return and(gte(cruises.sailingDate, startOfMonth), lte(cruises.sailingDate, endOfMonth));
         });
 

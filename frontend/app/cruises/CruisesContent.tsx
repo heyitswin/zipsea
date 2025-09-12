@@ -527,6 +527,17 @@ export default function CruisesContent() {
 
   // Fetch cruises when filters or page changes (now handles initial load too)
   useEffect(() => {
+    console.log("=== FETCH TRIGGER ===");
+    console.log("Triggering fetch with:", {
+      page,
+      selectedCruiseLines,
+      selectedMonths,
+      selectedNightRanges,
+      selectedDeparturePorts,
+      selectedShips,
+      selectedRegions,
+      sortBy,
+    });
     fetchCruises();
   }, [
     page,
