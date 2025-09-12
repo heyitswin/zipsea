@@ -77,49 +77,24 @@ export default function CruisesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Initialize state from URL parameters
-  const getInitialState = <T extends string | number>(
-    param: string,
-    isNumber: boolean = false,
-  ): T[] => {
-    const value = searchParams.get(param);
-    if (!value) return [];
-    const items = value.split(",");
-    return isNumber ? items.map((i) => parseInt(i) as T) : (items as T[]);
-  };
-
   // State management
   const [cruises, setCruises] = useState<Cruise[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
-  const [page, setPage] = useState(
-    searchParams.get("page") ? parseInt(searchParams.get("page")!) : 1,
-  );
-  const [sortBy, setSortBy] = useState<string>(
-    searchParams.get("sort") || "soonest",
-  );
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<string>("soonest");
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
-  // Filter states - support multi-select - initialized from URL
-  const [selectedCruiseLines, setSelectedCruiseLines] = useState<number[]>(
-    getInitialState<number>("cruiseLines", true),
-  );
-  const [selectedMonths, setSelectedMonths] = useState<string[]>(
-    getInitialState<string>("months"),
-  );
-  const [selectedNightRanges, setSelectedNightRanges] = useState<string[]>(
-    getInitialState<string>("nights"),
-  );
+  // Filter states - support multi-select
+  const [selectedCruiseLines, setSelectedCruiseLines] = useState<number[]>([]);
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+  const [selectedNightRanges, setSelectedNightRanges] = useState<string[]>([]);
   const [selectedDeparturePorts, setSelectedDeparturePorts] = useState<
     number[]
-  >(getInitialState<number>("ports", true));
-  const [selectedShips, setSelectedShips] = useState<number[]>(
-    getInitialState<number>("ships", true),
-  );
-  const [selectedRegions, setSelectedRegions] = useState<number[]>(
-    getInitialState<number>("regions", true),
-  );
+  >([]);
+  const [selectedShips, setSelectedShips] = useState<number[]>([]);
+  const [selectedRegions, setSelectedRegions] = useState<number[]>([]);
 
   // Filter dropdown states
   const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] =
@@ -437,6 +412,83 @@ export default function CruisesContent() {
     selectedRegions,
     sortBy,
   ]);
+
+  // Sync state with URL parameters when they change
+  useEffect(() => {
+    // Update state from URL parameters
+    const cruiseLinesParam = searchParams.get("cruiseLines");
+    const monthsParam = searchParams.get("months");
+    const nightsParam = searchParams.get("nights");
+    const portsParam = searchParams.get("ports");
+    const shipsParam = searchParams.get("ships");
+    const regionsParam = searchParams.get("regions");
+    const pageParam = searchParams.get("page");
+    const sortParam = searchParams.get("sort");
+
+    // Update cruise lines
+    if (cruiseLinesParam) {
+      const lines = cruiseLinesParam
+        .split(",")
+        .map(Number)
+        .filter((n) => !isNaN(n));
+      setSelectedCruiseLines(lines);
+    } else {
+      setSelectedCruiseLines([]);
+    }
+
+    // Update months
+    if (monthsParam) {
+      setSelectedMonths(monthsParam.split(","));
+    } else {
+      setSelectedMonths([]);
+    }
+
+    // Update night ranges
+    if (nightsParam) {
+      setSelectedNightRanges(nightsParam.split(","));
+    } else {
+      setSelectedNightRanges([]);
+    }
+
+    // Update departure ports
+    if (portsParam) {
+      const ports = portsParam
+        .split(",")
+        .map(Number)
+        .filter((n) => !isNaN(n));
+      setSelectedDeparturePorts(ports);
+    } else {
+      setSelectedDeparturePorts([]);
+    }
+
+    // Update ships
+    if (shipsParam) {
+      const shipIds = shipsParam
+        .split(",")
+        .map(Number)
+        .filter((n) => !isNaN(n));
+      setSelectedShips(shipIds);
+    } else {
+      setSelectedShips([]);
+    }
+
+    // Update regions
+    if (regionsParam) {
+      const regionIds = regionsParam
+        .split(",")
+        .map(Number)
+        .filter((n) => !isNaN(n));
+      setSelectedRegions(regionIds);
+    } else {
+      setSelectedRegions([]);
+    }
+
+    // Update page
+    setPage(pageParam ? parseInt(pageParam) : 1);
+
+    // Update sort
+    setSortBy(sortParam || "soonest");
+  }, [searchParams]);
 
   // Initial load is now handled by fetchCruises in the useEffect below
 

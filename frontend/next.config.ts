@@ -73,7 +73,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://webchat.missiveapp.com",
               "img-src 'self' data: blob: https: http:",
               "font-src 'self' data:",
-              "connect-src 'self' https://auth.missiveapp.com https://webchat.missiveapp.com https://*.twilio.com wss://*.twilio.com https://*.rollbar.com https://*.clerk.accounts.dev https://*.clerk.com",
+              "connect-src 'self' https://zipsea-production.onrender.com https://api.zipsea.com https://auth.missiveapp.com https://webchat.missiveapp.com https://*.twilio.com wss://*.twilio.com https://*.rollbar.com https://*.clerk.accounts.dev https://*.clerk.com",
               "frame-src 'self' https://challenges.cloudflare.com https://*.clerk.accounts.dev",
               "media-src 'self'",
               "object-src 'none'",
