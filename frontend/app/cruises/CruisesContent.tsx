@@ -354,17 +354,25 @@ export default function CruisesContent() {
 
       // Log filter state for debugging
 
+      // Add timestamp to prevent any caching
+      params.append("_t", Date.now().toString());
+
       // Try to fetch from API with timeout
       // Use the abort controller we created at the beginning of fetchCruises
       const timeoutId = setTimeout(() => abortController.abort(), 10000); // Increased timeout
 
       const url = `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?${params.toString()}`;
 
+      console.log(`=== FETCHING URL: ${url} ===`);
+      console.log(`Request params:`, params.toString());
+
       const response = await fetch(url, {
         signal: abortController.signal,
         cache: "no-store", // Prevent caching
         headers: {
           "Cache-Control": "no-cache",
+          Pragma: "no-cache", // Add for older HTTP/1.0 caches
+          Expires: "0", // Force expiration
         },
       });
 
@@ -397,6 +405,19 @@ export default function CruisesContent() {
           `=== UPDATING CRUISES FROM REQUEST #${currentRequestId} ===`,
         );
         console.log(`Found ${cruisesData.length} cruises matching filters`);
+
+        // Log first few cruises to verify they match the filters
+        if (cruisesData.length > 0) {
+          console.log(
+            "First 3 cruises:",
+            cruisesData.slice(0, 3).map((c: any) => ({
+              id: c.id,
+              name: c.name,
+              sailingDate: c.sailing_date,
+              cruiseLine: c.cruise_line_name,
+            })),
+          );
+        }
 
         setCruises(cruisesData);
         // Use total from API pagination if available
