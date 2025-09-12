@@ -279,8 +279,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const getCabinDetailsFromPriceCode = (
     cabinType: "interior" | "oceanview" | "balcony" | "suite",
   ) => {
-    // Get the raw data from the cruise
-    const rawData = cruiseData?.cruise?.raw?.rawData || fallbackData?.rawData;
+    // Get the raw data from cheapestPricing (where it's actually stored)
+    const rawData = cruiseData?.cheapestPricing?.raw || fallbackData?.rawData;
     const cheapestPricingData = cruiseData?.cheapestPricing || {};
 
     if (!rawData)
