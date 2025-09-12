@@ -1205,7 +1205,9 @@ export default function CruisesContent() {
                               </div>
                               <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
                                 {new Date(
-                                  new Date(cruise.sailingDate + "T00:00:00").getTime() +
+                                  new Date(
+                                    cruise.sailingDate + "T00:00:00",
+                                  ).getTime() +
                                     cruise.nights * 24 * 60 * 60 * 1000,
                                 ).toLocaleDateString("en-US", {
                                   month: "short",
@@ -1390,7 +1392,6 @@ export default function CruisesContent() {
                               return null;
                             })()}
                           </div>
-                        </div>
                         </div>
                       </div>
                     </div>

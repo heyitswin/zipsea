@@ -564,6 +564,7 @@ export default function Navigation({
             </div>
 
             {/* Search Bar removed from scroll nav per user request */}
+          </div>
 
           {/* Hamburger Menu Button (Mobile Only) */}
           <button
@@ -661,7 +662,9 @@ export default function Navigation({
                       {/* User Display Name */}
                       <span
                         className={`text-[16px] font-medium font-geograph ${
-                          isScrolled || (isCruiseDetailPage && !isScrolled) || (isCruisesPage && !isScrolled)
+                          isScrolled ||
+                          (isCruiseDetailPage && !isScrolled) ||
+                          (isCruisesPage && !isScrolled)
                             ? "text-[#3B82F6]"
                             : "text-white"
                         }`}
