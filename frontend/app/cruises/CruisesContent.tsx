@@ -631,35 +631,57 @@ export default function CruisesContent() {
   const removeFilter = (filter: AppliedFilter) => {
     let updates: Record<string, any> = {};
 
-    // Only update URL, let useEffect sync state
+    // Read from URL to get current values, not from state
     switch (filter.type) {
       case "cruiseLine":
-        const newCruiseLines = selectedCruiseLines.filter(
-          (id) => id !== filter.value,
-        );
-        updates.cruiseLines = newCruiseLines;
+        const currentCruiseLines = searchParams.get("cruiseLines");
+        const lines = currentCruiseLines
+          ? currentCruiseLines
+              .split(",")
+              .map(Number)
+              .filter((n) => !isNaN(n))
+          : [];
+        updates.cruiseLines = lines.filter((id) => id !== filter.value);
         break;
       case "month":
-        const newMonths = selectedMonths.filter((m) => m !== filter.value);
-        updates.months = newMonths;
+        const currentMonths = searchParams.get("months");
+        const months = currentMonths ? currentMonths.split(",") : [];
+        updates.months = months.filter((m) => m !== filter.value);
         break;
       case "nights":
-        const newNights = selectedNightRanges.filter((r) => r !== filter.value);
-        updates.nights = newNights;
+        const currentNights = searchParams.get("nights");
+        const nights = currentNights ? currentNights.split(",") : [];
+        updates.nights = nights.filter((r) => r !== filter.value);
         break;
       case "departurePort":
-        const newPorts = selectedDeparturePorts.filter(
-          (id) => id !== filter.value,
-        );
-        updates.ports = newPorts;
+        const currentPorts = searchParams.get("ports");
+        const ports = currentPorts
+          ? currentPorts
+              .split(",")
+              .map(Number)
+              .filter((n) => !isNaN(n))
+          : [];
+        updates.ports = ports.filter((id) => id !== filter.value);
         break;
       case "ship":
-        const newShips = selectedShips.filter((id) => id !== filter.value);
-        updates.ships = newShips;
+        const currentShips = searchParams.get("ships");
+        const ships = currentShips
+          ? currentShips
+              .split(",")
+              .map(Number)
+              .filter((n) => !isNaN(n))
+          : [];
+        updates.ships = ships.filter((id) => id !== filter.value);
         break;
       case "region":
-        const newRegions = selectedRegions.filter((id) => id !== filter.value);
-        updates.regions = newRegions;
+        const currentRegions = searchParams.get("regions");
+        const regions = currentRegions
+          ? currentRegions
+              .split(",")
+              .map(Number)
+              .filter((n) => !isNaN(n))
+          : [];
+        updates.regions = regions.filter((id) => id !== filter.value);
         break;
     }
 
@@ -752,9 +774,17 @@ export default function CruisesContent() {
                     key={line.id}
                     onClick={() => {
                       const lineId = line.id as number;
-                      const newSelection = selectedCruiseLines.includes(lineId)
-                        ? selectedCruiseLines.filter((id) => id !== lineId)
-                        : [...selectedCruiseLines, lineId];
+                      // Read current selection from URL, not from state to avoid stale values
+                      const currentParam = searchParams.get("cruiseLines");
+                      const currentLines = currentParam
+                        ? currentParam
+                            .split(",")
+                            .map(Number)
+                            .filter((n) => !isNaN(n))
+                        : [];
+                      const newSelection = currentLines.includes(lineId)
+                        ? currentLines.filter((id) => id !== lineId)
+                        : [...currentLines, lineId];
                       // Only update URL, let useEffect sync state
                       updateURLParams({
                         cruiseLines: newSelection,
@@ -850,11 +880,19 @@ export default function CruisesContent() {
                               key={monthStr}
                               onClick={() => {
                                 if (!isPast) {
-                                  const newSelection = isSelected
-                                    ? selectedMonths.filter(
+                                  // Read current selection from URL, not from state
+                                  const currentParam =
+                                    searchParams.get("months");
+                                  const currentMonths = currentParam
+                                    ? currentParam.split(",")
+                                    : [];
+                                  const newSelection = currentMonths.includes(
+                                    monthStr,
+                                  )
+                                    ? currentMonths.filter(
                                         (m) => m !== monthStr,
                                       )
-                                    : [...selectedMonths, monthStr];
+                                    : [...currentMonths, monthStr];
                                   // Only update URL, let useEffect sync state
                                   updateURLParams({
                                     months: newSelection,
@@ -909,9 +947,14 @@ export default function CruisesContent() {
                       <button
                         key={range}
                         onClick={() => {
-                          const newSelection = isSelected
-                            ? selectedNightRanges.filter((r) => r !== range)
-                            : [...selectedNightRanges, range];
+                          // Read current selection from URL, not from state
+                          const currentParam = searchParams.get("nights");
+                          const currentNights = currentParam
+                            ? currentParam.split(",")
+                            : [];
+                          const newSelection = currentNights.includes(range)
+                            ? currentNights.filter((r) => r !== range)
+                            : [...currentNights, range];
                           // Only update URL, let useEffect sync state
                           updateURLParams({
                             nights: newSelection,
@@ -978,11 +1021,17 @@ export default function CruisesContent() {
                     key={port.id}
                     onClick={() => {
                       const portId = port.id as number;
-                      const newSelection = selectedDeparturePorts.includes(
-                        portId,
-                      )
-                        ? selectedDeparturePorts.filter((id) => id !== portId)
-                        : [...selectedDeparturePorts, portId];
+                      // Read current selection from URL, not from state
+                      const currentParam = searchParams.get("ports");
+                      const currentPorts = currentParam
+                        ? currentParam
+                            .split(",")
+                            .map(Number)
+                            .filter((n) => !isNaN(n))
+                        : [];
+                      const newSelection = currentPorts.includes(portId)
+                        ? currentPorts.filter((id) => id !== portId)
+                        : [...currentPorts, portId];
                       // Only update URL, let useEffect sync state
                       updateURLParams({
                         ports: newSelection,
@@ -1045,9 +1094,17 @@ export default function CruisesContent() {
                     key={ship.id}
                     onClick={() => {
                       const shipId = ship.id as number;
-                      const newSelection = selectedShips.includes(shipId)
-                        ? selectedShips.filter((id) => id !== shipId)
-                        : [...selectedShips, shipId];
+                      // Read current selection from URL, not from state
+                      const currentParam = searchParams.get("ships");
+                      const currentShips = currentParam
+                        ? currentParam
+                            .split(",")
+                            .map(Number)
+                            .filter((n) => !isNaN(n))
+                        : [];
+                      const newSelection = currentShips.includes(shipId)
+                        ? currentShips.filter((id) => id !== shipId)
+                        : [...currentShips, shipId];
                       // Only update URL, let useEffect sync state
                       updateURLParams({
                         ships: newSelection,
@@ -1110,9 +1167,17 @@ export default function CruisesContent() {
                     key={region.id}
                     onClick={() => {
                       const regionId = region.id as number;
-                      const newSelection = selectedRegions.includes(regionId)
-                        ? selectedRegions.filter((id) => id !== regionId)
-                        : [...selectedRegions, regionId];
+                      // Read current selection from URL, not from state
+                      const currentParam = searchParams.get("regions");
+                      const currentRegions = currentParam
+                        ? currentParam
+                            .split(",")
+                            .map(Number)
+                            .filter((n) => !isNaN(n))
+                        : [];
+                      const newSelection = currentRegions.includes(regionId)
+                        ? currentRegions.filter((id) => id !== regionId)
+                        : [...currentRegions, regionId];
                       // Only update URL, let useEffect sync state
                       updateURLParams({
                         regions: newSelection,
