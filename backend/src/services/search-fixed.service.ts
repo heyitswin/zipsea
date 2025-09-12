@@ -231,44 +231,86 @@ class SearchFixedService {
    */
   async getFilters() {
     try {
-      const [cruiseLines, ships, ports, nights] = await Promise.all([
-        sql`
+      const [cruiseLines, ships, ports, priceResult, nightsResult, dateResult] = await Promise.all([
+        db.execute(sql`
           SELECT DISTINCT cl.id, cl.name
           FROM cruise_lines cl
           JOIN cruises c ON c.cruise_line_id = cl.id
           WHERE c.is_active = true
+          AND c.sailing_date >= CURRENT_DATE
           ORDER BY cl.name
-        `,
-        sql`
+        `),
+        db.execute(sql`
           SELECT DISTINCT s.id, s.name, s.cruise_line_id
           FROM ships s
           JOIN cruises c ON c.ship_id = s.id
           WHERE c.is_active = true
+          AND c.sailing_date >= CURRENT_DATE
           ORDER BY s.name
-        `,
-        sql`
+        `),
+        db.execute(sql`
           SELECT DISTINCT p.id, p.name
           FROM ports p
           WHERE p.id IN (
-            SELECT embarkation_port_id FROM cruises WHERE is_active = true
+            SELECT embarkation_port_id FROM cruises WHERE is_active = true AND sailing_date >= CURRENT_DATE
             UNION
-            SELECT disembarkation_port_id FROM cruises WHERE is_active = true
+            SELECT disembarkation_port_id FROM cruises WHERE is_active = true AND sailing_date >= CURRENT_DATE
           )
           ORDER BY p.name
-        `,
-        sql`
-          SELECT DISTINCT nights
+        `),
+        db.execute(sql`
+          SELECT
+            MIN(COALESCE(cp.cheapest_price, 0)) as min_price,
+            MAX(COALESCE(cp.cheapest_price, 99999)) as max_price
+          FROM cruises c
+          LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
+          WHERE c.is_active = true
+          AND c.sailing_date >= CURRENT_DATE
+        `),
+        db.execute(sql`
+          SELECT
+            MIN(nights) as min_nights,
+            MAX(nights) as max_nights
           FROM cruises
           WHERE is_active = true
-          ORDER BY nights
-        `,
+          AND sailing_date >= CURRENT_DATE
+        `),
+        db.execute(sql`
+          SELECT
+            MIN(sailing_date) as min_date,
+            MAX(sailing_date) as max_date
+          FROM cruises
+          WHERE is_active = true
+          AND sailing_date >= CURRENT_DATE
+        `),
       ]);
 
+      // Extract rows from execute results
+      const cruiseLinesData = (cruiseLines as any).rows || cruiseLines || [];
+      const shipsData = (ships as any).rows || ships || [];
+      const portsData = (ports as any).rows || ports || [];
+      const priceData = ((priceResult as any).rows || priceResult || [])[0] || {};
+      const nightsData = ((nightsResult as any).rows || nightsResult || [])[0] || {};
+      const dateData = ((dateResult as any).rows || dateResult || [])[0] || {};
+
       return {
-        cruiseLines,
-        ships,
-        ports,
-        nights: nights.map(n => n.nights),
+        cruiseLines: cruiseLinesData,
+        ships: shipsData,
+        ports: portsData,
+        priceRange: {
+          min: priceData.min_price || 0,
+          max: priceData.max_price || 10000,
+        },
+        nightsRange: {
+          min: nightsData.min_nights || 1,
+          max: nightsData.max_nights || 30,
+        },
+        dateRange: {
+          min: dateData.min_date || new Date().toISOString().split('T')[0],
+          max:
+            dateData.max_date ||
+            new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        },
       };
     } catch (error) {
       logger.error('Get filters failed:', error);
