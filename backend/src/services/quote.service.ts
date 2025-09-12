@@ -59,41 +59,51 @@ class QuoteService {
       // Calculate OBC amount (2.5% of typical cruise price, will be refined later)
       const obcAmount = this.calculateOnboardCredit(data.cabinType);
 
-      const quoteData: any = {
-        referenceNumber: this.generateReferenceNumber(),
-        userId: data.userId || null,
-        cruiseId: data.cruiseId, // Keep as string - cruises.id is VARCHAR
-        cabinType: data.cabinType,
-        passengerCount: data.adults + data.children,
-        passengerDetails,
+      const referenceNumber = this.generateReferenceNumber();
+
+      // Store all extra fields in customer_details JSONB for production schema compatibility
+      const customerDetails = {
+        reference_number: referenceNumber,
+        user_id: data.userId || null,
+        cabin_type: data.cabinType,
+        passenger_count: data.adults + data.children,
+        adults: data.adults,
+        children: data.children,
+        passenger_details: passengerDetails,
         preferences,
-        contactInfo,
-        obcAmount: String(obcAmount),
-        status: 'waiting',
+        contact_info: contactInfo,
+        obc_amount: String(obcAmount),
         source: 'website',
-        quoteExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-        // Add the individual fields that the admin interface expects
+        quote_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        preferred_cabin_type: data.cabinType,
+        special_requests: data.specialRequests,
+        travel_insurance: data.travelInsurance,
+        discount_qualifiers: data.discountQualifiers || {},
+      };
+
+      const quoteData: any = {
+        cruiseId: data.cruiseId, // Keep as string - cruises.id is VARCHAR
         firstName: data.firstName || '',
         lastName: data.lastName || '',
         email: data.email || '',
         phone: data.phone || '',
-        preferredCabinType: data.cabinType,
-        specialRequests: data.specialRequests,
+        customer_details: customerDetails,
+        status: 'waiting',
       };
 
-      const result = await db
-        .insert(quoteRequests)
-        .values(quoteData)
-        .returning();
+      const result = await db.insert(quoteRequests).values(quoteData).returning();
 
       const quote = result[0];
 
-      logger.info('Quote request created successfully', { 
+      // Add the referenceNumber to the returned quote object for compatibility
+      quote.referenceNumber = referenceNumber;
+
+      logger.info('Quote request created successfully', {
         quoteId: quote.id,
         referenceNumber: quote.referenceNumber,
         cruiseId: data.cruiseId,
         customerEmail: data.email,
-        userId: data.userId 
+        userId: data.userId,
       });
 
       // Send confirmation email to customer and notification to team
@@ -124,7 +134,7 @@ class QuoteService {
           } catch (cruiseError) {
             logger.warn('Could not fetch cruise details for email', {
               cruiseId: data.cruiseId,
-              error: cruiseError instanceof Error ? cruiseError.message : 'Unknown error'
+              error: cruiseError instanceof Error ? cruiseError.message : 'Unknown error',
             });
           }
 
@@ -144,7 +154,7 @@ class QuoteService {
 
           // Send customer confirmation email
           const customerEmailSent = await emailService.sendQuoteConfirmationEmail(emailData);
-          
+
           // Send team notification email
           const teamEmailSent = await emailService.sendQuoteNotificationToTeam(emailData);
 
@@ -155,22 +165,24 @@ class QuoteService {
             customerEmail: data.email,
             customerEmailSent,
             teamEmailSent,
-            emailType: 'quote_confirmation'
+            emailType: 'quote_confirmation',
           });
-
         } catch (emailError) {
           // Don't fail the quote creation if emails fail
-          logger.error('Failed to send quote confirmation emails, but quote was created successfully', {
-            quoteId: quote.id,
-            referenceNumber: quote.referenceNumber,
-            customerEmail: data.email,
-            error: emailError instanceof Error ? emailError.message : 'Unknown error'
-          });
+          logger.error(
+            'Failed to send quote confirmation emails, but quote was created successfully',
+            {
+              quoteId: quote.id,
+              referenceNumber: quote.referenceNumber,
+              customerEmail: data.email,
+              error: emailError instanceof Error ? emailError.message : 'Unknown error',
+            }
+          );
         }
       } else {
         logger.warn('No customer email provided for quote - skipping confirmation emails', {
           quoteId: quote.id,
-          referenceNumber: quote.referenceNumber
+          referenceNumber: quote.referenceNumber,
         });
       }
 
@@ -216,7 +228,11 @@ class QuoteService {
   /**
    * Get all quotes for a user
    */
-  async getUserQuotes(userId: string, limit = 20, offset = 0): Promise<{
+  async getUserQuotes(
+    userId: string,
+    limit = 20,
+    offset = 0
+  ): Promise<{
     quotes: QuoteRequest[];
     total: number;
   }> {
@@ -248,7 +264,11 @@ class QuoteService {
   /**
    * Get all quotes (admin)
    */
-  async getAllQuotes(limit = 20, offset = 0, status?: string): Promise<{
+  async getAllQuotes(
+    limit = 20,
+    offset = 0,
+    status?: string
+  ): Promise<{
     quotes: QuoteRequest[];
     total: number;
   }> {
@@ -259,14 +279,11 @@ class QuoteService {
         query = query.where(eq(quoteRequests.status, status));
       }
 
-      const quotes = await query
-        .orderBy(desc(quoteRequests.createdAt))
-        .limit(limit)
-        .offset(offset);
+      const quotes = await query.orderBy(desc(quoteRequests.createdAt)).limit(limit).offset(offset);
 
       // Get total count
       let countQuery = db.select({ count: sql`count(*)` }).from(quoteRequests);
-      
+
       if (status) {
         countQuery = countQuery.where(eq(quoteRequests.status, status));
       }
@@ -284,11 +301,7 @@ class QuoteService {
   /**
    * Update quote status
    */
-  async updateQuoteStatus(
-    quoteId: string, 
-    status: string, 
-    notes?: string
-  ): Promise<QuoteRequest> {
+  async updateQuoteStatus(quoteId: string, status: string, notes?: string): Promise<QuoteRequest> {
     try {
       const updateData: any = {
         status,
@@ -437,10 +450,7 @@ class QuoteService {
         query = query.where(eq(quoteRequests.status, status));
       }
 
-      const result = await query
-        .orderBy(desc(quoteRequests.createdAt))
-        .limit(limit)
-        .offset(offset);
+      const result = await query.orderBy(desc(quoteRequests.createdAt)).limit(limit).offset(offset);
 
       return result;
     } catch (error) {

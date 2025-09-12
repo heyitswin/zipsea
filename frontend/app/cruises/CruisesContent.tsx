@@ -286,19 +286,9 @@ export default function CruisesContent() {
 
       if (response.ok) {
         const data = await response.json();
-        // Filter out cruises without any valid prices and cruises departing within 1 week
-        const oneWeekFromNow = new Date();
-        oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7);
-        oneWeekFromNow.setHours(0, 0, 0, 0); // Set to beginning of that day
-
+        // Filter out cruises without any valid prices
         const filteredCruises = (data.results || data.cruises || []).filter(
           (cruise: Cruise) => {
-            // Filter out cruises departing within the next 7 days
-            const sailingDate = new Date(cruise.sailingDate);
-            if (sailingDate < oneWeekFromNow) {
-              return false;
-            }
-
             // Collect all valid prices to check minimum
             const allPrices: number[] = [];
 
