@@ -127,6 +127,10 @@ export default function CruisesContent() {
   const updateURLParams = (
     updates: Record<string, string | number | string[] | number[] | null>,
   ) => {
+    console.log("=== updateURLParams called ===");
+    console.log("Updates to apply:", updates);
+    console.log("Current searchParams before update:", searchParams.toString());
+
     const params = new URLSearchParams(searchParams.toString());
 
     Object.entries(updates).forEach(([key, value]) => {
@@ -149,6 +153,8 @@ export default function CruisesContent() {
     }
 
     const newUrl = `${window.location.pathname}?${params.toString()}`;
+    console.log("New URL to push:", newUrl);
+    console.log("New params string:", params.toString());
     router.push(newUrl, { scroll: false });
   };
 
@@ -242,8 +248,20 @@ export default function CruisesContent() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fetch cruises based on filters
-  const fetchCruises = useCallback(async () => {
+  // Fetch cruises based on filters - NOT using useCallback to avoid stale closures
+  const fetchCruises = async () => {
+    console.log("=== fetchCruises called ===");
+    console.log("Current filter states:", {
+      selectedCruiseLines,
+      selectedMonths,
+      selectedNightRanges,
+      selectedDeparturePorts,
+      selectedShips,
+      selectedRegions,
+      page,
+      sortBy,
+    });
+
     setLoading(true);
     setError(false);
     // Clear existing cruises to prevent showing stale data
@@ -310,7 +328,16 @@ export default function CruisesContent() {
 
       const url = `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?${params.toString()}`;
 
-      const response = await fetch(url, { signal: controller.signal });
+      console.log("Fetching URL:", url);
+      console.log("Query params:", params.toString());
+
+      const response = await fetch(url, {
+        signal: controller.signal,
+        cache: "no-store", // Prevent caching
+        headers: {
+          "Cache-Control": "no-cache",
+        },
+      });
 
       clearTimeout(timeoutId);
 
@@ -402,19 +429,13 @@ export default function CruisesContent() {
     } finally {
       setLoading(false);
     }
-  }, [
-    page,
-    selectedCruiseLines,
-    selectedMonths,
-    selectedNightRanges,
-    selectedDeparturePorts,
-    selectedShips,
-    selectedRegions,
-    sortBy,
-  ]);
+  };
 
   // Sync state with URL parameters when they change
   useEffect(() => {
+    console.log("=== URL Sync useEffect triggered ===");
+    console.log("Current URL search params:", searchParams.toString());
+
     // Update state from URL parameters
     const cruiseLinesParam = searchParams.get("cruiseLines");
     const monthsParam = searchParams.get("months");
@@ -424,6 +445,17 @@ export default function CruisesContent() {
     const regionsParam = searchParams.get("regions");
     const pageParam = searchParams.get("page");
     const sortParam = searchParams.get("sort");
+
+    console.log("Extracted params from URL:", {
+      cruiseLinesParam,
+      monthsParam,
+      nightsParam,
+      portsParam,
+      shipsParam,
+      regionsParam,
+      pageParam,
+      sortParam,
+    });
 
     // Update cruise lines
     if (cruiseLinesParam) {
@@ -495,7 +527,16 @@ export default function CruisesContent() {
   // Fetch cruises when filters or page changes (now handles initial load too)
   useEffect(() => {
     fetchCruises();
-  }, [fetchCruises]);
+  }, [
+    page,
+    selectedCruiseLines,
+    selectedMonths,
+    selectedNightRanges,
+    selectedDeparturePorts,
+    selectedShips,
+    selectedRegions,
+    sortBy,
+  ]);
 
   // Get applied filters for display - memoized for performance
   const appliedFilters = useMemo(() => {
