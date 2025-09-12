@@ -85,6 +85,7 @@ export default function CruisesContent() {
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<string>("soonest");
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Filter states - support multi-select
   const [selectedCruiseLines, setSelectedCruiseLines] = useState<number[]>([]);
@@ -448,12 +449,21 @@ export default function CruisesContent() {
 
     // Update sort
     setSortBy(sortParam || "soonest");
+
+    // Mark as initialized after processing URL params
+    setIsInitialized(true);
   }, [searchParams]);
 
   // Initial load is now handled by fetchCruises in the useEffect below
 
   // Fetch cruises when filters or page changes (now handles initial load too)
   useEffect(() => {
+    // Skip fetch until URL params are processed on initial load
+    if (!isInitialized) {
+      console.log("=== FETCH SKIPPED - Not initialized ===");
+      return;
+    }
+
     console.log("=== FETCH TRIGGER ===");
     console.log("Triggering fetch with:", {
       page,
@@ -467,6 +477,7 @@ export default function CruisesContent() {
     });
     fetchCruises();
   }, [
+    isInitialized,
     page,
     selectedCruiseLines,
     selectedMonths,
