@@ -127,10 +127,6 @@ export default function CruisesContent() {
   const updateURLParams = (
     updates: Record<string, string | number | string[] | number[] | null>,
   ) => {
-    console.log("=== updateURLParams called ===");
-    console.log("Updates to apply:", updates);
-    console.log("Current searchParams before update:", searchParams.toString());
-
     const params = new URLSearchParams(searchParams.toString());
 
     Object.entries(updates).forEach(([key, value]) => {
@@ -152,9 +148,11 @@ export default function CruisesContent() {
       params.set("page", "1");
     }
 
-    const newUrl = `${window.location.pathname}?${params.toString()}`;
-    console.log("New URL to push:", newUrl);
-    console.log("New params string:", params.toString());
+    // Build URL without trailing ? if no params
+    const paramString = params.toString();
+    const newUrl = paramString
+      ? `${window.location.pathname}?${paramString}`
+      : window.location.pathname;
     router.push(newUrl, { scroll: false });
   };
 
@@ -250,18 +248,6 @@ export default function CruisesContent() {
 
   // Fetch cruises based on filters - NOT using useCallback to avoid stale closures
   const fetchCruises = async () => {
-    console.log("=== fetchCruises called ===");
-    console.log("Current filter states:", {
-      selectedCruiseLines,
-      selectedMonths,
-      selectedNightRanges,
-      selectedDeparturePorts,
-      selectedShips,
-      selectedRegions,
-      page,
-      sortBy,
-    });
-
     setLoading(true);
     setError(false);
     // Clear existing cruises to prevent showing stale data
@@ -327,9 +313,6 @@ export default function CruisesContent() {
       const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased timeout
 
       const url = `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?${params.toString()}`;
-
-      console.log("Fetching URL:", url);
-      console.log("Query params:", params.toString());
 
       const response = await fetch(url, {
         signal: controller.signal,
@@ -433,9 +416,6 @@ export default function CruisesContent() {
 
   // Sync state with URL parameters when they change
   useEffect(() => {
-    console.log("=== URL Sync useEffect triggered ===");
-    console.log("Current URL search params:", searchParams.toString());
-
     // Update state from URL parameters
     const cruiseLinesParam = searchParams.get("cruiseLines");
     const monthsParam = searchParams.get("months");
@@ -445,17 +425,6 @@ export default function CruisesContent() {
     const regionsParam = searchParams.get("regions");
     const pageParam = searchParams.get("page");
     const sortParam = searchParams.get("sort");
-
-    console.log("Extracted params from URL:", {
-      cruiseLinesParam,
-      monthsParam,
-      nightsParam,
-      portsParam,
-      shipsParam,
-      regionsParam,
-      pageParam,
-      sortParam,
-    });
 
     // Update cruise lines
     if (cruiseLinesParam) {
@@ -690,16 +659,8 @@ export default function CruisesContent() {
   };
 
   const clearAllFilters = () => {
-    // Only update URL, let useEffect sync state
-    updateURLParams({
-      cruiseLines: null,
-      months: null,
-      nights: null,
-      ports: null,
-      ships: null,
-      regions: null,
-      page: null,
-    });
+    // Clear URL completely and navigate to base path
+    router.push("/cruises", { scroll: false });
   };
 
   const handleOpenMissive = () => {
@@ -787,7 +748,8 @@ export default function CruisesContent() {
                         : [...currentLines, lineId];
                       // Only update URL, let useEffect sync state
                       updateURLParams({
-                        cruiseLines: newSelection,
+                        cruiseLines:
+                          newSelection.length > 0 ? newSelection : null,
                         page: 1,
                       });
                     }}
@@ -895,7 +857,10 @@ export default function CruisesContent() {
                                     : [...currentMonths, monthStr];
                                   // Only update URL, let useEffect sync state
                                   updateURLParams({
-                                    months: newSelection,
+                                    months:
+                                      newSelection.length > 0
+                                        ? newSelection
+                                        : null,
                                     page: 1,
                                   });
                                 }
@@ -957,7 +922,8 @@ export default function CruisesContent() {
                             : [...currentNights, range];
                           // Only update URL, let useEffect sync state
                           updateURLParams({
-                            nights: newSelection,
+                            nights:
+                              newSelection.length > 0 ? newSelection : null,
                             page: 1,
                           });
                         }}
@@ -1034,7 +1000,7 @@ export default function CruisesContent() {
                         : [...currentPorts, portId];
                       // Only update URL, let useEffect sync state
                       updateURLParams({
-                        ports: newSelection,
+                        ports: newSelection.length > 0 ? newSelection : null,
                         page: 1,
                       });
                     }}
@@ -1107,7 +1073,7 @@ export default function CruisesContent() {
                         : [...currentShips, shipId];
                       // Only update URL, let useEffect sync state
                       updateURLParams({
-                        ships: newSelection,
+                        ships: newSelection.length > 0 ? newSelection : null,
                         page: 1,
                       });
                     }}
@@ -1180,7 +1146,7 @@ export default function CruisesContent() {
                         : [...currentRegions, regionId];
                       // Only update URL, let useEffect sync state
                       updateURLParams({
-                        regions: newSelection,
+                        regions: newSelection.length > 0 ? newSelection : null,
                         page: 1,
                       });
                     }}
