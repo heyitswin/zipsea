@@ -484,7 +484,8 @@ export default function AdminQuotes() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {quote.status === "waiting" && (
+                    {(quote.status === "waiting" ||
+                      quote.status === "pending") && (
                       <button
                         onClick={() => setSelectedQuote(quote)}
                         className="text-blue-600 hover:text-blue-900"

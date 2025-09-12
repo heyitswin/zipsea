@@ -1126,7 +1126,7 @@ export default function CruisesContent() {
                   <div
                     key={cruise.id}
                     onClick={() => router.push(`/cruise/${slug}`)}
-                    className="bg-white border border-gray-200 rounded-lg p-6 cursor-pointer"
+                    className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer"
                   >
                     <div className="flex gap-6">
                       {/* Featured Image */}
@@ -1163,7 +1163,7 @@ export default function CruisesContent() {
                       </div>
 
                       {/* Cruise Details */}
-                      <div className="flex-1 flex justify-between">
+                      <div className="flex-1 flex justify-between items-center">
                         <div className="flex-1">
                           <h3
                             className="font-whitney font-black uppercase text-[#2F2F2F] text-[24px] mb-1"
@@ -1177,7 +1177,7 @@ export default function CruisesContent() {
                             {cruise.ship?.name || "Unknown Ship"}
                           </p>
 
-                          <div className="grid grid-cols-4 gap-8">
+                          <div className="grid grid-cols-4 gap-4">
                             <div>
                               <div
                                 className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
@@ -1186,13 +1186,15 @@ export default function CruisesContent() {
                                 DEPART
                               </div>
                               <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
-                                {new Date(
-                                  cruise.sailingDate + "T00:00:00",
-                                ).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                })}
+                                {cruise.sailingDate
+                                  ? new Date(
+                                      cruise.sailingDate + "T00:00:00",
+                                    ).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    })
+                                  : "TBA"}
                               </div>
                             </div>
 
@@ -1204,16 +1206,18 @@ export default function CruisesContent() {
                                 RETURN
                               </div>
                               <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
-                                {new Date(
-                                  new Date(
-                                    cruise.sailingDate + "T00:00:00",
-                                  ).getTime() +
-                                    cruise.nights * 24 * 60 * 60 * 1000,
-                                ).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                })}
+                                {cruise.sailingDate && cruise.nights
+                                  ? new Date(
+                                      new Date(
+                                        cruise.sailingDate + "T00:00:00",
+                                      ).getTime() +
+                                        cruise.nights * 24 * 60 * 60 * 1000,
+                                    ).toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    })
+                                  : "TBA"}
                               </div>
                             </div>
 

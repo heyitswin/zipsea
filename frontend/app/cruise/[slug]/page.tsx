@@ -796,8 +796,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
                   {/* Title and Description */}
                   <div
-                    className="px-5 py-4 md:py-3"
-                    style={{ minWidth: "480px", maxWidth: "520px" }}
+                    className="px-5 py-4 md:py-3 flex-1"
+                    style={{ minWidth: "400px", maxWidth: "480px" }}
                   >
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       Inside Cabin
@@ -894,8 +894,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
                   {/* Title and Description */}
                   <div
-                    className="px-5 py-4 md:py-3"
-                    style={{ minWidth: "480px", maxWidth: "520px" }}
+                    className="px-5 py-4 md:py-3 flex-1"
+                    style={{ minWidth: "400px", maxWidth: "480px" }}
                   >
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       Outside Cabin
@@ -996,8 +996,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
                   {/* Title and Description */}
                   <div
-                    className="px-5 py-4 md:py-3"
-                    style={{ minWidth: "480px", maxWidth: "520px" }}
+                    className="px-5 py-4 md:py-3 flex-1"
+                    style={{ minWidth: "400px", maxWidth: "480px" }}
                   >
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       Balcony Cabin
@@ -1098,8 +1098,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
                   {/* Title and Description */}
                   <div
-                    className="px-5 py-4 md:py-3"
-                    style={{ minWidth: "480px", maxWidth: "520px" }}
+                    className="px-5 py-4 md:py-3 flex-1"
+                    style={{ minWidth: "400px", maxWidth: "480px" }}
                   >
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       Suite Cabin
