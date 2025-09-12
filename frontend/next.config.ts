@@ -69,7 +69,8 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://webchat.missiveapp.com https://*.clerk.accounts.dev https://clerk.zipsea.com https://challenges.cloudflare.com https://us-assets.i.posthog.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://webchat.missiveapp.com https://*.clerk.accounts.dev https://clerk.zipsea.com https://challenges.cloudflare.com https://us-assets.i.posthog.com",
+              "worker-src 'self' blob:",
               "style-src 'self' 'unsafe-inline' https://webchat.missiveapp.com",
               "img-src 'self' data: blob: https: http:",
               "font-src 'self' data:",
