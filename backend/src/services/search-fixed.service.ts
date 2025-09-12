@@ -232,23 +232,25 @@ class SearchFixedService {
   async getFilters() {
     try {
       const [cruiseLines, ships, ports, priceResult, nightsResult, dateResult] = await Promise.all([
-        db.execute(sql`
+        sql`
           SELECT DISTINCT cl.id, cl.name
           FROM cruise_lines cl
           JOIN cruises c ON c.cruise_line_id = cl.id
           WHERE c.is_active = true
           AND c.sailing_date >= CURRENT_DATE
           ORDER BY cl.name
-        `),
-        db.execute(sql`
+          LIMIT 100
+        `,
+        sql`
           SELECT DISTINCT s.id, s.name, s.cruise_line_id
           FROM ships s
           JOIN cruises c ON c.ship_id = s.id
           WHERE c.is_active = true
           AND c.sailing_date >= CURRENT_DATE
           ORDER BY s.name
-        `),
-        db.execute(sql`
+          LIMIT 200
+        `,
+        sql`
           SELECT DISTINCT p.id, p.name
           FROM ports p
           WHERE p.id IN (
@@ -257,8 +259,9 @@ class SearchFixedService {
             SELECT disembarkation_port_id FROM cruises WHERE is_active = true AND sailing_date >= CURRENT_DATE
           )
           ORDER BY p.name
-        `),
-        db.execute(sql`
+          LIMIT 100
+        `,
+        sql`
           SELECT
             MIN(COALESCE(cp.cheapest_price, 0)) as min_price,
             MAX(COALESCE(cp.cheapest_price, 99999)) as max_price
@@ -266,32 +269,36 @@ class SearchFixedService {
           LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
           WHERE c.is_active = true
           AND c.sailing_date >= CURRENT_DATE
-        `),
-        db.execute(sql`
+        `,
+        sql`
           SELECT
             MIN(nights) as min_nights,
             MAX(nights) as max_nights
           FROM cruises
           WHERE is_active = true
           AND sailing_date >= CURRENT_DATE
-        `),
-        db.execute(sql`
+        `,
+        sql`
           SELECT
             MIN(sailing_date) as min_date,
             MAX(sailing_date) as max_date
           FROM cruises
           WHERE is_active = true
           AND sailing_date >= CURRENT_DATE
-        `),
+        `,
       ]);
 
-      // Extract rows from execute results
-      const cruiseLinesData = (cruiseLines as any).rows || cruiseLines || [];
-      const shipsData = (ships as any).rows || ships || [];
-      const portsData = (ports as any).rows || ports || [];
-      const priceData = ((priceResult as any).rows || priceResult || [])[0] || {};
-      const nightsData = ((nightsResult as any).rows || nightsResult || [])[0] || {};
-      const dateData = ((dateResult as any).rows || dateResult || [])[0] || {};
+      // postgres library returns results directly, not in .rows property
+      const cruiseLinesData = cruiseLines || [];
+      const shipsData = ships || [];
+      const portsData = ports || [];
+      const priceData = (priceResult || [])[0] || {};
+      const nightsData = (nightsResult || [])[0] || {};
+      const dateData = (dateResult || [])[0] || {};
+
+      logger.info(
+        `Filter data fetched: ${cruiseLinesData.length} cruise lines, ${shipsData.length} ships, ${portsData.length} ports`
+      );
 
       return {
         cruiseLines: cruiseLinesData,
