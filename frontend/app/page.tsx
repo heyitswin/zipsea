@@ -19,52 +19,42 @@ import Navigation from "./components/Navigation";
 import SearchResultsModal from "./components/SearchResultsModal";
 import { trackSearch, trackEngagement } from "../lib/analytics";
 
+interface FilterOption {
+  id: number;
+  name: string;
+  count?: number;
+}
+
 // Separate component to handle URL params (needs to be wrapped in Suspense)
 function HomeWithParams() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showAlert } = useAlert();
-  const [searchValue, setSearchValue] = useState("");
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isInputFocused, setIsInputFocused] = useState(false);
-  const [isDropdownClosing, setIsDropdownClosing] = useState(false);
-  const [ships, setShips] = useState<Ship[]>([]);
-  const [filteredShips, setFilteredShips] = useState<Ship[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Date picker states
-  const [dateValue, setDateValue] = useState("");
+  // New search states for the three dropdowns
+  const [selectedRegions, setSelectedRegions] = useState<number[]>([]);
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+  const [selectedCruiseLines, setSelectedCruiseLines] = useState<number[]>([]);
+
+  // Dropdown open states
+  const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
-  const [isDateInputFocused, setIsDateInputFocused] = useState(false);
-  const [isDateDropdownClosing, setIsDateDropdownClosing] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const dateInputRef = useRef<HTMLInputElement>(null);
-  const dateDropdownRef = useRef<HTMLDivElement>(null);
+  const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] =
+    useState(false);
 
-  const [selectedShip, setSelectedShip] = useState<Ship | null>(null);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  // Filter options from API
+  const [regions, setRegions] = useState<FilterOption[]>([]);
+  const [cruiseLines, setCruiseLines] = useState<FilterOption[]>([]);
+  const [isLoadingFilters, setIsLoadingFilters] = useState(false);
+
+  // Refs for dropdown click outside detection
+  const regionDropdownRef = useRef<HTMLDivElement>(null);
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
+  const cruiseLineDropdownRef = useRef<HTMLDivElement>(null);
 
   // Last minute deals states
   const [lastMinuteDeals, setLastMinuteDeals] = useState<LastMinuteDeals[]>([]);
   const [isLoadingDeals, setIsLoadingDeals] = useState(false);
-
-  // Search results modal states
-  const [isSearchResultsOpen, setIsSearchResultsOpen] = useState(false);
-  const [searchModalParams, setSearchModalParams] = useState<{
-    shipId: number;
-    shipName: string;
-    cruiseLineName: string;
-    date: Date;
-  } | null>(null);
-
-  // Available sailing dates states
-  const [availableSailingDates, setAvailableSailingDates] = useState<
-    AvailableSailingDate[]
-  >([]);
-  const [isLoadingSailingDates, setIsLoadingSailingDates] = useState(false);
 
   // Handle post-authentication redirects
   useEffect(() => {
@@ -97,123 +87,29 @@ function HomeWithParams() {
     }
   }, [router]);
 
-  // Handle URL parameters on initial load (e.g., from navigation searches)
+  // Fetch filter options from API
   useEffect(() => {
-    if (!searchParams || !ships.length) return;
-
-    const shipParam = searchParams.get("ship");
-    const shipIdParam = searchParams.get("shipId");
-    const dateParam = searchParams.get("date");
-
-    if (shipParam && shipIdParam && dateParam) {
+    const fetchFilterOptions = async () => {
+      setIsLoadingFilters(true);
       try {
-        // Find the ship by ID
-        const foundShip = ships.find(
-          (ship) => ship.id === parseInt(shipIdParam),
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/filter-options`,
         );
-
-        if (foundShip) {
-          // Set ship selection
-          setSearchValue(foundShip.name);
-          setSelectedShip(foundShip);
-
-          // Set date selection
-          const date = new Date(dateParam);
-          if (!isNaN(date.getTime())) {
-            setSelectedDate(date);
-            const formattedDate = date.toLocaleDateString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            });
-            setDateValue(formattedDate);
-
-            // Load available sailing dates for the ship
-            loadAvailableSailingDates(foundShip.id);
-
-            // Trigger search automatically after a short delay to ensure state is set
-            setTimeout(async () => {
-              // Inline search logic to avoid dependency issues
-              try {
-                const searchParamsForApi = {
-                  shipId: foundShip.id,
-                  shipName: foundShip.name,
-                  departureDate: date.toISOString().split("T")[0],
-                };
-
-                const results = await searchCruises(searchParamsForApi);
-
-                // Track search event
-                trackSearch({
-                  destination: foundShip.name,
-                  departurePort: undefined,
-                  cruiseLine: foundShip.cruiseLineName,
-                  dateRange: date.toISOString().split("T")[0],
-                  resultsCount: results.length,
-                });
-
-                if (results.length === 1) {
-                  // Navigate directly to the cruise
-                  const rawCruise = results[0];
-                  const cruise = normalizeCruiseData(rawCruise);
-                  try {
-                    const slug = createSlugFromCruise({
-                      id: cruise.id,
-                      shipName:
-                        cruise.shipName || foundShip.name || "unknown-ship",
-                      sailingDate: cruise.sailingDate || cruise.departureDate,
-                    });
-                    router.push(`/cruise/${slug}`);
-                  } catch (error) {
-                    console.error(
-                      "Failed to create slug for cruise:",
-                      cruise,
-                      error,
-                    );
-                    router.push(`/cruise-details?id=${cruise.id}`);
-                  }
-                } else if (results.length === 0) {
-                  showAlert("No cruises found for your search criteria");
-                } else {
-                  showAlert(
-                    `Found ${results.length} cruises. Please refine your search.`,
-                  );
-                }
-              } catch (err) {
-                console.error("Error searching cruises:", err);
-                showAlert("Failed to search cruises. Please try again.");
-              }
-            }, 500);
-          }
+        if (response.ok) {
+          const data = await response.json();
+          setRegions(data.regions || []);
+          setCruiseLines(data.cruiseLines || []);
         }
       } catch (error) {
-        console.error("Error processing URL parameters:", error);
-        // Continue normal operation if URL parsing fails
-      }
-    }
-  }, [searchParams, ships, showAlert, router]); // Dependencies on searchParams, ships, and functions being used
-
-  // Load ships on component mount
-  useEffect(() => {
-    const loadShips = async () => {
-      try {
-        setIsLoading(true);
-        const shipsData = await fetchShips();
-        setShips(shipsData);
-        setFilteredShips(shipsData);
-      } catch (err) {
-        console.error("Failed to load ships:", err);
-        showAlert("Failed to load ships. Please try again later.");
-        // Fallback to empty array
-        setShips([]);
-        setFilteredShips([]);
+        console.error("Error fetching filter options:", error);
+        setRegions([]);
+        setCruiseLines([]);
       } finally {
-        setIsLoading(false);
+        setIsLoadingFilters(false);
       }
     };
 
-    loadShips();
+    fetchFilterOptions();
   }, []);
 
   // Load last minute deals on component mount
@@ -235,295 +131,32 @@ function HomeWithParams() {
     loadLastMinuteDeals();
   }, []);
 
-  // Load available sailing dates for a ship
-  const loadAvailableSailingDates = async (shipId: number) => {
-    setIsLoadingSailingDates(true);
-    const dates = await fetchAvailableSailingDates(shipId);
-    setAvailableSailingDates(dates);
-    setIsLoadingSailingDates(false);
-  };
-
-  // Filter ships based on search input
-  useEffect(() => {
-    if (!searchValue.trim()) {
-      setFilteredShips(ships);
-      setHighlightedIndex(-1);
-      return;
-    }
-
-    const searchLower = searchValue.toLowerCase();
-    const filtered = ships.filter((ship) => {
-      const shipName = ship.name.toLowerCase();
-      const cruiseLineName = ship.cruiseLineName.toLowerCase();
-
-      // Search in ship name or cruise line name
-      return (
-        shipName.includes(searchLower) || cruiseLineName.includes(searchLower)
-      );
-    });
-
-    // Sort by relevance (exact matches first, then starts with, then contains)
-    filtered.sort((a, b) => {
-      const aName = a.name.toLowerCase();
-      const bName = b.name.toLowerCase();
-
-      // Exact match
-      if (aName === searchLower) return -1;
-      if (bName === searchLower) return 1;
-
-      // Starts with
-      if (aName.startsWith(searchLower) && !bName.startsWith(searchLower))
-        return -1;
-      if (bName.startsWith(searchLower) && !aName.startsWith(searchLower))
-        return 1;
-
-      // Alphabetical for equal relevance
-      return aName.localeCompare(bName);
-    });
-
-    setFilteredShips(filtered);
-    setHighlightedIndex(-1);
-  }, [searchValue, ships]);
-
   // Handle click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Handle ship dropdown
       if (
-        dropdownRef.current &&
-        inputRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        !inputRef.current.contains(event.target as Node) &&
-        isDropdownOpen && // Only trigger if dropdown is actually open
-        !isDropdownClosing // Don't trigger if already closing
+        regionDropdownRef.current &&
+        !regionDropdownRef.current.contains(event.target as Node)
       ) {
-        // Start fade-out animation
-        setIsDropdownClosing(true);
-        // Close dropdown after animation completes
-        setTimeout(() => {
-          setIsDropdownOpen(false);
-          setIsDropdownClosing(false);
-        }, 150); // Match the CSS animation duration
+        setIsRegionDropdownOpen(false);
       }
-
-      // Handle date dropdown
       if (
         dateDropdownRef.current &&
-        dateInputRef.current &&
-        !dateDropdownRef.current.contains(event.target as Node) &&
-        !dateInputRef.current.contains(event.target as Node) &&
-        isDateDropdownOpen && // Only trigger if dropdown is actually open
-        !isDateDropdownClosing // Don't trigger if already closing
+        !dateDropdownRef.current.contains(event.target as Node)
       ) {
-        // Start fade-out animation
-        setIsDateDropdownClosing(true);
-        // Close dropdown after animation completes
-        setTimeout(() => {
-          setIsDateDropdownOpen(false);
-          setIsDateDropdownClosing(false);
-        }, 150); // Match the CSS animation duration
+        setIsDateDropdownOpen(false);
+      }
+      if (
+        cruiseLineDropdownRef.current &&
+        !cruiseLineDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsCruiseLineDropdownOpen(false);
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [
-    isDropdownOpen,
-    isDropdownClosing,
-    isDateDropdownOpen,
-    isDateDropdownClosing,
-  ]); // Add dependencies to ensure proper behavior
-
-  const handleInputFocus = () => {
-    setIsInputFocused(true);
-    setIsDropdownOpen(true);
-  };
-
-  const handleInputBlur = () => {
-    setIsInputFocused(false);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchValue(e.target.value);
-    setIsDropdownOpen(true);
-    setHighlightedIndex(-1);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!isDropdownOpen || filteredShips.length === 0) return;
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        setHighlightedIndex((prev) =>
-          prev < filteredShips.length - 1 ? prev + 1 : 0,
-        );
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setHighlightedIndex((prev) =>
-          prev > 0 ? prev - 1 : filteredShips.length - 1,
-        );
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (highlightedIndex >= 0 && highlightedIndex < filteredShips.length) {
-          handleShipSelect(filteredShips[highlightedIndex]);
-        }
-        break;
-      case "Escape":
-        e.preventDefault();
-        setIsDropdownClosing(true);
-        setTimeout(() => {
-          setIsDropdownOpen(false);
-          setIsDropdownClosing(false);
-        }, 150);
-        break;
-    }
-  };
-
-  const handleShipSelect = (ship: Ship) => {
-    setSearchValue(ship.name);
-    setSelectedShip(ship); // Store the selected ship
-    setIsDropdownClosing(true);
-    // Close dropdown after animation completes
-    setTimeout(() => {
-      setIsDropdownOpen(false);
-      setIsDropdownClosing(false);
-    }, 150);
-    inputRef.current?.blur();
-
-    // Load available sailing dates for the selected ship
-    loadAvailableSailingDates(ship.id);
-  };
-
-  // Date picker handlers
-  const handleDateInputFocus = () => {
-    setIsDateInputFocused(true);
-    setIsDateDropdownOpen(true);
-    // Always set to current month when first opening
-    setCurrentMonth(new Date());
-  };
-
-  const handleDateInputBlur = () => {
-    setIsDateInputFocused(false);
-  };
-
-  const handleDateSelect = (date: Date) => {
-    setSelectedDate(date);
-    const formattedDate = date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-    setDateValue(formattedDate);
-    setIsDateDropdownClosing(true);
-    // Close dropdown after animation completes
-    setTimeout(() => {
-      setIsDateDropdownOpen(false);
-      setIsDateDropdownClosing(false);
-    }, 150);
-    dateInputRef.current?.blur();
-  };
-
-  const handlePreviousMonth = () => {
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonthIndex = today.getMonth();
-
-    setCurrentMonth((prev) => {
-      const newDate = new Date(prev);
-      const prevMonth = prev.getMonth() - 1;
-      const prevYear = prev.getFullYear();
-
-      // Don't allow navigation to months before current month/year
-      if (
-        prevYear < currentYear ||
-        (prevYear === currentYear && prevMonth < currentMonthIndex)
-      ) {
-        return prev; // Return current state without changing
-      }
-
-      newDate.setMonth(prevMonth);
-      return newDate;
-    });
-  };
-
-  const handleNextMonth = () => {
-    setCurrentMonth((prev) => {
-      const newDate = new Date(prev);
-      newDate.setMonth(prev.getMonth() + 1);
-      return newDate;
-    });
-  };
-
-  // Calendar utilities
-  const getDaysInMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
-
-  const getFirstDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  };
-
-  const isPreviousMonthDisabled = () => {
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonthIndex = today.getMonth();
-
-    const displayYear = currentMonth.getFullYear();
-    const displayMonthIndex = currentMonth.getMonth();
-
-    return displayYear <= currentYear && displayMonthIndex <= currentMonthIndex;
-  };
-
-  const isDateInPast = (date: Date) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return date < today;
-  };
-
-  // Check if a date has available sailings for the selected ship
-  const hasAvailableSailing = (date: Date) => {
-    if (!selectedShip || availableSailingDates.length === 0) {
-      return true; // If no ship selected or no data, don't restrict
-    }
-
-    const dateString = date.toISOString().split("T")[0];
-    return availableSailingDates.some((sailingDate) => {
-      return sailingDate.sailingDates.some((sailing) => {
-        const sailingDateOnly = sailing.split("T")[0];
-        return sailingDateOnly === dateString;
-      });
-    });
-  };
-
-  // Check if a date should be highlighted (has sailings)
-  const isHighlightedDate = (date: Date) => {
-    if (!selectedShip || availableSailingDates.length === 0) {
-      return false; // Don't highlight if no ship selected
-    }
-    return hasAvailableSailing(date) && !isDateInPast(date);
-  };
-
-  const generateCalendarDays = () => {
-    const daysInMonth = getDaysInMonth(currentMonth);
-    const firstDayOfMonth = getFirstDayOfMonth(currentMonth);
-    const days = [];
-
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(null);
-    }
-
-    // Add all days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(day);
-    }
-
-    return days;
-  };
+  }, []);
 
   // Handle cruise card clicks for last minute deals
   const handleCruiseClick = (cruise: Cruise) => {
@@ -531,11 +164,7 @@ function HomeWithParams() {
       // Generate slug for the cruise
       const slug = createSlugFromCruise({
         id: cruise.id,
-        shipName:
-          cruise.shipName ||
-          cruise.ship_name ||
-          selectedShip?.name ||
-          "unknown-ship",
+        shipName: cruise.shipName || cruise.ship_name || "unknown-ship",
         sailingDate:
           cruise.departureDate || cruise.departure_date || cruise.sailing_date,
       });
@@ -547,78 +176,68 @@ function HomeWithParams() {
     }
   };
 
-  // Handle search - only navigate when both ship and date are selected
-  const handleSearchCruises = async () => {
-    if (!selectedShip) {
-      showAlert("Please select a ship");
-      return;
+  // Handle search - navigate to /cruises with filters
+  const handleSearchCruises = () => {
+    const params = new URLSearchParams();
+
+    // Add regions if selected
+    if (selectedRegions.length > 0) {
+      params.set("regions", selectedRegions.join(","));
     }
 
-    if (!selectedDate) {
-      showAlert("Please select a departure date");
-      return;
+    // Add months if selected
+    if (selectedMonths.length > 0) {
+      params.set("months", selectedMonths.join(","));
     }
 
-    try {
-      const searchParams = {
-        shipId: selectedShip.id,
-        shipName: selectedShip.name,
-        departureDate: selectedDate.toISOString().split("T")[0],
-      };
-
-      const results = await searchCruises(searchParams);
-
-      // Track search event
-      trackSearch({
-        destination: selectedShip.name,
-        departurePort: undefined, // Ship doesn't have homePort in this interface
-        cruiseLine: selectedShip.cruiseLineName,
-        dateRange: selectedDate.toISOString().split("T")[0],
-        resultsCount: results.length,
-      });
-
-      if (results.length === 1) {
-        // Navigate directly to the cruise
-        handleCruiseClick(results[0]);
-      } else if (results.length === 0) {
-        showAlert("No cruises found for your search criteria");
-      } else {
-        // Show search results in modal
-        setSearchModalParams({
-          shipId: selectedShip.id,
-          shipName: selectedShip.name,
-          cruiseLineName: selectedShip.cruiseLineName || "",
-          date: selectedDate,
-        });
-        setIsSearchResultsOpen(true);
-      }
-    } catch (err) {
-      console.error("Error searching cruises:", err);
-      showAlert("Failed to search cruises. Please try again.");
+    // Add cruise lines if selected
+    if (selectedCruiseLines.length > 0) {
+      params.set("cruiseLines", selectedCruiseLines.join(","));
     }
+
+    // Navigate to /cruises with the filters
+    const url = params.toString()
+      ? `/cruises?${params.toString()}`
+      : "/cruises";
+    router.push(url);
+  };
+
+  // Helper function to get placeholder text
+  const getRegionPlaceholder = () => {
+    if (selectedRegions.length === 0) return "All destinations";
+    if (selectedRegions.length === 1) {
+      const region = regions.find((r) => r.id === selectedRegions[0]);
+      return region?.name || "1 selected";
+    }
+    return `${selectedRegions.length} selected`;
+  };
+
+  const getDatePlaceholder = () => {
+    if (selectedMonths.length === 0) return "All dates";
+    if (selectedMonths.length === 1) {
+      const [year, month] = selectedMonths[0].split("-");
+      const monthName = new Date(
+        parseInt(year),
+        parseInt(month) - 1,
+      ).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+      return monthName;
+    }
+    return `${selectedMonths.length} selected`;
+  };
+
+  const getCruiseLinePlaceholder = () => {
+    if (selectedCruiseLines.length === 0) return "All cruise lines";
+    if (selectedCruiseLines.length === 1) {
+      const line = cruiseLines.find((cl) => cl.id === selectedCruiseLines[0]);
+      return line?.name || "1 selected";
+    }
+    return `${selectedCruiseLines.length} selected`;
   };
 
   return (
     <>
       {/* Override global navigation with homepage-specific functionality */}
-      <Navigation
-        showMinimizedSearch={true}
-        searchValue={searchValue}
-        onSearchValueChange={setSearchValue}
-        selectedShip={selectedShip}
-        onShipSelect={handleShipSelect}
-        dateValue={dateValue}
-        onDateSelect={handleDateSelect}
-        selectedDate={selectedDate}
-        onSearchClick={handleSearchCruises}
-      />
-
-      {/* Search Results Modal */}
-      <SearchResultsModal
-        isOpen={isSearchResultsOpen}
-        onClose={() => setIsSearchResultsOpen(false)}
-        searchParams={searchModalParams}
-      />
+      <Navigation showMinimizedSearch={false} />
 
       {/* Hero Section */}
       <section className="relative h-[720px] bg-light-blue pt-[120px] md:pt-[100px] pb-[50px] md:pb-[100px] overflow-visible z-20">
@@ -711,286 +330,519 @@ function HomeWithParams() {
             We pass on the most onboard credit - every single booking
           </p>
 
-          {/* Search Input Container - Responsive Layout */}
+          {/* Search Input Container - New Three Dropdowns */}
           <div className="w-full max-w-[900px] relative z-30">
-            {/* Desktop: Single Search Pill */}
-            <div className="hidden md:block">
-              <div
-                className="h-[90px] bg-white rounded-full flex items-center overflow-hidden p-2 relative"
-                style={{ boxShadow: "0 0 0 5px rgba(255, 255, 255, 0.3)" }}
-              >
-                {/* Select Ship Input */}
-                <div className="flex-1 flex items-center px-6 h-full">
-                  <svg
-                    width="32"
-                    height="32"
-                    viewBox="0 0 34 27"
-                    fill="none"
-                    className="mr-4"
-                    style={{ shapeRendering: "geometricPrecision" }}
-                  >
-                    <path
-                      d="M32.8662 25.4355C32.0707 25.4334 31.2888 25.2282 30.5947 24.8395C29.9005 24.4508 29.3171 23.8914 28.8995 23.2142C28.478 23.8924 27.8906 24.4519 27.1926 24.8398C26.4947 25.2278 25.7094 25.4314 24.9109 25.4314C24.1124 25.4314 23.3271 25.2278 22.6292 24.8398C21.9313 24.4519 21.3438 23.8924 20.9223 23.2142C20.5031 23.894 19.9167 24.4551 19.2191 24.844C18.5215 25.2329 17.7359 25.4365 16.9372 25.4355C14.8689 25.4355 11.4533 22.2962 9.31413 20.0961C9.17574 19.9536 8.99997 19.8529 8.80698 19.8057C8.61399 19.7585 8.4116 19.7666 8.22303 19.8292C8.03445 19.8917 7.86733 20.0062 7.74084 20.1594C7.61435 20.3126 7.53361 20.4984 7.50788 20.6954C7.36621 22.0086 6.83213 23.3105 5.25396 23.3105C4.30812 23.2648 3.39767 22.9367 2.64011 22.3686C1.88255 21.8004 1.31265 21.0183 1.00396 20.123"
-                      stroke="#0E1B4D"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                    <path
-                      d="M18 20.123L22.8875 18.9005C24.0268 18.6152 25.0946 18.097 26.0236 17.3784C26.9526 16.6598 27.7226 15.7566 28.285 14.7255L32.875 6.31055L1 12.6855"
-                      stroke="#0E1B4D"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                    <path
-                      d="M25.2861 7.8278L18.0002 4.18555L4.18772 6.31055"
-                      stroke="#0E1B4D"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                    <path
-                      d="M6.31254 11.6236L4.18754 6.31109L1.9662 2.60934C1.86896 2.4482 1.81632 2.26409 1.81369 2.0759C1.81107 1.8877 1.85854 1.7022 1.95125 1.53841C2.04396 1.37461 2.17857 1.23843 2.34127 1.14382C2.50397 1.0492 2.68891 0.999569 2.87712 1H6.31254L11.54 5.18059"
-                      stroke="#0E1B4D"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                  </svg>
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    placeholder={
-                      isInputFocused && !searchValue ? "" : "Select Ship"
-                    }
-                    value={searchValue}
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    className="flex-1 text-[24px] font-geograph text-dark-blue placeholder-dark-blue tracking-tight outline-none bg-transparent"
-                  />
-                </div>
-
-                {/* Separator */}
-                <div className="w-[1px] h-[calc(100%-16px)] bg-gray-separator" />
-
-                {/* Departure Date Input */}
-                <div className="flex-1 flex items-center px-6 h-full">
-                  <svg
-                    width="32"
-                    height="32"
-                    viewBox="0 0 33 33"
-                    fill="none"
-                    className="mr-4"
-                    style={{ shapeRendering: "geometricPrecision" }}
-                  >
-                    <path
-                      d="M29.4667 5.06836H3.03333C1.91035 5.06836 1 5.97868 1 7.10161V29.4674C1 30.5903 1.91035 31.5006 3.03333 31.5006H29.4667C30.5896 31.5006 31.5 30.5903 31.5 29.4674V7.10161C31.5 5.97868 30.5896 5.06836 29.4667 5.06836Z"
-                      stroke="#0E1B4D"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                    <path
-                      d="M1 13.1992H31.5"
-                      stroke="#0E1B4D"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                    <path
-                      d="M9.13379 8.11638V1"
-                      stroke="#0E1B4D"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                    <path
-                      d="M23.3662 8.11638V1"
-                      stroke="#0E1B4D"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                  </svg>
-                  <input
-                    ref={dateInputRef}
-                    type="text"
-                    placeholder={
-                      isDateInputFocused && !dateValue ? "" : "Departure Date"
-                    }
-                    value={dateValue}
-                    onFocus={handleDateInputFocus}
-                    onBlur={handleDateInputBlur}
-                    readOnly
-                    className="flex-1 text-[24px] font-geograph text-dark-blue placeholder-dark-blue tracking-tight outline-none bg-transparent cursor-pointer"
-                  />
-                </div>
-
-                {/* Search Button */}
+            {/* Desktop: Three Dropdowns + Search Button */}
+            <div className="hidden md:flex gap-3 items-center">
+              {/* Destinations Dropdown */}
+              <div className="relative flex-1" ref={regionDropdownRef}>
                 <button
-                  onClick={handleSearchCruises}
-                  className="absolute right-2 w-[74px] h-[74px] bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors"
+                  onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
+                  className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
+                  style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
                 >
+                  <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
+                    {getRegionPlaceholder()}
+                  </span>
                   <svg
-                    width="32"
-                    height="32"
-                    viewBox="0 0 33 33"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
                     fill="none"
-                    style={{ shapeRendering: "geometricPrecision" }}
+                    className={`transform transition-transform ${isRegionDropdownOpen ? "rotate-180" : ""}`}
                   >
                     <path
-                      d="M19.4999 25.5644C25.3213 23.0904 28.0349 16.3656 25.5608 10.5442C23.0868 4.72278 16.362 2.0092 10.5406 4.48324C4.71919 6.95728 2.00561 13.6821 4.47965 19.5035C6.95369 25.3249 13.6785 28.0385 19.4999 25.5644Z"
-                      stroke="white"
+                      d="M2 4L6 8L10 4"
+                      stroke="#0E1B4D"
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      vectorEffect="non-scaling-stroke"
-                    />
-                    <path
-                      d="M23.1172 23.123L31.9998 32.0069"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      vectorEffect="non-scaling-stroke"
                     />
                   </svg>
                 </button>
+
+                {isRegionDropdownOpen && (
+                  <div
+                    className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg z-50 max-h-[400px] overflow-y-auto"
+                    style={{ boxShadow: "0px 1px 14px rgba(0, 0, 0, 0.25)" }}
+                  >
+                    {regions.map((region) => (
+                      <button
+                        key={region.id}
+                        onClick={() => {
+                          setSelectedRegions((prev) =>
+                            prev.includes(region.id)
+                              ? prev.filter((id) => id !== region.id)
+                              : [...prev, region.id],
+                          );
+                          // Keep dropdown open
+                        }}
+                        className="w-full text-left px-6 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                      >
+                        <div
+                          className={`w-5 h-5 border-2 rounded ${
+                            selectedRegions.includes(region.id)
+                              ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                              : "border-gray-300"
+                          }`}
+                        >
+                          {selectedRegions.includes(region.id) && (
+                            <svg
+                              className="w-full h-full text-white p-0.5"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="font-geograph text-[16px] text-dark-blue">
+                          {region.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* Dates Dropdown */}
+              <div className="relative flex-1" ref={dateDropdownRef}>
+                <button
+                  onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
+                  className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
+                  style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
+                >
+                  <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
+                    {getDatePlaceholder()}
+                  </span>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    className={`transform transition-transform ${isDateDropdownOpen ? "rotate-180" : ""}`}
+                  >
+                    <path
+                      d="M2 4L6 8L10 4"
+                      stroke="#0E1B4D"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+
+                {isDateDropdownOpen && (
+                  <div
+                    className="absolute top-full mt-2 w-[400px] bg-white rounded-[10px] shadow-lg z-50 p-4 max-h-[500px] overflow-y-auto"
+                    style={{ boxShadow: "0px 1px 14px rgba(0, 0, 0, 0.25)" }}
+                  >
+                    {[2025, 2026, 2027].map((year) => {
+                      const currentDate = new Date();
+                      const currentYear = currentDate.getFullYear();
+                      const currentMonth = currentDate.getMonth();
+
+                      return (
+                        <div key={year} className="mb-4">
+                          <div className="font-geograph font-bold text-[14px] text-gray-700 mb-2">
+                            {year}
+                          </div>
+                          <div className="grid grid-cols-4 gap-2">
+                            {[
+                              "Jan",
+                              "Feb",
+                              "Mar",
+                              "Apr",
+                              "May",
+                              "Jun",
+                              "Jul",
+                              "Aug",
+                              "Sep",
+                              "Oct",
+                              "Nov",
+                              "Dec",
+                            ].map((month, index) => {
+                              const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
+                              const isSelected =
+                                selectedMonths.includes(monthStr);
+                              const isPast =
+                                year < currentYear ||
+                                (year === currentYear && index < currentMonth);
+
+                              return (
+                                <button
+                                  key={monthStr}
+                                  onClick={() => {
+                                    if (!isPast) {
+                                      setSelectedMonths((prev) =>
+                                        prev.includes(monthStr)
+                                          ? prev.filter((m) => m !== monthStr)
+                                          : [...prev, monthStr],
+                                      );
+                                      // Keep dropdown open
+                                    }
+                                  }}
+                                  disabled={isPast}
+                                  className={`px-3 py-2 rounded-full text-[14px] font-geograph transition-colors ${
+                                    isPast
+                                      ? "bg-gray-50 text-gray-400 cursor-not-allowed"
+                                      : isSelected
+                                        ? "bg-[#0E1B4D] text-white"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                  }`}
+                                >
+                                  {month}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Cruise Lines Dropdown */}
+              <div className="relative flex-1" ref={cruiseLineDropdownRef}>
+                <button
+                  onClick={() =>
+                    setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
+                  }
+                  className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
+                  style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
+                >
+                  <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
+                    {getCruiseLinePlaceholder()}
+                  </span>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    className={`transform transition-transform ${isCruiseLineDropdownOpen ? "rotate-180" : ""}`}
+                  >
+                    <path
+                      d="M2 4L6 8L10 4"
+                      stroke="#0E1B4D"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+
+                {isCruiseLineDropdownOpen && (
+                  <div
+                    className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg z-50 max-h-[400px] overflow-y-auto"
+                    style={{ boxShadow: "0px 1px 14px rgba(0, 0, 0, 0.25)" }}
+                  >
+                    {cruiseLines.map((line) => (
+                      <button
+                        key={line.id}
+                        onClick={() => {
+                          setSelectedCruiseLines((prev) =>
+                            prev.includes(line.id)
+                              ? prev.filter((id) => id !== line.id)
+                              : [...prev, line.id],
+                          );
+                          // Keep dropdown open
+                        }}
+                        className="w-full text-left px-6 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                      >
+                        <div
+                          className={`w-5 h-5 border-2 rounded ${
+                            selectedCruiseLines.includes(line.id)
+                              ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                              : "border-gray-300"
+                          }`}
+                        >
+                          {selectedCruiseLines.includes(line.id) && (
+                            <svg
+                              className="w-full h-full text-white p-0.5"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="font-geograph text-[16px] text-dark-blue">
+                          {line.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Search Button */}
+              <button
+                onClick={handleSearchCruises}
+                className="h-[74px] px-8 bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors"
+                style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
+              >
+                <span className="text-white text-[20px] font-geograph font-medium whitespace-nowrap">
+                  Search cruises
+                </span>
+              </button>
             </div>
 
-            {/* Mobile: 3 Separate Pills */}
+            {/* Mobile: 3 Separate Pills + Search Button */}
             <div className="md:hidden space-y-4">
-              {/* Ship Selector Pill */}
-              <div
-                className="h-[64px] bg-white rounded-full flex items-center px-6 relative"
-                style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
-              >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 34 27"
-                  fill="none"
-                  className="mr-3"
-                  style={{ shapeRendering: "geometricPrecision" }}
+              {/* Destinations Selector Pill */}
+              <div className="relative" ref={regionDropdownRef}>
+                <button
+                  onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
+                  className="w-full h-[64px] bg-white rounded-full flex items-center px-6"
+                  style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
                 >
-                  <path
-                    d="M32.8662 25.4355C32.0707 25.4334 31.2888 25.2282 30.5947 24.8395C29.9005 24.4508 29.3171 23.8914 28.8995 23.2142C28.478 23.8924 27.8906 24.4519 27.1926 24.8398C26.4947 25.2278 25.7094 25.4314 24.9109 25.4314C24.1124 25.4314 23.3271 25.2278 22.6292 24.8398C21.9313 24.4519 21.3438 23.8924 20.9223 23.2142C20.5031 23.894 19.9167 24.4551 19.2191 24.844C18.5215 25.2329 17.7359 25.4365 16.9372 25.4355C14.8689 25.4355 11.4533 22.2962 9.31413 20.0961C9.17574 19.9536 8.99997 19.8529 8.80698 19.8057C8.61399 19.7585 8.4116 19.7666 8.22303 19.8292C8.03445 19.8917 7.86733 20.0062 7.74084 20.1594C7.61435 20.3126 7.53361 20.4984 7.50788 20.6954C7.36621 22.0086 6.83213 23.3105 5.25396 23.3105C4.30812 23.2648 3.39767 22.9367 2.64011 22.3686C1.88255 21.8004 1.31265 21.0183 1.00396 20.123"
-                    stroke="#0E1B4D"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  <path
-                    d="M18 20.123L22.8875 18.9005C24.0268 18.6152 25.0946 18.097 26.0236 17.3784C26.9526 16.6598 27.7226 15.7566 28.285 14.7255L32.875 6.31055L1 12.6855"
-                    stroke="#0E1B4D"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  <path
-                    d="M25.2861 7.8278L18.0002 4.18555L4.18772 6.31055"
-                    stroke="#0E1B4D"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  <path
-                    d="M6.31254 11.6236L4.18754 6.31109L1.9662 2.60934C1.86896 2.4482 1.81632 2.26409 1.81369 2.0759C1.81107 1.8877 1.85854 1.7022 1.95125 1.53841C2.04396 1.37461 2.17857 1.23843 2.34127 1.14382C2.50397 1.0492 2.68891 0.999569 2.87712 1H6.31254L11.54 5.18059"
-                    stroke="#0E1B4D"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                </svg>
-                <input
-                  ref={inputRef}
-                  type="text"
-                  placeholder={
-                    isInputFocused && !searchValue ? "" : "Select Ship"
-                  }
-                  value={searchValue}
-                  onFocus={handleInputFocus}
-                  onBlur={handleInputBlur}
-                  onChange={handleInputChange}
-                  onKeyDown={handleKeyDown}
-                  className="flex-1 text-[18px] font-geograph text-dark-blue placeholder-dark-blue tracking-tight outline-none bg-transparent"
-                />
+                  <span className="flex-1 text-left text-[18px] font-geograph text-dark-blue tracking-tight">
+                    {getRegionPlaceholder()}
+                  </span>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    className={`transform transition-transform ${isRegionDropdownOpen ? "rotate-180" : ""}`}
+                  >
+                    <path
+                      d="M2 4L6 8L10 4"
+                      stroke="#0E1B4D"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+
+                {isRegionDropdownOpen && (
+                  <div
+                    className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg z-50 max-h-[300px] overflow-y-auto"
+                    style={{ boxShadow: "0px 1px 14px rgba(0, 0, 0, 0.25)" }}
+                  >
+                    {regions.map((region) => (
+                      <button
+                        key={region.id}
+                        onClick={() => {
+                          setSelectedRegions((prev) =>
+                            prev.includes(region.id)
+                              ? prev.filter((id) => id !== region.id)
+                              : [...prev, region.id],
+                          );
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                      >
+                        <div
+                          className={`w-4 h-4 border-2 rounded ${
+                            selectedRegions.includes(region.id)
+                              ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                              : "border-gray-300"
+                          }`}
+                        >
+                          {selectedRegions.includes(region.id) && (
+                            <svg
+                              className="w-full h-full text-white p-0.5"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="font-geograph text-[14px] text-dark-blue">
+                          {region.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Departure Date Pill */}
-              <div
-                className="h-[64px] bg-white rounded-full flex items-center px-6 relative"
-                style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
-              >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 33 33"
-                  fill="none"
-                  className="mr-3"
-                  style={{ shapeRendering: "geometricPrecision" }}
+              {/* Dates Pill */}
+              <div className="relative" ref={dateDropdownRef}>
+                <button
+                  onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
+                  className="w-full h-[64px] bg-white rounded-full flex items-center px-6"
+                  style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
                 >
-                  <path
-                    d="M29.4667 5.06836H3.03333C1.91035 5.06836 1 5.97868 1 7.10161V29.4674C1 30.5903 1.91035 31.5006 3.03333 31.5006H29.4667C30.5896 31.5006 31.5 30.5903 31.5 29.4674V7.10161C31.5 5.97868 30.5896 5.06836 29.4667 5.06836Z"
-                    stroke="#0E1B4D"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  <path
-                    d="M1 13.1992H31.5"
-                    stroke="#0E1B4D"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  <path
-                    d="M9.13379 8.11638V1"
-                    stroke="#0E1B4D"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  <path
-                    d="M23.3662 8.11638V1"
-                    stroke="#0E1B4D"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                </svg>
-                <input
-                  ref={dateInputRef}
-                  type="text"
-                  placeholder={
-                    isDateInputFocused && !dateValue ? "" : "Departure Date"
+                  <span className="flex-1 text-left text-[18px] font-geograph text-dark-blue tracking-tight">
+                    {getDatePlaceholder()}
+                  </span>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    className={`transform transition-transform ${isDateDropdownOpen ? "rotate-180" : ""}`}
+                  >
+                    <path
+                      d="M2 4L6 8L10 4"
+                      stroke="#0E1B4D"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+
+                {isDateDropdownOpen && (
+                  <div
+                    className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg z-50 p-3 max-h-[400px] overflow-y-auto"
+                    style={{ boxShadow: "0px 1px 14px rgba(0, 0, 0, 0.25)" }}
+                  >
+                    {[2025, 2026].map((year) => {
+                      const currentDate = new Date();
+                      const currentYear = currentDate.getFullYear();
+                      const currentMonth = currentDate.getMonth();
+
+                      return (
+                        <div key={year} className="mb-3">
+                          <div className="font-geograph font-bold text-[12px] text-gray-700 mb-2">
+                            {year}
+                          </div>
+                          <div className="grid grid-cols-4 gap-1">
+                            {[
+                              "Jan",
+                              "Feb",
+                              "Mar",
+                              "Apr",
+                              "May",
+                              "Jun",
+                              "Jul",
+                              "Aug",
+                              "Sep",
+                              "Oct",
+                              "Nov",
+                              "Dec",
+                            ].map((month, index) => {
+                              const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
+                              const isSelected =
+                                selectedMonths.includes(monthStr);
+                              const isPast =
+                                year < currentYear ||
+                                (year === currentYear && index < currentMonth);
+
+                              return (
+                                <button
+                                  key={monthStr}
+                                  onClick={() => {
+                                    if (!isPast) {
+                                      setSelectedMonths((prev) =>
+                                        prev.includes(monthStr)
+                                          ? prev.filter((m) => m !== monthStr)
+                                          : [...prev, monthStr],
+                                      );
+                                    }
+                                  }}
+                                  disabled={isPast}
+                                  className={`px-2 py-1 rounded-full text-[12px] font-geograph transition-colors ${
+                                    isPast
+                                      ? "bg-gray-50 text-gray-400 cursor-not-allowed"
+                                      : isSelected
+                                        ? "bg-[#0E1B4D] text-white"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                  }`}
+                                >
+                                  {month}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Cruise Lines Pill */}
+              <div className="relative" ref={cruiseLineDropdownRef}>
+                <button
+                  onClick={() =>
+                    setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
                   }
-                  value={dateValue}
-                  onFocus={handleDateInputFocus}
-                  onBlur={handleDateInputBlur}
-                  readOnly
-                  className="flex-1 text-[18px] font-geograph text-dark-blue placeholder-dark-blue tracking-tight outline-none bg-transparent cursor-pointer"
-                />
+                  className="w-full h-[64px] bg-white rounded-full flex items-center px-6"
+                  style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
+                >
+                  <span className="flex-1 text-left text-[18px] font-geograph text-dark-blue tracking-tight">
+                    {getCruiseLinePlaceholder()}
+                  </span>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    className={`transform transition-transform ${isCruiseLineDropdownOpen ? "rotate-180" : ""}`}
+                  >
+                    <path
+                      d="M2 4L6 8L10 4"
+                      stroke="#0E1B4D"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+
+                {isCruiseLineDropdownOpen && (
+                  <div
+                    className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg z-50 max-h-[300px] overflow-y-auto"
+                    style={{ boxShadow: "0px 1px 14px rgba(0, 0, 0, 0.25)" }}
+                  >
+                    {cruiseLines.map((line) => (
+                      <button
+                        key={line.id}
+                        onClick={() => {
+                          setSelectedCruiseLines((prev) =>
+                            prev.includes(line.id)
+                              ? prev.filter((id) => id !== line.id)
+                              : [...prev, line.id],
+                          );
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                      >
+                        <div
+                          className={`w-4 h-4 border-2 rounded ${
+                            selectedCruiseLines.includes(line.id)
+                              ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                              : "border-gray-300"
+                          }`}
+                        >
+                          {selectedCruiseLines.includes(line.id) && (
+                            <svg
+                              className="w-full h-full text-white p-0.5"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="font-geograph text-[14px] text-dark-blue">
+                          {line.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Search Button Pill */}
@@ -999,265 +851,11 @@ function HomeWithParams() {
                 className="h-[64px] w-full bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 active:bg-dark-blue transition-colors"
                 style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
               >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 33 33"
-                  fill="none"
-                  className="mr-3"
-                  style={{ shapeRendering: "geometricPrecision" }}
-                >
-                  <path
-                    d="M19.4999 25.5644C25.3213 23.0904 28.0349 16.3656 25.5608 10.5442C23.0868 4.72278 16.362 2.0092 10.5406 4.48324C4.71919 6.95728 2.00561 13.6821 4.47965 19.5035C6.95369 25.3249 13.6785 28.0385 19.4999 25.5644Z"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  <path
-                    d="M23.1172 23.123L31.9998 32.0069"
-                    stroke="white"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                </svg>
                 <span className="text-white text-[18px] font-geograph font-medium">
-                  Search Cruises
+                  Search cruises
                 </span>
               </button>
             </div>
-
-            {/* Ship Dropdown - Now outside the overflow-hidden container */}
-            {isDropdownOpen && (
-              <div
-                ref={dropdownRef}
-                className={`absolute left-0 md:left-[10px] bg-white rounded-[10px] z-[10000] w-full md:w-[calc(50%-10px)] ${
-                  isDropdownClosing ? "dropdown-fade-out" : "dropdown-fade-in"
-                }`}
-                style={{
-                  boxShadow: "0px 1px 14px rgba(0, 0, 0, 0.25)",
-                  top: "102px",
-                  marginTop: "12px",
-                }}
-              >
-                <div className="max-h-[300px] overflow-y-auto custom-scrollbar rounded-[10px]">
-                  {isLoading ? (
-                    <div className="px-6 py-3 font-geograph text-[18px] text-gray-500 font-normal">
-                      Loading ships...
-                    </div>
-                  ) : filteredShips.length > 0 ? (
-                    filteredShips.map((ship, index) => (
-                      <div
-                        key={`${ship.id}-${index}`}
-                        onClick={() => handleShipSelect(ship)}
-                        className={`px-6 py-3 cursor-pointer font-geograph text-dark-blue dropdown-item-hover ${
-                          index === highlightedIndex
-                            ? "bg-light-blue bg-opacity-20"
-                            : "hover:bg-light-blue hover:bg-opacity-10"
-                        }`}
-                        style={{ letterSpacing: "-0.02em" }}
-                      >
-                        <div className="font-normal text-[18px]">
-                          {ship.name}
-                        </div>
-                        <div className="font-normal text-[14px] text-gray-500 mt-0.5">
-                          {ship.cruiseLineName}
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="px-6 py-3 font-geograph text-[18px] text-gray-500 font-normal">
-                      No ships found
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Date Picker Dropdown - Responsive positioning */}
-            {isDateDropdownOpen && (
-              <div
-                ref={dateDropdownRef}
-                className={`absolute left-0 md:left-[calc(50%+5px)] bg-white rounded-[10px] z-[10000] w-full md:w-[calc(50%-15px)] ${
-                  isDateDropdownClosing
-                    ? "dropdown-fade-out"
-                    : "dropdown-fade-in"
-                }`}
-                style={{
-                  boxShadow: "0px 1px 14px rgba(0, 0, 0, 0.25)",
-                  top: "102px",
-                  marginTop: "12px",
-                }}
-              >
-                <div className="p-4 font-geograph">
-                  {/* Calendar Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <button
-                      onClick={handlePreviousMonth}
-                      disabled={isPreviousMonthDisabled()}
-                      className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
-                        isPreviousMonthDisabled()
-                          ? "cursor-not-allowed opacity-30"
-                          : "hover:bg-gray-100 cursor-pointer"
-                      }`}
-                    >
-                      <svg
-                        width="32"
-                        height="32"
-                        viewBox="0 0 36 36"
-                        fill="none"
-                        style={{ shapeRendering: "geometricPrecision" }}
-                        className={
-                          isPreviousMonthDisabled() ? "opacity-50" : ""
-                        }
-                      >
-                        <rect
-                          x="35.5"
-                          y="35.5"
-                          width="35"
-                          height="35"
-                          rx="9.5"
-                          transform="rotate(-180 35.5 35.5)"
-                          stroke="#D9D9D9"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          vectorEffect="non-scaling-stroke"
-                        />
-                        <path
-                          d="M15.125 18.125L20 13.25"
-                          stroke="#0E1B4D"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          vectorEffect="non-scaling-stroke"
-                        />
-                        <path
-                          d="M15.125 18.125L20 23"
-                          stroke="#0E1B4D"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          vectorEffect="non-scaling-stroke"
-                        />
-                      </svg>
-                    </button>
-                    <h3 className="font-medium text-[18px] text-dark-blue">
-                      {currentMonth.toLocaleDateString("en-US", {
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </h3>
-                    <button
-                      onClick={handleNextMonth}
-                      className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded transition-colors"
-                    >
-                      <svg
-                        width="32"
-                        height="32"
-                        viewBox="0 0 36 36"
-                        fill="none"
-                        style={{ shapeRendering: "geometricPrecision" }}
-                        className="rotate-180"
-                      >
-                        <rect
-                          x="35.5"
-                          y="35.5"
-                          width="35"
-                          height="35"
-                          rx="9.5"
-                          transform="rotate(-180 35.5 35.5)"
-                          stroke="#D9D9D9"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          vectorEffect="non-scaling-stroke"
-                        />
-                        <path
-                          d="M15.125 18.125L20 13.25"
-                          stroke="#0E1B4D"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          vectorEffect="non-scaling-stroke"
-                        />
-                        <path
-                          d="M15.125 18.125L20 23"
-                          stroke="#0E1B4D"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          vectorEffect="non-scaling-stroke"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* Days of Week Headers */}
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
-                      <div
-                        key={index}
-                        className="w-[51px] h-12 flex items-center justify-center text-[14px] font-medium text-gray-600"
-                      >
-                        {day}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {generateCalendarDays().map((day, index) => {
-                      if (day === null) {
-                        return <div key={index} className="h-[51px]" />;
-                      }
-
-                      const date = new Date(
-                        currentMonth.getFullYear(),
-                        currentMonth.getMonth(),
-                        day,
-                      );
-                      const isPast = isDateInPast(date);
-                      const hasAvailable = hasAvailableSailing(date);
-                      const isHighlighted = isHighlightedDate(date);
-                      const isSelected =
-                        selectedDate &&
-                        date.getDate() === selectedDate.getDate() &&
-                        date.getMonth() === selectedDate.getMonth() &&
-                        date.getFullYear() === selectedDate.getFullYear();
-
-                      const isDisabled =
-                        isPast || (selectedShip && !hasAvailable);
-
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => !isDisabled && handleDateSelect(date)}
-                          className={`w-[51px] h-[51px] flex items-center justify-center text-[16px] rounded-full transition-all ${
-                            isDisabled
-                              ? "text-gray-400 font-normal cursor-not-allowed opacity-50"
-                              : "text-dark-blue font-medium hover:bg-light-blue hover:bg-opacity-20 cursor-pointer"
-                          } ${isSelected ? "bg-light-blue text-white" : ""} ${
-                            isHighlighted && !isSelected
-                              ? "bg-green-100 border-2 border-green-500"
-                              : ""
-                          }`}
-                          disabled={isDisabled || undefined}
-                          title={
-                            selectedShip && !hasAvailable && !isPast
-                              ? "No sailings available on this date"
-                              : ""
-                          }
-                        >
-                          {day}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </section>
