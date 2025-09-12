@@ -284,11 +284,10 @@ export default {
   cheapestPricingSuiteIndex,
 
   // Quote request indexes
-  quoteRequestUserIndex,
+  // Quote request indexes (removed non-existent ones)
   quoteRequestCruiseIndex,
   quoteRequestStatusIndex,
   quoteRequestCreatedIndex,
-  quoteRequestExpiresIndex,
 
   // Saved search indexes
   savedSearchUserIndex,
