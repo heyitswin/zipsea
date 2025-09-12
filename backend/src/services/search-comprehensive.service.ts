@@ -71,6 +71,10 @@ export class ComprehensiveSearchService {
       // Generate cache key
       const cacheKey = CacheKeys.search(JSON.stringify({ filters, options }));
 
+      // DISABLED: Cache is causing stale results to be returned
+      // The cache key might collide or the cache isn't being invalidated properly
+      // TODO: Fix cache key generation or implement proper cache invalidation
+      /*
       // Try cache first (with short TTL for dynamic data)
       const cached = await cacheManager.get<any>(cacheKey);
       if (cached && !filters.includeUnavailable) {
@@ -83,6 +87,7 @@ export class ComprehensiveSearchService {
           },
         };
       }
+      */
 
       // Build WHERE conditions
       // Set minimum departure date to today
@@ -425,8 +430,8 @@ export class ComprehensiveSearchService {
         ...(facets && { facets }),
       };
 
-      // Cache the response with 5 minute TTL
-      await cacheManager.set(cacheKey, response, { ttl: 300 });
+      // DISABLED: Cache is causing stale results to be returned
+      // await cacheManager.set(cacheKey, response, { ttl: 300 });
 
       return response;
     } catch (error) {
