@@ -281,7 +281,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   ) => {
     // Get the raw data from cheapestPricing (where it's actually stored)
     const rawData = cruiseData?.cheapestPricing?.raw || fallbackData?.rawData;
-    const cheapestPricingData = cruiseData?.cheapestPricing || {};
+    const cheapestPricingData: any = cruiseData?.cheapestPricing || {};
 
     if (!rawData)
       return {
@@ -325,15 +325,15 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     // Get the price from cheapestPricing or rawData
     const price =
       cheapestPricingData[fields.priceKey] ||
-      rawData[fields.priceField]?.price ||
-      rawData[fields.priceField];
+      (rawData as any)[fields.priceField]?.price ||
+      (rawData as any)[fields.priceField];
 
     // Get the price code from cheapestPricing or rawData
     const priceCode =
       cheapestPricingData[fields.priceCodeKey] ||
-      rawData[fields.priceCodeField];
+      (rawData as any)[fields.priceCodeField];
 
-    if (!priceCode || !rawData.prices || !rawData.cabins) {
+    if (!priceCode || !(rawData as any).prices || !(rawData as any).cabins) {
       return {
         price,
         image: null,
@@ -357,7 +357,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     }
 
     // Look up the cabin details in the cabins object
-    const cabinDetails = rawData.cabins?.[cabinCode];
+    const cabinDetails = (rawData as any).cabins?.[cabinCode];
 
     if (!cabinDetails) {
       return { price, image: null, description: null, name: null, cabinCode };
@@ -548,8 +548,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     cabinType: "interior" | "oceanview" | "balcony" | "suite",
   ) => {
     // Get price from the new individual fields (NOT combined)
-    const rawData = pricing?.raw || {};
-    const cheapestPricingData = pricing || {};
+    const rawData: any = pricing?.raw || {};
+    const cheapestPricingData: any = pricing || {};
 
     const priceMapping = {
       interior:

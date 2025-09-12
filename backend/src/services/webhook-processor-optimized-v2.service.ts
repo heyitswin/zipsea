@@ -753,7 +753,22 @@ export class WebhookProcessorOptimizedV2 {
           });
 
         this.stats.cruisesUpdated++;
-        console.log(`[OPTIMIZED-V2] Upserted cruise ${cruiseId} (${file.size} bytes)`);
+
+        // Log what cabin/price data we have
+        const hasCabins = !!data.cabins && Object.keys(data.cabins).length > 0;
+        const hasPrices = !!data.prices && Object.keys(data.prices).length > 0;
+        const priceCodes = [
+          data.cheapestinsidepricecode ? 'inside' : null,
+          data.cheapestoutsidepricecode ? 'outside' : null,
+          data.cheapestbalconypricecode ? 'balcony' : null,
+          data.cheapestsuitepricecode ? 'suite' : null,
+        ]
+          .filter(Boolean)
+          .join(',');
+
+        console.log(
+          `[OPTIMIZED-V2] Upserted cruise ${cruiseId} (${file.size} bytes) - cabins:${hasCabins}, prices:${hasPrices}, codes:[${priceCodes || 'none'}]`
+        );
       } catch (error: any) {
         console.error(`[OPTIMIZED-V2] Error upserting cruise ${cruiseId}:`, error.message);
         console.error('[OPTIMIZED-V2] Cruise data causing error:', {
@@ -949,7 +964,21 @@ export class WebhookProcessorOptimizedV2 {
           })
           .where(eq(cruises.id, cruiseId));
 
-        console.log(`[OPTIMIZED-V2] Updated cruise pricing for ${cruiseId}`);
+        // Log what cabin/price data we're storing
+        const hasCabins = !!data.cabins && Object.keys(data.cabins).length > 0;
+        const hasPrices = !!data.prices && Object.keys(data.prices).length > 0;
+        const priceCodes = [
+          data.cheapestinsidepricecode ? 'inside' : null,
+          data.cheapestoutsidepricecode ? 'outside' : null,
+          data.cheapestbalconypricecode ? 'balcony' : null,
+          data.cheapestsuitepricecode ? 'suite' : null,
+        ]
+          .filter(Boolean)
+          .join(',');
+
+        console.log(
+          `[OPTIMIZED-V2] Updated cruise pricing for ${cruiseId} - cabins:${hasCabins}, prices:${hasPrices}, codes:[${priceCodes || 'none'}]`
+        );
       }
 
       // Now update the cheapest_pricing table with full details
