@@ -308,11 +308,25 @@ export default function CruisesContent() {
           break;
       }
 
+      // Log filter state for debugging
+      console.log("=== FILTER DEBUG ===");
+      console.log("Selected filters:", {
+        cruiseLines: selectedCruiseLines,
+        departurePorts: selectedDeparturePorts,
+        ships: selectedShips,
+        regions: selectedRegions,
+        months: selectedMonths,
+        nightRanges: selectedNightRanges,
+        sortBy,
+      });
+      console.log("URL params:", params.toString());
+
       // Try to fetch from API with timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased timeout
 
       const url = `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?${params.toString()}`;
+      console.log("Fetching URL:", url);
 
       const response = await fetch(url, {
         signal: controller.signal,
@@ -323,6 +337,7 @@ export default function CruisesContent() {
       });
 
       clearTimeout(timeoutId);
+      console.log("Response status:", response.status);
 
       if (response.ok) {
         const data = await response.json();
@@ -416,6 +431,9 @@ export default function CruisesContent() {
 
   // Sync state with URL parameters when they change
   useEffect(() => {
+    console.log("=== URL PARAMS SYNC ===");
+    console.log("Current searchParams:", searchParams.toString());
+
     // Update state from URL parameters
     const cruiseLinesParam = searchParams.get("cruiseLines");
     const monthsParam = searchParams.get("months");
@@ -432,22 +450,30 @@ export default function CruisesContent() {
         .split(",")
         .map(Number)
         .filter((n) => !isNaN(n));
+      console.log("Setting cruise lines from URL:", lines);
       setSelectedCruiseLines(lines);
     } else {
+      console.log("Clearing cruise lines");
       setSelectedCruiseLines([]);
     }
 
     // Update months
     if (monthsParam) {
-      setSelectedMonths(monthsParam.split(","));
+      const months = monthsParam.split(",");
+      console.log("Setting months from URL:", months);
+      setSelectedMonths(months);
     } else {
+      console.log("Clearing months");
       setSelectedMonths([]);
     }
 
     // Update night ranges
     if (nightsParam) {
-      setSelectedNightRanges(nightsParam.split(","));
+      const nights = nightsParam.split(",");
+      console.log("Setting night ranges from URL:", nights);
+      setSelectedNightRanges(nights);
     } else {
+      console.log("Clearing night ranges");
       setSelectedNightRanges([]);
     }
 
@@ -457,8 +483,10 @@ export default function CruisesContent() {
         .split(",")
         .map(Number)
         .filter((n) => !isNaN(n));
+      console.log("Setting departure ports from URL:", ports);
       setSelectedDeparturePorts(ports);
     } else {
+      console.log("Clearing departure ports");
       setSelectedDeparturePorts([]);
     }
 
@@ -468,8 +496,10 @@ export default function CruisesContent() {
         .split(",")
         .map(Number)
         .filter((n) => !isNaN(n));
+      console.log("Setting ships from URL:", shipIds);
       setSelectedShips(shipIds);
     } else {
+      console.log("Clearing ships");
       setSelectedShips([]);
     }
 
@@ -479,8 +509,10 @@ export default function CruisesContent() {
         .split(",")
         .map(Number)
         .filter((n) => !isNaN(n));
+      console.log("Setting regions from URL:", regionIds);
       setSelectedRegions(regionIds);
     } else {
+      console.log("Clearing regions");
       setSelectedRegions([]);
     }
 

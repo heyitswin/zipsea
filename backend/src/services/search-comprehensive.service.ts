@@ -145,12 +145,14 @@ export class ComprehensiveSearchService {
         const lineIds = Array.isArray(filters.cruiseLineId)
           ? filters.cruiseLineId
           : [filters.cruiseLineId];
+        logger.info('Applying cruise line filter:', { lineIds });
         conditions.push(inArray(cruises.cruiseLineId, lineIds));
       }
 
       // Ship filter
       if (filters.shipId) {
         const shipIds = Array.isArray(filters.shipId) ? filters.shipId : [filters.shipId];
+        logger.info('Applying ship filter:', { shipIds });
         conditions.push(inArray(cruises.shipId, shipIds));
       }
 
@@ -159,6 +161,7 @@ export class ComprehensiveSearchService {
         const portIds = Array.isArray(filters.departurePortId)
           ? filters.departurePortId
           : [filters.departurePortId];
+        logger.info('Applying departure port filter:', { portIds });
         conditions.push(inArray(cruises.embarkPortId, portIds));
       }
 
@@ -167,12 +170,14 @@ export class ComprehensiveSearchService {
         const portIds = Array.isArray(filters.arrivalPortId)
           ? filters.arrivalPortId
           : [filters.arrivalPortId];
+        logger.info('Applying arrival port filter:', { portIds });
         conditions.push(inArray(cruises.disembarkPortId, portIds));
       }
 
       // Region filter - handle comma-separated string in DB
       if (filters.regionId) {
         const regionIds = Array.isArray(filters.regionId) ? filters.regionId : [filters.regionId];
+        logger.info('Applying region filter:', { regionIds });
         const regionConditions = regionIds.map(
           id =>
             sql`(

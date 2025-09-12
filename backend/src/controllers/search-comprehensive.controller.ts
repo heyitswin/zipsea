@@ -132,10 +132,30 @@ class SearchComprehensiveController {
         }
       });
 
-      // Perform search
-      logger.info('Calling searchCruises with filters:', filters);
+      // Perform search with detailed logging
+      logger.info('=== COMPREHENSIVE SEARCH DEBUG ===');
+      logger.info('Raw query params:', req.query);
+      logger.info('Parsed filters:', JSON.stringify(filters, null, 2));
+      logger.info('Search options:', JSON.stringify(options, null, 2));
+
       const results = await comprehensiveSearchService.searchCruises(filters, options);
-      logger.info('Search completed, got results:', { count: results?.results?.length || 0 });
+
+      logger.info('Search completed:', {
+        totalResults: results?.results?.length || 0,
+        hasFilters: Object.keys(filters).length > 0,
+        appliedFilters: Object.keys(filters),
+        firstResult: results?.results?.[0]
+          ? {
+              id: results.results[0].id,
+              name: results.results[0].name,
+              cruiseLineId: results.results[0].cruiseLine?.id,
+              cruiseLineName: results.results[0].cruiseLine?.name,
+              shipId: results.results[0].ship?.id,
+              shipName: results.results[0].ship?.name,
+              nights: results.results[0].nights,
+            }
+          : null,
+      });
 
       // Log slow queries
       const totalTime = Date.now() - startTime;
