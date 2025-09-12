@@ -83,12 +83,12 @@ class QuoteService {
 
       const quoteData: any = {
         cruiseId: data.cruiseId, // Keep as string - cruises.id is VARCHAR
-        firstName: data.firstName || '',
-        lastName: data.lastName || '',
-        email: data.email || '',
-        phone: data.phone || '',
+        firstName: data.firstName || null,
+        lastName: data.lastName || null,
+        email: data.email || null,
+        phone: data.phone || null,
         customer_details: customerDetails,
-        status: 'waiting',
+        status: 'pending', // Changed to match production default
       };
 
       const result = await db.insert(quoteRequests).values(quoteData).returning();

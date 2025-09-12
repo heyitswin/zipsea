@@ -85,9 +85,14 @@ export class ComprehensiveSearchService {
       }
 
       // Build WHERE conditions
+      // Set minimum departure date to 2 weeks from today
+      const twoWeeksFromNow = new Date();
+      twoWeeksFromNow.setDate(twoWeeksFromNow.getDate() + 14);
+      const minDepartureDate = twoWeeksFromNow.toISOString().split('T')[0];
+
       const conditions: any[] = [
         eq(cruises.isActive, true),
-        gte(cruises.sailingDate, new Date().toISOString().split('T')[0]),
+        gte(cruises.sailingDate, minDepartureDate),
       ];
 
       // Text search
