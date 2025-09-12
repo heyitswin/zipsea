@@ -224,6 +224,15 @@ export class WebhookProcessorOptimizedV2 {
       verbose: false,
     };
 
+    // Debug logging (mask password)
+    console.log('[OPTIMIZED-V2] FTP Config:', {
+      host: ftpConfig.host,
+      user: ftpConfig.user,
+      hasPassword: !!ftpConfig.password,
+      passwordLength: ftpConfig.password?.length || 0,
+      secure: ftpConfig.secure,
+    });
+
     // Create connection pool
     for (let i = 0; i < WebhookProcessorOptimizedV2.MAX_CONNECTIONS; i++) {
       let retries = 3;
@@ -314,6 +323,15 @@ export class WebhookProcessorOptimizedV2 {
           timeout: 30000,
           verbose: false,
         };
+
+        // Debug logging for reconnection (mask password)
+        console.log('[OPTIMIZED-V2] Reconnect FTP Config:', {
+          host: ftpConfig.host,
+          user: ftpConfig.user,
+          hasPassword: !!ftpConfig.password,
+          passwordLength: ftpConfig.password?.length || 0,
+          secure: ftpConfig.secure,
+        });
 
         // Try to recreate connection with retries
         let retries = 3;
