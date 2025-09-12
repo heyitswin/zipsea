@@ -91,6 +91,31 @@ export default function CruisesContent() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const requestCounterRef = useRef(0);
 
+  // Log component mount and cleanup on unmount
+  useEffect(() => {
+    console.log("=== CRUISES CONTENT MOUNTED ===");
+    console.log("Initial URL params:", searchParams.toString());
+    console.log("Initial filter states:", {
+      cruiseLines: selectedCruiseLines,
+      months: selectedMonths,
+      nights: selectedNightRanges,
+      ports: selectedDeparturePorts,
+      ships: selectedShips,
+      regions: selectedRegions,
+    });
+
+    return () => {
+      // Cancel any pending requests when component unmounts
+      if (abortControllerRef.current) {
+        console.log("=== COMPONENT UNMOUNTING - Cancelling requests ===");
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+      // Reset the request counter
+      requestCounterRef.current = 0;
+    };
+  }, []); // Empty dependency array means this only runs on mount/unmount
+
   // Filter states - support multi-select
   const [selectedCruiseLines, setSelectedCruiseLines] = useState<number[]>([]);
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
@@ -399,12 +424,28 @@ export default function CruisesContent() {
     }
   };
 
+  // Track if we've done the initial URL sync
+  const hasInitializedRef = useRef(false);
+
   // Sync state with URL parameters when they change
   useEffect(() => {
     console.log("=== URL PARAMS SYNC ===");
     console.log("Current searchParams:", searchParams.toString());
+    console.log("Has initialized before:", hasInitializedRef.current);
 
-    // Update state from URL parameters
+    // ALWAYS reset all filters first, then apply from URL
+    // This ensures we don't have stale filter state
+    console.log("Resetting all filters to empty");
+    setSelectedCruiseLines([]);
+    setSelectedMonths([]);
+    setSelectedNightRanges([]);
+    setSelectedDeparturePorts([]);
+    setSelectedShips([]);
+    setSelectedRegions([]);
+    setPage(1);
+    setSortBy("soonest");
+
+    // Now apply filters from URL if they exist
     const cruiseLinesParam = searchParams.get("cruiseLines");
     const monthsParam = searchParams.get("months");
     const nightsParam = searchParams.get("nights");
@@ -420,9 +461,8 @@ export default function CruisesContent() {
         .split(",")
         .map(Number)
         .filter((n) => !isNaN(n));
+      console.log("Setting cruise lines from URL:", lines);
       setSelectedCruiseLines(lines);
-    } else {
-      setSelectedCruiseLines([]);
     }
 
     // Update months
@@ -430,9 +470,6 @@ export default function CruisesContent() {
       const months = monthsParam.split(",");
       console.log("Setting months from URL:", months);
       setSelectedMonths(months);
-    } else {
-      console.log("Clearing months");
-      setSelectedMonths([]);
     }
 
     // Update night ranges
@@ -440,9 +477,6 @@ export default function CruisesContent() {
       const nights = nightsParam.split(",");
       console.log("Setting night ranges from URL:", nights);
       setSelectedNightRanges(nights);
-    } else {
-      console.log("Clearing night ranges");
-      setSelectedNightRanges([]);
     }
 
     // Update departure ports
@@ -453,9 +487,6 @@ export default function CruisesContent() {
         .filter((n) => !isNaN(n));
       console.log("Setting departure ports from URL:", ports);
       setSelectedDeparturePorts(ports);
-    } else {
-      console.log("Clearing departure ports");
-      setSelectedDeparturePorts([]);
     }
 
     // Update ships
@@ -466,9 +497,6 @@ export default function CruisesContent() {
         .filter((n) => !isNaN(n));
       console.log("Setting ships from URL:", shipIds);
       setSelectedShips(shipIds);
-    } else {
-      console.log("Clearing ships");
-      setSelectedShips([]);
     }
 
     // Update regions
@@ -479,19 +507,27 @@ export default function CruisesContent() {
         .filter((n) => !isNaN(n));
       console.log("Setting regions from URL:", regionIds);
       setSelectedRegions(regionIds);
-    } else {
-      console.log("Clearing regions");
-      setSelectedRegions([]);
     }
 
-    // Update page
-    setPage(pageParam ? parseInt(pageParam) : 1);
+    // Update page if specified
+    if (pageParam) {
+      const pageNum = parseInt(pageParam);
+      if (!isNaN(pageNum) && pageNum > 0) {
+        setPage(pageNum);
+      }
+    }
 
-    // Update sort
-    setSortBy(sortParam || "soonest");
+    // Update sort if specified
+    if (sortParam) {
+      setSortBy(sortParam);
+    }
 
-    // Mark as initialized after processing URL params
-    setIsInitialized(true);
+    // Mark as initialized only on first run
+    if (!hasInitializedRef.current) {
+      console.log("=== INITIAL SYNC COMPLETE ===");
+      hasInitializedRef.current = true;
+      setIsInitialized(true);
+    }
   }, [searchParams]);
 
   // Initial load is now handled by fetchCruises in the useEffect below
