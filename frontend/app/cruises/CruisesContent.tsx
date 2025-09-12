@@ -369,11 +369,8 @@ export default function CruisesContent() {
       const response = await fetch(url, {
         signal: abortController.signal,
         cache: "no-store", // Prevent caching
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache", // Add for older HTTP/1.0 caches
-          Expires: "0", // Force expiration
-        },
+        // Removed headers that cause CORS issues
+        // The backend now handles cache prevention
       });
 
       clearTimeout(timeoutId);
