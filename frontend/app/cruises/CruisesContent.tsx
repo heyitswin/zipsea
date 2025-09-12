@@ -15,6 +15,7 @@ interface Cruise {
   nights: number;
   sailingDate: string;
   sailingDateText?: string;
+  departureDate?: string;
   embarkPortName: string;
   disembarkPortName: string;
   interiorPrice?: string;
@@ -1248,19 +1249,24 @@ export default function CruisesContent() {
                               </div>
                               <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
                                 {(() => {
-                                  if (!cruise.sailingDate) return "TBA";
+                                  // Use the same logic as cruise detail page
+                                  const dateString =
+                                    cruise.sailingDate || cruise.departureDate;
+
+                                  if (!dateString) {
+                                    return "N/A";
+                                  }
+
                                   try {
-                                    const date = new Date(
-                                      cruise.sailingDate + "T00:00:00",
-                                    );
-                                    if (isNaN(date.getTime())) return "TBA";
+                                    const date = new Date(dateString);
                                     return date.toLocaleDateString("en-US", {
                                       month: "short",
                                       day: "numeric",
                                       year: "numeric",
+                                      timeZone: "UTC",
                                     });
                                   } catch {
-                                    return "TBA";
+                                    return "N/A";
                                   }
                                 })()}
                               </div>
@@ -1275,30 +1281,32 @@ export default function CruisesContent() {
                               </div>
                               <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
                                 {(() => {
-                                  if (!cruise.sailingDate || !cruise.nights)
-                                    return "TBA";
+                                  // Calculate return date using same logic as detail page
+                                  const dateString =
+                                    cruise.sailingDate || cruise.departureDate;
+
+                                  if (!dateString || !cruise.nights) {
+                                    return "N/A";
+                                  }
+
                                   try {
-                                    const departDate = new Date(
-                                      cruise.sailingDate + "T00:00:00",
+                                    const departDate = new Date(dateString);
+                                    const returnDate = new Date(departDate);
+                                    returnDate.setUTCDate(
+                                      departDate.getUTCDate() + cruise.nights,
                                     );
-                                    if (isNaN(departDate.getTime()))
-                                      return "TBA";
-                                    const returnDate = new Date(
-                                      departDate.getTime() +
-                                        cruise.nights * 24 * 60 * 60 * 1000,
-                                    );
-                                    if (isNaN(returnDate.getTime()))
-                                      return "TBA";
+
                                     return returnDate.toLocaleDateString(
                                       "en-US",
                                       {
                                         month: "short",
                                         day: "numeric",
                                         year: "numeric",
+                                        timeZone: "UTC",
                                       },
                                     );
                                   } catch {
-                                    return "TBA";
+                                    return "N/A";
                                   }
                                 })()}
                               </div>
