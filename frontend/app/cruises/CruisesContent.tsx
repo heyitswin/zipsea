@@ -219,18 +219,6 @@ export default function CruisesContent() {
     // Clear existing cruises to prevent showing stale data
     setCruises([]);
 
-    // Debug logging for filters
-    console.log("Fetching cruises with filters:", {
-      selectedCruiseLines,
-      selectedMonths,
-      selectedNightRanges,
-      selectedDeparturePorts,
-      selectedShips,
-      selectedRegions,
-      sortBy,
-      page,
-    });
-
     try {
       const params = new URLSearchParams();
 
@@ -291,7 +279,6 @@ export default function CruisesContent() {
       const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased timeout
 
       const url = `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?${params.toString()}`;
-      console.log("Fetching cruises from:", url);
 
       const response = await fetch(url, { signal: controller.signal });
 
@@ -494,47 +481,46 @@ export default function CruisesContent() {
   ]);
 
   const removeFilter = (filter: AppliedFilter) => {
-    console.log("Removing filter:", filter);
     switch (filter.type) {
       case "cruiseLine":
         setSelectedCruiseLines((prev) => {
           const newValue = prev.filter((id) => id !== filter.value);
-          console.log("CruiseLines after removal:", newValue);
+
           return newValue;
         });
         break;
       case "month":
         setSelectedMonths((prev) => {
           const newValue = prev.filter((m) => m !== filter.value);
-          console.log("Months after removal:", newValue);
+
           return newValue;
         });
         break;
       case "nights":
         setSelectedNightRanges((prev) => {
           const newValue = prev.filter((r) => r !== filter.value);
-          console.log("NightRanges after removal:", newValue);
+
           return newValue;
         });
         break;
       case "departurePort":
         setSelectedDeparturePorts((prev) => {
           const newValue = prev.filter((id) => id !== filter.value);
-          console.log("DeparturePorts after removal:", newValue);
+
           return newValue;
         });
         break;
       case "ship":
         setSelectedShips((prev) => {
           const newValue = prev.filter((id) => id !== filter.value);
-          console.log("Ships after removal:", newValue);
+
           return newValue;
         });
         break;
       case "region":
         setSelectedRegions((prev) => {
           const newValue = prev.filter((id) => id !== filter.value);
-          console.log("Regions after removal:", newValue);
+
           return newValue;
         });
         break;
@@ -543,7 +529,6 @@ export default function CruisesContent() {
   };
 
   const clearAllFilters = () => {
-    console.log("Clearing all filters");
     setSelectedCruiseLines([]);
     setSelectedMonths([]);
     setSelectedNightRanges([]);
