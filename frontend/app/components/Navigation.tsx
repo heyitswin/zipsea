@@ -541,29 +541,24 @@ export default function Navigation({
         }`}
       >
         <div className="flex items-center justify-between h-[40px] md:h-[44px]">
-          {/* Logo and Search Bar Container */}
-          <div className="flex items-center">
-            {/* Logo - Responsive sizing */}
-            <div className="w-[83px] md:w-[110px]">
-              <a href="/">
-                <Image
-                  src={
-                    isScrolled ||
-                    (isCruiseDetailPage && !isScrolled) ||
-                    (isCruisesPage && !isScrolled)
-                      ? "/images/zipsea-logo-blue.svg"
-                      : "/images/zipsea-logo.svg"
-                  }
-                  alt="Zipsea"
-                  width={110}
-                  height={40}
-                  className={`${isScrolled || (isCruiseDetailPage && !isScrolled) || (isCruisesPage && !isScrolled) ? "" : "brightness-0 invert"} w-[83px] md:w-[110px] h-auto`}
-                  priority
-                />
-              </a>
-            </div>
-
-            {/* Search Bar removed from scroll nav per user request */}
+          {/* Logo - Responsive sizing */}
+          <div className="w-[83px] md:w-[110px]">
+            <a href="/">
+              <Image
+                src={
+                  isScrolled ||
+                  (isCruiseDetailPage && !isScrolled) ||
+                  (isCruisesPage && !isScrolled)
+                    ? "/images/zipsea-logo-blue.svg"
+                    : "/images/zipsea-logo.svg"
+                }
+                alt="Zipsea"
+                width={110}
+                height={40}
+                className={`${isScrolled || (isCruiseDetailPage && !isScrolled) || (isCruisesPage && !isScrolled) ? "" : "brightness-0 invert"} w-[83px] md:w-[110px] h-auto`}
+                priority
+              />
+            </a>
           </div>
 
           {/* Hamburger Menu Button (Mobile Only) */}
