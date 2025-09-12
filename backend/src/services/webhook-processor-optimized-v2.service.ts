@@ -908,7 +908,7 @@ export class WebhookProcessorOptimizedV2 {
 
         const currentRawJson = existingCruise[0]?.rawData || {};
 
-        // Update raw_json with combined pricing
+        // Update raw_json with all necessary data for cabin display
         const updatedRawJson = {
           ...currentRawJson,
           cheapest: {
@@ -917,6 +917,24 @@ export class WebhookProcessorOptimizedV2 {
             prices: data.cheapest?.prices || currentRawJson.cheapest?.prices,
             cachedprices: data.cheapest?.cachedprices || currentRawJson.cheapest?.cachedprices,
           },
+          // Store the full prices object for price code lookups
+          prices: data.prices || currentRawJson.prices,
+          // Store the full cabins object for cabin details
+          cabins: data.cabins || currentRawJson.cabins,
+          // Store individual cheapest pricing objects
+          cheapestinside: data.cheapestinside || currentRawJson.cheapestinside,
+          cheapestoutside: data.cheapestoutside || currentRawJson.cheapestoutside,
+          cheapestbalcony: data.cheapestbalcony || currentRawJson.cheapestbalcony,
+          cheapestsuite: data.cheapestsuite || currentRawJson.cheapestsuite,
+          // Store price codes
+          cheapestinsidepricecode:
+            data.cheapestinsidepricecode || currentRawJson.cheapestinsidepricecode,
+          cheapestoutsidepricecode:
+            data.cheapestoutsidepricecode || currentRawJson.cheapestoutsidepricecode,
+          cheapestbalconypricecode:
+            data.cheapestbalconypricecode || currentRawJson.cheapestbalconypricecode,
+          cheapestsuitepricecode:
+            data.cheapestsuitepricecode || currentRawJson.cheapestsuitepricecode,
         };
 
         await db
