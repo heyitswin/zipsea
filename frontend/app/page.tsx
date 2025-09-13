@@ -332,268 +332,267 @@ function HomeWithParams() {
 
           {/* Search Input Container - New Three Dropdowns */}
           <div className="w-full max-w-[900px] relative z-30">
-            {/* Desktop: Three Dropdowns + Search Button */}
-            <div className="hidden md:flex gap-3 items-center">
-              {/* Destinations Dropdown */}
-              <div className="relative flex-1" ref={regionDropdownRef}>
-                <button
-                  onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
-                  className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
-                  style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
-                >
-                  <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
-                    {getRegionPlaceholder()}
-                  </span>
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 12 12"
-                    fill="none"
-                    className={`transform transition-transform ${isRegionDropdownOpen ? "rotate-180" : ""}`}
+            {/* Desktop: Three Dropdowns + Search Button on separate row */}
+            <div className="hidden md:block space-y-3">
+              {/* Three Dropdowns Row */}
+              <div className="flex gap-3 items-center">
+                {/* Destinations Dropdown */}
+                <div className="relative flex-1" ref={regionDropdownRef}>
+                  <button
+                    onClick={() =>
+                      setIsRegionDropdownOpen(!isRegionDropdownOpen)
+                    }
+                    className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
+                    style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
                   >
-                    <path
-                      d="M2 4L6 8L10 4"
-                      stroke="#0E1B4D"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
+                    <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
+                      {getRegionPlaceholder()}
+                    </span>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      className={`transform transition-transform ${isRegionDropdownOpen ? "rotate-180" : ""}`}
+                    >
+                      <path
+                        d="M2 4L6 8L10 4"
+                        stroke="#0E1B4D"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
 
-                {isRegionDropdownOpen && (
-                  <div
-                    className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg z-50 max-h-[400px] overflow-y-auto"
-                    style={{ boxShadow: "0px 1px 14px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    {regions.map((region) => (
-                      <button
-                        key={region.id}
-                        onClick={() => {
-                          setSelectedRegions((prev) =>
-                            prev.includes(region.id)
-                              ? prev.filter((id) => id !== region.id)
-                              : [...prev, region.id],
-                          );
-                          // Keep dropdown open
-                        }}
-                        className="w-full text-left px-6 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
-                      >
-                        <div
-                          className={`w-5 h-5 border-2 rounded ${
-                            selectedRegions.includes(region.id)
-                              ? "bg-[#0E1B4D] border-[#0E1B4D]"
-                              : "border-gray-300"
-                          }`}
+                  {isRegionDropdownOpen && (
+                    <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                      {regions.map((region) => (
+                        <button
+                          key={region.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedRegions((prev) =>
+                              prev.includes(region.id)
+                                ? prev.filter((id) => id !== region.id)
+                                : [...prev, region.id],
+                            );
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
                         >
-                          {selectedRegions.includes(region.id) && (
-                            <svg
-                              className="w-full h-full text-white p-0.5"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          )}
-                        </div>
-                        <span className="font-geograph text-[16px] text-dark-blue">
-                          {region.name}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Dates Dropdown */}
-              <div className="relative flex-1" ref={dateDropdownRef}>
-                <button
-                  onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
-                  className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
-                  style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
-                >
-                  <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
-                    {getDatePlaceholder()}
-                  </span>
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 12 12"
-                    fill="none"
-                    className={`transform transition-transform ${isDateDropdownOpen ? "rotate-180" : ""}`}
-                  >
-                    <path
-                      d="M2 4L6 8L10 4"
-                      stroke="#0E1B4D"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-
-                {isDateDropdownOpen && (
-                  <div
-                    className="absolute top-full mt-2 w-[400px] bg-white rounded-[10px] shadow-lg z-50 p-4 max-h-[500px] overflow-y-auto"
-                    style={{ boxShadow: "0px 1px 14px rgba(0, 0, 0, 0.25)" }}
-                  >
-                    {[2025, 2026, 2027].map((year) => {
-                      const currentDate = new Date();
-                      const currentYear = currentDate.getFullYear();
-                      const currentMonth = currentDate.getMonth();
-
-                      return (
-                        <div key={year} className="mb-4">
-                          <div className="font-geograph font-bold text-[14px] text-gray-700 mb-2">
-                            {year}
+                          <div
+                            className={`w-4 h-4 border rounded ${
+                              selectedRegions.includes(region.id)
+                                ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                                : "border-gray-300"
+                            }`}
+                          >
+                            {selectedRegions.includes(region.id) && (
+                              <svg
+                                className="w-full h-full text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
                           </div>
-                          <div className="grid grid-cols-4 gap-2">
-                            {[
-                              "Jan",
-                              "Feb",
-                              "Mar",
-                              "Apr",
-                              "May",
-                              "Jun",
-                              "Jul",
-                              "Aug",
-                              "Sep",
-                              "Oct",
-                              "Nov",
-                              "Dec",
-                            ].map((month, index) => {
-                              const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
-                              const isSelected =
-                                selectedMonths.includes(monthStr);
-                              const isPast =
-                                year < currentYear ||
-                                (year === currentYear && index < currentMonth);
-
-                              return (
-                                <button
-                                  key={monthStr}
-                                  onClick={() => {
-                                    if (!isPast) {
-                                      setSelectedMonths((prev) =>
-                                        prev.includes(monthStr)
-                                          ? prev.filter((m) => m !== monthStr)
-                                          : [...prev, monthStr],
-                                      );
-                                      // Keep dropdown open
-                                    }
-                                  }}
-                                  disabled={isPast}
-                                  className={`px-3 py-2 rounded-full text-[14px] font-geograph transition-colors ${
-                                    isPast
-                                      ? "bg-gray-50 text-gray-400 cursor-not-allowed"
-                                      : isSelected
-                                        ? "bg-[#0E1B4D] text-white"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                  }`}
-                                >
-                                  {month}
-                                </button>
-                              );
-                            })}
+                          <div className="font-geograph text-[16px] text-dark-blue">
+                            {region.name}
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-              {/* Cruise Lines Dropdown */}
-              <div className="relative flex-1" ref={cruiseLineDropdownRef}>
-                <button
-                  onClick={() =>
-                    setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
-                  }
-                  className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
-                  style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
-                >
-                  <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
-                    {getCruiseLinePlaceholder()}
-                  </span>
-                  <svg
-                    width="12"
-                    height="12"
-                    viewBox="0 0 12 12"
-                    fill="none"
-                    className={`transform transition-transform ${isCruiseLineDropdownOpen ? "rotate-180" : ""}`}
+                {/* Dates Dropdown */}
+                <div className="relative flex-1" ref={dateDropdownRef}>
+                  <button
+                    onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
+                    className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
+                    style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
                   >
-                    <path
-                      d="M2 4L6 8L10 4"
-                      stroke="#0E1B4D"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
+                    <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
+                      {getDatePlaceholder()}
+                    </span>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      className={`transform transition-transform ${isDateDropdownOpen ? "rotate-180" : ""}`}
+                    >
+                      <path
+                        d="M2 4L6 8L10 4"
+                        stroke="#0E1B4D"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
 
-                {isCruiseLineDropdownOpen && (
-                  <div
-                    className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg z-50 max-h-[400px] overflow-y-auto"
-                    style={{ boxShadow: "0px 1px 14px rgba(0, 0, 0, 0.25)" }}
+                  {isDateDropdownOpen && (
+                    <div className="absolute top-full mt-2 w-96 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4">
+                      {[2025, 2026, 2027, 2028].map((year) => {
+                        const currentDate = new Date();
+                        const currentYear = currentDate.getFullYear();
+                        const currentMonth = currentDate.getMonth();
+
+                        return (
+                          <div key={year} className="mb-4">
+                            <div className="font-geograph font-bold text-[14px] text-gray-700 mb-2">
+                              {year}
+                            </div>
+                            <div className="grid grid-cols-4 gap-2">
+                              {[
+                                "Jan",
+                                "Feb",
+                                "Mar",
+                                "Apr",
+                                "May",
+                                "Jun",
+                                "Jul",
+                                "Aug",
+                                "Sep",
+                                "Oct",
+                                "Nov",
+                                "Dec",
+                              ].map((month, index) => {
+                                const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
+                                const isSelected =
+                                  selectedMonths.includes(monthStr);
+                                const isPast =
+                                  year < currentYear ||
+                                  (year === currentYear &&
+                                    index < currentMonth);
+
+                                return (
+                                  <button
+                                    key={monthStr}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (!isPast) {
+                                        setSelectedMonths((prev) =>
+                                          prev.includes(monthStr)
+                                            ? prev.filter((m) => m !== monthStr)
+                                            : [...prev, monthStr],
+                                        );
+                                      }
+                                    }}
+                                    disabled={isPast}
+                                    className={`px-3 py-1 rounded-full text-[14px] font-geograph transition-colors ${
+                                      isPast
+                                        ? "bg-gray-50 text-gray-400 cursor-not-allowed"
+                                        : isSelected
+                                          ? "bg-[#0E1B4D] text-white"
+                                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                    }`}
+                                  >
+                                    {month}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Cruise Lines Dropdown */}
+                <div className="relative flex-1" ref={cruiseLineDropdownRef}>
+                  <button
+                    onClick={() =>
+                      setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
+                    }
+                    className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
+                    style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
                   >
-                    {cruiseLines.map((line) => (
-                      <button
-                        key={line.id}
-                        onClick={() => {
-                          setSelectedCruiseLines((prev) =>
-                            prev.includes(line.id)
-                              ? prev.filter((id) => id !== line.id)
-                              : [...prev, line.id],
-                          );
-                          // Keep dropdown open
-                        }}
-                        className="w-full text-left px-6 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
-                      >
-                        <div
-                          className={`w-5 h-5 border-2 rounded ${
-                            selectedCruiseLines.includes(line.id)
-                              ? "bg-[#0E1B4D] border-[#0E1B4D]"
-                              : "border-gray-300"
-                          }`}
+                    <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
+                      {getCruiseLinePlaceholder()}
+                    </span>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      className={`transform transition-transform ${isCruiseLineDropdownOpen ? "rotate-180" : ""}`}
+                    >
+                      <path
+                        d="M2 4L6 8L10 4"
+                        stroke="#0E1B4D"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+
+                  {isCruiseLineDropdownOpen && (
+                    <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                      {cruiseLines.map((line) => (
+                        <button
+                          key={line.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCruiseLines((prev) =>
+                              prev.includes(line.id)
+                                ? prev.filter((id) => id !== line.id)
+                                : [...prev, line.id],
+                            );
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
                         >
-                          {selectedCruiseLines.includes(line.id) && (
-                            <svg
-                              className="w-full h-full text-white p-0.5"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          )}
-                        </div>
-                        <span className="font-geograph text-[16px] text-dark-blue">
-                          {line.name}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                          <div
+                            className={`w-4 h-4 border rounded ${
+                              selectedCruiseLines.includes(line.id)
+                                ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                                : "border-gray-300"
+                            }`}
+                          >
+                            {selectedCruiseLines.includes(line.id) && (
+                              <svg
+                                className="w-full h-full text-white"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="font-geograph text-[16px] text-dark-blue">
+                            {line.name}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Search Button */}
-              <button
-                onClick={handleSearchCruises}
-                className="h-[74px] px-8 bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors"
-                style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
-              >
-                <span className="text-white text-[20px] font-geograph font-medium whitespace-nowrap">
-                  Search cruises
-                </span>
-              </button>
+              {/* Search Button Row */}
+              <div className="flex justify-center">
+                <button
+                  onClick={handleSearchCruises}
+                  className="h-[74px] px-12 bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors"
+                  style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
+                >
+                  <span className="text-white text-[20px] font-geograph font-medium whitespace-nowrap">
+                    Search cruises
+                  </span>
+                </button>
+              </div>
             </div>
 
             {/* Mobile: 3 Separate Pills + Search Button */}
@@ -626,24 +625,22 @@ function HomeWithParams() {
                 </button>
 
                 {isRegionDropdownOpen && (
-                  <div
-                    className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg z-50 max-h-[300px] overflow-y-auto"
-                    style={{ boxShadow: "0px 1px 14px rgba(0, 0, 0, 0.25)" }}
-                  >
+                  <div className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[300px] overflow-y-auto">
                     {regions.map((region) => (
                       <button
                         key={region.id}
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setSelectedRegions((prev) =>
                             prev.includes(region.id)
                               ? prev.filter((id) => id !== region.id)
                               : [...prev, region.id],
                           );
                         }}
-                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
                       >
                         <div
-                          className={`w-4 h-4 border-2 rounded ${
+                          className={`w-4 h-4 border rounded ${
                             selectedRegions.includes(region.id)
                               ? "bg-[#0E1B4D] border-[#0E1B4D]"
                               : "border-gray-300"
@@ -651,7 +648,7 @@ function HomeWithParams() {
                         >
                           {selectedRegions.includes(region.id) && (
                             <svg
-                              className="w-full h-full text-white p-0.5"
+                              className="w-full h-full text-white"
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
@@ -700,10 +697,7 @@ function HomeWithParams() {
                 </button>
 
                 {isDateDropdownOpen && (
-                  <div
-                    className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg z-50 p-3 max-h-[400px] overflow-y-auto"
-                    style={{ boxShadow: "0px 1px 14px rgba(0, 0, 0, 0.25)" }}
-                  >
+                  <div className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-3 max-h-[400px] overflow-y-auto">
                     {[2025, 2026].map((year) => {
                       const currentDate = new Date();
                       const currentYear = currentDate.getFullYear();
@@ -739,7 +733,8 @@ function HomeWithParams() {
                               return (
                                 <button
                                   key={monthStr}
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.stopPropagation();
                                     if (!isPast) {
                                       setSelectedMonths((prev) =>
                                         prev.includes(monthStr)
@@ -799,24 +794,22 @@ function HomeWithParams() {
                 </button>
 
                 {isCruiseLineDropdownOpen && (
-                  <div
-                    className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg z-50 max-h-[300px] overflow-y-auto"
-                    style={{ boxShadow: "0px 1px 14px rgba(0, 0, 0, 0.25)" }}
-                  >
+                  <div className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-[300px] overflow-y-auto">
                     {cruiseLines.map((line) => (
                       <button
                         key={line.id}
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setSelectedCruiseLines((prev) =>
                             prev.includes(line.id)
                               ? prev.filter((id) => id !== line.id)
                               : [...prev, line.id],
                           );
                         }}
-                        className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3"
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
                       >
                         <div
-                          className={`w-4 h-4 border-2 rounded ${
+                          className={`w-4 h-4 border rounded ${
                             selectedCruiseLines.includes(line.id)
                               ? "bg-[#0E1B4D] border-[#0E1B4D]"
                               : "border-gray-300"
@@ -824,7 +817,7 @@ function HomeWithParams() {
                         >
                           {selectedCruiseLines.includes(line.id) && (
                             <svg
-                              className="w-full h-full text-white p-0.5"
+                              className="w-full h-full text-white"
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
