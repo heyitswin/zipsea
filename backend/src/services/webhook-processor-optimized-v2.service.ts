@@ -3,6 +3,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { db } from '../db/connection';
 import { cruises } from '../db/schema/cruises';
+import { ships } from '../db/schema/ships';
 import { cheapestPricing } from '../db/schema';
 import { priceSnapshots } from '../db/schema/webhook-events';
 import { eq } from 'drizzle-orm';
@@ -720,6 +721,89 @@ export class WebhookProcessorOptimizedV2 {
         rawData: data,
         updatedAt: new Date(),
       };
+
+      // First, ensure the ship exists before inserting cruise
+      // Extract ship data from the cruise JSON
+      const shipId = cruiseData.shipId;
+      if (shipId && shipId > 0) {
+        try {
+          const shipData = {
+            id: shipId,
+            cruiseLineId: file.lineId,
+            name: data.shipname || data.shipcontent?.name || `Ship ${shipId}`,
+            code: data.shipcode || null,
+            niceName: data.shipcontent?.nicename || null,
+            shortName: data.shipcontent?.shortname || null,
+            maxPassengers: safeParseInt(data.shipcontent?.maxpassengers, null),
+            crew: safeParseInt(data.shipcontent?.crew, null),
+            tonnage: safeParseInt(data.shipcontent?.tonnage, null),
+            totalCabins: safeParseInt(data.shipcontent?.totalcabins, null),
+            length: data.shipcontent?.length || null,
+            beam: data.shipcontent?.beam || null,
+            draft: data.shipcontent?.draft || null,
+            speed: data.shipcontent?.speed || null,
+            registry: data.shipcontent?.registry || null,
+            builtYear: safeParseInt(data.shipcontent?.builtyear, null),
+            refurbishedYear: safeParseInt(data.shipcontent?.refurbishedyear, null),
+            description: data.shipcontent?.description || null,
+            starRating: safeParseInt(data.shipcontent?.starrating, null),
+            adultsOnly: data.shipcontent?.adultsonly === true,
+            highlights: data.shipcontent?.highlights || null,
+            shipClass: data.shipcontent?.shipclass || null,
+            defaultShipImage: data.shipcontent?.defaultshipimage || null,
+            defaultShipImageHd: data.shipcontent?.defaultshiptopimage || null,
+            defaultShipImage2k: data.shipcontent?.defaultshipimage2k || null,
+            niceUrl: data.shipcontent?.niceurl || null,
+            rawShipContent: data.shipcontent || null,
+            isActive: true,
+            updatedAt: new Date(),
+          };
+
+          // Upsert ship (insert if new, update if exists)
+          await db
+            .insert(ships)
+            .values(shipData)
+            .onConflictDoUpdate({
+              target: ships.id,
+              set: {
+                name: shipData.name,
+                code: shipData.code,
+                niceName: shipData.niceName,
+                shortName: shipData.shortName,
+                maxPassengers: shipData.maxPassengers,
+                crew: shipData.crew,
+                tonnage: shipData.tonnage,
+                totalCabins: shipData.totalCabins,
+                length: shipData.length,
+                beam: shipData.beam,
+                draft: shipData.draft,
+                speed: shipData.speed,
+                registry: shipData.registry,
+                builtYear: shipData.builtYear,
+                refurbishedYear: shipData.refurbishedYear,
+                description: shipData.description,
+                starRating: shipData.starRating,
+                adultsOnly: shipData.adultsOnly,
+                highlights: shipData.highlights,
+                shipClass: shipData.shipClass,
+                defaultShipImage: shipData.defaultShipImage,
+                defaultShipImageHd: shipData.defaultShipImageHd,
+                defaultShipImage2k: shipData.defaultShipImage2k,
+                niceUrl: shipData.niceUrl,
+                rawShipContent: shipData.rawShipContent,
+                updatedAt: new Date(),
+              },
+            });
+
+          console.log(`[OPTIMIZED-V2] Ensured ship ${shipId} exists: ${shipData.name}`);
+        } catch (shipError: any) {
+          console.error(
+            `[OPTIMIZED-V2] Error creating/updating ship ${shipId}:`,
+            shipError.message
+          );
+          // Continue anyway - maybe the ship already exists
+        }
+      }
 
       // Upsert cruise (insert if new, update if exists)
       try {
