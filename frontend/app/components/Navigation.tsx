@@ -599,6 +599,18 @@ export default function Navigation({
           {/* Navigation Links and Button (Desktop Only) */}
           <div className="hidden md:flex items-center gap-8">
             <a
+              href="/cruises"
+              className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
+                isScrolled ||
+                (isCruiseDetailPage && !isScrolled) ||
+                (isCruisesPage && !isScrolled)
+                  ? "text-[#0E1B4D]"
+                  : "text-white"
+              }`}
+            >
+              Browse Cruises
+            </a>
+            <a
               href="/why-zipsea"
               className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
                 isScrolled ||
@@ -986,6 +998,13 @@ export default function Navigation({
 
             {/* Navigation Links */}
             <div className="flex-1 flex flex-col justify-center px-8 space-y-8">
+              <a
+                href="/cruises"
+                className="text-dark-blue text-[24px] font-medium font-geograph py-4 border-b border-gray-separator"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Browse Cruises
+              </a>
               <a
                 href="/why-zipsea"
                 className="text-dark-blue text-[24px] font-medium font-geograph py-4 border-b border-gray-separator"

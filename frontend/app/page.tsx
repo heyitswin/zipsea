@@ -642,6 +642,13 @@ function HomeWithParams() {
                   className="w-full h-[64px] bg-white rounded-full flex items-center px-6"
                   style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
                 >
+                  <Image
+                    src="/images/place-icon.svg"
+                    alt=""
+                    width={16}
+                    height={16}
+                    className="mr-3"
+                  />
                   <span className="flex-1 text-left text-[18px] font-geograph text-dark-blue tracking-tight">
                     {getRegionPlaceholder()}
                   </span>
@@ -714,6 +721,13 @@ function HomeWithParams() {
                   className="w-full h-[64px] bg-white rounded-full flex items-center px-6"
                   style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
                 >
+                  <Image
+                    src="/images/calendar.svg"
+                    alt=""
+                    width={16}
+                    height={16}
+                    className="mr-3"
+                  />
                   <span className="flex-1 text-left text-[18px] font-geograph text-dark-blue tracking-tight">
                     {getDatePlaceholder()}
                   </span>
@@ -811,6 +825,13 @@ function HomeWithParams() {
                   className="w-full h-[64px] bg-white rounded-full flex items-center px-6"
                   style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
                 >
+                  <Image
+                    src="/images/ship.svg"
+                    alt=""
+                    width={16}
+                    height={16}
+                    className="mr-3"
+                  />
                   <span className="flex-1 text-left text-[18px] font-geograph text-dark-blue tracking-tight">
                     {getCruiseLinePlaceholder()}
                   </span>
@@ -882,6 +903,13 @@ function HomeWithParams() {
                 className="h-[64px] w-full bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 active:bg-dark-blue transition-colors"
                 style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
               >
+                <Image
+                  src="/images/search.svg"
+                  alt=""
+                  width={18}
+                  height={18}
+                  className="mr-2"
+                />
                 <span className="text-white text-[18px] font-geograph font-medium">
                   Search cruises
                 </span>
