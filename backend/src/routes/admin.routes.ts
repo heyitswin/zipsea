@@ -924,7 +924,7 @@ router.post('/quotes/:quoteId/respond', async (req: Request, res: Response) => {
               SELECT
                 c.id,
                 c.name as cruise_name,
-                c.departure_date,
+                c.sailing_date as departure_date,
                 c.return_date,
                 s.id as ship_id,
                 s.name as ship_name
