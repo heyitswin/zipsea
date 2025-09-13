@@ -21,6 +21,9 @@ export const quoteRequests = pgTable('quote_requests', {
   phone: varchar('phone'),
   customer_details: jsonb('customer_details'), // All other fields stored here for production compatibility
   status: varchar('status').default('pending'),
+  quoteResponse: jsonb('quote_response'), // Store pricing categories and details
+  quotedAt: timestamp('quoted_at'), // When quote was responded to
+  notes: text('notes'), // Admin notes for the quote
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

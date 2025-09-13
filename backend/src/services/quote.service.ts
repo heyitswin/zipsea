@@ -155,8 +155,8 @@ class QuoteService {
           // Send customer confirmation email
           const customerEmailSent = await emailService.sendQuoteConfirmationEmail(emailData);
 
-          // Send team notification email
-          const teamEmailSent = await emailService.sendQuoteNotificationToTeam(emailData);
+          // Commenting out team notification to prevent duplicate emails
+          // const teamEmailSent = await emailService.sendQuoteNotificationToTeam(emailData);
 
           // Log email results
           logger.info('Quote confirmation emails processed', {
@@ -164,7 +164,7 @@ class QuoteService {
             referenceNumber: quote.referenceNumber,
             customerEmail: data.email,
             customerEmailSent,
-            teamEmailSent,
+            teamEmailSent: false, // Set to false since we're not sending team email
             emailType: 'quote_confirmation',
           });
         } catch (emailError) {
