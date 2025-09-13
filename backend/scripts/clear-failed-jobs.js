@@ -54,14 +54,19 @@ async function clearFailedJobs() {
     }
 
     // Also clean up any stalled jobs
-    const stalledJobs = await queue.getStalledCount();
-    if (stalledJobs > 0) {
-      console.log(`⚠️  Found ${stalledJobs} stalled jobs, moving them back to waiting...`);
-      await queue.retryJobs({ state: 'stalled' });
+    // Note: getStalledCount is not available in current BullMQ version
+    // We'll clean stalled jobs differently
+    try {
+      const stalled = await queue.clean(0, 1000, 'stalled');
+      if (stalled && stalled.length > 0) {
+        console.log(`⚠️  Cleaned ${stalled.length} stalled jobs`);
+      }
+    } catch (stalledError) {
+      // Ignore if stalled cleaning is not supported
+      console.log('Note: Could not clean stalled jobs (feature may not be available)');
     }
 
     console.log('✨ Queue cleanup completed!');
-
   } catch (error) {
     console.error('❌ Error clearing failed jobs:', error);
   } finally {
