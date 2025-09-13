@@ -379,10 +379,9 @@ function HomeWithParams() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       {regions.map((region) => (
-                        <div
+                        <button
                           key={region.id}
                           onClick={(e) => {
-                            e.preventDefault();
                             e.stopPropagation();
                             setSelectedRegions((prev) =>
                               prev.includes(region.id)
@@ -390,7 +389,7 @@ function HomeWithParams() {
                                 : [...prev, region.id],
                             );
                           }}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer"
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
                         >
                           <div
                             className={`w-4 h-4 border rounded ${
@@ -416,7 +415,7 @@ function HomeWithParams() {
                           <div className="font-geograph text-[16px] text-dark-blue">
                             {region.name}
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -498,7 +497,6 @@ function HomeWithParams() {
                                   <button
                                     key={monthStr}
                                     onClick={(e) => {
-                                      e.preventDefault();
                                       e.stopPropagation();
                                       if (!isPast) {
                                         setSelectedMonths((prev) =>
@@ -571,10 +569,9 @@ function HomeWithParams() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       {cruiseLines.map((line) => (
-                        <div
+                        <button
                           key={line.id}
                           onClick={(e) => {
-                            e.preventDefault();
                             e.stopPropagation();
                             setSelectedCruiseLines((prev) =>
                               prev.includes(line.id)
@@ -582,7 +579,7 @@ function HomeWithParams() {
                                 : [...prev, line.id],
                             );
                           }}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer"
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
                         >
                           <div
                             className={`w-4 h-4 border rounded ${
@@ -608,7 +605,7 @@ function HomeWithParams() {
                           <div className="font-geograph text-[16px] text-dark-blue">
                             {line.name}
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
