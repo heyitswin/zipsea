@@ -75,6 +75,16 @@ const initializeServices = async () => {
       // Just log that the workers are ready
       logger.info('✅ Realtime webhook workers are now running');
 
+      // Start Redis maintenance service for automatic cleanup
+      try {
+        const { redisMaintenanceService } = await import('./services/redis-maintenance.service');
+        redisMaintenanceService.startMaintenanceCron();
+        logger.info('✅ Redis maintenance service started');
+      } catch (error) {
+        logger.error('Failed to start Redis maintenance service:', error);
+        // Don't fail app startup if maintenance service fails
+      }
+
       // Then initialize cron jobs
       logger.info('Initializing cron jobs...');
       await cronService.init();
