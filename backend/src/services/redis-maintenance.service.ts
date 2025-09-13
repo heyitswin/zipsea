@@ -9,15 +9,15 @@ export class RedisMaintenanceService {
   constructor() {
     this.redis = new Redis(process.env.REDIS_URL!, {
       maxRetriesPerRequest: null,
-      enableReadyCheck: false
+      enableReadyCheck: false,
     });
 
     this.webhookQueue = new Queue('webhook-processor', {
       connection: {
         host: process.env.REDIS_URL ? new URL(process.env.REDIS_URL).hostname : 'localhost',
-        port: process.env.REDIS_URL ? new URL(process.env.REDIS_URL).port : 6379,
-        password: process.env.REDIS_URL ? new URL(process.env.REDIS_URL).password : undefined
-      }
+        port: process.env.REDIS_URL ? parseInt(new URL(process.env.REDIS_URL).port) || 6379 : 6379,
+        password: process.env.REDIS_URL ? new URL(process.env.REDIS_URL).password : undefined,
+      },
     });
   }
 
@@ -53,7 +53,9 @@ export class RedisMaintenanceService {
         'failed'
       );
 
-      console.log(`[Redis Maintenance] Cleaned ${cleaned.length} completed, ${cleanedFailed.length} failed jobs`);
+      console.log(
+        `[Redis Maintenance] Cleaned ${cleaned.length} completed, ${cleanedFailed.length} failed jobs`
+      );
     } catch (error) {
       console.error('[Redis Maintenance] Cleanup error:', error);
     }
@@ -74,9 +76,11 @@ export class RedisMaintenanceService {
 
       const usedMemory = parseInt(stats.used_memory) / 1024 / 1024; // MB
       const maxMemory = 375; // Starter plan limit
-      const percentage = (usedMemory / maxMemory * 100);
+      const percentage = (usedMemory / maxMemory) * 100;
 
-      console.log(`[Redis Maintenance] Memory: ${usedMemory.toFixed(1)}MB / ${maxMemory}MB (${percentage.toFixed(1)}%)`);
+      console.log(
+        `[Redis Maintenance] Memory: ${usedMemory.toFixed(1)}MB / ${maxMemory}MB (${percentage.toFixed(1)}%)`
+      );
 
       // Alert if approaching limit
       if (percentage > 70) {
