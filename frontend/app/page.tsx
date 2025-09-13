@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import OptimizedImage from "../lib/OptimizedImage";
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -331,7 +332,7 @@ function HomeWithParams() {
           </p>
 
           {/* Search Input Container - New Three Dropdowns */}
-          <div className="w-full max-w-[900px] relative z-30">
+          <div className="w-full max-w-[700px] relative z-30">
             {/* Desktop: Three Dropdowns + Search Button on separate row */}
             <div className="hidden md:block space-y-3">
               {/* Three Dropdowns Row */}
@@ -345,6 +346,13 @@ function HomeWithParams() {
                     className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
                     style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
                   >
+                    <Image
+                      src="/images/place-icon.svg"
+                      alt=""
+                      width={20}
+                      height={20}
+                      className="mr-3"
+                    />
                     <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
                       {getRegionPlaceholder()}
                     </span>
@@ -368,9 +376,10 @@ function HomeWithParams() {
                   {isRegionDropdownOpen && (
                     <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                       {regions.map((region) => (
-                        <button
+                        <div
                           key={region.id}
                           onClick={(e) => {
+                            e.preventDefault();
                             e.stopPropagation();
                             setSelectedRegions((prev) =>
                               prev.includes(region.id)
@@ -378,7 +387,7 @@ function HomeWithParams() {
                                 : [...prev, region.id],
                             );
                           }}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer"
                         >
                           <div
                             className={`w-4 h-4 border rounded ${
@@ -404,7 +413,7 @@ function HomeWithParams() {
                           <div className="font-geograph text-[16px] text-dark-blue">
                             {region.name}
                           </div>
-                        </button>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -417,6 +426,13 @@ function HomeWithParams() {
                     className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
                     style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
                   >
+                    <Image
+                      src="/images/calendar.svg"
+                      alt=""
+                      width={20}
+                      height={20}
+                      className="mr-3"
+                    />
                     <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
                       {getDatePlaceholder()}
                     </span>
@@ -476,6 +492,7 @@ function HomeWithParams() {
                                   <button
                                     key={monthStr}
                                     onClick={(e) => {
+                                      e.preventDefault();
                                       e.stopPropagation();
                                       if (!isPast) {
                                         setSelectedMonths((prev) =>
@@ -515,6 +532,13 @@ function HomeWithParams() {
                     className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
                     style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
                   >
+                    <Image
+                      src="/images/ship.svg"
+                      alt=""
+                      width={20}
+                      height={20}
+                      className="mr-3"
+                    />
                     <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
                       {getCruiseLinePlaceholder()}
                     </span>
@@ -538,9 +562,10 @@ function HomeWithParams() {
                   {isCruiseLineDropdownOpen && (
                     <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                       {cruiseLines.map((line) => (
-                        <button
+                        <div
                           key={line.id}
                           onClick={(e) => {
+                            e.preventDefault();
                             e.stopPropagation();
                             setSelectedCruiseLines((prev) =>
                               prev.includes(line.id)
@@ -548,7 +573,7 @@ function HomeWithParams() {
                                 : [...prev, line.id],
                             );
                           }}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer"
                         >
                           <div
                             className={`w-4 h-4 border rounded ${
@@ -574,7 +599,7 @@ function HomeWithParams() {
                           <div className="font-geograph text-[16px] text-dark-blue">
                             {line.name}
                           </div>
-                        </button>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -585,9 +610,16 @@ function HomeWithParams() {
               <div className="flex justify-center">
                 <button
                   onClick={handleSearchCruises}
-                  className="h-[74px] px-12 bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors"
+                  className="w-full h-[74px] px-12 bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors"
                   style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
                 >
+                  <Image
+                    src="/images/search.svg"
+                    alt=""
+                    width={20}
+                    height={20}
+                    className="mr-2"
+                  />
                   <span className="text-white text-[20px] font-geograph font-medium whitespace-nowrap">
                     Search cruises
                   </span>
