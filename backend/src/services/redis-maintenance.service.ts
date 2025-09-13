@@ -5,51 +5,88 @@ import cron from 'node-cron';
 export class RedisMaintenanceService {
   private redis: Redis;
   private webhookQueue: Queue;
+  private initialized = false;
 
   constructor() {
-    this.redis = new Redis(process.env.REDIS_URL!, {
-      maxRetriesPerRequest: null,
-      enableReadyCheck: false,
-    });
+    this.initializeWithRetry();
+  }
 
-    this.webhookQueue = new Queue('webhook-processor', {
-      connection: {
-        host: process.env.REDIS_URL ? new URL(process.env.REDIS_URL).hostname : 'localhost',
-        port: process.env.REDIS_URL ? parseInt(new URL(process.env.REDIS_URL).port) || 6379 : 6379,
-        password: process.env.REDIS_URL ? new URL(process.env.REDIS_URL).password : undefined,
-      },
-    });
+  private async initializeWithRetry(retries = 5) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        this.redis = new Redis(process.env.REDIS_URL!, {
+          maxRetriesPerRequest: null,
+          enableReadyCheck: false,
+          retryStrategy: times => {
+            const delay = Math.min(times * 50, 2000);
+            console.log(`[Redis Maintenance] Retry attempt ${times}, waiting ${delay}ms`);
+            return delay;
+          },
+        });
+
+        // Wait for Redis to be ready
+        await this.redis.ping();
+        console.log('[Redis Maintenance] Redis connection established');
+
+        this.webhookQueue = new Queue('webhook-processor', {
+          connection: {
+            host: process.env.REDIS_URL ? new URL(process.env.REDIS_URL).hostname : 'localhost',
+            port: process.env.REDIS_URL
+              ? parseInt(new URL(process.env.REDIS_URL).port) || 6379
+              : 6379,
+            password: process.env.REDIS_URL ? new URL(process.env.REDIS_URL).password : undefined,
+          },
+        });
+
+        this.initialized = true;
+        break;
+      } catch (error) {
+        console.error(
+          `[Redis Maintenance] Failed to initialize (attempt ${i + 1}/${retries}):`,
+          error
+        );
+        if (i === retries - 1) {
+          console.error(
+            '[Redis Maintenance] Max retries reached. Service will run without Redis maintenance.'
+          );
+        } else {
+          await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds before retry
+        }
+      }
+    }
   }
 
   startMaintenanceCron() {
-    // Run cleanup every 6 hours
-    cron.schedule('0 */6 * * *', async () => {
-      console.log('[Redis Maintenance] Starting scheduled cleanup...');
+    if (!this.initialized) {
+      console.log('[Redis Maintenance] Service not initialized, skipping cron setup');
+      return;
+    }
+
+    // Run cleanup daily at 3 AM (noeviction policy means this is just for efficiency, not critical)
+    cron.schedule('0 3 * * *', async () => {
+      if (!this.initialized) return;
+      console.log('[Redis Maintenance] Starting daily cleanup...');
       await this.cleanupOldJobs();
       await this.checkMemoryUsage();
     });
 
-    // Check memory every hour
-    cron.schedule('0 * * * *', async () => {
-      await this.checkMemoryUsage();
-    });
-
-    console.log('[Redis Maintenance] Cron jobs scheduled');
+    console.log('[Redis Maintenance] Daily cleanup scheduled for 3 AM');
   }
 
   async cleanupOldJobs() {
+    if (!this.initialized) return;
     try {
-      // Clean completed jobs older than 12 hours
+      // Clean completed jobs older than 24 hours (less aggressive since noeviction is enabled)
       const cleaned = await this.webhookQueue.clean(
-        12 * 60 * 60 * 1000, // 12 hours
-        500, // limit
+        24 * 60 * 60 * 1000, // 24 hours
+        1000, // higher limit for daily cleanup
         'completed'
       );
 
-      // Clean failed jobs older than 3 days
+      // Clean failed jobs older than 7 days
       const cleanedFailed = await this.webhookQueue.clean(
-        3 * 24 * 60 * 60 * 1000, // 3 days
-        500,
+        7 * 24 * 60 * 60 * 1000, // 7 days
+        1000,
         'failed'
       );
 
@@ -62,6 +99,7 @@ export class RedisMaintenanceService {
   }
 
   async checkMemoryUsage() {
+    if (!this.initialized) return;
     try {
       const info = await this.redis.info('memory');
       const lines = info.split('\r\n');
@@ -82,40 +120,23 @@ export class RedisMaintenanceService {
         `[Redis Maintenance] Memory: ${usedMemory.toFixed(1)}MB / ${maxMemory}MB (${percentage.toFixed(1)}%)`
       );
 
-      // Alert if approaching limit
-      if (percentage > 70) {
-        console.warn(`[Redis Maintenance] ⚠️ Memory usage above 70%! Running emergency cleanup...`);
-        await this.emergencyCleanup();
+      // Log warning if approaching limit (no emergency cleanup needed with noeviction)
+      if (percentage > 85) {
+        console.warn(`[Redis Maintenance] ⚠️ Memory usage above 85% (${usedMemory.toFixed(1)}MB)`);
+        console.log('[Redis Maintenance] Consider running manual cleanup if needed');
       }
     } catch (error) {
       console.error('[Redis Maintenance] Memory check error:', error);
     }
   }
 
-  async emergencyCleanup() {
-    try {
-      // More aggressive cleanup when memory is high
-      await this.webhookQueue.clean(
-        6 * 60 * 60 * 1000, // 6 hours
-        1000,
-        'completed'
-      );
-
-      await this.webhookQueue.clean(
-        24 * 60 * 60 * 1000, // 1 day
-        1000,
-        'failed'
-      );
-
-      console.log('[Redis Maintenance] Emergency cleanup completed');
-    } catch (error) {
-      console.error('[Redis Maintenance] Emergency cleanup error:', error);
-    }
-  }
-
   async shutdown() {
-    await this.webhookQueue.close();
-    this.redis.disconnect();
+    if (this.webhookQueue) {
+      await this.webhookQueue.close();
+    }
+    if (this.redis) {
+      this.redis.disconnect();
+    }
   }
 }
 

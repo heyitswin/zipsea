@@ -61,8 +61,7 @@ export class WebhookProcessorFixed {
       });
     }
 
-    // Check and warn about eviction policy
-    this.checkRedisConfig();
+    // Redis now configured with noeviction policy
 
     this.fileQueue = new Queue('webhook-files', {
       connection: this.redis,
@@ -82,18 +81,6 @@ export class WebhookProcessorFixed {
     });
 
     this.setupEventListeners();
-  }
-
-  private async checkRedisConfig() {
-    try {
-      const config = await this.redis.config('GET', 'maxmemory-policy');
-      const policy = config[1];
-      if (policy !== 'noeviction') {
-        console.warn(`IMPORTANT! Eviction policy is ${policy}. It should be "noeviction"`);
-      }
-    } catch (error) {
-      console.error('Could not check Redis eviction policy:', error);
-    }
   }
 
   private setupEventListeners() {

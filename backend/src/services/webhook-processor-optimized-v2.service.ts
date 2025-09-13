@@ -20,7 +20,7 @@ interface FtpConnection {
 export class WebhookProcessorOptimizedV2 {
   private static ftpPool: FtpConnection[] = [];
   private static poolInitialized = false;
-  private static MAX_CONNECTIONS = 5; // Balanced for steady performance without overloading
+  private static MAX_CONNECTIONS = 8; // Increased for better performance with upgraded Redis
   private static KEEP_ALIVE_INTERVAL = 30000;
   private static processorInstance: WebhookProcessorOptimizedV2 | null = null;
 
@@ -59,12 +59,25 @@ export class WebhookProcessorOptimizedV2 {
       return;
     }
 
-    // Create Redis connection for BullMQ
+    // Create Redis connection for BullMQ with retry logic
     WebhookProcessorOptimizedV2.redisConnection = new Redis(
       process.env.REDIS_URL || 'redis://localhost:6379',
       {
         maxRetriesPerRequest: null,
         enableReadyCheck: false,
+        retryStrategy: times => {
+          const delay = Math.min(times * 100, 3000);
+          console.log(`[OPTIMIZED-V2] Redis retry attempt ${times}, waiting ${delay}ms`);
+          return delay;
+        },
+        reconnectOnError: err => {
+          const targetErrors = ['READONLY', 'LOADING'];
+          if (targetErrors.some(e => err.message.includes(e))) {
+            console.log('[OPTIMIZED-V2] Redis is loading, will retry connection');
+            return true;
+          }
+          return false;
+        },
       }
     );
 
@@ -72,12 +85,12 @@ export class WebhookProcessorOptimizedV2 {
     WebhookProcessorOptimizedV2.webhookQueue = new Queue('webhook-v2-processing', {
       connection: WebhookProcessorOptimizedV2.redisConnection,
       defaultJobOptions: {
-        removeOnComplete: { count: 100, age: 3600 }, // Keep last 100 completed jobs for 1 hour
-        removeOnFail: { count: 50, age: 86400 }, // Keep last 50 failed jobs for 24 hours
+        removeOnComplete: { count: 200, age: 7200 }, // Keep more completed jobs with upgraded Redis
+        removeOnFail: { count: 100, age: 86400 }, // Keep more failed jobs for debugging
         attempts: 3,
         backoff: {
           type: 'exponential',
-          delay: 2000,
+          delay: 1000, // Faster retry with better Redis performance
         },
       },
     });
@@ -92,7 +105,7 @@ export class WebhookProcessorOptimizedV2 {
         );
 
         // Process files in batches
-        const BATCH_SIZE = 5; // Small batch size to prevent memory spikes
+        const BATCH_SIZE = 10; // Increased batch size with upgraded Redis
         const results = { processed: 0, failed: 0, updated: 0 };
         const startTime = Date.now();
 
@@ -120,7 +133,7 @@ export class WebhookProcessorOptimizedV2 {
           // Add a small delay between batches to prevent PostgreSQL page cache exhaustion
           // This allows the database to clear its cache and prevents memory spikes
           if (i + BATCH_SIZE < files.length) {
-            await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+            await new Promise(resolve => setTimeout(resolve, 500)); // Reduced delay with better Redis
           }
 
           batchResults.forEach(result => {
@@ -152,7 +165,7 @@ export class WebhookProcessorOptimizedV2 {
       },
       {
         connection: WebhookProcessorOptimizedV2.redisConnection!,
-        concurrency: 3, // Low concurrency to prevent PostgreSQL page cache exhaustion
+        concurrency: 5, // Increased concurrency with upgraded Redis performance
         stalledInterval: 30000,
       }
     );
@@ -403,7 +416,20 @@ export class WebhookProcessorOptimizedV2 {
 
     try {
       // Initialize queue if not already done
-      await this.initializeQueue();
+      try {
+        await this.initializeQueue();
+      } catch (error: any) {
+        if (error.message?.includes('LOADING')) {
+          console.error(
+            '[OPTIMIZED-V2] Redis is still loading dataset, webhook processing delayed'
+          );
+          return {
+            status: 'error',
+            message: 'Redis is loading data after restart. Please retry in 30 seconds.',
+          };
+        }
+        throw error;
+      }
 
       // Skip snapshot for now - database schema mismatch
       // await this.takeSnapshot(lineId);
@@ -432,7 +458,7 @@ export class WebhookProcessorOptimizedV2 {
       }
 
       // Create batches of files for queue processing
-      const MAX_FILES_PER_JOB = 50; // Smaller jobs to reduce memory pressure on PostgreSQL
+      const MAX_FILES_PER_JOB = 100; // Increased job size with upgraded Redis
       const batches = [];
 
       for (let i = 0; i < files.length; i += MAX_FILES_PER_JOB) {
