@@ -1,0 +1,148 @@
+// Patch for WebhookProcessorOptimizedV2 to add timeout handling
+// Apply these changes to webhook-processor-optimized-v2.service.ts
+
+// 1. Add timeout constant at the top of the class
+private static PROCESSING_TIMEOUT = 5 * 60 * 1000; // 5 minutes max per job
+private static FILE_PROCESSING_TIMEOUT = 30 * 1000; // 30 seconds per file
+
+// 2. Replace the worker creation with timeout-aware version:
+WebhookProcessorOptimizedV2.webhookWorker = new Worker(
+  'webhook-v2-processing',
+  async (job: Job) => {
+    const { lineId, files, batchNumber, totalBatches } = job.data;
+    console.log(
+      `[WORKER-V2] Processing job ${job.id} (batch ${batchNumber}/${totalBatches}) for line ${lineId} with ${files.length} files`
+    );
+
+    // Add overall job timeout
+    const jobTimeout = setTimeout(() => {
+      const error = `Job ${job.id} timed out after ${WebhookProcessorOptimizedV2.PROCESSING_TIMEOUT / 1000} seconds`;
+      console.error(`[WORKER-V2] ${error}`);
+      throw new Error(error);
+    }, WebhookProcessorOptimizedV2.PROCESSING_TIMEOUT);
+
+    try {
+      // Process files in batches
+      const BATCH_SIZE = 5;
+      const results = { processed: 0, failed: 0, updated: 0 };
+      const startTime = Date.now();
+
+      for (let i = 0; i < files.length; i += BATCH_SIZE) {
+        const batch = files.slice(i, i + BATCH_SIZE);
+        
+        // Update progress
+        const progress = Math.round((i / files.length) * 100);
+        await job.updateProgress(progress);
+
+        // Process batch with timeout for each file
+        const batchResults = await Promise.allSettled(
+          batch.map(file => 
+            Promise.race([
+              WebhookProcessorOptimizedV2.processFileStatic(file),
+              new Promise((_, reject) => 
+                setTimeout(
+                  () => reject(new Error(`File processing timeout: ${file}`)), 
+                  WebhookProcessorOptimizedV2.FILE_PROCESSING_TIMEOUT
+                )
+              )
+            ])
+          )
+        );
+
+        // Small delay between batches
+        if (i + BATCH_SIZE < files.length) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        batchResults.forEach(result => {
+          if (result.status === 'fulfilled') {
+            results.processed++;
+            if (result.value) results.updated++;
+          } else {
+            results.failed++;
+            console.error(`[WORKER-V2] File processing failed:`, result.reason);
+          }
+        });
+
+        // Check if job is taking too long
+        const elapsed = Date.now() - startTime;
+        if (elapsed > WebhookProcessorOptimizedV2.PROCESSING_TIMEOUT * 0.8) {
+          console.warn(`[WORKER-V2] Job ${job.id} approaching timeout, stopping early`);
+          break;
+        }
+      }
+
+      clearTimeout(jobTimeout);
+      
+      console.log(
+        `[WORKER-V2] Job ${job.id} completed: ${results.processed} processed, ${results.updated} updated, ${results.failed} failed`
+      );
+
+      return results;
+    } catch (error) {
+      clearTimeout(jobTimeout);
+      throw error;
+    }
+  },
+  {
+    connection: WebhookProcessorOptimizedV2.redisConnection,
+    concurrency: 2, // Reduce concurrency to prevent overload
+    lockDuration: 300000, // 5 minutes lock duration
+    stalledInterval: 60000, // Check for stalled jobs every minute
+    maxStalledCount: 2, // Max stalled count before job is failed
+  }
+);
+
+// 3. Add cleanup method to be called periodically
+public static async cleanupStaleConnections() {
+  const now = Date.now();
+  const staleThreshold = 5 * 60 * 1000; // 5 minutes
+  
+  for (let i = WebhookProcessorOptimizedV2.ftpPool.length - 1; i >= 0; i--) {
+    const conn = WebhookProcessorOptimizedV2.ftpPool[i];
+    if (!conn.inUse && (now - conn.lastUsed) > staleThreshold) {
+      try {
+        conn.client.close();
+        WebhookProcessorOptimizedV2.ftpPool.splice(i, 1);
+        console.log(`[FTP-POOL] Cleaned up stale connection`);
+      } catch (error) {
+        console.error(`[FTP-POOL] Error cleaning up connection:`, error);
+      }
+    }
+  }
+}
+
+// 4. Add health check method
+public static async healthCheck(): Promise<{
+  status: 'healthy' | 'unhealthy';
+  details: any;
+}> {
+  try {
+    const queue = WebhookProcessorOptimizedV2.webhookQueue;
+    if (!queue) {
+      return { status: 'unhealthy', details: { error: 'Queue not initialized' } };
+    }
+
+    const waiting = await queue.getWaitingCount();
+    const active = await queue.getActiveCount();
+    const failed = await queue.getFailedCount();
+    
+    const isHealthy = active < 10 && failed < 50; // Thresholds
+    
+    return {
+      status: isHealthy ? 'healthy' : 'unhealthy',
+      details: {
+        waiting,
+        active,
+        failed,
+        ftpConnections: WebhookProcessorOptimizedV2.ftpPool.length,
+        memoryUsage: process.memoryUsage(),
+      }
+    };
+  } catch (error) {
+    return { 
+      status: 'unhealthy', 
+      details: { error: error.message } 
+    };
+  }
+}
