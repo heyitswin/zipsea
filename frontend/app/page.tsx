@@ -48,10 +48,13 @@ function HomeWithParams() {
   const [cruiseLines, setCruiseLines] = useState<FilterOption[]>([]);
   const [isLoadingFilters, setIsLoadingFilters] = useState(false);
 
-  // Refs for dropdown click outside detection
+  // Refs for dropdown click outside detection - separate for desktop and mobile
   const regionDropdownRef = useRef<HTMLDivElement>(null);
   const dateDropdownRef = useRef<HTMLDivElement>(null);
   const cruiseLineDropdownRef = useRef<HTMLDivElement>(null);
+  const mobileRegionDropdownRef = useRef<HTMLDivElement>(null);
+  const mobileDateDropdownRef = useRef<HTMLDivElement>(null);
+  const mobileCruiseLineDropdownRef = useRef<HTMLDivElement>(null);
 
   // Last minute deals states
   const [lastMinuteDeals, setLastMinuteDeals] = useState<LastMinuteDeals[]>([]);
@@ -135,23 +138,50 @@ function HomeWithParams() {
   // Handle click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Check desktop and mobile refs for regions (only one will be rendered)
       if (
-        regionDropdownRef.current &&
-        !regionDropdownRef.current.contains(event.target as Node)
+        (regionDropdownRef.current &&
+          !regionDropdownRef.current.contains(event.target as Node)) ||
+        (mobileRegionDropdownRef.current &&
+          !mobileRegionDropdownRef.current.contains(event.target as Node))
       ) {
-        setIsRegionDropdownOpen(false);
+        // But don't close if clicking inside either ref
+        if (
+          !regionDropdownRef.current?.contains(event.target as Node) &&
+          !mobileRegionDropdownRef.current?.contains(event.target as Node)
+        ) {
+          setIsRegionDropdownOpen(false);
+        }
       }
+      // Check desktop and mobile refs for dates
       if (
-        dateDropdownRef.current &&
-        !dateDropdownRef.current.contains(event.target as Node)
+        (dateDropdownRef.current &&
+          !dateDropdownRef.current.contains(event.target as Node)) ||
+        (mobileDateDropdownRef.current &&
+          !mobileDateDropdownRef.current.contains(event.target as Node))
       ) {
-        setIsDateDropdownOpen(false);
+        // But don't close if clicking inside either ref
+        if (
+          !dateDropdownRef.current?.contains(event.target as Node) &&
+          !mobileDateDropdownRef.current?.contains(event.target as Node)
+        ) {
+          setIsDateDropdownOpen(false);
+        }
       }
+      // Check desktop and mobile refs for cruise lines
       if (
-        cruiseLineDropdownRef.current &&
-        !cruiseLineDropdownRef.current.contains(event.target as Node)
+        (cruiseLineDropdownRef.current &&
+          !cruiseLineDropdownRef.current.contains(event.target as Node)) ||
+        (mobileCruiseLineDropdownRef.current &&
+          !mobileCruiseLineDropdownRef.current.contains(event.target as Node))
       ) {
-        setIsCruiseLineDropdownOpen(false);
+        // But don't close if clicking inside either ref
+        if (
+          !cruiseLineDropdownRef.current?.contains(event.target as Node) &&
+          !mobileCruiseLineDropdownRef.current?.contains(event.target as Node)
+        ) {
+          setIsCruiseLineDropdownOpen(false);
+        }
       }
     };
 
@@ -340,6 +370,7 @@ function HomeWithParams() {
                 {/* Destinations Dropdown */}
                 <div className="relative flex-1" ref={regionDropdownRef}>
                   <button
+                    type="button"
                     onClick={() =>
                       setIsRegionDropdownOpen(!isRegionDropdownOpen)
                     }
@@ -349,7 +380,7 @@ function HomeWithParams() {
                     <Image
                       src="/images/place-icon.svg"
                       alt=""
-                      width={20}
+                      width={14}
                       height={20}
                       className="mr-3"
                     />
@@ -378,6 +409,7 @@ function HomeWithParams() {
                       {regions.map((region) => (
                         <button
                           key={region.id}
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedRegions((prev) =>
@@ -421,6 +453,7 @@ function HomeWithParams() {
                 {/* Dates Dropdown */}
                 <div className="relative flex-1" ref={dateDropdownRef}>
                   <button
+                    type="button"
                     onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
                     className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
                     style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
@@ -490,6 +523,7 @@ function HomeWithParams() {
                                 return (
                                   <button
                                     key={monthStr}
+                                    type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       if (!isPast) {
@@ -524,6 +558,7 @@ function HomeWithParams() {
                 {/* Cruise Lines Dropdown */}
                 <div className="relative flex-1" ref={cruiseLineDropdownRef}>
                   <button
+                    type="button"
                     onClick={() =>
                       setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
                     }
@@ -533,7 +568,7 @@ function HomeWithParams() {
                     <Image
                       src="/images/ship.svg"
                       alt=""
-                      width={20}
+                      width={24}
                       height={20}
                       className="mr-3"
                     />
@@ -562,6 +597,7 @@ function HomeWithParams() {
                       {cruiseLines.map((line) => (
                         <button
                           key={line.id}
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setSelectedCruiseLines((prev) =>
@@ -607,7 +643,7 @@ function HomeWithParams() {
               <div className="flex justify-center">
                 <button
                   onClick={handleSearchCruises}
-                  className="w-full h-[74px] px-12 bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors"
+                  className="w-full h-[74px] px-12 bg-dark-blue rounded-full flex items-center justify-center"
                   style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
                 >
                   <Image
@@ -627,7 +663,7 @@ function HomeWithParams() {
             {/* Mobile: 3 Separate Pills + Search Button */}
             <div className="md:hidden space-y-4">
               {/* Destinations Selector Pill */}
-              <div className="relative" ref={regionDropdownRef}>
+              <div className="relative" ref={mobileRegionDropdownRef}>
                 <button
                   onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
                   className="w-full h-[64px] bg-white rounded-full flex items-center px-6"
@@ -706,7 +742,7 @@ function HomeWithParams() {
               </div>
 
               {/* Dates Pill */}
-              <div className="relative" ref={dateDropdownRef}>
+              <div className="relative" ref={mobileDateDropdownRef}>
                 <button
                   onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
                   className="w-full h-[64px] bg-white rounded-full flex items-center px-6"
@@ -808,7 +844,7 @@ function HomeWithParams() {
               </div>
 
               {/* Cruise Lines Pill */}
-              <div className="relative" ref={cruiseLineDropdownRef}>
+              <div className="relative" ref={mobileCruiseLineDropdownRef}>
                 <button
                   onClick={() =>
                     setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
