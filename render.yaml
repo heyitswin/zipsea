@@ -21,7 +21,7 @@ services:
     name: zipsea-redis-staging
     plan: free
     region: oregon
-    maxmemoryPolicy: allkeys-lru
+    maxmemoryPolicy: noeviction
     ipAllowList: []
 
   # Production Redis Cache
@@ -29,7 +29,7 @@ services:
     name: zipsea-redis-production
     plan: starter
     region: oregon
-    maxmemoryPolicy: allkeys-lru
+    maxmemoryPolicy: noeviction
     ipAllowList: []
 
   # ===========================================
