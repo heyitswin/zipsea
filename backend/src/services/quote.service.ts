@@ -152,8 +152,10 @@ class QuoteService {
             specialRequests: data.specialRequests,
           };
 
-          // Send customer confirmation email
-          const customerEmailSent = await emailService.sendQuoteConfirmationEmail(emailData);
+          // Commenting out customer confirmation email to prevent duplicate
+          // (frontend already sends confirmation email)
+          // const customerEmailSent = await emailService.sendQuoteConfirmationEmail(emailData);
+          const customerEmailSent = false; // Skip backend confirmation email
 
           // Commenting out team notification to prevent duplicate emails
           // const teamEmailSent = await emailService.sendQuoteNotificationToTeam(emailData);
