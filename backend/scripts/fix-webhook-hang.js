@@ -86,11 +86,11 @@ async function clearStuckJobs() {
       .select({
         lineId: webhookEvents.lineId,
         webhookType: webhookEvents.webhookType,
-        createdAt: webhookEvents.createdAt,
+        receivedAt: webhookEvents.receivedAt,
       })
       .from(webhookEvents)
       .where(inArray(webhookEvents.status, ['failed', 'pending']))
-      .orderBy(sql`created_at DESC`)
+      .orderBy(sql`received_at DESC`)
       .limit(10);
 
     if (recentWebhooks.length > 0) {

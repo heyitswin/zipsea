@@ -81,10 +81,10 @@ class WebhookHealthMonitor {
     const stuckProcessing = await db
       .select({
         count: sql`count(*)::int`,
-        oldest: sql`min(created_at)`,
+        oldest: sql`min(received_at)`,
       })
       .from(webhookEvents)
-      .where(and(eq(webhookEvents.status, 'processing'), sql`created_at < ${oneHourAgo}`));
+      .where(and(eq(webhookEvents.status, 'processing'), sql`received_at < ${oneHourAgo}`));
 
     if (stuckProcessing[0]?.count > 0) {
       const ageMinutes = Math.floor(
@@ -104,7 +104,7 @@ class WebhookHealthMonitor {
         processing: sql`count(*) filter (where status = 'processing')::int`,
       })
       .from(webhookEvents)
-      .where(gte(webhookEvents.createdAt, oneHourAgo));
+      .where(gte(webhookEvents.receivedAt, oneHourAgo));
 
     const stats = recentStats[0];
     if (stats.total > 0) {
