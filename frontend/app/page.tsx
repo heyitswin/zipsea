@@ -332,7 +332,7 @@ function HomeWithParams() {
           </p>
 
           {/* Search Input Container - New Three Dropdowns */}
-          <div className="w-full max-w-[700px] relative z-30">
+          <div className="w-full max-w-[740px] relative z-30">
             {/* Desktop: Three Dropdowns + Search Button on separate row */}
             <div className="hidden md:block space-y-3">
               {/* Three Dropdowns Row */}
@@ -374,7 +374,10 @@ function HomeWithParams() {
                   </button>
 
                   {isRegionDropdownOpen && (
-                    <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div
+                      className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {regions.map((region) => (
                         <div
                           key={region.id}
@@ -454,7 +457,10 @@ function HomeWithParams() {
                   </button>
 
                   {isDateDropdownOpen && (
-                    <div className="absolute top-full mt-2 w-96 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4">
+                    <div
+                      className="absolute top-full mt-2 w-96 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {[2025, 2026, 2027, 2028].map((year) => {
                         const currentDate = new Date();
                         const currentYear = currentDate.getFullYear();
@@ -560,7 +566,10 @@ function HomeWithParams() {
                   </button>
 
                   {isCruiseLineDropdownOpen && (
-                    <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div
+                      className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {cruiseLines.map((line) => (
                         <div
                           key={line.id}
