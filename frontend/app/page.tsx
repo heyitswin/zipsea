@@ -374,10 +374,7 @@ function HomeWithParams() {
                   </button>
 
                   {isRegionDropdownOpen && (
-                    <div
-                      className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                       {regions.map((region) => (
                         <button
                           key={region.id}
@@ -456,10 +453,7 @@ function HomeWithParams() {
                   </button>
 
                   {isDateDropdownOpen && (
-                    <div
-                      className="absolute top-full mt-2 w-96 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <div className="absolute top-full mt-2 w-96 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4">
                       {[2025, 2026, 2027, 2028].map((year) => {
                         const currentDate = new Date();
                         const currentYear = currentDate.getFullYear();
@@ -564,10 +558,7 @@ function HomeWithParams() {
                   </button>
 
                   {isCruiseLineDropdownOpen && (
-                    <div
-                      className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                       {cruiseLines.map((line) => (
                         <button
                           key={line.id}
