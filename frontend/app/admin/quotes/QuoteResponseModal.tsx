@@ -159,10 +159,10 @@ export default function QuoteResponseModal({
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Category
+                            Room name
                           </th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Room Name (Optional)
+                            Category
                           </th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Cabin Code (Optional)
@@ -181,21 +181,6 @@ export default function QuoteResponseModal({
                             <td className="px-4 py-2">
                               <input
                                 type="text"
-                                value={cat.category}
-                                onChange={(e) =>
-                                  handleCategoryChange(
-                                    index,
-                                    "category",
-                                    e.target.value,
-                                  )
-                                }
-                                className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="e.g., Interior"
-                              />
-                            </td>
-                            <td className="px-4 py-2">
-                              <input
-                                type="text"
                                 value={cat.roomName || ""}
                                 onChange={(e) =>
                                   handleCategoryChange(
@@ -206,6 +191,21 @@ export default function QuoteResponseModal({
                                 }
                                 className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="e.g., Ocean View Stateroom"
+                              />
+                            </td>
+                            <td className="px-4 py-2">
+                              <input
+                                type="text"
+                                value={cat.category}
+                                onChange={(e) =>
+                                  handleCategoryChange(
+                                    index,
+                                    "category",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                                placeholder="e.g., Interior"
                               />
                             </td>
                             <td className="px-4 py-2">
