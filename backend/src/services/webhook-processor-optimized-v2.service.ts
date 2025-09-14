@@ -561,17 +561,20 @@ export class WebhookProcessorOptimizedV2 {
         `[OPTIMIZED-V2] Creating ${batches.length} jobs for line ${lineId} (${files.length} files / ${MAX_FILES_PER_JOB} per job)`
       );
 
-      // Clear any existing jobs for this line before adding new ones
-      const existingJobs = await WebhookProcessorOptimizedV2.webhookQueue!.getJobs([
-        'waiting',
-        'active',
-        'delayed',
-      ]);
-      for (const job of existingJobs) {
-        if (job.data?.lineId === lineId) {
-          await job.remove();
-          console.log(`[OPTIMIZED-V2] Removed existing job ${job.id} for line ${lineId}`);
-        }
+      // Check for existing active jobs - DO NOT remove them
+      const activeJobs = await WebhookProcessorOptimizedV2.webhookQueue!.getJobs(['active']);
+      const activeForThisLine = activeJobs.filter(job => job.data?.lineId === lineId);
+
+      if (activeForThisLine.length > 0) {
+        console.log(
+          `[OPTIMIZED-V2] WARNING: ${activeForThisLine.length} active jobs already processing for line ${lineId}. ` +
+            `Skipping new job creation to prevent conflicts.`
+        );
+        return {
+          status: 'skipped',
+          message: `Active jobs already processing for line ${lineId}`,
+          activeJobs: activeForThisLine.length,
+        };
       }
 
       // Queue jobs for processing
@@ -767,10 +770,22 @@ export class WebhookProcessorOptimizedV2 {
 
       if (chunks.length === 0) {
         console.log(`[OPTIMIZED-V2] Empty file: ${file.path}`);
-        return;
+        return false;
       }
 
-      const data = JSON.parse(Buffer.concat(chunks).toString());
+      // Parse JSON with error handling for corrupted files
+      let data;
+      try {
+        const jsonString = Buffer.concat(chunks).toString();
+        data = JSON.parse(jsonString);
+      } catch (parseError) {
+        console.error(`[OPTIMIZED-V2] JSON parsing error for ${file.path}:`, parseError);
+        console.error(
+          `[OPTIMIZED-V2] First 500 chars of corrupted file: ${Buffer.concat(chunks).toString().substring(0, 500)}`
+        );
+        // Return false to mark as failed but continue processing other files
+        return false;
+      }
 
       // According to TRAVELTEK-COMPLETE-FIELD-REFERENCE.md, the primary ID is codetocruiseid
       const cruiseId = data.codetocruiseid || data.id || file.cruiseId;
