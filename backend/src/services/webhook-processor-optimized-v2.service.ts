@@ -769,7 +769,7 @@ export class WebhookProcessorOptimizedV2 {
 
     try {
       // Download file to memory (like sync-complete-enhanced.js)
-      const chunks: Buffer[] = [];
+      let chunks: Buffer[] = [];
       const writeStream = new Writable({
         write(chunk, encoding, callback) {
           chunks.push(chunk);
@@ -786,16 +786,50 @@ export class WebhookProcessorOptimizedV2 {
 
       // Parse JSON with error handling for corrupted files
       let data;
-      try {
-        const jsonString = Buffer.concat(chunks).toString();
-        data = JSON.parse(jsonString);
-      } catch (parseError) {
-        console.error(`[OPTIMIZED-V2] JSON parsing error for ${file.path}:`, parseError);
-        console.error(
-          `[OPTIMIZED-V2] First 500 chars of corrupted file: ${Buffer.concat(chunks).toString().substring(0, 500)}`
-        );
-        // Return false to mark as failed but continue processing other files
-        return false;
+      let parseAttempts = 0;
+      const maxParseAttempts = 2;
+
+      while (parseAttempts < maxParseAttempts) {
+        try {
+          const jsonString = Buffer.concat(chunks).toString();
+          data = JSON.parse(jsonString);
+          break; // Success, exit loop
+        } catch (parseError) {
+          parseAttempts++;
+          console.error(
+            `[OPTIMIZED-V2] JSON parsing error for ${file.path} (attempt ${parseAttempts}/${maxParseAttempts}):`,
+            parseError
+          );
+
+          if (parseAttempts < maxParseAttempts) {
+            // Try to re-download the file
+            console.log(`[OPTIMIZED-V2] Attempting to re-download corrupted file: ${file.path}`);
+            chunks = [];
+
+            try {
+              const stream = conn.client.createReadStream(file.path);
+              await new Promise((resolve, reject) => {
+                stream.on('data', chunk => chunks.push(chunk));
+                stream.on('end', resolve);
+                stream.on('error', reject);
+              });
+              console.log(
+                `[OPTIMIZED-V2] Re-downloaded ${file.path} (${Buffer.concat(chunks).length} bytes)`
+              );
+            } catch (redownloadError) {
+              console.error(`[OPTIMIZED-V2] Failed to re-download ${file.path}:`, redownloadError);
+              return false;
+            }
+          } else {
+            // Final failure, log details
+            console.error(`[OPTIMIZED-V2] File permanently corrupted: ${file.path}`);
+            console.error(
+              `[OPTIMIZED-V2] First 500 chars: ${Buffer.concat(chunks).toString().substring(0, 500)}`
+            );
+            // Return false to mark as failed but continue processing other files
+            return false;
+          }
+        }
       }
 
       // According to TRAVELTEK-COMPLETE-FIELD-REFERENCE.md, the primary ID is codetocruiseid

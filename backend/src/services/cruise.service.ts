@@ -1,4 +1,4 @@
-import { eq, and, inArray, desc, asc, aliasedTable } from 'drizzle-orm';
+import { eq, and, inArray, desc, asc, aliasedTable, sql } from 'drizzle-orm';
 import { db } from '../db/connection';
 import { logger } from '../config/logger';
 import { cacheManager } from '../cache/cache-manager';
@@ -516,9 +516,14 @@ export class CruiseService {
       // Try cache first
       const cached = await cacheManager.get<CruiseDetails>(cacheKey);
       if (cached) {
-        logger.debug(`Returning cached cruise details for ${cruiseId}`);
+        logger.info(`[getCruiseDetails] Returning CACHED cruise details for ${cruiseId}`);
+        logger.info(
+          `[getCruiseDetails] Cached itinerary has ${cached.itinerary ? cached.itinerary.length : 0} entries`
+        );
         return cached;
       }
+
+      logger.info(`[getCruiseDetails] Cache miss for cruise ${cruiseId}, fetching from database`);
 
       // Create alias for disembark port
       const disembarkPort = aliasedTable(ports, 'disembark_port');
@@ -800,9 +805,13 @@ export class CruiseService {
     try {
       logger.info(`[getCruiseItinerary] Fetching itinerary for cruise ${cruiseId}`);
 
-      // Use raw SQL to avoid schema mismatches
-      const results = await db.execute(
-        `SELECT
+      // Use direct Drizzle query without SQL template to avoid parameter issues
+      const cruiseIdStr = String(cruiseId);
+
+      // Using raw SQL to avoid schema mismatches with production database
+      // Production doesn't have isSeaDay, isTenderPort, or updatedAt columns
+      const query = sql`
+        SELECT
           i.id,
           i.cruise_id,
           i.day_number,
@@ -811,24 +820,26 @@ export class CruiseService {
           i.arrive_time,
           i.depart_time,
           i.description,
+          i.overnight,
           p.name as port_name_from_table,
           p.code as port_code,
           p.country as port_country
         FROM cruise_itinerary i
         LEFT JOIN ports p ON i.port_id = p.id
-        WHERE i.cruise_id = $1
-        ORDER BY i.day_number ASC`,
-        [String(cruiseId)]
-      );
+        WHERE i.cruise_id = ${cruiseIdStr}
+        ORDER BY i.day_number ASC
+      `;
 
-      const rows = (results as any).rows || [];
+      const results = await db.execute(query);
+      const rows = (results as any).rows || results || [];
+
       logger.info(
         `[getCruiseItinerary] Found ${rows.length} itinerary entries for cruise ${cruiseId}`
       );
 
       return rows.map((row: any) => ({
-        id: row.id.toString(),
-        day: row.day_number,
+        id: row.id?.toString() || '',
+        day: row.day_number || 0,
         date: new Date().toISOString(), // We don't have date field in DB, using placeholder
         portName: row.port_name || row.port_name_from_table || 'Unknown Port',
         port:
@@ -836,15 +847,15 @@ export class CruiseService {
             ? {
                 id: row.port_id,
                 name: row.port_name_from_table,
-                code: row.port_code,
-                country: row.port_country,
+                code: row.port_code || undefined,
+                country: row.port_country || undefined,
               }
             : undefined,
-        arrivalTime: row.arrive_time,
-        departureTime: row.depart_time,
+        arrivalTime: row.arrive_time || undefined,
+        departureTime: row.depart_time || undefined,
         status: row.port_name?.toLowerCase().includes('sea') ? 'sea-day' : 'port',
-        overnight: false, // Not available in current schema
-        description: row.description,
+        overnight: row.overnight || false,
+        description: row.description || undefined,
         activities: [], // Not available in current schema
         shoreExcursions: [], // Not available in current schema
       }));
@@ -1511,7 +1522,7 @@ export class CruiseService {
         portId: row.itinerary.portId,
         arrivalTime: row.itinerary.arrivalTime,
         departureTime: row.itinerary.departureTime,
-        status: row.itinerary.isSeaDay ? 'sea-day' : 'port',
+        status: row.itinerary.portName?.toLowerCase().includes('sea') ? 'sea-day' : 'port',
         overnight: false,
         description: row.itinerary.description,
         activities: undefined,
