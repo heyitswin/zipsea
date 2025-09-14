@@ -7,16 +7,27 @@ async function checkWebhookStatus() {
   console.log('🔍 Webhook Queue Status Check');
   console.log('==============================\n');
 
+  // Try REDIS_URL first, fall back to REDIS_HOST/PORT
   const redisUrl = process.env.REDIS_URL;
-  if (!redisUrl) {
-    console.log('❌ REDIS_URL not set');
+  let redis;
+
+  if (redisUrl) {
+    redis = new Redis(redisUrl, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    });
+  } else if (process.env.REDIS_HOST) {
+    redis = new Redis({
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+      password: process.env.REDIS_PASSWORD || undefined,
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    });
+  } else {
+    console.log('❌ Redis configuration not found (neither REDIS_URL nor REDIS_HOST set)');
     return;
   }
-
-  const redis = new Redis(redisUrl, {
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false
-  });
 
   try {
     // Check Redis connection
@@ -25,7 +36,7 @@ async function checkWebhookStatus() {
 
     // Check webhook-v2-processing queue
     const queue = new Queue('webhook-v2-processing', {
-      connection: redis
+      connection: redis,
     });
 
     // Get queue stats
@@ -54,7 +65,9 @@ async function checkWebhookStatus() {
       console.log('\n  Active Jobs:');
       for (const job of activeJobs) {
         const duration = Date.now() - job.timestamp;
-        console.log(`    - Job ${job.id}: Line ${job.data.cruiseLineId}, Duration: ${Math.round(duration/1000)}s`);
+        console.log(
+          `    - Job ${job.id}: Line ${job.data.cruiseLineId}, Duration: ${Math.round(duration / 1000)}s`
+        );
       }
     }
 
@@ -64,7 +77,9 @@ async function checkWebhookStatus() {
       console.log('\n  Waiting Jobs:');
       for (const job of waitingJobs) {
         const age = Date.now() - job.timestamp;
-        console.log(`    - Job ${job.id}: Line ${job.data.cruiseLineId}, Age: ${Math.round(age/1000)}s`);
+        console.log(
+          `    - Job ${job.id}: Line ${job.data.cruiseLineId}, Age: ${Math.round(age / 1000)}s`
+        );
       }
     }
 
@@ -85,9 +100,12 @@ async function checkWebhookStatus() {
       const oldestActive = activeJobs[0];
       if (oldestActive) {
         const duration = Date.now() - oldestActive.timestamp;
-        if (duration > 600000) { // 10 minutes
+        if (duration > 600000) {
+          // 10 minutes
           console.log('\n⚠️  WARNING: Active job running for over 10 minutes!');
-          console.log(`  Job ${oldestActive.id} has been running for ${Math.round(duration/60000)} minutes`);
+          console.log(
+            `  Job ${oldestActive.id} has been running for ${Math.round(duration / 60000)} minutes`
+          );
         }
       }
     }
