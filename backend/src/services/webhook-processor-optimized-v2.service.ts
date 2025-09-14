@@ -157,7 +157,8 @@ export class WebhookProcessorOptimizedV2 {
             lineId,
             results,
             batchNumber,
-            totalBatches
+            totalBatches,
+            job.data.totalFilesInRun
           );
         }
 
@@ -1466,7 +1467,8 @@ export class WebhookProcessorOptimizedV2 {
     lineId: number,
     results: { processed: number; failed: number; updated: number },
     batchNumber: number,
-    totalBatches: number
+    totalBatches: number,
+    totalFilesInRun?: number
   ): Promise<void> {
     if (!this.processingJobs.has(lineId)) {
       this.processingJobs.set(lineId, {
