@@ -552,6 +552,8 @@ export class CruiseService {
       const disembarkPortData = cruiseResult[0].disembarkPort;
 
       // Get additional data in parallel
+      logger.info(`[getCruiseDetails] Fetching additional data for cruise ${cruiseId}`);
+
       const [
         regionsData,
         portsData,
@@ -563,12 +565,19 @@ export class CruiseService {
       ] = await Promise.all([
         this.getCruiseRegions(cruise),
         this.getCruisePorts(cruise),
-        this.getCruiseItinerary(cruiseId),
+        this.getCruiseItinerary(cruiseId).catch(err => {
+          logger.error(`[getCruiseDetails] Failed to get itinerary for cruise ${cruiseId}:`, err);
+          return [];
+        }),
         this.getCruisePricing(cruiseId),
         this.getCheapestPricing(cruiseId),
         this.getAlternativeSailings(cruiseId),
         this.getCabinCategories(cruise.shipId),
       ]);
+
+      logger.info(
+        `[getCruiseDetails] Got itinerary with ${itineraryData.length} entries for cruise ${cruiseId}`
+      );
 
       const cruiseDetails: CruiseDetails = {
         id: cruise.id,
