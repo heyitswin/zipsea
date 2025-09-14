@@ -286,8 +286,10 @@ export class WebhookProcessorOptimizedV2 {
       }
     }
 
-    // Set up keep-alive
+    // Set up keep-alive and health check
     setInterval(async () => {
+      const deadConnections: FtpConnection[] = [];
+
       for (const conn of WebhookProcessorOptimizedV2.ftpPool) {
         if (
           !conn.inUse &&
@@ -297,9 +299,54 @@ export class WebhookProcessorOptimizedV2 {
             await conn.client.send('NOOP');
             conn.lastUsed = Date.now();
           } catch (error) {
-            // Connection dead, will need to recreate on next use
+            // Connection is dead, mark for removal
+            deadConnections.push(conn);
           }
         }
+      }
+
+      // Remove dead connections and create replacements
+      for (const deadConn of deadConnections) {
+        const index = WebhookProcessorOptimizedV2.ftpPool.indexOf(deadConn);
+        if (index !== -1) {
+          WebhookProcessorOptimizedV2.ftpPool.splice(index, 1);
+          console.log(
+            `[OPTIMIZED-V2] Removed dead connection during health check. Pool size: ${WebhookProcessorOptimizedV2.ftpPool.length}`
+          );
+
+          // Try to create replacement
+          try {
+            const newClient = new ftp.Client();
+            newClient.ftp.verbose = false;
+            await newClient.access(ftpConfig);
+            WebhookProcessorOptimizedV2.ftpPool.push({
+              client: newClient,
+              inUse: false,
+              lastUsed: Date.now(),
+            });
+            console.log(
+              `[OPTIMIZED-V2] Created replacement connection during health check. Pool size: ${WebhookProcessorOptimizedV2.ftpPool.length}`
+            );
+          } catch (replaceError) {
+            console.error(
+              '[OPTIMIZED-V2] Failed to create replacement during health check:',
+              replaceError
+            );
+          }
+        }
+      }
+
+      // If pool is critically low, trigger full reset
+      if (
+        WebhookProcessorOptimizedV2.ftpPool.length < 2 &&
+        !WebhookProcessorOptimizedV2.poolInitialized
+      ) {
+        console.error(
+          '[OPTIMIZED-V2] Pool critically low during health check, triggering reset...'
+        );
+        WebhookProcessorOptimizedV2.poolInitialized = false;
+        WebhookProcessorOptimizedV2.ftpPool = [];
+        this.initializeFtpPool().catch(console.error);
       }
     }, WebhookProcessorOptimizedV2.KEEP_ALIVE_INTERVAL);
 
@@ -373,20 +420,55 @@ export class WebhookProcessorOptimizedV2 {
           }
         }
 
-        // If all retries failed, mark connection as unusable
-        availableConn.inUse = true; // Keep it marked as in use so it won't be selected again
+        // If all retries failed, remove the dead connection from pool
         console.error('[OPTIMIZED-V2] Failed to recreate connection after all retries:', lastError);
+        const deadIndex = WebhookProcessorOptimizedV2.ftpPool.indexOf(availableConn);
+        if (deadIndex !== -1) {
+          WebhookProcessorOptimizedV2.ftpPool.splice(deadIndex, 1);
+          console.log(
+            `[OPTIMIZED-V2] Removed dead connection from pool. Pool size: ${WebhookProcessorOptimizedV2.ftpPool.length}`
+          );
+        }
 
-        // Try to get another connection from the pool
-        const otherConn = WebhookProcessorOptimizedV2.ftpPool.find(
-          c => !c.inUse && c !== availableConn
-        );
+        // Try to create a replacement connection
+        try {
+          const newClient = new ftp.Client();
+          newClient.ftp.verbose = false;
+          await newClient.access(ftpConfig);
+          const newConn: FtpConnection = {
+            client: newClient,
+            inUse: true,
+            lastUsed: Date.now(),
+          };
+          WebhookProcessorOptimizedV2.ftpPool.push(newConn);
+          console.log(
+            `[OPTIMIZED-V2] Created replacement connection. Pool size: ${WebhookProcessorOptimizedV2.ftpPool.length}`
+          );
+          return newConn;
+        } catch (replacementError) {
+          console.error(
+            '[OPTIMIZED-V2] Failed to create replacement connection:',
+            replacementError
+          );
+        }
+
+        // If pool is getting too small, trigger a full reset
+        if (WebhookProcessorOptimizedV2.ftpPool.length < 2) {
+          console.error('[OPTIMIZED-V2] FTP pool critically low, triggering reset...');
+          WebhookProcessorOptimizedV2.poolInitialized = false;
+          WebhookProcessorOptimizedV2.ftpPool = [];
+          await this.initializeFtpPool();
+          return this.getFtpConnection();
+        }
+
+        // Try another connection from the pool
+        const otherConn = WebhookProcessorOptimizedV2.ftpPool.find(c => !c.inUse);
         if (otherConn) {
           return this.getFtpConnection();
         }
 
         throw new Error(
-          `FTP connection failed after retries: ${lastError?.message || 'Unknown error'}`
+          `FTP connection failed: ${lastError?.message || 'No available connections'} (control socket)`
         );
       }
     }
