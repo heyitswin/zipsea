@@ -1,4 +1,4 @@
-import { eq, and, inArray, desc, asc, aliasedTable } from 'drizzle-orm';
+import { eq, and, inArray, desc, asc, aliasedTable, sql } from 'drizzle-orm';
 import { db } from '../db/connection';
 import { logger } from '../config/logger';
 import { cacheManager } from '../cache/cache-manager';
@@ -1455,31 +1455,46 @@ export class CruiseService {
    */
   private async getAllItineraryData(cruiseId: number | string) {
     try {
-      const results = await db
-        .select({
-          itinerary: itineraries,
-          port: ports,
-        })
-        .from(itineraries)
-        .leftJoin(ports, eq(itineraries.portId, ports.id))
-        .where(eq(itineraries.cruiseId, String(cruiseId)))
-        .orderBy(asc(itineraries.dayNumber));
+      // Use raw SQL to avoid schema mismatches with production
+      const cruiseIdStr = String(cruiseId);
+      const query = sql`
+        SELECT
+          i.id,
+          i.cruise_id,
+          i.day_number,
+          i.port_id,
+          i.port_name,
+          i.arrive_time,
+          i.depart_time,
+          i.description,
+          i.overnight,
+          p.name as port_name_from_table,
+          p.code as port_code,
+          p.country as port_country
+        FROM cruise_itinerary i
+        LEFT JOIN ports p ON i.port_id = p.id
+        WHERE i.cruise_id = ${cruiseIdStr}
+        ORDER BY i.day_number ASC
+      `;
 
-      return results.map(row => ({
-        id: row.itinerary.id.toString(),
-        cruiseId: row.itinerary.cruiseId,
-        dayNumber: row.itinerary.dayNumber,
+      const results = await db.execute(query);
+      const rows = (results as any).rows || results || [];
+
+      return rows.map((row: any) => ({
+        id: row.id?.toString() || '',
+        cruiseId: row.cruise_id,
+        dayNumber: row.day_number,
         date: new Date().toISOString(), // Placeholder
-        portName: row.itinerary.portName || 'Unknown Port',
-        portId: row.itinerary.portId,
-        arrivalTime: row.itinerary.arrivalTime,
-        departureTime: row.itinerary.departureTime,
-        status: row.itinerary.isSeaDay ? 'sea-day' : 'port',
-        overnight: false,
-        description: row.itinerary.description,
+        portName: row.port_name || row.port_name_from_table || 'Unknown Port',
+        portId: row.port_id,
+        arrivalTime: row.arrive_time,
+        departureTime: row.depart_time,
+        status: row.port_name?.toLowerCase().includes('sea') ? 'sea-day' : 'port',
+        overnight: row.overnight || false,
+        description: row.description,
         activities: undefined,
         shoreExcursions: undefined,
-        raw: row.itinerary,
+        raw: row,
       }));
     } catch (error) {
       logger.warn(`Failed to get itinerary data for cruise ${cruiseId}:`, error);
