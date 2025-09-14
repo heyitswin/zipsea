@@ -37,8 +37,9 @@ export class WebhookProcessorOptimizedV2 {
   };
 
   private processingJobs = new Map<
-    number,
+    string, // Changed to string to include run ID
     {
+      lineId: number;
       startTime: Date;
       totalFiles: number;
       processedFiles: number;
@@ -155,6 +156,7 @@ export class WebhookProcessorOptimizedV2 {
         if (WebhookProcessorOptimizedV2.processorInstance) {
           await WebhookProcessorOptimizedV2.processorInstance.trackBatchCompletion(
             lineId,
+            job.data.runId, // Pass the run ID
             results,
             batchNumber,
             totalBatches,
@@ -517,8 +519,17 @@ export class WebhookProcessorOptimizedV2 {
       // Skip snapshot for now - database schema mismatch
       // await this.takeSnapshot(lineId);
 
+      // Generate unique run ID for this webhook processing session
+      const runId = `${lineId}-${Date.now()}`;
+
       // Reset processing stats for this line
-      this.processingJobs.delete(lineId);
+      // Clean up any old runs for this line
+      for (const [key, value] of this.processingJobs.entries()) {
+        if (value.lineId === lineId) {
+          this.processingJobs.delete(key);
+        }
+      }
+
       this.stats = {
         filesProcessed: 0,
         cruisesUpdated: 0,
@@ -583,6 +594,7 @@ export class WebhookProcessorOptimizedV2 {
           `line-${lineId}-batch-${i + 1}`,
           {
             lineId,
+            runId, // Pass the unique run ID
             files: batches[i],
             batchNumber: i + 1,
             totalBatches: batches.length,
@@ -1479,13 +1491,15 @@ export class WebhookProcessorOptimizedV2 {
    */
   private async trackBatchCompletion(
     lineId: number,
+    runId: string,
     results: { processed: number; failed: number; updated: number },
     batchNumber: number,
     totalBatches: number,
     totalFilesInRun?: number
   ): Promise<void> {
-    if (!this.processingJobs.has(lineId)) {
-      this.processingJobs.set(lineId, {
+    if (!this.processingJobs.has(runId)) {
+      this.processingJobs.set(runId, {
+        lineId,
         startTime: new Date(),
         totalFiles: totalFilesInRun || 0,
         processedFiles: 0,
@@ -1495,7 +1509,7 @@ export class WebhookProcessorOptimizedV2 {
       });
     }
 
-    const jobTracking = this.processingJobs.get(lineId)!;
+    const jobTracking = this.processingJobs.get(runId)!;
 
     // Update tracking
     jobTracking.processedFiles += results.processed;
@@ -1564,7 +1578,7 @@ export class WebhookProcessorOptimizedV2 {
       );
 
       // Clean up tracking
-      this.processingJobs.delete(lineId);
+      this.processingJobs.delete(runId);
 
       console.log(
         `[OPTIMIZED-V2] All processing complete for line ${lineId}. ` +
@@ -1602,7 +1616,7 @@ export class WebhookProcessorOptimizedV2 {
       );
 
       // Clean up tracking
-      this.processingJobs.delete(lineId);
+      this.processingJobs.delete(runId);
     }
   }
 }
