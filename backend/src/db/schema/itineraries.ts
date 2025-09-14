@@ -21,8 +21,8 @@ export const itineraries = pgTable('cruise_itinerary', {
   dayNumber: integer('day_number').notNull(), // itinerary[].day
   portId: integer('port_id').references(() => ports.id), // Foreign key, nullable
   portName: varchar('port_name', { length: 255 }), // itinerary[].port
-  arrivalTime: varchar('arrival_time', { length: 10 }), // itinerary[].arrive
-  departureTime: varchar('departure_time', { length: 10 }), // itinerary[].depart
+  arrivalTime: varchar('arrive_time', { length: 10 }), // itinerary[].arrive - matches production column name
+  departureTime: varchar('depart_time', { length: 10 }), // itinerary[].depart - matches production column name
   description: text('description'), // itinerary[].description
   isSeaDay: boolean('is_sea_day').default(false),
   isTenderPort: boolean('is_tender_port').default(false),
