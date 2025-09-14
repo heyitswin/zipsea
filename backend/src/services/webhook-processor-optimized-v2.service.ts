@@ -516,6 +516,15 @@ export class WebhookProcessorOptimizedV2 {
       // Skip snapshot for now - database schema mismatch
       // await this.takeSnapshot(lineId);
 
+      // Reset processing stats for this line
+      this.processingJobs.delete(lineId);
+      this.stats = {
+        filesProcessed: 0,
+        cruisesUpdated: 0,
+        errors: [],
+        priceSnapshotsCreated: 0,
+      };
+
       // Discover files efficiently
       const files = await this.discoverFiles(lineId);
 
@@ -551,6 +560,19 @@ export class WebhookProcessorOptimizedV2 {
         `[OPTIMIZED-V2] Creating ${batches.length} jobs for line ${lineId} (${files.length} files / ${MAX_FILES_PER_JOB} per job)`
       );
 
+      // Clear any existing jobs for this line before adding new ones
+      const existingJobs = await WebhookProcessorOptimizedV2.webhookQueue!.getJobs([
+        'waiting',
+        'active',
+        'delayed',
+      ]);
+      for (const job of existingJobs) {
+        if (job.data?.lineId === lineId) {
+          await job.remove();
+          console.log(`[OPTIMIZED-V2] Removed existing job ${job.id} for line ${lineId}`);
+        }
+      }
+
       // Queue jobs for processing
       const jobIds = [];
       for (let i = 0; i < batches.length; i++) {
@@ -561,10 +583,12 @@ export class WebhookProcessorOptimizedV2 {
             files: batches[i],
             batchNumber: i + 1,
             totalBatches: batches.length,
+            totalFilesInRun: files.length, // Track actual file count
           },
           {
             priority: batches.length - i, // Process earlier batches first
             delay: i * 2000, // Stagger job starts by 2 seconds
+            jobId: `line-${lineId}-batch-${i + 1}-${Date.now()}`, // Unique job ID to prevent duplicates
           }
         );
         jobIds.push(job.id);
@@ -1002,22 +1026,37 @@ export class WebhookProcessorOptimizedV2 {
       // First priority: cheapest.combined (most reliable aggregated pricing)
       if (data.cheapest && data.cheapest.combined) {
         cheapestData = {
-          cheapestPrice: parseFloat(
-            data.cheapest.combined.price || data.cheapest.combined.total || 0
-          ),
-          interiorPrice: parseFloat(data.cheapest.combined.inside || 0),
-          oceanviewPrice: parseFloat(data.cheapest.combined.outside || 0),
-          balconyPrice: parseFloat(data.cheapest.combined.balcony || 0),
-          suitePrice: parseFloat(data.cheapest.combined.suite || 0),
+          cheapestPrice:
+            data.cheapest.combined.price || data.cheapest.combined.total
+              ? parseFloat(data.cheapest.combined.price || data.cheapest.combined.total)
+              : null,
+          interiorPrice: data.cheapest.combined.inside
+            ? parseFloat(data.cheapest.combined.inside)
+            : null,
+          oceanviewPrice: data.cheapest.combined.outside
+            ? parseFloat(data.cheapest.combined.outside)
+            : null,
+          balconyPrice: data.cheapest.combined.balcony
+            ? parseFloat(data.cheapest.combined.balcony)
+            : null,
+          suitePrice: data.cheapest.combined.suite
+            ? parseFloat(data.cheapest.combined.suite)
+            : null,
         };
       }
       // Second priority: cheapest.prices
       else if (data.cheapest && data.cheapest.prices) {
         cheapestData = {
-          interiorPrice: parseFloat(data.cheapest.prices.inside || 0),
-          oceanviewPrice: parseFloat(data.cheapest.prices.outside || 0),
-          balconyPrice: parseFloat(data.cheapest.prices.balcony || 0),
-          suitePrice: parseFloat(data.cheapest.prices.suite || 0),
+          interiorPrice: data.cheapest.prices.inside
+            ? parseFloat(data.cheapest.prices.inside)
+            : null,
+          oceanviewPrice: data.cheapest.prices.outside
+            ? parseFloat(data.cheapest.prices.outside)
+            : null,
+          balconyPrice: data.cheapest.prices.balcony
+            ? parseFloat(data.cheapest.prices.balcony)
+            : null,
+          suitePrice: data.cheapest.prices.suite ? parseFloat(data.cheapest.prices.suite) : null,
         };
         // Calculate cheapest overall
         const prices = [
@@ -1147,10 +1186,14 @@ export class WebhookProcessorOptimizedV2 {
         await db
           .update(cruises)
           .set({
-            interiorPrice: cheapestData.interiorPrice?.toString(),
-            oceanviewPrice: cheapestData.oceanviewPrice?.toString(),
-            balconyPrice: cheapestData.balconyPrice?.toString(),
-            suitePrice: cheapestData.suitePrice?.toString(),
+            interiorPrice:
+              cheapestData.interiorPrice !== null ? cheapestData.interiorPrice.toString() : null,
+            oceanviewPrice:
+              cheapestData.oceanviewPrice !== null ? cheapestData.oceanviewPrice.toString() : null,
+            balconyPrice:
+              cheapestData.balconyPrice !== null ? cheapestData.balconyPrice.toString() : null,
+            suitePrice:
+              cheapestData.suitePrice !== null ? cheapestData.suitePrice.toString() : null,
             rawData: updatedRawJson,
             updatedAt: new Date(),
           })
@@ -1428,7 +1471,7 @@ export class WebhookProcessorOptimizedV2 {
     if (!this.processingJobs.has(lineId)) {
       this.processingJobs.set(lineId, {
         startTime: new Date(),
-        totalFiles: 0,
+        totalFiles: totalFilesInRun || 0,
         processedFiles: 0,
         successful: 0,
         failed: 0,
@@ -1491,7 +1534,7 @@ export class WebhookProcessorOptimizedV2 {
         startTime: jobTracking.startTime,
         endTime,
         processingTimeMs,
-        totalCruises: jobTracking.processedFiles,
+        totalCruises: jobTracking.totalFiles || jobTracking.processedFiles,
         priceSnapshotsCreated: this.stats.priceSnapshotsCreated,
       };
 
@@ -1529,7 +1572,7 @@ export class WebhookProcessorOptimizedV2 {
         startTime: jobTracking.startTime,
         endTime,
         processingTimeMs,
-        totalCruises: jobTracking.processedFiles,
+        totalCruises: jobTracking.totalFiles || jobTracking.processedFiles,
         priceSnapshotsCreated: this.stats.priceSnapshotsCreated,
       };
 

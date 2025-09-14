@@ -1,10 +1,23 @@
-import { pgTable, uuid, integer, varchar, text, timestamp, date, time, boolean, jsonb } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  uuid,
+  integer,
+  varchar,
+  text,
+  timestamp,
+  date,
+  time,
+  boolean,
+  jsonb,
+} from 'drizzle-orm/pg-core';
 import { cruises } from './cruises';
 import { ports } from './ports';
 
-export const itineraries = pgTable('itineraries', {
+export const itineraries = pgTable('cruise_itinerary', {
   id: integer('id').primaryKey(), // Using serial ID to match production schema
-  cruiseId: varchar('cruise_id').references(() => cruises.id).notNull(), // Changed to varchar to match database
+  cruiseId: varchar('cruise_id')
+    .references(() => cruises.id)
+    .notNull(), // Changed to varchar to match database
   dayNumber: integer('day_number').notNull(), // itinerary[].day
   portId: integer('port_id').references(() => ports.id), // Foreign key, nullable
   portName: varchar('port_name', { length: 255 }), // itinerary[].port
