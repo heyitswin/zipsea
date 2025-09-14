@@ -572,8 +572,7 @@ export class WebhookProcessorOptimizedV2 {
         );
         return {
           status: 'skipped',
-          message: `Active jobs already processing for line ${lineId}`,
-          activeJobs: activeForThisLine.length,
+          message: `Active jobs already processing for line ${lineId} (${activeForThisLine.length} jobs)`,
         };
       }
 
