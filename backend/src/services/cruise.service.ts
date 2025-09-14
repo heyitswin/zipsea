@@ -790,7 +790,7 @@ export class CruiseService {
   async getCruiseItinerary(cruiseId: number | string): Promise<ItineraryDay[]> {
     try {
       // Use raw SQL to avoid schema mismatches
-      const results = await db.execute<any>(
+      const results = await db.execute(
         `SELECT
           i.id,
           i.cruise_id,
