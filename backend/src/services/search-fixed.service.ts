@@ -244,7 +244,7 @@ class SearchFixedService {
       const itineraryResult = await db.execute(sql`
         SELECT
           i.*,
-          p.name as port_name,
+          COALESCE(p.name, i.port_name) as port_name,
           p.code as port_code,
           p.country as port_country
         FROM cruise_itinerary i
