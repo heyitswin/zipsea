@@ -247,7 +247,7 @@ class SearchFixedService {
           p.name as port_name,
           p.code as port_code,
           p.country as port_country
-        FROM itineraries i
+        FROM cruise_itinerary i
         LEFT JOIN ports p ON i.port_id = p.id
         WHERE i.cruise_id = ${id}
         ORDER BY i.day_number ASC
