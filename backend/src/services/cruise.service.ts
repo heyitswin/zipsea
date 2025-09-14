@@ -803,7 +803,7 @@ export class CruiseService {
         id: row.itinerary.id.toString(),
         day: row.itinerary.dayNumber,
         date: new Date().toISOString(), // We don't have date field in DB, using placeholder
-        portName: row.itinerary.portName || 'Unknown Port',
+        portName: row.itinerary.portName || row.port?.name || 'Unknown Port',
         port: row.port ? this.transformPortInfo(row.port) : undefined,
         arrivalTime: row.itinerary.arrivalTime,
         departureTime: row.itinerary.departureTime,
@@ -815,6 +815,8 @@ export class CruiseService {
       }));
     } catch (error) {
       logger.error(`Failed to get itinerary for cruise ${cruiseId}:`, error);
+      // Log the actual error details for debugging
+      logger.error(`Error details:`, error instanceof Error ? error.stack : error);
       return []; // Return empty array instead of throwing
     }
   }
