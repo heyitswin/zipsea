@@ -789,6 +789,8 @@ export class CruiseService {
    */
   async getCruiseItinerary(cruiseId: number | string): Promise<ItineraryDay[]> {
     try {
+      logger.info(`[getCruiseItinerary] Fetching itinerary for cruise ${cruiseId}`);
+
       // Use raw SQL to avoid schema mismatches
       const results = await db.execute(
         `SELECT
@@ -811,6 +813,9 @@ export class CruiseService {
       );
 
       const rows = (results as any).rows || [];
+      logger.info(
+        `[getCruiseItinerary] Found ${rows.length} itinerary entries for cruise ${cruiseId}`
+      );
 
       return rows.map((row: any) => ({
         id: row.id.toString(),
