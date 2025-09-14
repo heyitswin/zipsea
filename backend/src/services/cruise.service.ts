@@ -789,27 +789,48 @@ export class CruiseService {
    */
   async getCruiseItinerary(cruiseId: number | string): Promise<ItineraryDay[]> {
     try {
-      const results = await db
-        .select({
-          itinerary: itineraries,
-          port: ports,
-        })
-        .from(itineraries)
-        .leftJoin(ports, eq(itineraries.portId, ports.id))
-        .where(eq(itineraries.cruiseId, String(cruiseId)))
-        .orderBy(asc(itineraries.dayNumber));
+      // Use raw SQL to avoid schema mismatches
+      const results = await db.execute<any>(
+        `SELECT
+          i.id,
+          i.cruise_id,
+          i.day_number,
+          i.port_id,
+          i.port_name,
+          i.arrive_time,
+          i.depart_time,
+          i.description,
+          p.name as port_name_from_table,
+          p.code as port_code,
+          p.country as port_country
+        FROM cruise_itinerary i
+        LEFT JOIN ports p ON i.port_id = p.id
+        WHERE i.cruise_id = $1
+        ORDER BY i.day_number ASC`,
+        [String(cruiseId)]
+      );
 
-      return results.map(row => ({
-        id: row.itinerary.id.toString(),
-        day: row.itinerary.dayNumber,
+      const rows = (results as any).rows || [];
+
+      return rows.map((row: any) => ({
+        id: row.id.toString(),
+        day: row.day_number,
         date: new Date().toISOString(), // We don't have date field in DB, using placeholder
-        portName: row.itinerary.portName || row.port?.name || 'Unknown Port',
-        port: row.port ? this.transformPortInfo(row.port) : undefined,
-        arrivalTime: row.itinerary.arrivalTime,
-        departureTime: row.itinerary.departureTime,
-        status: row.itinerary.isSeaDay ? 'sea-day' : 'port',
+        portName: row.port_name || row.port_name_from_table || 'Unknown Port',
+        port:
+          row.port_id && row.port_name_from_table
+            ? {
+                id: row.port_id,
+                name: row.port_name_from_table,
+                code: row.port_code,
+                country: row.port_country,
+              }
+            : undefined,
+        arrivalTime: row.arrive_time,
+        departureTime: row.depart_time,
+        status: row.port_name?.toLowerCase().includes('sea') ? 'sea-day' : 'port',
         overnight: false, // Not available in current schema
-        description: row.itinerary.description,
+        description: row.description,
         activities: [], // Not available in current schema
         shoreExcursions: [], // Not available in current schema
       }));
