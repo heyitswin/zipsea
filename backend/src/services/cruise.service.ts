@@ -825,9 +825,10 @@ export class CruiseService {
   async getAlternativeSailings(cruiseId: number | string): Promise<AlternativeSailing[]> {
     try {
       // Temporarily return empty array to avoid schema issues
-      logger.warn(
-        `Alternative sailings disabled temporarily for cruise ${cruiseId} - schema mismatch`
-      );
+      // Commented out to reduce log spam - this feature is disabled until schema is fixed
+      // logger.warn(
+      //   `Alternative sailings disabled temporarily for cruise ${cruiseId} - schema mismatch`
+      // );
       return [];
 
       /* Original code disabled temporarily due to schema issues
@@ -1532,9 +1533,10 @@ export class CruiseService {
    */
   private async getAllAlternativeSailings(cruiseId: number | string) {
     // Temporarily return empty array to avoid schema issues
-    logger.warn(
-      `Alternative sailings disabled temporarily for cruise ${cruiseId} - schema mismatch`
-    );
+    // Commented out to reduce log spam - this feature is disabled until schema is fixed
+    // logger.warn(
+    //   `Alternative sailings disabled temporarily for cruise ${cruiseId} - schema mismatch`
+    // );
     return [];
 
     /* Original code disabled temporarily due to schema issues
