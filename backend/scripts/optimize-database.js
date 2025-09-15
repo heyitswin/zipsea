@@ -67,15 +67,15 @@ async function optimizeDatabase() {
     `);
     console.log(`  Deleted ${pricingCleanup.rowCount} orphaned pricing records`);
 
-    // 4. Clean up orphaned cabin data
+    // 4. Clean up orphaned cabin category data
     const cabinCleanup = await db.execute(sql`
-      DELETE FROM cabins cab
+      DELETE FROM cabin_categories cab
       WHERE NOT EXISTS (
         SELECT 1 FROM cruises c WHERE c.id = cab.cruise_id
       )
       RETURNING id;
     `);
-    console.log(`  Deleted ${cabinCleanup.rowCount} orphaned cabin records`);
+    console.log(`  Deleted ${cabinCleanup.rowCount} orphaned cabin category records`);
 
     // 5. Run VACUUM ANALYZE on main tables
     console.log('\n🔄 Running VACUUM ANALYZE on main tables...');
@@ -85,8 +85,8 @@ async function optimizeDatabase() {
     await db.execute(sql`VACUUM ANALYZE pricing;`);
     console.log('  ✓ Vacuumed pricing table');
 
-    await db.execute(sql`VACUUM ANALYZE cabins;`);
-    console.log('  ✓ Vacuumed cabins table');
+    await db.execute(sql`VACUUM ANALYZE cabin_categories;`);
+    console.log('  ✓ Vacuumed cabin_categories table');
 
     await db.execute(sql`VACUUM ANALYZE itinerary;`);
     console.log('  ✓ Vacuumed itinerary table');

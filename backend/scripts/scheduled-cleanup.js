@@ -55,16 +55,16 @@ async function scheduledCleanup() {
     `);
     console.log(`[CLEANUP] Removed ${pricingCleanup.rowCount || 0} orphaned pricing records`);
 
-    // 4. Clean up orphaned cabin records
-    console.log('[CLEANUP] Removing orphaned cabin records...');
+    // 4. Clean up orphaned cabin category records
+    console.log('[CLEANUP] Removing orphaned cabin category records...');
     const cabinCleanup = await db.execute(sql`
-      DELETE FROM cabins cab
+      DELETE FROM cabin_categories cab
       WHERE NOT EXISTS (
         SELECT 1 FROM cruises c WHERE c.id = cab.cruise_id
       )
       RETURNING id;
     `);
-    console.log(`[CLEANUP] Removed ${cabinCleanup.rowCount || 0} orphaned cabin records`);
+    console.log(`[CLEANUP] Removed ${cabinCleanup.rowCount || 0} orphaned cabin category records`);
 
     // 5. Clean up orphaned itinerary records
     console.log('[CLEANUP] Removing orphaned itinerary records...');
@@ -90,7 +90,7 @@ async function scheduledCleanup() {
     console.log('[CLEANUP] Running VACUUM on tables...');
     await db.execute(sql`VACUUM cruises;`);
     await db.execute(sql`VACUUM pricing;`);
-    await db.execute(sql`VACUUM cabins;`);
+    await db.execute(sql`VACUUM cabin_categories;`);
     await db.execute(sql`VACUUM itinerary;`);
     await db.execute(sql`VACUUM price_snapshots;`);
     console.log('[CLEANUP] VACUUM completed');
@@ -99,7 +99,7 @@ async function scheduledCleanup() {
     console.log('[CLEANUP] Updating table statistics...');
     await db.execute(sql`ANALYZE cruises;`);
     await db.execute(sql`ANALYZE pricing;`);
-    await db.execute(sql`ANALYZE cabins;`);
+    await db.execute(sql`ANALYZE cabin_categories;`);
     await db.execute(sql`ANALYZE itinerary;`);
     console.log('[CLEANUP] Statistics updated');
 
