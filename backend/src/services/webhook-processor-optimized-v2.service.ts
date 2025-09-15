@@ -1957,7 +1957,7 @@ export class WebhookProcessorOptimizedV2 {
 
       // 4. Clean up orphaned itinerary data
       const itineraryCleanup = await db.execute(sql`
-        DELETE FROM itinerary i
+        DELETE FROM itineraries i
         WHERE NOT EXISTS (
           SELECT 1 FROM cruises c WHERE c.id = i.cruise_id
         )
@@ -1986,7 +1986,7 @@ export class WebhookProcessorOptimizedV2 {
       // 6. Run VACUUM ANALYZE on main tables (non-blocking)
       await db.execute(sql`VACUUM (ANALYZE, VERBOSE OFF) cruises;`);
       await db.execute(sql`VACUUM (ANALYZE, VERBOSE OFF) pricing;`);
-      await db.execute(sql`VACUUM (ANALYZE, VERBOSE OFF) itinerary;`);
+      await db.execute(sql`VACUUM (ANALYZE, VERBOSE OFF) itineraries;`);
       await db.execute(sql`VACUUM (ANALYZE, VERBOSE OFF) cabin_categories;`);
       console.log('[OPTIMIZED-V2] Ran VACUUM ANALYZE on main tables');
 
