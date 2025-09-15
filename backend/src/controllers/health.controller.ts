@@ -10,21 +10,21 @@ class HealthController {
     try {
       // Check Redis health
       const redisHealth = await redisInitService.healthCheck();
-      
-      // Check database health  
+
+      // Check database health
       let dbHealth = { status: 'healthy', error: null };
       try {
         // Simple query to check DB connectivity
         await db.execute('SELECT 1');
       } catch (error) {
-        dbHealth = { 
-          status: 'unhealthy', 
-          error: error instanceof Error ? error.message : 'Unknown database error' 
+        dbHealth = {
+          status: 'unhealthy',
+          error: error instanceof Error ? error.message : 'Unknown database error',
         };
       }
 
-      const overall = (redisHealth.redis.healthy && dbHealth.status === 'healthy') 
-        ? 'healthy' : 'degraded';
+      const overall =
+        redisHealth.redis.healthy && dbHealth.status === 'healthy' ? 'healthy' : 'degraded';
 
       res.json({
         status: overall,
@@ -35,7 +35,7 @@ class HealthController {
         services: {
           database: dbHealth,
           redis: redisHealth.redis,
-        }
+        },
       });
     } catch (error) {
       logger.error('Health check failed', { error });
@@ -50,21 +50,21 @@ class HealthController {
   async getReadiness(req: Request, res: Response): Promise<void> {
     res.json({
       ready: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
   async getLiveness(req: Request, res: Response): Promise<void> {
     res.json({
       alive: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
   async basic(req: Request, res: Response): Promise<void> {
     res.json({
       status: 'ok',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -77,22 +77,22 @@ class HealthController {
       timestamp: new Date().toISOString(),
       services: {
         database: { status: 'healthy', lastChecked: new Date().toISOString() },
-        redis: { status: 'healthy', lastChecked: new Date().toISOString() }
-      }
+        redis: { status: 'healthy', lastChecked: new Date().toISOString() },
+      },
     });
   }
 
   async ready(req: Request, res: Response): Promise<void> {
     res.json({
       ready: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
   async live(req: Request, res: Response): Promise<void> {
     res.json({
       alive: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
 
@@ -101,7 +101,7 @@ class HealthController {
     try {
       const metrics = await redisInitService.getMetrics();
       const healthInfo = await redisInitService.healthCheck();
-      
+
       res.json({
         timestamp: new Date().toISOString(),
         redis: healthInfo.redis,
@@ -139,7 +139,7 @@ class HealthController {
     try {
       const status = cacheWarmingService.getStatus();
       const cacheStats = await cacheManager.getStats();
-      
+
       res.json({
         warming: status,
         cache: cacheStats,
@@ -157,11 +157,11 @@ class HealthController {
   async triggerCacheWarming(req: Request, res: Response): Promise<void> {
     try {
       const { targets } = req.body || {};
-      
+
       logger.info('Manual cache warming triggered', { targets });
-      
+
       const result = await cacheWarmingService.warmOnDemand(targets);
-      
+
       res.json({
         message: 'Cache warming completed',
         result,
@@ -179,17 +179,18 @@ class HealthController {
   async clearAllCaches(req: Request, res: Response): Promise<void> {
     try {
       logger.info('Manual cache clearing triggered');
-      
+
       // Clear all cache patterns
       await Promise.allSettled([
         searchCache.invalidateAllSearchCaches(),
         cacheManager.invalidatePattern('cruise:*'),
+        cacheManager.invalidatePattern('comprehensive_cruise*'),
         cacheManager.invalidatePattern('pricing:*'),
         cacheManager.invalidatePattern('popular:*'),
         cacheManager.invalidatePattern('itinerary:*'),
         cacheManager.invalidatePattern('alternatives:*'),
       ]);
-      
+
       res.json({
         message: 'All caches cleared successfully',
         timestamp: new Date().toISOString(),
@@ -209,7 +210,7 @@ class HealthController {
         cacheManager.getStats(),
         redisInitService.healthCheck(),
       ]);
-      
+
       res.json({
         stats: cacheStats,
         health: redisHealth.redis,
