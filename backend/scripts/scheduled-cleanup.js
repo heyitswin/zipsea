@@ -28,7 +28,7 @@ async function scheduledCleanup() {
     console.log('[CLEANUP] Removing old departed cruises...');
     const departedCleanup = await db.execute(sql`
       DELETE FROM cruises
-      WHERE departure_date < NOW() - INTERVAL '30 days'
+      WHERE sailing_date < NOW() - INTERVAL '30 days'
       AND updated_at < NOW() - INTERVAL '7 days'
       RETURNING id;
     `);
@@ -39,7 +39,7 @@ async function scheduledCleanup() {
     const staleCleanup = await db.execute(sql`
       DELETE FROM cruises
       WHERE updated_at < NOW() - INTERVAL '14 days'
-      AND (departure_date IS NULL OR departure_date > NOW())
+      AND (sailing_date IS NULL OR sailing_date > NOW())
       RETURNING id;
     `);
     console.log(`[CLEANUP] Removed ${staleCleanup.rowCount || 0} stale cruises`);
@@ -109,7 +109,7 @@ async function scheduledCleanup() {
         pg_size_pretty(pg_database_size(current_database())) as db_size,
         (SELECT count(*) FROM cruises) as cruise_count,
         (SELECT count(*) FROM pricing) as pricing_count,
-        (SELECT count(*) FROM cruises WHERE departure_date > NOW()) as future_cruises;
+        (SELECT count(*) FROM cruises WHERE sailing_date > NOW()) as future_cruises;
     `);
 
     if (dbSize.rows[0]) {
