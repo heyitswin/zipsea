@@ -957,12 +957,20 @@ export class WebhookProcessorOptimizedV2 {
             chunks = [];
 
             try {
-              const stream = conn.client.createReadStream(file.path);
-              await new Promise((resolve, reject) => {
-                stream.on('data', chunk => chunks.push(chunk));
-                stream.on('end', resolve);
-                stream.on('error', reject);
+              // Use the same download approach as initial download
+              const writeStream = new Writable({
+                write(chunk, encoding, callback) {
+                  chunks.push(chunk);
+                  callback();
+                },
               });
+              await conn.client.downloadTo(writeStream, file.path);
+
+              if (chunks.length === 0) {
+                console.log(`[OPTIMIZED-V2] Re-downloaded empty file: ${file.path}`);
+                return false;
+              }
+
               console.log(
                 `[OPTIMIZED-V2] Re-downloaded ${file.path} (${Buffer.concat(chunks).length} bytes)`
               );
@@ -972,10 +980,34 @@ export class WebhookProcessorOptimizedV2 {
             }
           } else {
             // Final failure, log details
-            console.error(`[OPTIMIZED-V2] File permanently corrupted: ${file.path}`);
-            console.error(
-              `[OPTIMIZED-V2] First 500 chars: ${Buffer.concat(chunks).toString().substring(0, 500)}`
+            const fileContent = Buffer.concat(chunks).toString();
+            const errorPosition = parseInt(
+              (parseError as any).message.match(/position (\d+)/)?.[1] || '0'
             );
+
+            console.error(`[OPTIMIZED-V2] File permanently corrupted: ${file.path}`);
+            console.error(`[OPTIMIZED-V2] Parse error: ${(parseError as any).message}`);
+
+            // Log the content around the error position for debugging
+            if (errorPosition > 0) {
+              const start = Math.max(0, errorPosition - 100);
+              const end = Math.min(fileContent.length, errorPosition + 100);
+              console.error(
+                `[OPTIMIZED-V2] Content around error position ${errorPosition}:`,
+                fileContent.substring(start, end).replace(/\n/g, '\\n')
+              );
+            } else {
+              console.error(
+                `[OPTIMIZED-V2] First 500 chars:`,
+                fileContent.substring(0, 500).replace(/\n/g, '\\n')
+              );
+            }
+
+            // Track this corrupted file in Redis for future reference
+            if (runId && WebhookProcessorOptimizedV2.statsTracker) {
+              await WebhookProcessorOptimizedV2.statsTracker.trackCorruptedFile(runId, file.path);
+            }
+
             // Return false to mark as failed but continue processing other files
             return false;
           }
