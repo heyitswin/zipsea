@@ -1970,13 +1970,13 @@ export class WebhookProcessorOptimizedV2 {
         );
       }
 
-      // 5. Clean up orphaned cabin categories
+      // 5. Clean up orphaned cabin categories (linked to ships, not cruises)
       const cabinCleanup = await db.execute(sql`
         DELETE FROM cabin_categories cc
         WHERE NOT EXISTS (
-          SELECT 1 FROM cruises c WHERE c.id = cc.cruise_id
+          SELECT 1 FROM ships s WHERE s.id = cc.ship_id
         )
-        RETURNING id;
+        RETURNING ship_id, cabin_code;
       `);
 
       if (cabinCleanup.rowCount && cabinCleanup.rowCount > 0) {
