@@ -27,11 +27,6 @@ export default function QuoteResponseModal({
     { category: "", roomName: "", cabinCode: "", finalPrice: 0, obcAmount: 0 },
     { category: "", roomName: "", cabinCode: "", finalPrice: 0, obcAmount: 0 },
     { category: "", roomName: "", cabinCode: "", finalPrice: 0, obcAmount: 0 },
-    { category: "", roomName: "", cabinCode: "", finalPrice: 0, obcAmount: 0 },
-    { category: "", roomName: "", cabinCode: "", finalPrice: 0, obcAmount: 0 },
-    { category: "", roomName: "", cabinCode: "", finalPrice: 0, obcAmount: 0 },
-    { category: "", roomName: "", cabinCode: "", finalPrice: 0, obcAmount: 0 },
-    { category: "", roomName: "", cabinCode: "", finalPrice: 0, obcAmount: 0 },
   ]);
 
   const [notes, setNotes] = useState("");
@@ -118,7 +113,16 @@ export default function QuoteResponseModal({
                     </div>
                     <div>
                       <span className="font-medium">Requested Cabin:</span>{" "}
-                      {quote.cabinType}
+                      {(() => {
+                        const customerDetails = quote.customer_details || {};
+                        const cabinType =
+                          typeof customerDetails === "string"
+                            ? JSON.parse(customerDetails).cabin_type || "Any"
+                            : customerDetails.cabin_type ||
+                              quote.cabinType ||
+                              "Any";
+                        return cabinType;
+                      })()}
                     </div>
                     <div>
                       <span className="font-medium">Email:</span>{" "}
@@ -126,6 +130,49 @@ export default function QuoteResponseModal({
                     </div>
                   </div>
                 </div>
+
+                {/* Discount Qualifiers */}
+                {(() => {
+                  const customerDetails = quote.customer_details || {};
+                  const details =
+                    typeof customerDetails === "string"
+                      ? JSON.parse(customerDetails)
+                      : customerDetails;
+                  const discountQualifiers = details.discount_qualifiers || {};
+                  const activeQualifiers = [];
+
+                  if (discountQualifiers.payInFull)
+                    activeQualifiers.push("Pay in Full");
+                  if (
+                    discountQualifiers.seniorCitizen ||
+                    discountQualifiers.age55Plus
+                  )
+                    activeQualifiers.push("Senior/55+");
+                  if (discountQualifiers.military)
+                    activeQualifiers.push("Military");
+                  if (discountQualifiers.stateOfResidence)
+                    activeQualifiers.push(
+                      `State: ${discountQualifiers.stateOfResidence}`,
+                    );
+                  if (discountQualifiers.loyaltyNumber)
+                    activeQualifiers.push(
+                      `Loyalty: ${discountQualifiers.loyaltyNumber}`,
+                    );
+
+                  if (activeQualifiers.length > 0) {
+                    return (
+                      <div className="bg-yellow-50 rounded-lg p-4 mb-6">
+                        <h4 className="font-medium text-gray-900 mb-2">
+                          Discount Qualifiers
+                        </h4>
+                        <div className="text-sm text-gray-700">
+                          {activeQualifiers.join(" • ")}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
                 {/* Notes - Moved up for prominence */}
                 <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -159,7 +206,7 @@ export default function QuoteResponseModal({
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Room name
+                            Room Name
                           </th>
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Category
@@ -190,7 +237,7 @@ export default function QuoteResponseModal({
                                   )
                                 }
                                 className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="e.g., Ocean View Stateroom"
+                                placeholder="Room name"
                               />
                             </td>
                             <td className="px-4 py-2">
