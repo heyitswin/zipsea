@@ -10,6 +10,7 @@ import { eq, sql } from 'drizzle-orm';
 import logger from '../config/logger';
 import { Writable } from 'stream';
 import { slackService, WebhookProcessingResult } from './slack.service';
+import { WebhookStatsTracker } from './webhook-stats-tracker';
 
 interface FtpConnection {
   client: ftp.Client;
@@ -28,6 +29,7 @@ export class WebhookProcessorOptimizedV2 {
   private static webhookQueue: Queue | null = null;
   private static webhookWorker: Worker | null = null;
   private static redisConnection: Redis | null = null;
+  private static statsTracker: WebhookStatsTracker | null = null;
 
   private stats = {
     filesProcessed: 0,
@@ -67,26 +69,27 @@ export class WebhookProcessorOptimizedV2 {
     }
 
     // Create Redis connection for BullMQ with retry logic
-    WebhookProcessorOptimizedV2.redisConnection = new Redis(
-      process.env.REDIS_URL || 'redis://localhost:6379',
-      {
-        maxRetriesPerRequest: null,
-        enableReadyCheck: false,
-        retryStrategy: times => {
-          const delay = Math.min(times * 100, 3000);
-          console.log(`[OPTIMIZED-V2] Redis retry attempt ${times}, waiting ${delay}ms`);
-          return delay;
-        },
-        reconnectOnError: err => {
-          const targetErrors = ['READONLY', 'LOADING'];
-          if (targetErrors.some(e => err.message.includes(e))) {
-            console.log('[OPTIMIZED-V2] Redis is loading, will retry connection');
-            return true;
-          }
-          return false;
-        },
-      }
-    );
+    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    WebhookProcessorOptimizedV2.redisConnection = new Redis(redisUrl, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+      retryStrategy: times => {
+        const delay = Math.min(times * 100, 3000);
+        console.log(`[OPTIMIZED-V2] Redis retry attempt ${times}, waiting ${delay}ms`);
+        return delay;
+      },
+      reconnectOnError: err => {
+        const targetErrors = ['READONLY', 'LOADING'];
+        if (targetErrors.some(e => err.message.includes(e))) {
+          console.log('[OPTIMIZED-V2] Redis is loading, will retry connection');
+          return true;
+        }
+        return false;
+      },
+    });
+
+    // Initialize stats tracker
+    WebhookProcessorOptimizedV2.statsTracker = new WebhookStatsTracker(redisUrl);
 
     // Create the queue for webhook processing
     WebhookProcessorOptimizedV2.webhookQueue = new Queue('webhook-v2-processing', {
@@ -106,7 +109,7 @@ export class WebhookProcessorOptimizedV2 {
     WebhookProcessorOptimizedV2.webhookWorker = new Worker(
       'webhook-v2-processing',
       async (job: Job) => {
-        const { lineId, files, batchNumber, totalBatches } = job.data;
+        const { lineId, files, batchNumber, totalBatches, runId } = job.data;
         console.log(
           `[WORKER-V2] Processing job ${job.id} (batch ${batchNumber}/${totalBatches}) for line ${lineId} with ${files.length} files`
         );
@@ -132,9 +135,9 @@ export class WebhookProcessorOptimizedV2 {
             );
           }
 
-          // Process batch in parallel
+          // Process batch in parallel - pass runId for global stats tracking
           const batchResults = await Promise.allSettled(
-            batch.map(file => WebhookProcessorOptimizedV2.processFileStatic(file))
+            batch.map(file => WebhookProcessorOptimizedV2.processFileStatic(file, runId))
           );
 
           // Add a small delay between batches to prevent PostgreSQL page cache exhaustion
@@ -564,6 +567,12 @@ export class WebhookProcessorOptimizedV2 {
       // Generate unique run ID for this webhook processing session
       const runId = `${lineId}-${Date.now()}`;
 
+      // Initialize global stats tracker for this run
+      if (WebhookProcessorOptimizedV2.statsTracker) {
+        await WebhookProcessorOptimizedV2.statsTracker.initStats(runId);
+        console.log(`[OPTIMIZED-V2] Initialized global stats for run ${runId}`);
+      }
+
       // Reset processing stats for this line
       // Clean up any old runs for this line
       for (const [key, value] of this.processingJobs.entries()) {
@@ -792,12 +801,12 @@ export class WebhookProcessorOptimizedV2 {
   }
 
   // Static version of processFile that can be called from worker
-  public static async processFileStatic(file: any): Promise<boolean> {
+  public static async processFileStatic(file: any, runId: string): Promise<boolean> {
     // Use singleton instance to avoid creating multiple FTP pools
     if (!WebhookProcessorOptimizedV2.processorInstance) {
       WebhookProcessorOptimizedV2.processorInstance = new WebhookProcessorOptimizedV2();
     }
-    return WebhookProcessorOptimizedV2.processorInstance.processFile(file);
+    return WebhookProcessorOptimizedV2.processorInstance.processFile(file, runId);
   }
 
   /**
@@ -897,7 +906,7 @@ export class WebhookProcessorOptimizedV2 {
     }
   }
 
-  private async processFile(file: any): Promise<boolean> {
+  private async processFile(file: any, runId?: string): Promise<boolean> {
     let conn;
 
     try {
@@ -987,6 +996,11 @@ export class WebhookProcessorOptimizedV2 {
         console.log(`[SKIP-UNCHANGED] Cruise ${cruiseId} has no changes, skipping DB writes`);
         this.stats.skippedUnchanged++;
         this.stats.filesProcessed++;
+        // Update global stats if runId is provided
+        if (runId && WebhookProcessorOptimizedV2.statsTracker) {
+          await WebhookProcessorOptimizedV2.statsTracker.incrementStat(runId, 'skippedUnchanged');
+          await WebhookProcessorOptimizedV2.statsTracker.incrementStat(runId, 'filesProcessed');
+        }
         return true; // Mark as successfully processed (no changes needed)
       }
 
@@ -1180,6 +1194,10 @@ export class WebhookProcessorOptimizedV2 {
           });
 
         this.stats.cruisesUpdated++;
+        // Update global stats if runId is provided
+        if (runId && WebhookProcessorOptimizedV2.statsTracker) {
+          await WebhookProcessorOptimizedV2.statsTracker.incrementStat(runId, 'cruisesUpdated');
+        }
 
         // Log what cabin/price data we have
         const hasCabins = !!data.cabins && Object.keys(data.cabins).length > 0;
@@ -1214,6 +1232,10 @@ export class WebhookProcessorOptimizedV2 {
       await this.updatePricing(cruiseId, data);
 
       this.stats.filesProcessed++;
+      // Update global stats if runId is provided
+      if (runId && WebhookProcessorOptimizedV2.statsTracker) {
+        await WebhookProcessorOptimizedV2.statsTracker.incrementStat(runId, 'filesProcessed');
+      }
       return true; // Successfully processed
     } catch (error) {
       console.error(`[OPTIMIZED-V2] Failed to process ${file.path}:`, error);
@@ -1735,17 +1757,36 @@ export class WebhookProcessorOptimizedV2 {
       const endTime = new Date();
       const processingTimeMs = endTime.getTime() - jobTracking.startTime.getTime();
 
-      // Send Slack notification
+      // Get global stats from Redis (aggregated from all workers)
+      let globalStats = {
+        filesProcessed: 0,
+        cruisesUpdated: 0,
+        skippedUnchanged: 0,
+        priceSnapshotsCreated: 0,
+        errors: [] as string[],
+      };
+
+      if (WebhookProcessorOptimizedV2.statsTracker) {
+        globalStats = await WebhookProcessorOptimizedV2.statsTracker.getStats(runId);
+        console.log(`[OPTIMIZED-V2] Retrieved global stats from Redis:`, {
+          filesProcessed: globalStats.filesProcessed,
+          cruisesUpdated: globalStats.cruisesUpdated,
+          skippedUnchanged: globalStats.skippedUnchanged,
+        });
+      }
+
+      // Send Slack notification with global stats
       const result: WebhookProcessingResult = {
-        successful: jobTracking.successful,
+        successful: globalStats.cruisesUpdated || jobTracking.successful,
         failed: jobTracking.failed,
-        skippedUnchanged: this.stats.skippedUnchanged,
+        skippedUnchanged: globalStats.skippedUnchanged || this.stats.skippedUnchanged,
         errors: jobTracking.errors,
         startTime: jobTracking.startTime,
         endTime,
         processingTimeMs,
         totalCruises: jobTracking.totalFiles || jobTracking.processedFiles,
-        priceSnapshotsCreated: this.stats.priceSnapshotsCreated,
+        priceSnapshotsCreated:
+          globalStats.priceSnapshotsCreated || this.stats.priceSnapshotsCreated,
         changeLog: this.stats.changeLog.slice(0, 20), // Include first 20 changes for reference
       };
 
@@ -1763,10 +1804,15 @@ export class WebhookProcessorOptimizedV2 {
 
       console.log(
         `[OPTIMIZED-V2] All processing complete for line ${lineId}. ` +
-          `Final stats: ${jobTracking.successful} successful, ${jobTracking.failed} failed, ` +
-          `${this.stats.skippedUnchanged} skipped (unchanged), ` +
-          `${this.stats.priceSnapshotsCreated} snapshots created, ${processingTimeMs}ms total time`
+          `Final stats: ${globalStats.cruisesUpdated} successful, ${jobTracking.failed} failed, ` +
+          `${globalStats.skippedUnchanged} skipped (unchanged), ` +
+          `${globalStats.priceSnapshotsCreated} snapshots created, ${processingTimeMs}ms total time`
       );
+
+      // Clean up global stats from Redis
+      if (WebhookProcessorOptimizedV2.statsTracker) {
+        await WebhookProcessorOptimizedV2.statsTracker.cleanupStats(runId);
+      }
 
       // Log change summary if we have any
       if (this.stats.changeLog.length > 0) {
@@ -1788,16 +1834,35 @@ export class WebhookProcessorOptimizedV2 {
       const endTime = new Date();
       const processingTimeMs = endTime.getTime() - jobTracking.startTime.getTime();
 
+      // Get global stats from Redis even if queue didn't clear
+      let globalStats = {
+        filesProcessed: 0,
+        cruisesUpdated: 0,
+        skippedUnchanged: 0,
+        priceSnapshotsCreated: 0,
+        errors: [] as string[],
+      };
+
+      if (WebhookProcessorOptimizedV2.statsTracker) {
+        globalStats = await WebhookProcessorOptimizedV2.statsTracker.getStats(runId);
+        console.log(`[OPTIMIZED-V2] Retrieved partial global stats from Redis:`, {
+          filesProcessed: globalStats.filesProcessed,
+          cruisesUpdated: globalStats.cruisesUpdated,
+          skippedUnchanged: globalStats.skippedUnchanged,
+        });
+      }
+
       const result: WebhookProcessingResult = {
-        successful: jobTracking.successful,
+        successful: globalStats.cruisesUpdated || jobTracking.successful,
         failed: jobTracking.failed,
-        skippedUnchanged: this.stats.skippedUnchanged,
+        skippedUnchanged: globalStats.skippedUnchanged || this.stats.skippedUnchanged,
         errors: [...jobTracking.errors, { error: 'Queue did not clear within timeout period' }],
         startTime: jobTracking.startTime,
         endTime,
         processingTimeMs,
         totalCruises: jobTracking.totalFiles || jobTracking.processedFiles,
-        priceSnapshotsCreated: this.stats.priceSnapshotsCreated,
+        priceSnapshotsCreated:
+          globalStats.priceSnapshotsCreated || this.stats.priceSnapshotsCreated,
         changeLog: this.stats.changeLog.slice(0, 20),
       };
 
@@ -1812,6 +1877,11 @@ export class WebhookProcessorOptimizedV2 {
 
       // Clean up tracking
       this.processingJobs.delete(runId);
+
+      // Clean up global stats from Redis
+      if (WebhookProcessorOptimizedV2.statsTracker) {
+        await WebhookProcessorOptimizedV2.statsTracker.cleanupStats(runId);
+      }
     }
 
     // Run post-batch cleanup to optimize memory
