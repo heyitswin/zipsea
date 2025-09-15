@@ -14,7 +14,7 @@ async function testLastMinuteDeals() {
 
     console.log('Date range:', {
       from: threeWeeksFromToday.toISOString().split('T')[0],
-      to: oneYearFromNow.toISOString().split('T')[0]
+      to: oneYearFromNow.toISOString().split('T')[0],
     });
 
     // Define cruise lines in the exact order required
@@ -76,7 +76,7 @@ async function testLastMinuteDeals() {
           console.log(`Found: ${deal.name} - ${deal.sailing_date} - $${deal.cheapest_pricing}`);
           deals.push({
             ...deal,
-            onboard_credit: Math.floor((deal.cheapest_pricing || 0) * 0.1), // 10% onboard credit
+            onboard_credit: Math.floor((deal.cheapest_pricing || 0) * 0.2), // 20% onboard credit
           });
           usedCruiseLines.add(cruiseLineName);
         } else {
@@ -104,7 +104,9 @@ async function testLastMinuteDeals() {
     Object.entries(dealsByCruiseLine).forEach(([line, lineDeals]) => {
       console.log(`  ${line}: ${lineDeals.length} deal(s)`);
       lineDeals.forEach(deal => {
-        console.log(`    - ${deal.name} on ${deal.sailing_date} - $${deal.cheapest_pricing} (OBC: $${deal.onboard_credit})`);
+        console.log(
+          `    - ${deal.name} on ${deal.sailing_date} - $${deal.cheapest_pricing} (OBC: $${deal.onboard_credit})`
+        );
       });
     });
 

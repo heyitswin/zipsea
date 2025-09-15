@@ -881,7 +881,7 @@ class CruiseController {
           const deal = cruiseForLine[0];
           deals.push({
             ...deal,
-            onboard_credit: Math.floor((deal.cheapest_pricing || 0) * 0.1), // 10% onboard credit
+            onboard_credit: Math.floor((deal.cheapest_pricing || 0) * 0.2), // 20% onboard credit
           });
           usedCruiseLines.add(cruiseLineName);
         }
@@ -939,7 +939,7 @@ class CruiseController {
         for (const deal of remainingDeals) {
           deals.push({
             ...deal,
-            onboard_credit: Math.floor((deal.cheapest_pricing || 0) * 0.1), // 10% onboard credit
+            onboard_credit: Math.floor((deal.cheapest_pricing || 0) * 0.2), // 20% onboard credit
           });
         }
       }
@@ -1026,7 +1026,7 @@ class CruiseController {
             cheapest_pricing: parseFloat(cruise.cheapest_pricing),
             ship_image: cruise.ship_image,
             // Calculate OBC as 10% of cheapest pricing, rounded down to nearest $10
-            onboard_credit: Math.floor((parseFloat(cruise.cheapest_pricing) * 0.1) / 10) * 10
+            onboard_credit: Math.floor((parseFloat(cruise.cheapest_pricing) * 0.2) / 10) * 10
           });
           usedCruiseLines.add(cruiseLineName);
         }
@@ -1088,7 +1088,7 @@ class CruiseController {
             cheapest_pricing: parseFloat(cruise.cheapest_pricing),
             ship_image: cruise.ship_image,
             // Calculate OBC as 10% of cheapest pricing, rounded down to nearest $10
-            onboard_credit: Math.floor((parseFloat(cruise.cheapest_pricing) * 0.1) / 10) * 10
+            onboard_credit: Math.floor((parseFloat(cruise.cheapest_pricing) * 0.2) / 10) * 10
           });
           addedCount++;
         }

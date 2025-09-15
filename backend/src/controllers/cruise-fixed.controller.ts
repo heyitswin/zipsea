@@ -599,8 +599,8 @@ class CruiseControllerFixed {
                     .toISOString()
                     .split('T')[0]
                 : null),
-            // Calculate onboard credit as 8% of cheapest pricing, rounded down to nearest $10
-            onboard_credit: Math.floor((cruise.cheapest_pricing * 0.08) / 10) * 10,
+            // Calculate onboard credit as 20% of cheapest pricing, rounded down to nearest $10
+            onboard_credit: Math.floor((cruise.cheapest_pricing * 0.2) / 10) * 10,
             // Ensure we have the correct field names for frontend compatibility
             embarkation_port_name: cruise.embark_port_name,
           });
@@ -671,8 +671,8 @@ class CruiseControllerFixed {
                     .toISOString()
                     .split('T')[0]
                 : null),
-            // Calculate onboard credit as 8% of cheapest pricing, rounded down to nearest $10
-            onboard_credit: Math.floor((deal.cheapest_pricing * 0.08) / 10) * 10,
+            // Calculate onboard credit as 20% of cheapest pricing, rounded down to nearest $10
+            onboard_credit: Math.floor((deal.cheapest_pricing * 0.2) / 10) * 10,
             // Ensure we have the correct field names for frontend compatibility
             embarkation_port_name: deal.embark_port_name,
           });

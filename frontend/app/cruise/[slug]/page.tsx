@@ -269,8 +269,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     if (!isPriceAvailable(price)) return 0;
     const numPrice = typeof price === "string" ? parseFloat(price) : price;
     if (!numPrice || isNaN(numPrice)) return 0;
-    // Calculate 10% of the price as onboard credit, rounded down to nearest $10
-    const creditPercent = 0.1; // 10%
+    // Calculate 20% of the price as onboard credit, rounded down to nearest $10
+    const creditPercent = 0.2; // 20%
     const rawCredit = numPrice * creditPercent;
     return Math.floor(rawCredit / 10) * 10; // Round down to nearest $10
   };
