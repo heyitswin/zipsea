@@ -1704,8 +1704,8 @@ export default function CruisesContent() {
 
                               if (prices.length > 0) {
                                 const lowestPrice = Math.min(...prices);
-                                // Calculate 10% of the price as onboard credit, rounded down to nearest $10
-                                const creditPercent = 0.1; // 10%
+                                // Calculate 20% of the price as onboard credit, rounded down to nearest $10
+                                const creditPercent = 0.2; // 20%
                                 const rawCredit = lowestPrice * creditPercent;
                                 const onboardCredit =
                                   Math.floor(rawCredit / 10) * 10; // Round down to nearest $10
