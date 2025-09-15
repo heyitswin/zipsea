@@ -89,11 +89,31 @@ export class WebhookStatsTracker {
   }
 
   /**
+   * Track a corrupted file
+   */
+  async trackCorruptedFile(runId: string, filePath: string): Promise<void> {
+    const key = `${this.keyPrefix}${runId}:corrupted`;
+    await this.redis.sadd(key, filePath);
+    // Set expiration to 24 hours for corrupted file tracking
+    await this.redis.expire(key, 86400);
+  }
+
+  /**
+   * Get list of corrupted files for a run
+   */
+  async getCorruptedFiles(runId: string): Promise<string[]> {
+    const key = `${this.keyPrefix}${runId}:corrupted`;
+    return await this.redis.smembers(key);
+  }
+
+  /**
    * Clean up stats for a run
    */
   async cleanupStats(runId: string): Promise<void> {
     const key = `${this.keyPrefix}${runId}`;
+    const corruptedKey = `${this.keyPrefix}${runId}:corrupted`;
     await this.redis.del(key);
+    await this.redis.del(corruptedKey);
   }
 
   /**
