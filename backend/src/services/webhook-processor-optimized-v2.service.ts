@@ -177,7 +177,7 @@ export class WebhookProcessorOptimizedV2 {
       },
       {
         connection: WebhookProcessorOptimizedV2.redisConnection!,
-        concurrency: 5, // Increased concurrency with upgraded Redis performance
+        concurrency: 2, // Reduced concurrency to manage memory usage
         stalledInterval: 30000,
       }
     );
@@ -1753,6 +1753,12 @@ export class WebhookProcessorOptimizedV2 {
       `[OPTIMIZED-V2] Batch ${batchNumber}/${totalBatches} complete for line ${lineId}. ` +
         `Total progress: ${jobTracking.processedFiles} files processed`
     );
+
+    // Run cleanup every 5 batches or on the last batch to prevent memory buildup
+    if (batchNumber % 5 === 0 || batchNumber === totalBatches) {
+      console.log(`[OPTIMIZED-V2] Running intermediate cleanup after batch ${batchNumber}...`);
+      await this.runPostBatchCleanup();
+    }
 
     // Only check for completion on the last batch to avoid race conditions
     if (batchNumber !== totalBatches) {
