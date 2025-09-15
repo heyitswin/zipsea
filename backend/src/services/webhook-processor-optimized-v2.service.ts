@@ -1927,19 +1927,31 @@ export class WebhookProcessorOptimizedV2 {
     try {
       console.log('[OPTIMIZED-V2] Running post-batch cleanup for memory optimization...');
 
-      // 1. Clean up old cruise data (older than 7 days and already departed)
-      const cleanupResult = await db.execute(sql`
+      // 1. Clean up old departed cruises (more aggressive)
+      const departedCleanup = await db.execute(sql`
         DELETE FROM cruises
-        WHERE updated_at < NOW() - INTERVAL '7 days'
-        AND sailing_date < NOW() - INTERVAL '30 days'
+        WHERE sailing_date < NOW() - INTERVAL '7 days'
+        AND updated_at < NOW() - INTERVAL '3 days'
         RETURNING id;
       `);
 
-      if (cleanupResult.rowCount && cleanupResult.rowCount > 0) {
-        console.log(`[OPTIMIZED-V2] Cleaned up ${cleanupResult.rowCount} old cruises`);
+      if (departedCleanup.rowCount && departedCleanup.rowCount > 0) {
+        console.log(`[OPTIMIZED-V2] Cleaned up ${departedCleanup.rowCount} old departed cruises`);
       }
 
-      // 2. Clean up orphaned pricing data
+      // 2. Clean up stale cruises that haven't been updated (likely removed from inventory)
+      const staleCleanup = await db.execute(sql`
+        DELETE FROM cruises
+        WHERE updated_at < NOW() - INTERVAL '7 days'
+        AND (sailing_date IS NULL OR sailing_date > NOW() + INTERVAL '365 days')
+        RETURNING id;
+      `);
+
+      if (staleCleanup.rowCount && staleCleanup.rowCount > 0) {
+        console.log(`[OPTIMIZED-V2] Cleaned up ${staleCleanup.rowCount} stale cruises`);
+      }
+
+      // 3. Clean up orphaned pricing data
       const pricingCleanup = await db.execute(sql`
         DELETE FROM pricing p
         WHERE NOT EXISTS (
@@ -1954,9 +1966,39 @@ export class WebhookProcessorOptimizedV2 {
         );
       }
 
-      // 3. Run VACUUM ANALYZE on main tables (non-blocking)
+      // 4. Clean up orphaned itinerary data
+      const itineraryCleanup = await db.execute(sql`
+        DELETE FROM itinerary i
+        WHERE NOT EXISTS (
+          SELECT 1 FROM cruises c WHERE c.id = i.cruise_id
+        )
+        RETURNING id;
+      `);
+
+      if (itineraryCleanup.rowCount && itineraryCleanup.rowCount > 0) {
+        console.log(
+          `[OPTIMIZED-V2] Cleaned up ${itineraryCleanup.rowCount} orphaned itinerary records`
+        );
+      }
+
+      // 5. Clean up orphaned cabin categories
+      const cabinCleanup = await db.execute(sql`
+        DELETE FROM cabin_categories cc
+        WHERE NOT EXISTS (
+          SELECT 1 FROM cruises c WHERE c.id = cc.cruise_id
+        )
+        RETURNING id;
+      `);
+
+      if (cabinCleanup.rowCount && cabinCleanup.rowCount > 0) {
+        console.log(`[OPTIMIZED-V2] Cleaned up ${cabinCleanup.rowCount} orphaned cabin categories`);
+      }
+
+      // 6. Run VACUUM ANALYZE on main tables (non-blocking)
       await db.execute(sql`VACUUM (ANALYZE, VERBOSE OFF) cruises;`);
       await db.execute(sql`VACUUM (ANALYZE, VERBOSE OFF) pricing;`);
+      await db.execute(sql`VACUUM (ANALYZE, VERBOSE OFF) itinerary;`);
+      await db.execute(sql`VACUUM (ANALYZE, VERBOSE OFF) cabin_categories;`);
       console.log('[OPTIMIZED-V2] Ran VACUUM ANALYZE on main tables');
 
       // 4. Clear Redis memory for completed jobs
