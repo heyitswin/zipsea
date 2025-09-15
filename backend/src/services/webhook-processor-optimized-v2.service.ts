@@ -11,6 +11,7 @@ import logger from '../config/logger';
 import { Writable } from 'stream';
 import { slackService, WebhookProcessingResult } from './slack.service';
 import { WebhookStatsTracker } from './webhook-stats-tracker';
+import * as crypto from 'crypto';
 
 interface FtpConnection {
   client: ftp.Client;
@@ -30,6 +31,10 @@ export class WebhookProcessorOptimizedV2 {
   private static webhookWorker: Worker | null = null;
   private static redisConnection: Redis | null = null;
   private static statsTracker: WebhookStatsTracker | null = null;
+
+  // Performance optimization caches
+  private static shipCache: Map<number, boolean> = new Map();
+  private static checksumCache: Map<string, string> = new Map(); // cruiseId -> checksum
 
   private stats = {
     filesProcessed: 0,
@@ -810,22 +815,48 @@ export class WebhookProcessorOptimizedV2 {
   }
 
   /**
-   * Check if cruise data has actually changed
-   * Returns true if changes detected or if it's a new cruise
+   * Calculate checksum for change detection (much faster than JSON.stringify)
+   */
+  private calculateChecksum(data: any): string {
+    // Only hash the fields we actually care about for changes
+    const relevantData = {
+      cheapest: data.cheapest,
+      prices: data.prices,
+      cabins: data.cabins,
+      availabilitystatus: data.availabilitystatus,
+      soldout: data.soldout,
+      cheapestinside: data.cheapestinside,
+      cheapestoutside: data.cheapestoutside,
+      cheapestbalcony: data.cheapestbalcony,
+      cheapestsuite: data.cheapestsuite,
+    };
+
+    return crypto.createHash('md5').update(JSON.stringify(relevantData)).digest('hex');
+  }
+
+  /**
+   * Check if cruise data has actually changed using checksums
+   * Much faster than comparing full JSON objects
    */
   private async hasDataChanged(
     cruiseId: string,
     newData: any
   ): Promise<{ changed: boolean; changes: string[] }> {
     try {
+      // Calculate checksum for new data
+      const newChecksum = this.calculateChecksum(newData);
+
+      // Check cached checksum first (in-memory, instant)
+      const cachedChecksum = WebhookProcessorOptimizedV2.checksumCache.get(cruiseId);
+      if (cachedChecksum === newChecksum) {
+        // Data hasn't changed
+        return { changed: false, changes: [] };
+      }
+
+      // If not in cache or different, check if cruise exists
       const existing = await db
         .select({
-          rawData: cruises.rawData,
-          updatedAt: cruises.updatedAt,
-          interiorPrice: cruises.interiorPrice,
-          oceanviewPrice: cruises.oceanviewPrice,
-          balconyPrice: cruises.balconyPrice,
-          suitePrice: cruises.suitePrice,
+          id: cruises.id,
         })
         .from(cruises)
         .where(eq(cruises.id, cruiseId))
@@ -833,72 +864,16 @@ export class WebhookProcessorOptimizedV2 {
 
       if (!existing[0]) {
         console.log(`[CHANGE-DETECTION] New cruise ${cruiseId}`);
+        // Store checksum for future comparisons
+        WebhookProcessorOptimizedV2.checksumCache.set(cruiseId, newChecksum);
         return { changed: true, changes: ['new_cruise'] };
       }
 
-      const oldData = existing[0].rawData || {};
-      const changes: string[] = [];
+      // Cruise exists and data changed - update checksum cache
+      WebhookProcessorOptimizedV2.checksumCache.set(cruiseId, newChecksum);
+      console.log(`[CHANGE-DETECTION] Cruise ${cruiseId} data changed (checksum mismatch)`);
 
-      // Check pricing changes (most common)
-      const oldCheapest = JSON.stringify(oldData.cheapest || {});
-      const newCheapest = JSON.stringify(newData.cheapest || {});
-      if (oldCheapest !== newCheapest) {
-        changes.push('cheapest_pricing');
-      }
-
-      // Check detailed prices
-      const oldPrices = JSON.stringify(oldData.prices || {});
-      const newPrices = JSON.stringify(newData.prices || {});
-      if (oldPrices !== newPrices) {
-        changes.push('detailed_prices');
-      }
-
-      // Check cabin changes
-      const oldCabins = JSON.stringify(oldData.cabins || {});
-      const newCabins = JSON.stringify(newData.cabins || {});
-      if (oldCabins !== newCabins) {
-        changes.push('cabins');
-      }
-
-      // Check itinerary changes
-      const oldItinerary = JSON.stringify(oldData.itinerary || oldData.itineraries || {});
-      const newItinerary = JSON.stringify(newData.itinerary || newData.itineraries || {});
-      if (oldItinerary !== newItinerary) {
-        changes.push('itinerary');
-      }
-
-      // Check for any individual price field changes (fallback)
-      const priceFields = ['cheapestinside', 'cheapestoutside', 'cheapestbalcony', 'cheapestsuite'];
-      for (const field of priceFields) {
-        const oldPrice = oldData[field]?.price || oldData[field];
-        const newPrice = newData[field]?.price || newData[field];
-        if (oldPrice !== newPrice) {
-          changes.push(`${field}_price`);
-        }
-      }
-
-      // Check availability status
-      if (oldData.availabilitystatus !== newData.availabilitystatus) {
-        changes.push('availability_status');
-      }
-
-      // Check soldout status
-      if (oldData.soldout !== newData.soldout) {
-        changes.push('soldout_status');
-      }
-
-      if (changes.length > 0) {
-        console.log(`[CHANGE-DETECTION] Cruise ${cruiseId} changed: ${changes.join(', ')}`);
-        // Log to stats for tracking
-        this.stats.changeLog.push({
-          cruiseId,
-          changes,
-          timestamp: new Date(),
-        });
-        return { changed: true, changes };
-      }
-
-      return { changed: false, changes: [] };
+      return { changed: true, changes: ['data_changed'] };
     } catch (error) {
       console.error(`[CHANGE-DETECTION] Error checking changes for ${cruiseId}:`, error);
       // On error, process anyway to be safe
@@ -1115,82 +1090,90 @@ export class WebhookProcessorOptimizedV2 {
       // Extract ship data from the cruise JSON
       const shipId = cruiseData.shipId;
       if (shipId && shipId > 0) {
-        try {
-          const shipData = {
-            id: shipId,
-            cruiseLineId: file.lineId,
-            name: data.shipname || data.shipcontent?.name || `Ship ${shipId}`,
-            code: data.shipcode || null,
-            niceName: data.shipcontent?.nicename || null,
-            shortName: data.shipcontent?.shortname || null,
-            maxPassengers: safeParseInt(data.shipcontent?.maxpassengers, null),
-            crew: safeParseInt(data.shipcontent?.crew, null),
-            tonnage: safeParseInt(data.shipcontent?.tonnage, null),
-            totalCabins: safeParseInt(data.shipcontent?.totalcabins, null),
-            length: data.shipcontent?.length || null,
-            beam: data.shipcontent?.beam || null,
-            draft: data.shipcontent?.draft || null,
-            speed: data.shipcontent?.speed || null,
-            registry: data.shipcontent?.registry || null,
-            builtYear: safeParseInt(data.shipcontent?.builtyear, null),
-            refurbishedYear: safeParseInt(data.shipcontent?.refurbishedyear, null),
-            description: data.shipcontent?.description || null,
-            starRating: safeParseInt(data.shipcontent?.starrating, null),
-            adultsOnly: data.shipcontent?.adultsonly === true,
-            highlights: data.shipcontent?.highlights || null,
-            shipClass: data.shipcontent?.shipclass || null,
-            defaultShipImage: data.shipcontent?.defaultshipimage || null,
-            defaultShipImageHd: data.shipcontent?.defaultshiptopimage || null,
-            defaultShipImage2k: data.shipcontent?.defaultshipimage2k || null,
-            niceUrl: data.shipcontent?.niceurl || null,
-            rawShipContent: data.shipcontent || null,
-            isActive: true,
-            updatedAt: new Date(),
-          };
+        // Check if we've already processed this ship in this run
+        if (!WebhookProcessorOptimizedV2.shipCache.has(shipId)) {
+          try {
+            const shipData = {
+              id: shipId,
+              cruiseLineId: file.lineId,
+              name: data.shipname || data.shipcontent?.name || `Ship ${shipId}`,
+              code: data.shipcode || null,
+              niceName: data.shipcontent?.nicename || null,
+              shortName: data.shipcontent?.shortname || null,
+              maxPassengers: safeParseInt(data.shipcontent?.maxpassengers, null),
+              crew: safeParseInt(data.shipcontent?.crew, null),
+              tonnage: safeParseInt(data.shipcontent?.tonnage, null),
+              totalCabins: safeParseInt(data.shipcontent?.totalcabins, null),
+              length: data.shipcontent?.length || null,
+              beam: data.shipcontent?.beam || null,
+              draft: data.shipcontent?.draft || null,
+              speed: data.shipcontent?.speed || null,
+              registry: data.shipcontent?.registry || null,
+              builtYear: safeParseInt(data.shipcontent?.builtyear, null),
+              refurbishedYear: safeParseInt(data.shipcontent?.refurbishedyear, null),
+              description: data.shipcontent?.description || null,
+              starRating: safeParseInt(data.shipcontent?.starrating, null),
+              adultsOnly: data.shipcontent?.adultsonly === true,
+              highlights: data.shipcontent?.highlights || null,
+              shipClass: data.shipcontent?.shipclass || null,
+              defaultShipImage: data.shipcontent?.defaultshipimage || null,
+              defaultShipImageHd: data.shipcontent?.defaultshiptopimage || null,
+              defaultShipImage2k: data.shipcontent?.defaultshipimage2k || null,
+              niceUrl: data.shipcontent?.niceurl || null,
+              rawShipContent: data.shipcontent || null,
+              isActive: true,
+              updatedAt: new Date(),
+            };
 
-          // Upsert ship (insert if new, update if exists)
-          await db
-            .insert(ships)
-            .values(shipData)
-            .onConflictDoUpdate({
-              target: ships.id,
-              set: {
-                name: shipData.name,
-                code: shipData.code,
-                niceName: shipData.niceName,
-                shortName: shipData.shortName,
-                maxPassengers: shipData.maxPassengers,
-                crew: shipData.crew,
-                tonnage: shipData.tonnage,
-                totalCabins: shipData.totalCabins,
-                length: shipData.length,
-                beam: shipData.beam,
-                draft: shipData.draft,
-                speed: shipData.speed,
-                registry: shipData.registry,
-                builtYear: shipData.builtYear,
-                refurbishedYear: shipData.refurbishedYear,
-                description: shipData.description,
-                starRating: shipData.starRating,
-                adultsOnly: shipData.adultsOnly,
-                highlights: shipData.highlights,
-                shipClass: shipData.shipClass,
-                defaultShipImage: shipData.defaultShipImage,
-                defaultShipImageHd: shipData.defaultShipImageHd,
-                defaultShipImage2k: shipData.defaultShipImage2k,
-                niceUrl: shipData.niceUrl,
-                rawShipContent: shipData.rawShipContent,
-                updatedAt: new Date(),
-              },
-            });
+            // Upsert ship (insert if new, update if exists)
+            await db
+              .insert(ships)
+              .values(shipData)
+              .onConflictDoUpdate({
+                target: ships.id,
+                set: {
+                  name: shipData.name,
+                  code: shipData.code,
+                  niceName: shipData.niceName,
+                  shortName: shipData.shortName,
+                  maxPassengers: shipData.maxPassengers,
+                  crew: shipData.crew,
+                  tonnage: shipData.tonnage,
+                  totalCabins: shipData.totalCabins,
+                  length: shipData.length,
+                  beam: shipData.beam,
+                  draft: shipData.draft,
+                  speed: shipData.speed,
+                  registry: shipData.registry,
+                  builtYear: shipData.builtYear,
+                  refurbishedYear: shipData.refurbishedYear,
+                  description: shipData.description,
+                  starRating: shipData.starRating,
+                  adultsOnly: shipData.adultsOnly,
+                  highlights: shipData.highlights,
+                  shipClass: shipData.shipClass,
+                  defaultShipImage: shipData.defaultShipImage,
+                  defaultShipImageHd: shipData.defaultShipImageHd,
+                  defaultShipImage2k: shipData.defaultShipImage2k,
+                  niceUrl: shipData.niceUrl,
+                  rawShipContent: shipData.rawShipContent,
+                  updatedAt: new Date(),
+                },
+              });
 
-          console.log(`[OPTIMIZED-V2] Ensured ship ${shipId} exists: ${shipData.name}`);
-        } catch (shipError: any) {
-          console.error(
-            `[OPTIMIZED-V2] Error creating/updating ship ${shipId}:`,
-            shipError.message
-          );
-          // Continue anyway - maybe the ship already exists
+            console.log(`[OPTIMIZED-V2] Ensured ship ${shipId} exists: ${shipData.name}`);
+
+            // Mark ship as processed in cache
+            WebhookProcessorOptimizedV2.shipCache.set(shipId, true);
+          } catch (shipError: any) {
+            console.error(
+              `[OPTIMIZED-V2] Error creating/updating ship ${shipId}:`,
+              shipError.message
+            );
+            // Continue anyway - maybe the ship already exists
+          }
+        } else {
+          console.log(`[OPTIMIZED-V2] Ship ${shipId} already processed in this run, skipping`);
         }
       }
 
@@ -2020,7 +2003,20 @@ export class WebhookProcessorOptimizedV2 {
         }
       }
 
-      // 5. Reset stats for next run
+      // 5. Clear caches to prevent memory buildup
+      if (WebhookProcessorOptimizedV2.shipCache.size > 0) {
+        const shipCacheSize = WebhookProcessorOptimizedV2.shipCache.size;
+        WebhookProcessorOptimizedV2.shipCache.clear();
+        console.log(`[OPTIMIZED-V2] Cleared ship cache (${shipCacheSize} entries)`);
+      }
+
+      if (WebhookProcessorOptimizedV2.checksumCache.size > 1000) {
+        const checksumCacheSize = WebhookProcessorOptimizedV2.checksumCache.size;
+        WebhookProcessorOptimizedV2.checksumCache.clear();
+        console.log(`[OPTIMIZED-V2] Cleared checksum cache (${checksumCacheSize} entries)`);
+      }
+
+      // 6. Reset stats for next run
       this.stats = {
         filesProcessed: 0,
         cruisesUpdated: 0,
