@@ -1503,6 +1503,8 @@ export class CruiseService {
    */
   private async getAllItineraryData(cruiseId: number | string) {
     try {
+      logger.info(`[getAllItineraryData] Fetching itinerary for cruise ${cruiseId}`);
+
       // Use raw SQL to avoid schema mismatches with production
       const cruiseIdStr = String(cruiseId);
       const query = sql`
@@ -1528,6 +1530,64 @@ export class CruiseService {
       const results = await db.execute(query);
       const rows = (results as any).rows || results || [];
 
+      logger.info(
+        `[getAllItineraryData] Found ${rows.length} itinerary entries for cruise ${cruiseId}`
+      );
+
+      // If no itinerary in table, try extracting from raw_data
+      if (rows.length === 0) {
+        logger.info(
+          `[getAllItineraryData] No itinerary in table, checking raw_data for cruise ${cruiseId}`
+        );
+
+        const cruiseQuery = sql`
+          SELECT raw_data
+          FROM cruises
+          WHERE id = ${cruiseIdStr}
+          LIMIT 1
+        `;
+
+        const cruiseResult = await db.execute(cruiseQuery);
+        const cruiseRows = (cruiseResult as any).rows || cruiseResult || [];
+
+        if (cruiseRows.length > 0 && cruiseRows[0].raw_data) {
+          logger.info(
+            `[getAllItineraryData] Extracting itinerary from raw_data for cruise ${cruiseId}`
+          );
+          // Parse raw_data if it's a string
+          const rawData =
+            typeof cruiseRows[0].raw_data === 'string'
+              ? JSON.parse(cruiseRows[0].raw_data)
+              : cruiseRows[0].raw_data;
+          const rawItinerary = extractItineraryFromRawData(rawData);
+
+          if (rawItinerary && rawItinerary.length > 0) {
+            logger.info(
+              `[getAllItineraryData] Extracted ${rawItinerary.length} itinerary entries from raw_data`
+            );
+
+            // Return extracted itinerary in the same format as database rows
+            return rawItinerary.map((day: any, index: number) => ({
+              id: day.id || `${cruiseId}-day-${day.dayNumber || index + 1}`,
+              cruiseId: cruiseId,
+              dayNumber: day.dayNumber || index + 1,
+              date: new Date().toISOString(),
+              portName: day.portName || 'Unknown Port',
+              portId: day.portId,
+              arrivalTime: day.arrivalTime,
+              departureTime: day.departureTime,
+              status: day.isSeaDay ? 'sea-day' : 'port',
+              overnight: day.overnight || false,
+              description: day.description,
+              activities: undefined,
+              shoreExcursions: undefined,
+              raw: day,
+            }));
+          }
+        }
+      }
+
+      // Return data from table if available
       return rows.map((row: any) => ({
         id: row.id?.toString() || '',
         cruiseId: row.cruise_id,
