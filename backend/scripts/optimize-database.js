@@ -5,14 +5,10 @@
  * Implements memory optimization and data cleanup for PostgreSQL
  */
 
-import { config } from 'dotenv';
-import pg from 'pg';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { sql } from 'drizzle-orm';
-
-config();
-
-const { Pool } = pg;
+require('dotenv').config();
+const { Pool } = require('pg');
+const { drizzle } = require('drizzle-orm/node-postgres');
+const { sql } = require('drizzle-orm');
 
 async function optimizeDatabase() {
   console.log('🔧 Starting database optimization...\n');
@@ -156,7 +152,6 @@ async function optimizeDatabase() {
     }
 
     console.log('\n✅ Database optimization complete!');
-
   } catch (error) {
     console.error('❌ Error during optimization:', error);
     process.exit(1);
@@ -166,8 +161,8 @@ async function optimizeDatabase() {
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (require.main === module) {
   optimizeDatabase().catch(console.error);
 }
 
-export { optimizeDatabase };
+module.exports = { optimizeDatabase };
