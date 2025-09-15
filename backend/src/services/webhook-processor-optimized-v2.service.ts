@@ -1155,33 +1155,28 @@ export class WebhookProcessorOptimizedV2 {
 
         const currentRawJson = existingCruise[0]?.rawData || {};
 
-        // Update raw_json with all necessary data for cabin display
+        // IMPORTANT: Preserve ALL data from the original file, not just pricing
+        // The 'data' parameter contains the complete cruise information including itinerary
+        // We should use it as the base and only update pricing-specific fields
         const updatedRawJson = {
-          ...currentRawJson,
+          ...data, // Start with the COMPLETE data from FTP file
           cheapest: {
-            ...currentRawJson.cheapest,
+            ...data.cheapest,
             combined: combinedPricing,
-            prices: data.cheapest?.prices || currentRawJson.cheapest?.prices,
-            cachedprices: data.cheapest?.cachedprices || currentRawJson.cheapest?.cachedprices,
+            prices: data.cheapest?.prices,
+            cachedprices: data.cheapest?.cachedprices,
           },
-          // Store the full prices object for price code lookups
-          prices: data.prices || currentRawJson.prices,
-          // Store the full cabins object for cabin details
-          cabins: data.cabins || currentRawJson.cabins,
-          // Store individual cheapest pricing objects
-          cheapestinside: data.cheapestinside || currentRawJson.cheapestinside,
-          cheapestoutside: data.cheapestoutside || currentRawJson.cheapestoutside,
-          cheapestbalcony: data.cheapestbalcony || currentRawJson.cheapestbalcony,
-          cheapestsuite: data.cheapestsuite || currentRawJson.cheapestsuite,
-          // Store price codes
-          cheapestinsidepricecode:
-            data.cheapestinsidepricecode || currentRawJson.cheapestinsidepricecode,
-          cheapestoutsidepricecode:
-            data.cheapestoutsidepricecode || currentRawJson.cheapestoutsidepricecode,
-          cheapestbalconypricecode:
-            data.cheapestbalconypricecode || currentRawJson.cheapestbalconypricecode,
-          cheapestsuitepricecode:
-            data.cheapestsuitepricecode || currentRawJson.cheapestsuitepricecode,
+          // These fields are already in 'data', but we ensure they're present
+          prices: data.prices,
+          cabins: data.cabins,
+          cheapestinside: data.cheapestinside,
+          cheapestoutside: data.cheapestoutside,
+          cheapestbalcony: data.cheapestbalcony,
+          cheapestsuite: data.cheapestsuite,
+          cheapestinsidepricecode: data.cheapestinsidepricecode,
+          cheapestoutsidepricecode: data.cheapestoutsidepricecode,
+          cheapestbalconypricecode: data.cheapestbalconypricecode,
+          cheapestsuitepricecode: data.cheapestsuitepricecode,
         };
 
         await db
