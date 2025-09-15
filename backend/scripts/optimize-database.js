@@ -45,8 +45,8 @@ async function optimizeDatabase() {
         FROM cruises
         WHERE updated_at < NOW() - INTERVAL '7 days'
         AND (
-          departure_date < NOW() - INTERVAL '30 days'
-          OR departure_date IS NULL
+          sailing_date < NOW() - INTERVAL '30 days'
+          OR sailing_date IS NULL
         )
       )
       DELETE FROM cruises

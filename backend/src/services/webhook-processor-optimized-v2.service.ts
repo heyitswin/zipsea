@@ -1899,7 +1899,7 @@ export class WebhookProcessorOptimizedV2 {
       const cleanupResult = await db.execute(sql`
         DELETE FROM cruises
         WHERE updated_at < NOW() - INTERVAL '7 days'
-        AND departure_date < NOW() - INTERVAL '30 days'
+        AND sailing_date < NOW() - INTERVAL '30 days'
         RETURNING id;
       `);
 
