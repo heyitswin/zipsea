@@ -1813,5 +1813,77 @@ export class WebhookProcessorOptimizedV2 {
       // Clean up tracking
       this.processingJobs.delete(runId);
     }
+
+    // Run post-batch cleanup to optimize memory
+    await this.runPostBatchCleanup();
+  }
+
+  /**
+   * Run cleanup after batch processing to optimize memory usage
+   */
+  private async runPostBatchCleanup() {
+    try {
+      console.log('[OPTIMIZED-V2] Running post-batch cleanup for memory optimization...');
+
+      // 1. Clean up old cruise data (older than 7 days and already departed)
+      const cleanupResult = await db.execute(sql`
+        DELETE FROM cruises
+        WHERE updated_at < NOW() - INTERVAL '7 days'
+        AND departure_date < NOW() - INTERVAL '30 days'
+        RETURNING id;
+      `);
+
+      if (cleanupResult.rowCount && cleanupResult.rowCount > 0) {
+        console.log(`[OPTIMIZED-V2] Cleaned up ${cleanupResult.rowCount} old cruises`);
+      }
+
+      // 2. Clean up orphaned pricing data
+      const pricingCleanup = await db.execute(sql`
+        DELETE FROM pricing p
+        WHERE NOT EXISTS (
+          SELECT 1 FROM cruises c WHERE c.id = p.cruise_id
+        )
+        RETURNING id;
+      `);
+
+      if (pricingCleanup.rowCount && pricingCleanup.rowCount > 0) {
+        console.log(
+          `[OPTIMIZED-V2] Cleaned up ${pricingCleanup.rowCount} orphaned pricing records`
+        );
+      }
+
+      // 3. Run VACUUM ANALYZE on main tables (non-blocking)
+      await db.execute(sql`VACUUM (ANALYZE, VERBOSE OFF) cruises;`);
+      await db.execute(sql`VACUUM (ANALYZE, VERBOSE OFF) pricing;`);
+      console.log('[OPTIMIZED-V2] Ran VACUUM ANALYZE on main tables');
+
+      // 4. Clear Redis memory for completed jobs
+      if (WebhookProcessorOptimizedV2.webhookQueue) {
+        const completedJobs = await WebhookProcessorOptimizedV2.webhookQueue.getCompleted(0, 1000);
+        if (completedJobs.length > 500) {
+          // Keep only last 200 completed jobs
+          const jobsToRemove = completedJobs.slice(200);
+          await Promise.all(jobsToRemove.map(job => job.remove()));
+          console.log(
+            `[OPTIMIZED-V2] Cleaned up ${jobsToRemove.length} old completed jobs from Redis`
+          );
+        }
+      }
+
+      // 5. Reset stats for next run
+      this.stats = {
+        filesProcessed: 0,
+        cruisesUpdated: 0,
+        skippedUnchanged: 0,
+        errors: [],
+        priceSnapshotsCreated: 0,
+        changeLog: [],
+      };
+
+      console.log('[OPTIMIZED-V2] Post-batch cleanup completed successfully');
+    } catch (error) {
+      console.error('[OPTIMIZED-V2] Error during post-batch cleanup:', error);
+      // Don't throw - cleanup errors shouldn't break the main flow
+    }
   }
 }
