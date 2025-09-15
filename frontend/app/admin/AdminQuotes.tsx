@@ -40,6 +40,7 @@ interface QuoteRequest {
   total_price?: number;
   quote_response?: any;
   special_requirements?: string;
+  customer_details?: any;
 }
 
 interface ResponseModalProps {
@@ -50,21 +51,22 @@ interface ResponseModalProps {
 
 function ResponseModal({ quote, onClose, onSubmit }: ResponseModalProps) {
   const [loading, setLoading] = useState(false);
+  const [notes, setNotes] = useState("");
   const [prices, setPrices] = useState<
     Array<{
+      roomName: string;
       cabinCategory: string;
       price: string;
       obc: string;
-      description: string;
     }>
   >(
-    Array(10)
+    Array(5)
       .fill(null)
       .map(() => ({
+        roomName: "",
         cabinCategory: "",
         price: "",
         obc: "",
-        description: "",
       })),
   );
 
@@ -78,14 +80,14 @@ function ResponseModal({ quote, onClose, onSubmit }: ResponseModalProps) {
       const obcAmount = p.obc ? parseFloat(p.obc) : Math.round(price * 0.05);
       return {
         category: p.cabinCategory,
-        roomName: p.description || "",
+        roomName: p.roomName || "",
         finalPrice: price,
         obcAmount: obcAmount,
       };
     });
     await onSubmit(quote.id, {
       categories,
-      notes: `Total options: ${validPrices.length}`,
+      notes: notes || `Total options: ${validPrices.length}`,
     });
     setLoading(false);
     onClose();
@@ -151,7 +153,16 @@ function ResponseModal({ quote, onClose, onSubmit }: ResponseModalProps) {
             </div>
             <div>
               <p className="text-gray-600">Requested Cabin:</p>
-              <p className="font-medium">{quote.cabin_type || "Any"}</p>
+              <p className="font-medium">
+                {(() => {
+                  const customerDetails = quote.customer_details || {};
+                  const details =
+                    typeof customerDetails === "string"
+                      ? JSON.parse(customerDetails)
+                      : customerDetails;
+                  return details.cabin_type || quote.cabin_type || "Any";
+                })()}
+              </p>
             </div>
             <div>
               <p className="text-gray-600">Passengers:</p>
@@ -168,17 +179,96 @@ function ResponseModal({ quote, onClose, onSubmit }: ResponseModalProps) {
           )}
         </div>
 
+        {/* Discount Qualifiers */}
+        {(() => {
+          const customerDetails = quote.customer_details || {};
+          const details =
+            typeof customerDetails === "string"
+              ? JSON.parse(customerDetails)
+              : customerDetails;
+          const discountQualifiers = details.discount_qualifiers || {};
+          const activeQualifiers = [];
+
+          if (discountQualifiers.payInFull)
+            activeQualifiers.push("Pay in Full");
+          if (discountQualifiers.seniorCitizen || discountQualifiers.age55Plus)
+            activeQualifiers.push("Senior/55+");
+          if (discountQualifiers.military) activeQualifiers.push("Military");
+          if (discountQualifiers.stateOfResidence)
+            activeQualifiers.push(
+              `State: ${discountQualifiers.stateOfResidence}`,
+            );
+          if (discountQualifiers.loyaltyNumber)
+            activeQualifiers.push(
+              `Loyalty: ${discountQualifiers.loyaltyNumber}`,
+            );
+
+          if (activeQualifiers.length > 0) {
+            return (
+              <div className="p-6 bg-yellow-50 border-t border-yellow-100">
+                <h4 className="font-medium text-gray-900 mb-2">
+                  Discount Qualifiers
+                </h4>
+                <div className="text-sm text-gray-700">
+                  {activeQualifiers.join(" • ")}
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()}
+
+        {/* Notes Field */}
+        <div className="p-6 bg-blue-50 border-t border-blue-100">
+          <label
+            htmlFor="notes"
+            className="block text-sm font-medium text-gray-900 mb-2"
+          >
+            Note from Our Team
+          </label>
+          <p className="text-xs text-gray-600 mb-2">
+            This note will appear in the "Note from our team" section of the
+            quote email sent to the customer.
+          </p>
+          <textarea
+            id="notes"
+            rows={3}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 bg-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Add any special notes about these options, payment plans, availability, or other information the customer should know..."
+          />
+        </div>
+
         {/* Pricing Form */}
         <div className="p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">
             Cabin Pricing Options
           </h3>
           <div className="space-y-3">
+            {/* Header Labels */}
+            <div className="grid grid-cols-4 gap-3 text-sm font-medium text-gray-700">
+              <span>Room Name</span>
+              <span>Category</span>
+              <span>Final Price ($)</span>
+              <span>OBC Amount ($)</span>
+            </div>
             {prices.map((price, index) => (
               <div key={index} className="grid grid-cols-4 gap-3">
                 <input
                   type="text"
-                  placeholder="Cabin Category"
+                  placeholder="Room name"
+                  value={price.roomName}
+                  onChange={(e) => {
+                    const newPrices = [...prices];
+                    newPrices[index].roomName = e.target.value;
+                    setPrices(newPrices);
+                  }}
+                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="text"
+                  placeholder="e.g., Interior"
                   value={price.cabinCategory}
                   onChange={(e) => {
                     const newPrices = [...prices];
@@ -189,7 +279,7 @@ function ResponseModal({ quote, onClose, onSubmit }: ResponseModalProps) {
                 />
                 <input
                   type="number"
-                  placeholder="Price"
+                  placeholder="0"
                   value={price.price}
                   onChange={(e) => {
                     const newPrices = [...prices];
@@ -200,22 +290,11 @@ function ResponseModal({ quote, onClose, onSubmit }: ResponseModalProps) {
                 />
                 <input
                   type="number"
-                  placeholder="OBC Amount"
+                  placeholder="0"
                   value={price.obc}
                   onChange={(e) => {
                     const newPrices = [...prices];
                     newPrices[index].obc = e.target.value;
-                    setPrices(newPrices);
-                  }}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="text"
-                  placeholder="Description (optional)"
-                  value={price.description}
-                  onChange={(e) => {
-                    const newPrices = [...prices];
-                    newPrices[index].description = e.target.value;
                     setPrices(newPrices);
                   }}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
