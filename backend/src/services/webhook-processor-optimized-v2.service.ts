@@ -6,7 +6,7 @@ import { cruises } from '../db/schema/cruises';
 import { ships } from '../db/schema/ships';
 import { cheapestPricing } from '../db/schema';
 import { priceSnapshots } from '../db/schema/webhook-events';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import logger from '../config/logger';
 import { Writable } from 'stream';
 import { slackService, WebhookProcessingResult } from './slack.service';
@@ -32,8 +32,14 @@ export class WebhookProcessorOptimizedV2 {
   private stats = {
     filesProcessed: 0,
     cruisesUpdated: 0,
+    skippedUnchanged: 0,
     errors: [] as string[],
     priceSnapshotsCreated: 0,
+    changeLog: [] as Array<{
+      cruiseId: string;
+      changes: string[];
+      timestamp: Date;
+    }>,
   };
 
   private processingJobs = new Map<
@@ -516,6 +522,42 @@ export class WebhookProcessorOptimizedV2 {
         throw error;
       }
 
+      // Check if we recently processed this line (throttling)
+      const recentProcessing = await db.execute(sql`
+        SELECT MAX(processed_at) as last_processed
+        FROM webhook_events
+        WHERE line_id = ${lineId}
+          AND status = 'completed'
+          AND processed_at > NOW() - INTERVAL '15 minutes'
+      `);
+
+      if (recentProcessing && recentProcessing[0]?.last_processed) {
+        const minutesAgo = Math.round(
+          (Date.now() - new Date(recentProcessing[0].last_processed).getTime()) / 60000
+        );
+        console.log(`[THROTTLE] Line ${lineId} was processed ${minutesAgo} minutes ago, skipping`);
+
+        // Update webhook status to throttled
+        await db.execute(sql`
+          UPDATE webhook_events
+          SET status = 'throttled',
+              processed_at = NOW(),
+              metadata = jsonb_set(
+                COALESCE(metadata, '{}'::jsonb),
+                '{throttled_reason}',
+                to_jsonb(${'Recently processed ' + minutesAgo + ' minutes ago'}::text)
+              )
+          WHERE line_id = ${lineId}
+            AND status = 'pending'
+            AND received_at > NOW() - INTERVAL '1 hour'
+        `);
+
+        return {
+          status: 'throttled',
+          message: `Recently processed ${minutesAgo} minutes ago`,
+        };
+      }
+
       // Skip snapshot for now - database schema mismatch
       // await this.takeSnapshot(lineId);
 
@@ -533,8 +575,10 @@ export class WebhookProcessorOptimizedV2 {
       this.stats = {
         filesProcessed: 0,
         cruisesUpdated: 0,
+        skippedUnchanged: 0,
         errors: [],
         priceSnapshotsCreated: 0,
+        changeLog: [],
       };
 
       // Discover files efficiently
@@ -756,6 +800,103 @@ export class WebhookProcessorOptimizedV2 {
     return WebhookProcessorOptimizedV2.processorInstance.processFile(file);
   }
 
+  /**
+   * Check if cruise data has actually changed
+   * Returns true if changes detected or if it's a new cruise
+   */
+  private async hasDataChanged(
+    cruiseId: string,
+    newData: any
+  ): Promise<{ changed: boolean; changes: string[] }> {
+    try {
+      const existing = await db
+        .select({
+          rawData: cruises.rawData,
+          updatedAt: cruises.updatedAt,
+          interiorPrice: cruises.interiorPrice,
+          oceanviewPrice: cruises.oceanviewPrice,
+          balconyPrice: cruises.balconyPrice,
+          suitePrice: cruises.suitePrice,
+        })
+        .from(cruises)
+        .where(eq(cruises.id, cruiseId))
+        .limit(1);
+
+      if (!existing[0]) {
+        console.log(`[CHANGE-DETECTION] New cruise ${cruiseId}`);
+        return { changed: true, changes: ['new_cruise'] };
+      }
+
+      const oldData = existing[0].rawData || {};
+      const changes: string[] = [];
+
+      // Check pricing changes (most common)
+      const oldCheapest = JSON.stringify(oldData.cheapest || {});
+      const newCheapest = JSON.stringify(newData.cheapest || {});
+      if (oldCheapest !== newCheapest) {
+        changes.push('cheapest_pricing');
+      }
+
+      // Check detailed prices
+      const oldPrices = JSON.stringify(oldData.prices || {});
+      const newPrices = JSON.stringify(newData.prices || {});
+      if (oldPrices !== newPrices) {
+        changes.push('detailed_prices');
+      }
+
+      // Check cabin changes
+      const oldCabins = JSON.stringify(oldData.cabins || {});
+      const newCabins = JSON.stringify(newData.cabins || {});
+      if (oldCabins !== newCabins) {
+        changes.push('cabins');
+      }
+
+      // Check itinerary changes
+      const oldItinerary = JSON.stringify(oldData.itinerary || oldData.itineraries || {});
+      const newItinerary = JSON.stringify(newData.itinerary || newData.itineraries || {});
+      if (oldItinerary !== newItinerary) {
+        changes.push('itinerary');
+      }
+
+      // Check for any individual price field changes (fallback)
+      const priceFields = ['cheapestinside', 'cheapestoutside', 'cheapestbalcony', 'cheapestsuite'];
+      for (const field of priceFields) {
+        const oldPrice = oldData[field]?.price || oldData[field];
+        const newPrice = newData[field]?.price || newData[field];
+        if (oldPrice !== newPrice) {
+          changes.push(`${field}_price`);
+        }
+      }
+
+      // Check availability status
+      if (oldData.availabilitystatus !== newData.availabilitystatus) {
+        changes.push('availability_status');
+      }
+
+      // Check soldout status
+      if (oldData.soldout !== newData.soldout) {
+        changes.push('soldout_status');
+      }
+
+      if (changes.length > 0) {
+        console.log(`[CHANGE-DETECTION] Cruise ${cruiseId} changed: ${changes.join(', ')}`);
+        // Log to stats for tracking
+        this.stats.changeLog.push({
+          cruiseId,
+          changes,
+          timestamp: new Date(),
+        });
+        return { changed: true, changes };
+      }
+
+      return { changed: false, changes: [] };
+    } catch (error) {
+      console.error(`[CHANGE-DETECTION] Error checking changes for ${cruiseId}:`, error);
+      // On error, process anyway to be safe
+      return { changed: true, changes: ['error_checking'] };
+    }
+  }
+
   private async processFile(file: any): Promise<boolean> {
     let conn;
 
@@ -838,6 +979,15 @@ export class WebhookProcessorOptimizedV2 {
       if (!cruiseId) {
         console.log(`[OPTIMIZED-V2] No cruise ID found in ${file.path}`);
         return;
+      }
+
+      // Check if data has actually changed before processing
+      const changeResult = await this.hasDataChanged(cruiseId, data);
+      if (!changeResult.changed) {
+        console.log(`[SKIP-UNCHANGED] Cruise ${cruiseId} has no changes, skipping DB writes`);
+        this.stats.skippedUnchanged++;
+        this.stats.filesProcessed++;
+        return true; // Mark as successfully processed (no changes needed)
       }
 
       // Extract sailing date (from startdate or saildate field)
@@ -1589,12 +1739,14 @@ export class WebhookProcessorOptimizedV2 {
       const result: WebhookProcessingResult = {
         successful: jobTracking.successful,
         failed: jobTracking.failed,
+        skippedUnchanged: this.stats.skippedUnchanged,
         errors: jobTracking.errors,
         startTime: jobTracking.startTime,
         endTime,
         processingTimeMs,
         totalCruises: jobTracking.totalFiles || jobTracking.processedFiles,
         priceSnapshotsCreated: this.stats.priceSnapshotsCreated,
+        changeLog: this.stats.changeLog.slice(0, 20), // Include first 20 changes for reference
       };
 
       await slackService.notifyWebhookProcessingCompleted(
@@ -1612,8 +1764,20 @@ export class WebhookProcessorOptimizedV2 {
       console.log(
         `[OPTIMIZED-V2] All processing complete for line ${lineId}. ` +
           `Final stats: ${jobTracking.successful} successful, ${jobTracking.failed} failed, ` +
+          `${this.stats.skippedUnchanged} skipped (unchanged), ` +
           `${this.stats.priceSnapshotsCreated} snapshots created, ${processingTimeMs}ms total time`
       );
+
+      // Log change summary if we have any
+      if (this.stats.changeLog.length > 0) {
+        const changeSummary: Record<string, number> = {};
+        this.stats.changeLog.forEach(log => {
+          log.changes.forEach(change => {
+            changeSummary[change] = (changeSummary[change] || 0) + 1;
+          });
+        });
+        console.log(`[CHANGE-SUMMARY] Changes detected:`, JSON.stringify(changeSummary));
+      }
     } else {
       // Queue didn't clear in time - log warning but still send notification with what we have
       console.warn(
@@ -1627,12 +1791,14 @@ export class WebhookProcessorOptimizedV2 {
       const result: WebhookProcessingResult = {
         successful: jobTracking.successful,
         failed: jobTracking.failed,
+        skippedUnchanged: this.stats.skippedUnchanged,
         errors: [...jobTracking.errors, { error: 'Queue did not clear within timeout period' }],
         startTime: jobTracking.startTime,
         endTime,
         processingTimeMs,
         totalCruises: jobTracking.totalFiles || jobTracking.processedFiles,
         priceSnapshotsCreated: this.stats.priceSnapshotsCreated,
+        changeLog: this.stats.changeLog.slice(0, 20),
       };
 
       await slackService.notifyWebhookProcessingCompleted(

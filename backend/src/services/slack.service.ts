@@ -17,6 +17,7 @@ export interface SlackWebhookData {
 export interface WebhookProcessingResult {
   successful: number;
   failed: number;
+  skippedUnchanged?: number;
   errors: Array<{
     cruiseId?: number;
     filePath?: string;
@@ -27,6 +28,10 @@ export interface WebhookProcessingResult {
   processingTimeMs: number;
   totalCruises: number;
   priceSnapshotsCreated: number;
+  changeLog?: Array<{
+    cruiseId: string;
+    changes: string[];
+  }>;
 }
 
 export class SlackService {
@@ -483,11 +488,11 @@ export class SlackService {
           },
           {
             type: 'mrkdwn',
-            text: `*📸 Price Snapshots:*\n${result.priceSnapshotsCreated}`,
+            text: `*⏭️ Skipped (Unchanged):*\n${result.skippedUnchanged || 0}`,
           },
           {
             type: 'mrkdwn',
-            text: `*📊 Success Rate:*\n${successRate}%`,
+            text: `*📸 Price Snapshots:*\n${result.priceSnapshotsCreated}`,
           },
         ],
       },
