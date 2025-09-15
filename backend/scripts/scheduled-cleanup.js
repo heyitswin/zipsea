@@ -6,14 +6,10 @@
  * Should be scheduled as a cron job to run daily at low-traffic times
  */
 
-import { config } from 'dotenv';
-import pg from 'pg';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { sql } from 'drizzle-orm';
-
-config();
-
-const { Pool } = pg;
+require('dotenv').config();
+const { Pool } = require('pg');
+const { drizzle } = require('drizzle-orm/node-postgres');
+const { sql } = require('drizzle-orm');
 
 async function scheduledCleanup() {
   const startTime = Date.now();
@@ -126,7 +122,6 @@ async function scheduledCleanup() {
 
     const duration = Date.now() - startTime;
     console.log(`[CLEANUP] ✅ Scheduled cleanup completed successfully in ${duration}ms`);
-
   } catch (error) {
     console.error('[CLEANUP] ❌ Error during scheduled cleanup:', error);
     process.exit(1);
@@ -136,8 +131,8 @@ async function scheduledCleanup() {
 }
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (require.main === module) {
   scheduledCleanup().catch(console.error);
 }
 
-export { scheduledCleanup };
+module.exports = { scheduledCleanup };
