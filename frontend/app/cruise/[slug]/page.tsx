@@ -922,10 +922,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               </p>
             </div>
 
-            <div className="space-y-4 -mx-4 md:mx-0">
+            <div className="space-y-4">
               {/* Interior Cabin Card */}
               <div
-                className="bg-white md:rounded-lg border border-gray-200 overflow-hidden px-4 md:px-4"
+                className="bg-white rounded-lg border border-gray-200 overflow-hidden mx-4 md:mx-0 px-4 md:px-4"
                 style={{ paddingTop: "16px", paddingBottom: "16px" }}
               >
                 <div className="flex flex-col md:flex-row md:items-center">
@@ -950,7 +950,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
                   {/* Title and Description */}
                   <div
-                    className="px-5 py-4 md:py-3 flex-1"
+                    className="px-0 md:px-5 py-4 md:py-3 flex-1"
                     style={{ minWidth: "400px", maxWidth: "480px" }}
                   >
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
@@ -963,7 +963,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block and Button - Mobile optimized */}
-                  <div className="flex flex-row items-end justify-between flex-1 px-5 md:px-8">
+                  <div className="flex flex-row items-end justify-between flex-1 px-0 md:px-8">
                     <div className="text-left">
                       <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                         STARTING FROM
@@ -1005,7 +1005,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
               {/* Outside Cabin Card */}
               <div
-                className="bg-white md:rounded-lg border border-gray-200 overflow-hidden px-4 md:px-4"
+                className="bg-white rounded-lg border border-gray-200 overflow-hidden mx-4 md:mx-0 px-4 md:px-4"
                 style={{ paddingTop: "16px", paddingBottom: "16px" }}
               >
                 <div className="flex flex-col md:flex-row md:items-center">
@@ -1030,7 +1030,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
                   {/* Title and Description */}
                   <div
-                    className="px-5 py-4 md:py-3 flex-1"
+                    className="px-0 md:px-5 py-4 md:py-3 flex-1"
                     style={{ minWidth: "400px", maxWidth: "480px" }}
                   >
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
@@ -1043,7 +1043,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block and Button - Mobile optimized */}
-                  <div className="flex flex-row items-end justify-between flex-1 px-5 md:px-8">
+                  <div className="flex flex-row items-end justify-between flex-1 px-0 md:px-8">
                     <div className="text-left">
                       <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                         STARTING FROM
@@ -1085,7 +1085,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
               {/* Balcony Cabin Card */}
               <div
-                className="bg-white md:rounded-lg border border-gray-200 overflow-hidden px-4 md:px-4"
+                className="bg-white rounded-lg border border-gray-200 overflow-hidden mx-4 md:mx-0 px-4 md:px-4"
                 style={{ paddingTop: "16px", paddingBottom: "16px" }}
               >
                 <div className="flex flex-col md:flex-row md:items-center">
@@ -1110,7 +1110,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
                   {/* Title and Description */}
                   <div
-                    className="px-5 py-4 md:py-3 flex-1"
+                    className="px-0 md:px-5 py-4 md:py-3 flex-1"
                     style={{ minWidth: "400px", maxWidth: "480px" }}
                   >
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
@@ -1123,7 +1123,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block and Button - Mobile optimized */}
-                  <div className="flex flex-row items-end justify-between flex-1 px-5 md:px-8">
+                  <div className="flex flex-row items-end justify-between flex-1 px-0 md:px-8">
                     <div className="text-left">
                       <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                         STARTING FROM
@@ -1165,7 +1165,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
               {/* Suite Cabin Card */}
               <div
-                className="bg-white md:rounded-lg border border-gray-200 overflow-hidden px-4 md:px-4"
+                className="bg-white rounded-lg border border-gray-200 overflow-hidden mx-4 md:mx-0 px-4 md:px-4"
                 style={{ paddingTop: "16px", paddingBottom: "16px" }}
               >
                 <div className="flex flex-col md:flex-row md:items-center">
@@ -1190,7 +1190,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
                   {/* Title and Description */}
                   <div
-                    className="px-5 py-4 md:py-3 flex-1"
+                    className="px-0 md:px-5 py-4 md:py-3 flex-1"
                     style={{ minWidth: "400px", maxWidth: "480px" }}
                   >
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
@@ -1203,7 +1203,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block and Button - Mobile optimized */}
-                  <div className="flex flex-row items-end justify-between flex-1 px-5 md:px-8">
+                  <div className="flex flex-row items-end justify-between flex-1 px-0 md:px-8">
                     <div className="text-left">
                       <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                         STARTING FROM
