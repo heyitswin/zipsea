@@ -135,6 +135,7 @@ export default function CruisesContent() {
     useState(false);
   const [isShipDropdownOpen, setIsShipDropdownOpen] = useState(false);
   const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
   // Filter options from API
   const [cruiseLines, setCruiseLines] = useState<FilterOption[]>([]);
@@ -773,7 +774,7 @@ export default function CruisesContent() {
           <div className="flex items-center justify-between">
             <div>
               <h2
-                className="font-whitney font-black text-[#0E1B4D] uppercase text-[32px]"
+                className="font-whitney font-black text-[#0E1B4D] uppercase text-[32px] leading-[1.25] mb-4"
                 style={{ letterSpacing: "-0.02em" }}
               >
                 Always the most onboard credit back
@@ -782,20 +783,24 @@ export default function CruisesContent() {
                 Have a question? We're here to help, just click to chat →
               </p>
             </div>
-            <Image
-              src="/images/zippy.png"
-              alt="Zippy"
-              width={100}
-              height={100}
-              className="w-[100px] h-auto"
-            />
           </div>
         </div>
       </div>
 
       {/* Filters Section */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex flex-wrap gap-3 relative z-40 justify-center">
+        {/* Mobile Filters Button */}
+        <div className="md:hidden flex justify-center mb-4">
+          <button
+            onClick={() => setIsFilterModalOpen(true)}
+            className="px-6 py-3 bg-white border border-gray-300 rounded-full font-geograph font-medium text-[16px] text-dark-blue hover:border-gray-400 transition-colors"
+          >
+            Filters
+          </button>
+        </div>
+
+        {/* Desktop Filters */}
+        <div className="hidden md:flex flex-wrap gap-3 relative z-40 justify-center">
           {/* Cruise Lines Filter */}
           <div className="relative" ref={cruiseLineDropdownRef}>
             <button
@@ -1422,11 +1427,11 @@ export default function CruisesContent() {
                   <div
                     key={cruise.id}
                     onClick={() => router.push(`/cruise/${slug}`)}
-                    className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer"
+                    className="bg-white border border-gray-200 rounded-lg md:p-4 cursor-pointer overflow-hidden"
                   >
-                    <div className="flex gap-6">
+                    <div className="flex md:gap-6">
                       {/* Featured Image */}
-                      <div className="w-48 h-32 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="w-[70px] md:w-48 h-full md:h-32 bg-gray-200 md:rounded-lg overflow-hidden flex-shrink-0">
                         {cruise.ship?.defaultShipImageHd ||
                         cruise.ship?.defaultShipImage2k ||
                         cruise.ship?.defaultShipImage ||
@@ -1459,21 +1464,27 @@ export default function CruisesContent() {
                       </div>
 
                       {/* Cruise Details */}
-                      <div className="flex-1 flex justify-between items-center">
+                      <div className="flex-1 flex flex-col md:flex-row md:justify-between md:items-center p-3 md:p-0">
                         <div className="flex-1">
                           <h3
-                            className="font-whitney font-black uppercase text-[#2F2F2F] text-[24px] mb-1"
+                            className="font-whitney font-black uppercase text-[#2F2F2F] text-[16px] md:text-[24px] mb-1"
                             style={{ letterSpacing: "-0.02em" }}
                           >
                             {cruise.name}
                           </h3>
 
-                          <p className="font-geograph text-[16px] text-[#606060] mb-4">
-                            {cruise.cruiseLine?.name || "Unknown Line"} |{" "}
-                            {cruise.ship?.name || "Unknown Ship"}
+                          <p className="font-geograph text-[12px] md:text-[16px] text-[#606060] mb-2 md:mb-4">
+                            <span className="md:hidden">
+                              {cruise.cruiseLine?.name || "Unknown Line"} •{" "}
+                              {cruise.ship?.name || "Unknown Ship"}
+                            </span>
+                            <span className="hidden md:inline">
+                              {cruise.cruiseLine?.name || "Unknown Line"} |{" "}
+                              {cruise.ship?.name || "Unknown Ship"}
+                            </span>
                           </p>
 
-                          <div className="grid grid-cols-4 gap-4">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
                             <div>
                               <div
                                 className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
@@ -1481,7 +1492,7 @@ export default function CruisesContent() {
                               >
                                 DEPART
                               </div>
-                              <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                              <div className="font-geograph font-medium text-[12px] md:text-[18px] text-[#2F2F2F]">
                                 {(() => {
                                   // Use the same logic as cruise detail page
                                   const dateString =
@@ -1493,12 +1504,15 @@ export default function CruisesContent() {
 
                                   try {
                                     const date = new Date(dateString);
-                                    return date.toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                      timeZone: "UTC",
-                                    });
+                                    // Format without day of week for mobile
+                                    return date
+                                      .toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "2-digit",
+                                        timeZone: "UTC",
+                                      })
+                                      .replace(/,/g, "");
                                   } catch {
                                     return "N/A";
                                   }
@@ -1513,7 +1527,7 @@ export default function CruisesContent() {
                               >
                                 RETURN
                               </div>
-                              <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                              <div className="font-geograph font-medium text-[12px] md:text-[18px] text-[#2F2F2F]">
                                 {(() => {
                                   // Calculate return date using same logic as detail page
                                   const dateString =
@@ -1530,15 +1544,15 @@ export default function CruisesContent() {
                                       departDate.getUTCDate() + cruise.nights,
                                     );
 
-                                    return returnDate.toLocaleDateString(
-                                      "en-US",
-                                      {
+                                    // Format without day of week for mobile
+                                    return returnDate
+                                      .toLocaleDateString("en-US", {
                                         month: "short",
                                         day: "numeric",
-                                        year: "numeric",
+                                        year: "2-digit",
                                         timeZone: "UTC",
-                                      },
-                                    );
+                                      })
+                                      .replace(/,/g, "");
                                   } catch {
                                     return "N/A";
                                   }
@@ -1551,9 +1565,12 @@ export default function CruisesContent() {
                                 className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
                                 style={{ letterSpacing: "0.1em" }}
                               >
-                                DEPARTURE PORT
+                                <span className="hidden md:inline">
+                                  DEPARTURE PORT
+                                </span>
+                                <span className="md:hidden">LEAVING</span>
                               </div>
-                              <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                              <div className="font-geograph font-medium text-[12px] md:text-[18px] text-[#2F2F2F]">
                                 {(() => {
                                   const portName =
                                     cruise.embarkPort?.name ||
@@ -1574,20 +1591,22 @@ export default function CruisesContent() {
                               >
                                 NIGHTS
                               </div>
-                              <div className="font-geograph font-medium text-[18px] text-[#2F2F2F]">
+                              <div className="font-geograph font-medium text-[12px] md:text-[18px] text-[#2F2F2F]">
                                 {cruise.nights}
                               </div>
                             </div>
                           </div>
                         </div>
 
+                        {/* Mobile separator line */}
+                        <div className="md:hidden w-full h-[1px] bg-[#d9d9d9] my-3"></div>
                         {/* Pricing - separate section */}
-                        <div className="flex flex-col items-end">
-                          <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
-                            STARTING FROM
-                          </div>
-                          <div className="text-right">
-                            <div className="font-geograph font-bold text-[24px] text-dark-blue">
+                        <div className="flex flex-row md:flex-col justify-between md:justify-start items-center md:items-end w-full md:w-auto">
+                          <div className="md:text-right">
+                            <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                              STARTING FROM
+                            </div>
+                            <div className="font-geograph font-bold text-[18px] md:text-[24px] text-dark-blue">
                               {(() => {
                                 const prices: number[] = [];
 
@@ -1712,7 +1731,7 @@ export default function CruisesContent() {
 
                                 if (onboardCredit > 0) {
                                   return (
-                                    <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                                    <div className="hidden md:block font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] mt-1">
                                       +${onboardCredit} onboard credit
                                     </div>
                                   );
@@ -1792,6 +1811,279 @@ export default function CruisesContent() {
           )}
         </div>
       </div>
+
+      {/* Mobile Filter Modal */}
+      {isFilterModalOpen && (
+        <div className="fixed inset-0 z-50 bg-white md:hidden">
+          <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="font-whitney font-black text-[24px] text-dark-blue uppercase">
+                Filters
+              </h2>
+              <button
+                onClick={() => setIsFilterModalOpen(false)}
+                className="p-2"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Filter Options */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              {/* Cruise Lines */}
+              <div>
+                <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
+                  Cruise Lines
+                </h3>
+                <div className="space-y-2">
+                  {cruiseLines.map((line) => (
+                    <label key={line.id} className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedCruiseLines.includes(
+                          line.id as number,
+                        )}
+                        onChange={() => {
+                          const lineId = line.id as number;
+                          const newSelection = selectedCruiseLines.includes(
+                            lineId,
+                          )
+                            ? selectedCruiseLines.filter((id) => id !== lineId)
+                            : [...selectedCruiseLines, lineId];
+                          setSelectedCruiseLines(newSelection);
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="font-geograph text-[16px]">
+                        {line.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dates */}
+              <div>
+                <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
+                  Cruise Dates
+                </h3>
+                <div className="space-y-4">
+                  {["2025", "2026", "2027"].map((year) => (
+                    <div key={year}>
+                      <div className="font-geograph font-bold text-[12px] text-gray-600 mb-2">
+                        {year}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          "Jan",
+                          "Feb",
+                          "Mar",
+                          "Apr",
+                          "May",
+                          "Jun",
+                          "Jul",
+                          "Aug",
+                          "Sep",
+                          "Oct",
+                          "Nov",
+                          "Dec",
+                        ].map((month, idx) => {
+                          const monthKey = `${year}-${String(idx + 1).padStart(2, "0")}`;
+                          const isSelected = selectedMonths.includes(monthKey);
+                          return (
+                            <button
+                              key={monthKey}
+                              onClick={() => {
+                                const newSelection = isSelected
+                                  ? selectedMonths.filter((m) => m !== monthKey)
+                                  : [...selectedMonths, monthKey];
+                                setSelectedMonths(newSelection);
+                              }}
+                              className={`py-2 px-3 rounded-lg text-[14px] font-geograph ${
+                                isSelected
+                                  ? "bg-[#0E1B4D] text-white"
+                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              }`}
+                            >
+                              {month}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Number of Nights */}
+              <div>
+                <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
+                  Number of Nights
+                </h3>
+                <div className="space-y-2">
+                  {["1-5", "6-8", "9-11", "12+"].map((range) => (
+                    <label key={range} className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedNightRanges.includes(range)}
+                        onChange={() => {
+                          const newSelection = selectedNightRanges.includes(
+                            range,
+                          )
+                            ? selectedNightRanges.filter((r) => r !== range)
+                            : [...selectedNightRanges, range];
+                          setSelectedNightRanges(newSelection);
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="font-geograph text-[16px]">
+                        {range === "12+" ? "12+ nights" : `${range} nights`}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Departure Ports */}
+              <div>
+                <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
+                  Departure Ports
+                </h3>
+                <div className="space-y-2">
+                  {departurePorts.map((port) => (
+                    <label key={port.id} className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedDeparturePorts.includes(
+                          port.id as number,
+                        )}
+                        onChange={() => {
+                          const portId = port.id as number;
+                          const newSelection = selectedDeparturePorts.includes(
+                            portId,
+                          )
+                            ? selectedDeparturePorts.filter(
+                                (id) => id !== portId,
+                              )
+                            : [...selectedDeparturePorts, portId];
+                          setSelectedDeparturePorts(newSelection);
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="font-geograph text-[16px]">
+                        {port.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Ships */}
+              <div>
+                <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
+                  Ships
+                </h3>
+                <div className="space-y-2">
+                  {ships.map((ship) => (
+                    <label key={ship.id} className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedShips.includes(ship.id as number)}
+                        onChange={() => {
+                          const shipId = ship.id as number;
+                          const newSelection = selectedShips.includes(shipId)
+                            ? selectedShips.filter((id) => id !== shipId)
+                            : [...selectedShips, shipId];
+                          setSelectedShips(newSelection);
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="font-geograph text-[16px]">
+                        {ship.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Regions */}
+              <div>
+                <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
+                  Regions
+                </h3>
+                <div className="space-y-2">
+                  {regions.map((region) => (
+                    <label key={region.id} className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedRegions.includes(region.id as number)}
+                        onChange={() => {
+                          const regionId = region.id as number;
+                          const newSelection = selectedRegions.includes(
+                            regionId,
+                          )
+                            ? selectedRegions.filter((id) => id !== regionId)
+                            : [...selectedRegions, regionId];
+                          setSelectedRegions(newSelection);
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="font-geograph text-[16px]">
+                        {region.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Apply Button */}
+            <div className="p-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  // Apply filters and close modal
+                  updateURLParams({
+                    cruiseLines:
+                      selectedCruiseLines.length > 0
+                        ? selectedCruiseLines
+                        : null,
+                    months: selectedMonths.length > 0 ? selectedMonths : null,
+                    nights:
+                      selectedNightRanges.length > 0
+                        ? selectedNightRanges
+                        : null,
+                    ports:
+                      selectedDeparturePorts.length > 0
+                        ? selectedDeparturePorts
+                        : null,
+                    ships: selectedShips.length > 0 ? selectedShips : null,
+                    regions:
+                      selectedRegions.length > 0 ? selectedRegions : null,
+                    page: 1,
+                  });
+                  setIsFilterModalOpen(false);
+                }}
+                className="w-full py-3 bg-[#0E1B4D] text-white font-geograph font-medium text-[16px] rounded-full hover:bg-[#0E1B4D]/90 transition-colors"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
