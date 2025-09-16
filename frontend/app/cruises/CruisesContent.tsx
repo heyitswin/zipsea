@@ -1477,121 +1477,19 @@ export default function CruisesContent() {
                             {cruise.name}
                           </h3>
 
-                          <div className="mb-2 md:mb-4">
-                            <p className="font-geograph text-[14px] md:text-[16px] text-[#606060] md:hidden">
-                              {cruise.cruiseLine?.name || "Unknown Line"}
-                            </p>
-                            <p className="font-geograph text-[14px] md:text-[16px] text-[#606060] md:hidden">
-                              {cruise.ship?.name || "Unknown Ship"}
-                            </p>
-                            <p className="font-geograph text-[12px] md:text-[16px] text-[#606060] hidden md:block">
-                              {cruise.cruiseLine?.name || "Unknown Line"} |{" "}
-                              {cruise.ship?.name || "Unknown Ship"}
-                            </p>
-                          </div>
-
-                          {/* Mobile: Details on one line with price block on right */}
-                          <div className="md:hidden flex justify-between items-start">
-                            {/* Details in a single row */}
-                            <div className="flex gap-3">
-                              <div>
-                                <div
-                                  className="font-geograph font-bold text-[11px] uppercase text-gray-500 mb-1"
-                                  style={{ letterSpacing: "0.1em" }}
-                                >
-                                  DEPART
-                                </div>
-                                <div className="font-geograph font-medium text-[14px] text-[#2F2F2F]">
-                                  {(() => {
-                                    const dateString =
-                                      cruise.sailingDate ||
-                                      cruise.departureDate;
-                                    if (!dateString) return "N/A";
-                                    try {
-                                      const date = new Date(dateString);
-                                      return date
-                                        .toLocaleDateString("en-US", {
-                                          month: "short",
-                                          day: "numeric",
-                                          year: "2-digit",
-                                          timeZone: "UTC",
-                                        })
-                                        .replace(/,/g, "");
-                                    } catch {
-                                      return "N/A";
-                                    }
-                                  })()}
-                                </div>
-                              </div>
-                              <div>
-                                <div
-                                  className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
-                                  style={{ letterSpacing: "0.1em" }}
-                                >
-                                  RETURN
-                                </div>
-                                <div className="font-geograph font-medium text-[14px] text-[#2F2F2F]">
-                                  {(() => {
-                                    const dateString =
-                                      cruise.sailingDate ||
-                                      cruise.departureDate;
-                                    if (!dateString || !cruise.nights)
-                                      return "N/A";
-                                    try {
-                                      const departDate = new Date(dateString);
-                                      const returnDate = new Date(departDate);
-                                      returnDate.setUTCDate(
-                                        departDate.getUTCDate() + cruise.nights,
-                                      );
-                                      return returnDate
-                                        .toLocaleDateString("en-US", {
-                                          month: "short",
-                                          day: "numeric",
-                                          year: "2-digit",
-                                          timeZone: "UTC",
-                                        })
-                                        .replace(/,/g, "");
-                                    } catch {
-                                      return "N/A";
-                                    }
-                                  })()}
-                                </div>
-                              </div>
-                              <div>
-                                <div
-                                  className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
-                                  style={{ letterSpacing: "0.1em" }}
-                                >
-                                  LEAVING
-                                </div>
-                                <div className="font-geograph font-medium text-[14px] text-[#2F2F2F]">
-                                  {(() => {
-                                    const portName =
-                                      cruise.embarkPort?.name ||
-                                      cruise.embarkPortName ||
-                                      "Unknown";
-                                    const commaIndex = portName.indexOf(",");
-                                    return commaIndex > -1
-                                      ? portName.substring(0, commaIndex)
-                                      : portName;
-                                  })()}
-                                </div>
-                              </div>
-                              <div>
-                                <div
-                                  className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
-                                  style={{ letterSpacing: "0.1em" }}
-                                >
-                                  NIGHTS
-                                </div>
-                                <div className="font-geograph font-medium text-[14px] text-[#2F2F2F]">
-                                  {cruise.nights}
-                                </div>
-                              </div>
+                          {/* Mobile: Cruise line/ship and price block */}
+                          <div className="md:hidden flex justify-between items-start mb-2">
+                            {/* Left: Cruise line and ship */}
+                            <div className="flex-1 mr-3">
+                              <p className="font-geograph text-[14px] text-[#606060]">
+                                {cruise.cruiseLine?.name || "Unknown Line"}
+                              </p>
+                              <p className="font-geograph text-[14px] text-[#606060]">
+                                {cruise.ship?.name || "Unknown Ship"}
+                              </p>
                             </div>
-
-                            {/* Price block on right */}
-                            <div className="text-right">
+                            {/* Right: Price block */}
+                            <div className="text-right flex-shrink-0">
                               <div className="font-geograph font-bold text-[12px] text-gray-500 uppercase tracking-wider mb-1">
                                 STARTING FROM
                               </div>
@@ -1713,6 +1611,110 @@ export default function CruisesContent() {
                                 return null;
                               })()}
                             </div>
+                          </div>
+
+                          {/* Mobile: Details in a single row */}
+                          <div className="md:hidden flex gap-3">
+                            <div>
+                              <div
+                                className="font-geograph font-bold text-[11px] uppercase text-gray-500 mb-1"
+                                style={{ letterSpacing: "0.1em" }}
+                              >
+                                DEPART
+                              </div>
+                              <div className="font-geograph font-medium text-[14px] text-[#2F2F2F]">
+                                {(() => {
+                                  const dateString =
+                                    cruise.sailingDate || cruise.departureDate;
+                                  if (!dateString) return "N/A";
+                                  try {
+                                    const date = new Date(dateString);
+                                    return date
+                                      .toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "2-digit",
+                                        timeZone: "UTC",
+                                      })
+                                      .replace(/,/g, "");
+                                  } catch {
+                                    return "N/A";
+                                  }
+                                })()}
+                              </div>
+                            </div>
+                            <div>
+                              <div
+                                className="font-geograph font-bold text-[11px] uppercase text-gray-500 mb-1"
+                                style={{ letterSpacing: "0.1em" }}
+                              >
+                                RETURN
+                              </div>
+                              <div className="font-geograph font-medium text-[14px] text-[#2F2F2F]">
+                                {(() => {
+                                  const dateString =
+                                    cruise.sailingDate || cruise.departureDate;
+                                  if (!dateString || !cruise.nights)
+                                    return "N/A";
+                                  try {
+                                    const departDate = new Date(dateString);
+                                    const returnDate = new Date(departDate);
+                                    returnDate.setUTCDate(
+                                      departDate.getUTCDate() + cruise.nights,
+                                    );
+                                    return returnDate
+                                      .toLocaleDateString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "2-digit",
+                                        timeZone: "UTC",
+                                      })
+                                      .replace(/,/g, "");
+                                  } catch {
+                                    return "N/A";
+                                  }
+                                })()}
+                              </div>
+                            </div>
+                            <div>
+                              <div
+                                className="font-geograph font-bold text-[11px] uppercase text-gray-500 mb-1"
+                                style={{ letterSpacing: "0.1em" }}
+                              >
+                                LEAVING
+                              </div>
+                              <div className="font-geograph font-medium text-[14px] text-[#2F2F2F]">
+                                {(() => {
+                                  const portName =
+                                    cruise.embarkPort?.name ||
+                                    cruise.embarkPortName ||
+                                    "Unknown";
+                                  const commaIndex = portName.indexOf(",");
+                                  return commaIndex > -1
+                                    ? portName.substring(0, commaIndex)
+                                    : portName;
+                                })()}
+                              </div>
+                            </div>
+                            <div>
+                              <div
+                                className="font-geograph font-bold text-[11px] uppercase text-gray-500 mb-1"
+                                style={{ letterSpacing: "0.1em" }}
+                              >
+                                NIGHTS
+                              </div>
+                              <div className="font-geograph font-medium text-[14px] text-[#2F2F2F]">
+                                {cruise.nights}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Desktop: Cruise line and ship */}
+                          <div className="mb-2 md:mb-4 hidden md:block">
+                            <p className="font-geograph text-[12px] md:text-[16px] text-[#606060]">
+                              {cruise.cruiseLine?.name || "Unknown Line"} |{" "}
+                              {cruise.ship?.name || "Unknown Ship"}
+                            </p>
                           </div>
 
                           {/* Desktop grid layout */}
