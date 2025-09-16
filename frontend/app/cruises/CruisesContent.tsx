@@ -821,7 +821,7 @@ export default function CruisesContent() {
             </button>
 
             {isCruiseLineDropdownOpen && (
-              <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+              <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-[#d9d9d9] z-50">
                 {cruiseLines.map((line) => (
                   <button
                     key={line.id}
@@ -898,7 +898,7 @@ export default function CruisesContent() {
             </button>
 
             {isDateDropdownOpen && (
-              <div className="absolute top-full mt-2 w-96 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4">
+              <div className="absolute top-full mt-2 w-96 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-[#d9d9d9] z-50 p-4">
                 {[2025, 2026, 2027, 2028].map((year) => {
                   const currentDate = new Date();
                   const currentYear = currentDate.getFullYear();
@@ -1001,7 +1001,7 @@ export default function CruisesContent() {
             </button>
 
             {isNightsDropdownOpen && (
-              <div className="absolute top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4">
+              <div className="absolute top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-[#d9d9d9] z-50 p-4">
                 <div className="space-y-2">
                   {["2-5", "6-8", "9-11", "12+"].map((range) => {
                     const isSelected = selectedNightRanges.includes(range);
@@ -1081,7 +1081,7 @@ export default function CruisesContent() {
             </button>
 
             {isDeparturePortDropdownOpen && (
-              <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+              <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-[#d9d9d9] z-50">
                 {departurePorts.map((port) => (
                   <button
                     key={port.id}
@@ -1157,7 +1157,7 @@ export default function CruisesContent() {
             </button>
 
             {isShipDropdownOpen && (
-              <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+              <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-[#d9d9d9] z-50">
                 {ships.map((ship) => (
                   <button
                     key={ship.id}
@@ -1233,7 +1233,7 @@ export default function CruisesContent() {
             </button>
 
             {isRegionDropdownOpen && (
-              <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+              <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-[#d9d9d9] z-50">
                 {regions.map((region) => (
                   <button
                     key={region.id}
@@ -1358,7 +1358,7 @@ export default function CruisesContent() {
               </button>
 
               {isSortDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-[#d9d9d9] z-50">
                   {[
                     "soonest",
                     "lowest_price",
@@ -1432,7 +1432,7 @@ export default function CruisesContent() {
                     <div className="flex md:gap-6">
                       {/* Featured Image */}
                       <div
-                        className="w-[70px] md:w-48 h-full md:h-32 bg-gray-200 md:rounded-lg overflow-hidden flex-shrink-0 bg-cover bg-center"
+                        className="w-[70px] md:w-48 h-auto min-h-[100px] md:h-32 bg-gray-200 md:rounded-lg overflow-hidden flex-shrink-0 bg-cover bg-center"
                         style={{
                           backgroundImage:
                             cruise.ship?.defaultShipImageHd ||
@@ -1471,17 +1471,17 @@ export default function CruisesContent() {
                       <div className="flex-1 flex flex-col md:flex-row md:justify-between md:items-center p-3 md:p-0">
                         <div className="flex-1">
                           <h3
-                            className="font-whitney font-black uppercase text-[#2F2F2F] text-[16px] md:text-[24px] mb-1"
+                            className="font-whitney font-black uppercase text-[#2F2F2F] text-[18px] md:text-[24px] mb-1"
                             style={{ letterSpacing: "-0.02em" }}
                           >
                             {cruise.name}
                           </h3>
 
                           <div className="mb-2 md:mb-4">
-                            <p className="font-geograph text-[12px] md:text-[16px] text-[#606060] md:hidden">
+                            <p className="font-geograph text-[14px] md:text-[16px] text-[#606060] md:hidden">
                               {cruise.cruiseLine?.name || "Unknown Line"}
                             </p>
-                            <p className="font-geograph text-[12px] md:text-[16px] text-[#606060] md:hidden">
+                            <p className="font-geograph text-[14px] md:text-[16px] text-[#606060] md:hidden">
                               {cruise.ship?.name || "Unknown Ship"}
                             </p>
                             <p className="font-geograph text-[12px] md:text-[16px] text-[#606060] hidden md:block">
@@ -1496,12 +1496,12 @@ export default function CruisesContent() {
                             <div className="flex gap-3">
                               <div>
                                 <div
-                                  className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                                  className="font-geograph font-bold text-[11px] uppercase text-gray-500 mb-1"
                                   style={{ letterSpacing: "0.1em" }}
                                 >
                                   DEPART
                                 </div>
-                                <div className="font-geograph font-medium text-[12px] text-[#2F2F2F]">
+                                <div className="font-geograph font-medium text-[14px] text-[#2F2F2F]">
                                   {(() => {
                                     const dateString =
                                       cruise.sailingDate ||
@@ -1530,7 +1530,7 @@ export default function CruisesContent() {
                                 >
                                   RETURN
                                 </div>
-                                <div className="font-geograph font-medium text-[12px] text-[#2F2F2F]">
+                                <div className="font-geograph font-medium text-[14px] text-[#2F2F2F]">
                                   {(() => {
                                     const dateString =
                                       cruise.sailingDate ||
@@ -1564,7 +1564,7 @@ export default function CruisesContent() {
                                 >
                                   LEAVING
                                 </div>
-                                <div className="font-geograph font-medium text-[12px] text-[#2F2F2F]">
+                                <div className="font-geograph font-medium text-[14px] text-[#2F2F2F]">
                                   {(() => {
                                     const portName =
                                       cruise.embarkPort?.name ||
@@ -1584,7 +1584,7 @@ export default function CruisesContent() {
                                 >
                                   NIGHTS
                                 </div>
-                                <div className="font-geograph font-medium text-[12px] text-[#2F2F2F]">
+                                <div className="font-geograph font-medium text-[14px] text-[#2F2F2F]">
                                   {cruise.nights}
                                 </div>
                               </div>
@@ -1592,10 +1592,10 @@ export default function CruisesContent() {
 
                             {/* Price block on right */}
                             <div className="text-right">
-                              <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
-                                FROM
+                              <div className="font-geograph font-bold text-[12px] text-gray-500 uppercase tracking-wider mb-1">
+                                STARTING FROM
                               </div>
-                              <div className="font-geograph font-bold text-[18px] text-dark-blue">
+                              <div className="font-geograph font-bold text-[20px] text-dark-blue">
                                 {(() => {
                                   const prices: number[] = [];
                                   if (cruise.pricing) {
@@ -1704,7 +1704,7 @@ export default function CruisesContent() {
                                     Math.floor(rawCredit / 10) * 10;
                                   if (onboardCredit > 0) {
                                     return (
-                                      <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] mt-1">
+                                      <div className="font-geograph font-medium text-[14px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] mt-1">
                                         +${onboardCredit} onboard credit
                                       </div>
                                     );
