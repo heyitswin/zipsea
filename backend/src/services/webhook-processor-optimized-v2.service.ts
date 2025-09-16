@@ -1732,9 +1732,23 @@ export class WebhookProcessorOptimizedV2 {
     jobTracking.successful += results.updated;
     jobTracking.failed += results.failed;
 
+    // Update Redis stats for accurate aggregation
+    if (WebhookProcessorOptimizedV2.statsTracker) {
+      await WebhookProcessorOptimizedV2.statsTracker.incrementStat(
+        runId,
+        'filesProcessed',
+        results.processed
+      );
+      await WebhookProcessorOptimizedV2.statsTracker.incrementStat(
+        runId,
+        'cruisesUpdated',
+        results.updated
+      );
+    }
+
     console.log(
       `[OPTIMIZED-V2] Batch ${batchNumber}/${totalBatches} complete for line ${lineId}. ` +
-        `Total progress: ${jobTracking.processedFiles} files processed`
+        `Progress: ${jobTracking.processedFiles}/${jobTracking.totalFiles} files (${Math.round((jobTracking.processedFiles / jobTracking.totalFiles) * 100)}%)`
     );
 
     // Run cleanup every 5 batches or on the last batch to prevent memory buildup
@@ -1743,13 +1757,17 @@ export class WebhookProcessorOptimizedV2 {
       await this.runPostBatchCleanup();
     }
 
-    // Only check for completion on the last batch to avoid race conditions
-    if (batchNumber !== totalBatches) {
-      return; // Not the last batch, don't check for completion yet
+    // Check if all files have been processed (more reliable than batch number)
+    const allFilesProcessed =
+      jobTracking.totalFiles > 0 && jobTracking.processedFiles >= jobTracking.totalFiles;
+
+    // Only proceed with completion check if this is the last batch OR all files are done
+    if (batchNumber !== totalBatches && !allFilesProcessed) {
+      return; // Not ready for completion check yet
     }
 
-    // This is the last batch - wait for queue to clear with retries
-    console.log(`[OPTIMIZED-V2] Last batch completed, waiting for queue to clear...`);
+    // Either last batch or all files processed - wait for queue to clear
+    console.log(`[OPTIMIZED-V2] Batch processing milestone reached, checking for completion...`);
 
     // Wait up to 60 seconds for queue to clear, checking every 5 seconds
     let attemptsLeft = 12; // 12 attempts * 5 seconds = 60 seconds max
@@ -1760,12 +1778,28 @@ export class WebhookProcessorOptimizedV2 {
 
       const activeCount = await WebhookProcessorOptimizedV2.webhookQueue.getActiveCount();
       const waitingCount = await WebhookProcessorOptimizedV2.webhookQueue.getWaitingCount();
+      const delayedCount = await WebhookProcessorOptimizedV2.webhookQueue.getDelayedCount();
 
       console.log(
-        `[OPTIMIZED-V2] Queue check (${13 - attemptsLeft}/12) - Active: ${activeCount}, Waiting: ${waitingCount}`
+        `[OPTIMIZED-V2] Queue check (${13 - attemptsLeft}/12) - ` +
+          `Active: ${activeCount}, Waiting: ${waitingCount}, Delayed: ${delayedCount}`
       );
 
-      if (activeCount === 0 && waitingCount === 0) {
+      // Check global stats to see actual progress
+      if (WebhookProcessorOptimizedV2.statsTracker) {
+        const currentStats = await WebhookProcessorOptimizedV2.statsTracker.getStats(runId);
+        console.log(
+          `[OPTIMIZED-V2] Global progress: ${currentStats.filesProcessed}/${jobTracking.totalFiles} files`
+        );
+
+        // If all files are processed globally, we're done
+        if (currentStats.filesProcessed >= jobTracking.totalFiles) {
+          queueEmpty = true;
+          break;
+        }
+      }
+
+      if (activeCount === 0 && waitingCount === 0 && delayedCount === 0) {
         queueEmpty = true;
         break;
       }
@@ -1796,7 +1830,7 @@ export class WebhookProcessorOptimizedV2 {
         });
       }
 
-      // Send Slack notification with global stats
+      // Send Slack notification with comprehensive global stats
       const result: WebhookProcessingResult = {
         successful: globalStats.cruisesUpdated || jobTracking.successful,
         failed: jobTracking.failed,
@@ -1805,10 +1839,19 @@ export class WebhookProcessorOptimizedV2 {
         startTime: jobTracking.startTime,
         endTime,
         processingTimeMs,
-        totalCruises: jobTracking.totalFiles || jobTracking.processedFiles,
+        totalCruises:
+          globalStats.filesProcessed || jobTracking.totalFiles || jobTracking.processedFiles,
         priceSnapshotsCreated:
           globalStats.priceSnapshotsCreated || this.stats.priceSnapshotsCreated,
         changeLog: this.stats.changeLog.slice(0, 20), // Include first 20 changes for reference
+        // Add batch processing details
+        batchDetails: {
+          totalBatches,
+          filesPerBatch: Math.ceil((jobTracking.totalFiles || 0) / totalBatches),
+          completionRate: Math.round(
+            (globalStats.filesProcessed / (jobTracking.totalFiles || 1)) * 100
+          ),
+        },
       };
 
       await slackService.notifyWebhookProcessingCompleted(
@@ -1881,10 +1924,19 @@ export class WebhookProcessorOptimizedV2 {
         startTime: jobTracking.startTime,
         endTime,
         processingTimeMs,
-        totalCruises: jobTracking.totalFiles || jobTracking.processedFiles,
+        totalCruises:
+          globalStats.filesProcessed || jobTracking.totalFiles || jobTracking.processedFiles,
         priceSnapshotsCreated:
           globalStats.priceSnapshotsCreated || this.stats.priceSnapshotsCreated,
         changeLog: this.stats.changeLog.slice(0, 20),
+        // Add batch details even for timeout case
+        batchDetails: {
+          totalBatches,
+          filesPerBatch: Math.ceil((jobTracking.totalFiles || 0) / totalBatches),
+          completionRate: Math.round(
+            (globalStats.filesProcessed / (jobTracking.totalFiles || 1)) * 100
+          ),
+        },
       };
 
       await slackService.notifyWebhookProcessingCompleted(
