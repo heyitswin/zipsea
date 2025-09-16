@@ -906,7 +906,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         cruise?.suitePrice) && (
         <div className="bg-sand">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
-            <div className="mb-6">
+            <div className="mb-6 px-0 md:px-0">
               <h2
                 className="font-whitney font-black text-[32px] text-dark-blue uppercase"
                 style={{ letterSpacing: "-0.02em" }}
@@ -922,11 +922,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 -mx-4 md:mx-0">
               {/* Interior Cabin Card */}
               <div
-                className="bg-white rounded-lg border border-gray-200 overflow-hidden"
-                style={{ padding: "16px" }}
+                className="bg-white md:rounded-lg border border-gray-200 overflow-hidden px-4 md:px-4"
+                style={{ paddingTop: "16px", paddingBottom: "16px" }}
               >
                 <div className="flex flex-col md:flex-row md:items-center">
                   {/* Cabin Image */}
@@ -963,7 +963,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block and Button - Mobile optimized */}
-                  <div className="flex flex-row items-center justify-between flex-1 px-5 md:px-8">
+                  <div className="flex flex-row items-end justify-between flex-1 px-5 md:px-8">
                     <div className="text-left">
                       <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                         STARTING FROM
@@ -991,7 +991,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         )
                       }
                       disabled={!isPriceAvailable(getCabinPrice("interior"))}
-                      className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors ${
+                      className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors self-end ${
                         isPriceAvailable(getCabinPrice("interior"))
                           ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
                           : "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -1005,8 +1005,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
               {/* Outside Cabin Card */}
               <div
-                className="bg-white rounded-lg border border-gray-200 overflow-hidden"
-                style={{ padding: "16px" }}
+                className="bg-white md:rounded-lg border border-gray-200 overflow-hidden px-4 md:px-4"
+                style={{ paddingTop: "16px", paddingBottom: "16px" }}
               >
                 <div className="flex flex-col md:flex-row md:items-center">
                   {/* Cabin Image */}
@@ -1043,7 +1043,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block and Button - Mobile optimized */}
-                  <div className="flex flex-row items-center justify-between flex-1 px-5 md:px-8">
+                  <div className="flex flex-row items-end justify-between flex-1 px-5 md:px-8">
                     <div className="text-left">
                       <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                         STARTING FROM
@@ -1071,7 +1071,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         )
                       }
                       disabled={!isPriceAvailable(getCabinPrice("oceanview"))}
-                      className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors ${
+                      className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors self-end ${
                         isPriceAvailable(getCabinPrice("oceanview"))
                           ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
                           : "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -1085,8 +1085,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
               {/* Balcony Cabin Card */}
               <div
-                className="bg-white rounded-lg border border-gray-200 overflow-hidden"
-                style={{ padding: "16px" }}
+                className="bg-white md:rounded-lg border border-gray-200 overflow-hidden px-4 md:px-4"
+                style={{ paddingTop: "16px", paddingBottom: "16px" }}
               >
                 <div className="flex flex-col md:flex-row md:items-center">
                   {/* Cabin Image */}
@@ -1123,7 +1123,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block and Button - Mobile optimized */}
-                  <div className="flex flex-row items-center justify-between flex-1 px-5 md:px-8">
+                  <div className="flex flex-row items-end justify-between flex-1 px-5 md:px-8">
                     <div className="text-left">
                       <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                         STARTING FROM
@@ -1151,7 +1151,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         )
                       }
                       disabled={!isPriceAvailable(getCabinPrice("balcony"))}
-                      className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors ${
+                      className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors self-end ${
                         isPriceAvailable(getCabinPrice("balcony"))
                           ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
                           : "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -1165,8 +1165,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
               {/* Suite Cabin Card */}
               <div
-                className="bg-white rounded-lg border border-gray-200 overflow-hidden"
-                style={{ padding: "16px" }}
+                className="bg-white md:rounded-lg border border-gray-200 overflow-hidden px-4 md:px-4"
+                style={{ paddingTop: "16px", paddingBottom: "16px" }}
               >
                 <div className="flex flex-col md:flex-row md:items-center">
                   {/* Cabin Image */}
@@ -1203,7 +1203,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Pricing Block and Button - Mobile optimized */}
-                  <div className="flex flex-row items-center justify-between flex-1 px-5 md:px-8">
+                  <div className="flex flex-row items-end justify-between flex-1 px-5 md:px-8">
                     <div className="text-left">
                       <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
                         STARTING FROM
@@ -1229,7 +1229,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         )
                       }
                       disabled={!isPriceAvailable(getCabinPrice("suite"))}
-                      className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors ${
+                      className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors self-end ${
                         isPriceAvailable(getCabinPrice("suite"))
                           ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
                           : "bg-gray-300 text-gray-500 cursor-not-allowed"

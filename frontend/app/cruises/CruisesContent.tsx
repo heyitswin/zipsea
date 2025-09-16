@@ -1431,36 +1431,40 @@ export default function CruisesContent() {
                   >
                     <div className="flex md:gap-6">
                       {/* Featured Image */}
-                      <div className="w-[70px] md:w-48 h-full md:h-32 bg-gray-200 md:rounded-lg overflow-hidden flex-shrink-0">
-                        {cruise.ship?.defaultShipImageHd ||
-                        cruise.ship?.defaultShipImage2k ||
-                        cruise.ship?.defaultShipImage ||
-                        cruise.shipImageHd ||
-                        cruise.shipImage2k ||
-                        cruise.shipImage ? (
-                          <img
-                            src={
-                              cruise.ship?.defaultShipImageHd ||
-                              cruise.ship?.defaultShipImage2k ||
-                              cruise.ship?.defaultShipImage ||
-                              cruise.shipImageHd ||
-                              cruise.shipImage2k ||
-                              cruise.shipImage
-                            }
-                            alt={cruise.ship?.name || cruise.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : cruise.featuredImageUrl ? (
-                          <img
-                            src={cruise.featuredImageUrl}
-                            alt={cruise.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
-                            No image
-                          </div>
-                        )}
+                      <div
+                        className="w-[70px] md:w-48 h-full md:h-32 bg-gray-200 md:rounded-lg overflow-hidden flex-shrink-0 bg-cover bg-center"
+                        style={{
+                          backgroundImage:
+                            cruise.ship?.defaultShipImageHd ||
+                            cruise.ship?.defaultShipImage2k ||
+                            cruise.ship?.defaultShipImage ||
+                            cruise.shipImageHd ||
+                            cruise.shipImage2k ||
+                            cruise.shipImage ||
+                            cruise.featuredImageUrl
+                              ? `url(${
+                                  cruise.ship?.defaultShipImageHd ||
+                                  cruise.ship?.defaultShipImage2k ||
+                                  cruise.ship?.defaultShipImage ||
+                                  cruise.shipImageHd ||
+                                  cruise.shipImage2k ||
+                                  cruise.shipImage ||
+                                  cruise.featuredImageUrl
+                                })`
+                              : undefined,
+                        }}
+                      >
+                        {!cruise.ship?.defaultShipImageHd &&
+                          !cruise.ship?.defaultShipImage2k &&
+                          !cruise.ship?.defaultShipImage &&
+                          !cruise.shipImageHd &&
+                          !cruise.shipImage2k &&
+                          !cruise.shipImage &&
+                          !cruise.featuredImageUrl && (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              No image
+                            </div>
+                          )}
                       </div>
 
                       {/* Cruise Details */}
@@ -1473,18 +1477,246 @@ export default function CruisesContent() {
                             {cruise.name}
                           </h3>
 
-                          <p className="font-geograph text-[12px] md:text-[16px] text-[#606060] mb-2 md:mb-4">
-                            <span className="md:hidden">
-                              {cruise.cruiseLine?.name || "Unknown Line"} •{" "}
+                          <div className="mb-2 md:mb-4">
+                            <p className="font-geograph text-[12px] md:text-[16px] text-[#606060] md:hidden">
+                              {cruise.cruiseLine?.name || "Unknown Line"}
+                            </p>
+                            <p className="font-geograph text-[12px] md:text-[16px] text-[#606060] md:hidden">
                               {cruise.ship?.name || "Unknown Ship"}
-                            </span>
-                            <span className="hidden md:inline">
+                            </p>
+                            <p className="font-geograph text-[12px] md:text-[16px] text-[#606060] hidden md:block">
                               {cruise.cruiseLine?.name || "Unknown Line"} |{" "}
                               {cruise.ship?.name || "Unknown Ship"}
-                            </span>
-                          </p>
+                            </p>
+                          </div>
 
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+                          {/* Mobile: Details on one line with price block on right */}
+                          <div className="md:hidden flex justify-between items-start">
+                            {/* Details in a single row */}
+                            <div className="flex gap-3">
+                              <div>
+                                <div
+                                  className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                                  style={{ letterSpacing: "0.1em" }}
+                                >
+                                  DEPART
+                                </div>
+                                <div className="font-geograph font-medium text-[12px] text-[#2F2F2F]">
+                                  {(() => {
+                                    const dateString =
+                                      cruise.sailingDate ||
+                                      cruise.departureDate;
+                                    if (!dateString) return "N/A";
+                                    try {
+                                      const date = new Date(dateString);
+                                      return date
+                                        .toLocaleDateString("en-US", {
+                                          month: "short",
+                                          day: "numeric",
+                                          year: "2-digit",
+                                          timeZone: "UTC",
+                                        })
+                                        .replace(/,/g, "");
+                                    } catch {
+                                      return "N/A";
+                                    }
+                                  })()}
+                                </div>
+                              </div>
+                              <div>
+                                <div
+                                  className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                                  style={{ letterSpacing: "0.1em" }}
+                                >
+                                  RETURN
+                                </div>
+                                <div className="font-geograph font-medium text-[12px] text-[#2F2F2F]">
+                                  {(() => {
+                                    const dateString =
+                                      cruise.sailingDate ||
+                                      cruise.departureDate;
+                                    if (!dateString || !cruise.nights)
+                                      return "N/A";
+                                    try {
+                                      const departDate = new Date(dateString);
+                                      const returnDate = new Date(departDate);
+                                      returnDate.setUTCDate(
+                                        departDate.getUTCDate() + cruise.nights,
+                                      );
+                                      return returnDate
+                                        .toLocaleDateString("en-US", {
+                                          month: "short",
+                                          day: "numeric",
+                                          year: "2-digit",
+                                          timeZone: "UTC",
+                                        })
+                                        .replace(/,/g, "");
+                                    } catch {
+                                      return "N/A";
+                                    }
+                                  })()}
+                                </div>
+                              </div>
+                              <div>
+                                <div
+                                  className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                                  style={{ letterSpacing: "0.1em" }}
+                                >
+                                  LEAVING
+                                </div>
+                                <div className="font-geograph font-medium text-[12px] text-[#2F2F2F]">
+                                  {(() => {
+                                    const portName =
+                                      cruise.embarkPort?.name ||
+                                      cruise.embarkPortName ||
+                                      "Unknown";
+                                    const commaIndex = portName.indexOf(",");
+                                    return commaIndex > -1
+                                      ? portName.substring(0, commaIndex)
+                                      : portName;
+                                  })()}
+                                </div>
+                              </div>
+                              <div>
+                                <div
+                                  className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
+                                  style={{ letterSpacing: "0.1em" }}
+                                >
+                                  NIGHTS
+                                </div>
+                                <div className="font-geograph font-medium text-[12px] text-[#2F2F2F]">
+                                  {cruise.nights}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Price block on right */}
+                            <div className="text-right">
+                              <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                                FROM
+                              </div>
+                              <div className="font-geograph font-bold text-[18px] text-dark-blue">
+                                {(() => {
+                                  const prices: number[] = [];
+                                  if (cruise.pricing) {
+                                    [
+                                      cruise.pricing.interior,
+                                      cruise.pricing.oceanview,
+                                      cruise.pricing.balcony,
+                                      cruise.pricing.suite,
+                                      cruise.pricing.lowestPrice,
+                                    ].forEach((p) => {
+                                      if (p && p !== "0" && p !== "null") {
+                                        const num = Number(p);
+                                        if (!isNaN(num) && num > 0)
+                                          prices.push(num);
+                                      }
+                                    });
+                                  }
+                                  if (cruise.combined) {
+                                    [
+                                      cruise.combined.inside,
+                                      cruise.combined.outside,
+                                      cruise.combined.balcony,
+                                      cruise.combined.suite,
+                                    ].forEach((p) => {
+                                      if (p && p !== "0" && p !== "null") {
+                                        const num = Number(p);
+                                        if (!isNaN(num) && num > 0)
+                                          prices.push(num);
+                                      }
+                                    });
+                                  }
+                                  if (prices.length === 0) {
+                                    [
+                                      cruise.cheapestPrice,
+                                      cruise.interiorPrice,
+                                      cruise.oceanviewPrice,
+                                      cruise.oceanViewPrice,
+                                      cruise.balconyPrice,
+                                      cruise.suitePrice,
+                                    ].forEach((p) => {
+                                      if (p && p !== "0" && p !== "null") {
+                                        const num = Number(p);
+                                        if (!isNaN(num) && num > 0)
+                                          prices.push(num);
+                                      }
+                                    });
+                                  }
+                                  return prices.length > 0
+                                    ? formatPrice(Math.min(...prices))
+                                    : "Call for price";
+                                })()}
+                              </div>
+                              {/* Onboard Credit Badge */}
+                              {(() => {
+                                const prices: number[] = [];
+                                if (cruise.pricing) {
+                                  [
+                                    cruise.pricing.interior,
+                                    cruise.pricing.oceanview,
+                                    cruise.pricing.balcony,
+                                    cruise.pricing.suite,
+                                    cruise.pricing.lowestPrice,
+                                  ].forEach((p) => {
+                                    if (p && p !== "0" && p !== "null") {
+                                      const num = Number(p);
+                                      if (!isNaN(num) && num > 0)
+                                        prices.push(num);
+                                    }
+                                  });
+                                }
+                                if (cruise.combined) {
+                                  [
+                                    cruise.combined.inside,
+                                    cruise.combined.outside,
+                                    cruise.combined.balcony,
+                                    cruise.combined.suite,
+                                  ].forEach((p) => {
+                                    if (p && p !== "0" && p !== "null") {
+                                      const num = Number(p);
+                                      if (!isNaN(num) && num > 0)
+                                        prices.push(num);
+                                    }
+                                  });
+                                }
+                                if (prices.length === 0) {
+                                  [
+                                    cruise.cheapestPrice,
+                                    cruise.interiorPrice,
+                                    cruise.oceanviewPrice,
+                                    cruise.oceanViewPrice,
+                                    cruise.balconyPrice,
+                                    cruise.suitePrice,
+                                  ].forEach((p) => {
+                                    if (p && p !== "0" && p !== "null") {
+                                      const num = Number(p);
+                                      if (!isNaN(num) && num > 0)
+                                        prices.push(num);
+                                    }
+                                  });
+                                }
+                                if (prices.length > 0) {
+                                  const lowestPrice = Math.min(...prices);
+                                  const creditPercent = 0.2;
+                                  const rawCredit = lowestPrice * creditPercent;
+                                  const onboardCredit =
+                                    Math.floor(rawCredit / 10) * 10;
+                                  if (onboardCredit > 0) {
+                                    return (
+                                      <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] mt-1">
+                                        +${onboardCredit} onboard credit
+                                      </div>
+                                    );
+                                  }
+                                }
+                                return null;
+                              })()}
+                            </div>
+                          </div>
+
+                          {/* Desktop grid layout */}
+                          <div className="hidden md:grid grid-cols-4 gap-4">
                             <div>
                               <div
                                 className="font-geograph font-bold text-[9px] uppercase text-gray-500 mb-1"
@@ -1598,10 +1830,8 @@ export default function CruisesContent() {
                           </div>
                         </div>
 
-                        {/* Mobile separator line */}
-                        <div className="md:hidden w-full h-[1px] bg-[#d9d9d9] my-3"></div>
-                        {/* Pricing - separate section */}
-                        <div className="flex flex-row md:flex-col justify-between md:justify-start items-center md:items-end w-full md:w-auto">
+                        {/* Desktop Pricing - separate section */}
+                        <div className="hidden md:flex flex-col items-end">
                           <div className="md:text-right">
                             <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
                               STARTING FROM
@@ -1848,7 +2078,7 @@ export default function CruisesContent() {
                 <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
                   Cruise Lines
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
                   {cruiseLines.map((line) => (
                     <label key={line.id} className="flex items-center gap-3">
                       <input
@@ -1962,7 +2192,7 @@ export default function CruisesContent() {
                 <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
                   Departure Ports
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
                   {departurePorts.map((port) => (
                     <label key={port.id} className="flex items-center gap-3">
                       <input
@@ -1996,7 +2226,7 @@ export default function CruisesContent() {
                 <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
                   Ships
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
                   {ships.map((ship) => (
                     <label key={ship.id} className="flex items-center gap-3">
                       <input
@@ -2024,7 +2254,7 @@ export default function CruisesContent() {
                 <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
                   Regions
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
                   {regions.map((region) => (
                     <label key={region.id} className="flex items-center gap-3">
                       <input
