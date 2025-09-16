@@ -32,6 +32,11 @@ export interface WebhookProcessingResult {
     cruiseId: string;
     changes: string[];
   }>;
+  batchDetails?: {
+    totalBatches: number;
+    filesPerBatch: number;
+    completionRate: number;
+  };
 }
 
 export class SlackService {
@@ -467,7 +472,7 @@ export class SlackService {
           },
           {
             type: 'mrkdwn',
-            text: `*Total Cruises:*\n${result.totalCruises}`,
+            text: `*Total Files Processed:*\n${result.totalCruises}`,
           },
           {
             type: 'mrkdwn',
@@ -497,6 +502,31 @@ export class SlackService {
         ],
       },
     ];
+
+    // Add batch processing details if available
+    if (result.batchDetails) {
+      blocks.push({
+        type: 'section',
+        fields: [
+          {
+            type: 'mrkdwn',
+            text: `*📦 Total Batches:*\n${result.batchDetails.totalBatches}`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*📁 Files per Batch:*\n~${result.batchDetails.filesPerBatch}`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*✔️ Completion Rate:*\n${result.batchDetails.completionRate}%`,
+          },
+          {
+            type: 'mrkdwn',
+            text: `*⚡ Processing Rate:*\n${Math.round(result.totalCruises / (result.processingTimeMs / 60000))} files/min`,
+          },
+        ],
+      });
+    }
 
     // Add error details if there are failures
     if (result.errors.length > 0) {
