@@ -972,7 +972,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         {formatPrice(getCabinPrice("interior"))}
                       </div>
                       {isPriceAvailable(getCabinPrice("interior")) && (
-                        <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1 hidden md:inline-block">
+                        <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
                           +$
                           {calculateOnboardCredit(
                             getCabinPrice("interior"),
@@ -1052,7 +1052,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         {formatPrice(getCabinPrice("oceanview"))}
                       </div>
                       {isPriceAvailable(getCabinPrice("oceanview")) && (
-                        <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1 hidden md:inline-block">
+                        <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
                           +$
                           {calculateOnboardCredit(
                             getCabinPrice("oceanview"),
@@ -1132,7 +1132,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         {formatPrice(getCabinPrice("balcony"))}
                       </div>
                       {isPriceAvailable(getCabinPrice("balcony")) && (
-                        <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1 hidden md:inline-block">
+                        <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
                           +$
                           {calculateOnboardCredit(
                             getCabinPrice("balcony"),
@@ -1212,7 +1212,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         {formatPrice(getCabinPrice("suite"))}
                       </div>
                       {isPriceAvailable(getCabinPrice("suite")) && (
-                        <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1 hidden md:inline-block">
+                        <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
                           +$
                           {calculateOnboardCredit(getCabinPrice("suite"))}{" "}
                           onboard credit

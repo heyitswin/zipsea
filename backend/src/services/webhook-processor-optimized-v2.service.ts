@@ -59,6 +59,8 @@ export class WebhookProcessorOptimizedV2 {
       successful: number;
       failed: number;
       errors: Array<{ filePath?: string; error: string }>;
+      completedBatches: Set<number>; // Track which batches have completed
+      totalBatches: number; // Track total expected batches
     }
   >();
 
@@ -1722,6 +1724,8 @@ export class WebhookProcessorOptimizedV2 {
         successful: 0,
         failed: 0,
         errors: [],
+        completedBatches: new Set<number>(),
+        totalBatches: totalBatches,
       });
     }
 
@@ -1731,6 +1735,9 @@ export class WebhookProcessorOptimizedV2 {
     jobTracking.processedFiles += results.processed;
     jobTracking.successful += results.updated;
     jobTracking.failed += results.failed;
+
+    // Mark this batch as completed
+    jobTracking.completedBatches.add(batchNumber);
 
     // Update Redis stats for accurate aggregation
     if (WebhookProcessorOptimizedV2.statsTracker) {
@@ -1748,7 +1755,8 @@ export class WebhookProcessorOptimizedV2 {
 
     console.log(
       `[OPTIMIZED-V2] Batch ${batchNumber}/${totalBatches} complete for line ${lineId}. ` +
-        `Progress: ${jobTracking.processedFiles}/${jobTracking.totalFiles} files (${Math.round((jobTracking.processedFiles / jobTracking.totalFiles) * 100)}%)`
+        `Progress: ${jobTracking.processedFiles}/${jobTracking.totalFiles} files (${Math.round((jobTracking.processedFiles / jobTracking.totalFiles) * 100)}%) - ` +
+        `Completed batches: ${jobTracking.completedBatches.size}/${jobTracking.totalBatches}`
     );
 
     // Run cleanup every 5 batches or on the last batch to prevent memory buildup
@@ -1757,17 +1765,34 @@ export class WebhookProcessorOptimizedV2 {
       await this.runPostBatchCleanup();
     }
 
-    // Check if all files have been processed (more reliable than batch number)
+    // Check if all batches have been processed (since they can complete out of order)
+    const allBatchesCompleted = jobTracking.completedBatches.size === jobTracking.totalBatches;
+
+    // Check if all files have been processed
     const allFilesProcessed =
       jobTracking.totalFiles > 0 && jobTracking.processedFiles >= jobTracking.totalFiles;
 
-    // Only proceed with completion check if this is the last batch OR all files are done
-    if (batchNumber !== totalBatches && !allFilesProcessed) {
+    // Log detailed status for debugging
+    console.log(
+      `[OPTIMIZED-V2] Batch ${batchNumber}/${totalBatches} completion check - ` +
+        `Files: ${jobTracking.processedFiles}/${jobTracking.totalFiles} (${Math.round((jobTracking.processedFiles / jobTracking.totalFiles) * 100)}%) - ` +
+        `Batches completed: ${jobTracking.completedBatches.size}/${jobTracking.totalBatches} - ` +
+        `All batches done: ${allBatchesCompleted} - All files done: ${allFilesProcessed}`
+    );
+
+    // Only proceed with completion check if all batches are done OR all files are processed
+    if (!allBatchesCompleted && !allFilesProcessed) {
+      console.log(
+        `[OPTIMIZED-V2] Not ready for completion check (waiting for more batches), returning early`
+      );
       return; // Not ready for completion check yet
     }
 
     // Either last batch or all files processed - wait for queue to clear
-    console.log(`[OPTIMIZED-V2] Batch processing milestone reached, checking for completion...`);
+    console.log(
+      `[OPTIMIZED-V2] Batch processing milestone reached (batch ${batchNumber}/${totalBatches}), ` +
+        `checking for completion...`
+    );
 
     // Wait up to 60 seconds for queue to clear, checking every 5 seconds
     let attemptsLeft = 12; // 12 attempts * 5 seconds = 60 seconds max
