@@ -77,12 +77,43 @@ class QuoteController {
       const status = req.query.status as string;
       const offset = (page - 1) * limit;
 
+      const rawQuotes = await quoteService.getQuotesForAdmin(limit, offset, status);
+
+      // Transform the data to match frontend expectations
+      const formattedQuotes = rawQuotes.map(item => {
+        const quote = item.quote;
+        const cruise = item.cruise;
+
+        // Extract customer details from JSONB
+        const customerDetails =
+          typeof quote.customer_details === 'string'
+            ? JSON.parse(quote.customer_details as string)
+            : (quote.customer_details as any) || {};
+
+        return {
+          id: quote.id,
+          created_at: quote.createdAt,
+          reference_number: customerDetails.reference_number || quote.id.substring(0, 8),
+          cruise_line_name: cruise?.cruiseLineName || '',
+          ship_name: cruise?.shipName || '',
+          sailing_date: cruise?.sailingDate || null,
+          first_name: quote.firstName || customerDetails.first_name || '',
+          last_name: quote.lastName || customerDetails.last_name || '',
+          email: quote.email || customerDetails.email || '',
+          phone: quote.phone || customerDetails.phone || '',
+          status: quote.status || 'pending',
+          notes: quote.notes,
+          cruise_id: quote.cruiseId,
+        };
+      });
+
+      // Get total count for pagination
       const result = await quoteService.getAllQuotes(limit, offset, status);
 
       res.json({
         success: true,
         data: {
-          quotes: result.quotes,
+          quotes: formattedQuotes,
           meta: {
             page,
             limit,

@@ -408,39 +408,11 @@ export default function AdminQuotes() {
         return;
       }
 
-      // Step 3: Send email using the working frontend email service
-      try {
-        const emailRes = await fetch("/api/send-quote-ready", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: quote.email,
-            referenceNumber: quote.reference_number,
-            cruiseName:
-              quote.cruise_line_name && quote.ship_name
-                ? `${quote.cruise_line_name} - ${quote.ship_name}`
-                : "Your Selected Cruise",
-            shipName: quote.ship_name || "",
-            departureDate: quote.sailing_date,
-            returnDate: undefined, // We don't have return date in the admin quotes
-            categories: response.categories,
-            notes: response.notes,
-          }),
-        });
+      // Step 3: Email sending removed per user request
+      // The "Your Quote is Ready!" email was causing duplicate notifications
+      // Customers receive initial confirmation when submitting quote request
 
-        if (emailRes.ok) {
-          showAlert("Quote response sent successfully via email!");
-        } else {
-          showAlert(
-            "Quote updated successfully, but email notification failed to send",
-          );
-        }
-      } catch (emailError) {
-        console.error("Error sending quote email:", emailError);
-        showAlert(
-          "Quote updated successfully, but email notification failed to send",
-        );
-      }
+      showAlert("Quote response updated successfully!");
 
       fetchQuotes();
     } catch (error) {
