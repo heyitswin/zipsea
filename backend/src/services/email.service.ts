@@ -44,6 +44,37 @@ interface QuoteConfirmationEmailData {
   lastName?: string;
 }
 
+interface ComprehensiveQuoteEmailData {
+  email: string;
+  referenceNumber: string;
+  cruiseId: string;
+  cruiseName: string;
+  cruiseLineName?: string;
+  shipName?: string;
+  embarkPortName?: string;
+  disembarkPortName?: string;
+  departureDate: string;
+  returnDate?: string;
+  nights?: number;
+  cabinType: string;
+  adults: number;
+  children: number;
+  specialRequests?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  travelInsurance?: boolean;
+  discountQualifiers?: {
+    payInFull?: boolean;
+    seniorCitizen?: boolean;
+    military?: boolean;
+    stateOfResidence?: string;
+    loyaltyNumber?: string;
+  };
+  obcAmount?: number;
+  totalPassengers?: number;
+}
+
 export class EmailService {
   private resend: Resend | null;
 
@@ -778,6 +809,234 @@ export class EmailService {
         success: false,
         message: `Email service error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
+    }
+  }
+
+  /**
+   * Send comprehensive quote notification to zippy@zipsea.com with ALL details
+   */
+  async sendComprehensiveQuoteNotification(data: ComprehensiveQuoteEmailData): Promise<boolean> {
+    try {
+      if (!this.resend) {
+        logger.warn('Email service not configured - RESEND_API_KEY not found');
+        return false;
+      }
+
+      // Format dates
+      const formatDate = (dateString: string | undefined) => {
+        if (!dateString) return 'Not provided';
+        try {
+          const date = new Date(dateString);
+          return date.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            timeZone: 'UTC',
+          });
+        } catch {
+          return dateString;
+        }
+      };
+
+      // Format discount qualifiers
+      const formatDiscountQualifiers = (qualifiers: any) => {
+        const items = [];
+        if (qualifiers?.payInFull) items.push('Pay in Full');
+        if (qualifiers?.seniorCitizen) items.push('Senior Citizen');
+        if (qualifiers?.military) items.push('Military');
+        if (qualifiers?.stateOfResidence) items.push(`State: ${qualifiers.stateOfResidence}`);
+        if (qualifiers?.loyaltyNumber) items.push(`Loyalty #: ${qualifiers.loyaltyNumber}`);
+        return items.length > 0 ? items.join(', ') : 'None';
+      };
+
+      const emailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <title>New Quote Request - ${data.referenceNumber}</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+          <div style="max-width: 600px; margin: 20px auto; background: white; border: 1px solid #ddd;">
+            <!-- Header -->
+            <div style="background: #0E1B4D; color: white; padding: 20px; text-align: center;">
+              <h1 style="margin: 0; font-size: 24px;">NEW QUOTE REQUEST</h1>
+              <p style="margin: 5px 0 0 0; font-size: 14px;">Reference: ${data.referenceNumber}</p>
+            </div>
+
+            <!-- Customer Information -->
+            <div style="padding: 20px; border-bottom: 1px solid #eee;">
+              <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #0E1B4D;">CUSTOMER INFORMATION</h2>
+              <table style="width: 100%; font-size: 14px;">
+                <tr>
+                  <td style="padding: 5px 0; width: 40%; color: #666;">Name:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.firstName || 'Not provided'} ${data.lastName || ''}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Email:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.email}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Phone:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.phone || 'Not provided'}</strong></td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- Cruise Details -->
+            <div style="padding: 20px; border-bottom: 1px solid #eee;">
+              <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #0E1B4D;">CRUISE DETAILS</h2>
+              <table style="width: 100%; font-size: 14px;">
+                <tr>
+                  <td style="padding: 5px 0; width: 40%; color: #666;">Cruise ID:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.cruiseId}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Cruise Name:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.cruiseName || 'Not available'}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Cruise Line:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.cruiseLineName || 'Not available'}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Ship:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.shipName || 'Not available'}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Departure Date:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${formatDate(data.departureDate)}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Return Date:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.returnDate ? formatDate(data.returnDate) : 'To be calculated'}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Duration:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.nights ? `${data.nights} nights` : 'To be determined'}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Embark Port:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.embarkPortName || 'Not available'}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Disembark Port:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.disembarkPortName || 'Not available'}</strong></td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- Cabin & Passenger Details -->
+            <div style="padding: 20px; border-bottom: 1px solid #eee;">
+              <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #0E1B4D;">CABIN & PASSENGER DETAILS</h2>
+              <table style="width: 100%; font-size: 14px;">
+                <tr>
+                  <td style="padding: 5px 0; width: 40%; color: #666;">Cabin Type Selected:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.cabinType}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Adults:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.adults}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Children:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.children}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Total Passengers:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.totalPassengers || data.adults + data.children}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Travel Insurance:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.travelInsurance ? 'Yes' : 'No'}</strong></td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- Discount Qualifiers -->
+            <div style="padding: 20px; border-bottom: 1px solid #eee;">
+              <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #0E1B4D;">DISCOUNT QUALIFIERS</h2>
+              <table style="width: 100%; font-size: 14px;">
+                <tr>
+                  <td style="padding: 5px 0; color: #333;"><strong>${formatDiscountQualifiers(data.discountQualifiers)}</strong></td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- Special Requests -->
+            ${
+              data.specialRequests
+                ? `
+            <div style="padding: 20px; border-bottom: 1px solid #eee;">
+              <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #0E1B4D;">SPECIAL REQUESTS</h2>
+              <p style="margin: 0; font-size: 14px; color: #333; line-height: 1.5;">${data.specialRequests}</p>
+            </div>
+            `
+                : ''
+            }
+
+            <!-- Onboard Credit -->
+            ${
+              data.obcAmount
+                ? `
+            <div style="padding: 20px; border-bottom: 1px solid #eee;">
+              <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #0E1B4D;">ONBOARD CREDIT</h2>
+              <p style="margin: 0; font-size: 16px; color: #333;"><strong>$${data.obcAmount}</strong></p>
+            </div>
+            `
+                : ''
+            }
+
+            <!-- Footer -->
+            <div style="padding: 20px; background: #f8f8f8; text-align: center;">
+              <p style="margin: 0 0 10px 0; font-size: 12px; color: #666;">
+                This quote request was submitted on ${new Date().toLocaleString('en-US', {
+                  timeZone: 'America/Los_Angeles',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true,
+                })} PST
+              </p>
+              <p style="margin: 0; font-size: 12px; color: #666;">
+                Please respond within 24 hours.
+              </p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      const result = await this.resend.emails.send({
+        from: 'Zipsea Quote System <zippy@zipsea.com>',
+        to: ['zippy@zipsea.com'],
+        subject: `[QUOTE] ${data.referenceNumber} - ${data.cruiseName || 'Cruise'} - ${data.firstName || 'Customer'} ${data.lastName || ''}`,
+        html: emailHtml,
+      });
+
+      if (result.error) {
+        logger.error('Failed to send comprehensive quote notification to zippy@zipsea.com:', {
+          error: result.error,
+          referenceNumber: data.referenceNumber,
+        });
+        return false;
+      }
+
+      logger.info('Comprehensive quote notification sent to zippy@zipsea.com', {
+        referenceNumber: data.referenceNumber,
+        messageId: result.data?.id,
+      });
+
+      return true;
+    } catch (error) {
+      logger.error('Exception in sendComprehensiveQuoteNotification:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        referenceNumber: data.referenceNumber,
+      });
+      return false;
     }
   }
 

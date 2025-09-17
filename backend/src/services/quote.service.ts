@@ -1,6 +1,7 @@
 import { db } from '../db/connection';
-import { quoteRequests, cruises, ships } from '../db/schema';
+import { quoteRequests, cruises, ships, cruiseLines, ports } from '../db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { logger } from '../config/logger';
 import { emailService } from './email.service';
 import type { QuoteRequest, NewQuoteRequest } from '../db/schema/quote-requests';
@@ -113,16 +114,32 @@ class QuoteService {
           let cruiseName = '';
           let shipName = '';
           let departureDate = '';
+          let cruiseLineName = '';
+          let embarkPortName = '';
+          let disembarkPortName = '';
+          let returnDate = '';
+          let nights = 0;
 
           try {
+            const embarkPorts = alias(ports, 'embarkPorts');
+            const disembarkPorts = alias(ports, 'disembarkPorts');
+
             const cruiseDetails = await db
               .select({
                 cruise: cruises.name,
                 ship: ships.name,
                 sailing: cruises.sailingDate,
+                cruiseLineName: cruiseLines.name,
+                embarkPortName: embarkPorts.name,
+                disembarkPortName: disembarkPorts.name,
+                returnDate: cruises.returnDate,
+                nights: cruises.nights,
               })
               .from(cruises)
               .leftJoin(ships, eq(cruises.shipId, ships.id))
+              .leftJoin(cruiseLines, eq(cruises.cruiseLineId, cruiseLines.id))
+              .leftJoin(embarkPorts, eq(cruises.embarkPortId, embarkPorts.id))
+              .leftJoin(disembarkPorts, eq(cruises.disembarkPortId, disembarkPorts.id))
               .where(eq(cruises.id, data.cruiseId))
               .limit(1);
 
@@ -130,6 +147,11 @@ class QuoteService {
               cruiseName = cruiseDetails[0].cruise || '';
               shipName = cruiseDetails[0].ship || '';
               departureDate = cruiseDetails[0].sailing || '';
+              cruiseLineName = cruiseDetails[0].cruiseLineName || '';
+              embarkPortName = cruiseDetails[0].embarkPortName || '';
+              disembarkPortName = cruiseDetails[0].disembarkPortName || '';
+              returnDate = cruiseDetails[0].returnDate || '';
+              nights = cruiseDetails[0].nights || 0;
             }
           } catch (cruiseError) {
             logger.warn('Could not fetch cruise details for email', {
@@ -160,6 +182,25 @@ class QuoteService {
           // Commenting out team notification to prevent duplicate emails
           // const teamEmailSent = await emailService.sendQuoteNotificationToTeam(emailData);
 
+          // Send comprehensive quote notification to zippy@zipsea.com
+          // This is a critical notification that must always fire
+          const comprehensiveEmailData = {
+            ...emailData,
+            cruiseId: data.cruiseId || '',
+            cruiseLineName,
+            embarkPortName,
+            disembarkPortName,
+            returnDate,
+            nights,
+            phone: data.phone,
+            travelInsurance: data.travelInsurance,
+            discountQualifiers: data.discountQualifiers,
+            obcAmount,
+            totalPassengers: (data.adults || 2) + (data.children || 0),
+          };
+          const comprehensiveEmailSent =
+            await emailService.sendComprehensiveQuoteNotification(comprehensiveEmailData);
+
           // Log email results
           logger.info('Quote confirmation emails processed', {
             quoteId: quote.id,
@@ -167,6 +208,7 @@ class QuoteService {
             customerEmail: data.email,
             customerEmailSent,
             teamEmailSent: false, // Set to false since we're not sending team email
+            comprehensiveEmailSent,
             emailType: 'quote_confirmation',
           });
         } catch (emailError) {
