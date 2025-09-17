@@ -357,9 +357,15 @@ export default function AdminQuotes() {
         `${backendUrl}/api/v1/admin/quotes?${params}`,
       );
       if (response.ok) {
-        const data = await response.json();
-        setQuotes(data.quotes || []);
-        setTotalPages(data.totalPages || 1);
+        const result = await response.json();
+        // Handle the nested data structure from backend
+        if (result.success && result.data) {
+          setQuotes(result.data.quotes || []);
+          setTotalPages(result.data.meta?.totalPages || 1);
+        } else {
+          setQuotes(result.quotes || []);
+          setTotalPages(result.totalPages || 1);
+        }
       } else {
         console.error("Failed to fetch quotes:", response.status);
         showAlert("Failed to load quote requests");
