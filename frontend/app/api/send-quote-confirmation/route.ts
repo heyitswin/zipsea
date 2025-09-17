@@ -463,7 +463,7 @@ export async function POST(request: NextRequest) {
                           <tr>
                             <td style="padding: 36px; text-align: left;">
                               <h2 style="margin: 0 0 15px 0; color: #0E1B4D; font-family: Arial, sans-serif; font-size: 32px; font-weight: bold; letter-spacing: -0.02em;">Questions?</h2>
-                              <p style="margin: 0; color: #0E1B4D; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.3;">Reply to this email or text us anytime at +1(866) 420-3817</p>
+                              <p style="margin: 0; color: #0E1B4D; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.3;">Reply to this email with any questions, we'll get back to you as soon as possible!</p>
                             </td>
                           </tr>
                         </table>
