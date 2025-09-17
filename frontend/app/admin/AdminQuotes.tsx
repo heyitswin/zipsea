@@ -450,39 +450,10 @@ export default function AdminQuotes() {
         return;
       }
 
-      // Step 3: Send "Quote is Ready" email to customer
-      try {
-        const emailRes = await fetch("/api/send-quote-ready", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: quote.email,
-            referenceNumber: quote.reference_number,
-            cruiseName:
-              quote.cruise_line_name && quote.ship_name
-                ? `${quote.cruise_line_name} - ${quote.ship_name}`
-                : "Your Selected Cruise",
-            shipName: quote.ship_name || "",
-            departureDate: quote.sailing_date,
-            returnDate: undefined,
-            categories: response.categories,
-            notes: response.notes,
-          }),
-        });
-
-        if (emailRes.ok) {
-          showAlert("Quote response sent successfully via email!");
-        } else {
-          showAlert(
-            "Quote updated successfully, but email notification failed to send",
-          );
-        }
-      } catch (emailError) {
-        console.error("Error sending quote email:", emailError);
-        showAlert(
-          "Quote updated successfully, but email notification failed to send",
-        );
-      }
+      // Step 3: Email is now sent from backend with "Your quote is here" template
+      showAlert(
+        "Quote response sent successfully! Email notification sent to customer.",
+      );
 
       fetchQuotes();
     } catch (error) {

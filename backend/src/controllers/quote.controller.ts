@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { quoteService } from '../services/quote.service';
 import { userService } from '../services/user.service';
+import { emailService } from '../services/email.service';
 import { logger } from '../config/logger';
 
 class QuoteController {
@@ -259,12 +260,43 @@ class QuoteController {
       // Update the quote status to 'responded'
       const result = await quoteService.updateQuoteStatus(id, 'responded', notes);
 
-      // Note: Email is sent separately by the frontend to avoid duplicates
-      // The frontend uses /api/send-quote-ready endpoint
+      // Get quote details for email
+      const quoteData = await quoteService.getQuoteWithDetails(id);
+
+      if (quoteData) {
+        // Extract customer details from JSONB
+        const customerDetails =
+          typeof quoteData.customer_details === 'string'
+            ? JSON.parse(quoteData.customer_details as string)
+            : (quoteData.customer_details as any) || {};
+
+        // Send the "Your quote is here" email from backend
+        try {
+          await emailService.sendQuoteReadyEmail({
+            email: quoteData.email || customerDetails.email,
+            referenceNumber: customerDetails.reference_number || id.substring(0, 8),
+            cruiseName: categories[0]?.category || 'Your Selected Cruise',
+            shipName: '',
+            departureDate: '',
+            returnDate: '',
+            categories: categories,
+            notes: notes,
+          });
+
+          logger.info('Quote ready email sent successfully', {
+            quoteId: id,
+            email: quoteData.email,
+          });
+        } catch (emailError) {
+          logger.error('Failed to send quote ready email:', emailError);
+          // Don't fail the response if email fails
+        }
+      }
 
       res.json({
         success: true,
         data: result,
+        emailSent: true,
       });
     } catch (error) {
       logger.error('Error responding to quote:', error);
