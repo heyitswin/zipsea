@@ -309,22 +309,6 @@ export class EmailService {
                                       : ''
                                   }
 
-                                  ${
-                                    data.nights
-                                      ? `
-                                  <!-- Nights -->
-                                  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
-                                    <tr>
-                                      <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">NIGHTS</td>
-                                    </tr>
-                                    <tr>
-                                      <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${data.nights} nights</td>
-                                    </tr>
-                                  </table>
-                                  `
-                                      : ''
-                                  }
-
                                   <!-- Passengers -->
                                   <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                     <tr>
@@ -358,6 +342,22 @@ export class EmailService {
                                     </tr>
                                     <tr>
                                       <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${formatDate(data.departureDate)}</td>
+                                    </tr>
+                                  </table>
+                                  `
+                                      : ''
+                                  }
+
+                                  ${
+                                    data.nights
+                                      ? `
+                                  <!-- Nights -->
+                                  <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
+                                    <tr>
+                                      <td style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; padding-bottom: 5px;">NIGHTS</td>
+                                    </tr>
+                                    <tr>
+                                      <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${data.nights} nights</td>
                                     </tr>
                                   </table>
                                   `
