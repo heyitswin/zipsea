@@ -83,6 +83,8 @@ class QuoteController {
       const formattedQuotes = rawQuotes.map(item => {
         const quote = item.quote;
         const cruise = item.cruise;
+        const ship = item.ship;
+        const cruiseLine = item.cruiseLine;
 
         // Extract customer details from JSONB
         const customerDetails =
@@ -94,8 +96,8 @@ class QuoteController {
           id: quote.id,
           created_at: quote.createdAt,
           reference_number: customerDetails.reference_number || quote.id.substring(0, 8),
-          cruise_line_name: cruise?.cruiseLineName || '',
-          ship_name: cruise?.shipName || '',
+          cruise_line_name: cruiseLine?.name || '',
+          ship_name: ship?.name || '',
           sailing_date: cruise?.sailingDate || null,
           first_name: quote.firstName || customerDetails.first_name || '',
           last_name: quote.lastName || customerDetails.last_name || '',
@@ -104,6 +106,15 @@ class QuoteController {
           status: quote.status || 'pending',
           notes: quote.notes,
           cruise_id: quote.cruiseId,
+          // Additional data for the response modal
+          adults: customerDetails.adults || 2,
+          children: customerDetails.children || 0,
+          childAges: customerDetails.child_ages || [],
+          cabin_type: customerDetails.cabin_type || 'any',
+          travel_insurance: customerDetails.travel_insurance || false,
+          discount_qualifiers: customerDetails.discount_qualifiers || {},
+          special_requests: customerDetails.special_requests || '',
+          cruise_name: cruise?.name || '',
         };
       });
 

@@ -515,9 +515,13 @@ class QuoteService {
         .select({
           quote: quoteRequests,
           cruise: cruises,
+          ship: ships,
+          cruiseLine: cruiseLines,
         })
         .from(quoteRequests)
-        .leftJoin(cruises, eq(quoteRequests.cruiseId, cruises.id));
+        .leftJoin(cruises, eq(quoteRequests.cruiseId, cruises.id))
+        .leftJoin(ships, eq(cruises.shipId, ships.id))
+        .leftJoin(cruiseLines, eq(cruises.cruiseLineId, cruiseLines.id));
 
       if (status) {
         query = query.where(eq(quoteRequests.status, status));

@@ -135,39 +135,72 @@ function ResponseModal({ quote, onClose, onSubmit }: ResponseModalProps) {
               <p className="font-medium">
                 {quote.first_name} {quote.last_name}
               </p>
-            </div>
-            <div>
-              <p className="text-gray-600">Contact:</p>
-              <p className="font-medium">{quote.email}</p>
-              <p className="font-medium">{quote.phone}</p>
+              <p className="text-xs text-gray-500">{quote.email}</p>
+              {quote.phone && (
+                <p className="text-xs text-gray-500">{quote.phone}</p>
+              )}
             </div>
             <div>
               <p className="text-gray-600">Cruise:</p>
               <p className="font-medium">
                 {quote.cruise_line_name} - {quote.ship_name}
               </p>
-            </div>
-            <div>
-              <p className="text-gray-600">Sailing Date:</p>
-              <p className="font-medium">{formatDate(quote.sailing_date)}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Requested Cabin:</p>
-              <p className="font-medium">
-                {(() => {
-                  const customerDetails = quote.customer_details || {};
-                  const details =
-                    typeof customerDetails === "string"
-                      ? JSON.parse(customerDetails)
-                      : customerDetails;
-                  return details.cabin_type || quote.cabin_type || "Any";
-                })()}
+              <p className="text-xs text-gray-500">
+                {quote.cruise_name || "Cruise details"}
+              </p>
+              <p className="text-xs text-gray-500">
+                Sailing: {formatDate(quote.sailing_date)}
               </p>
             </div>
             <div>
               <p className="text-gray-600">Passengers:</p>
-              <p className="font-medium">{quote.passenger_count}</p>
+              <p className="font-medium">
+                Adults: {quote.adults || 2}, Children: {quote.children || 0}
+              </p>
+              {quote.childAges && quote.childAges.length > 0 && (
+                <p className="text-xs text-gray-500">
+                  Child Ages: {quote.childAges.join(", ")} years
+                </p>
+              )}
             </div>
+            <div>
+              <p className="text-gray-600">Requested Cabin:</p>
+              <p className="font-medium">
+                {quote.cabin_type === "any"
+                  ? "Any available"
+                  : quote.cabin_type}
+              </p>
+              {quote.travel_insurance && (
+                <p className="text-xs text-gray-500">✓ Travel Insurance</p>
+              )}
+            </div>
+            {quote.discount_qualifiers &&
+              Object.keys(quote.discount_qualifiers).length > 0 && (
+                <div className="col-span-2">
+                  <p className="text-gray-600">Discount Qualifiers:</p>
+                  <div className="font-medium">
+                    {Object.entries(quote.discount_qualifiers).map(
+                      ([key, value]) =>
+                        value && (
+                          <span
+                            key={key}
+                            className="inline-block mr-3 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
+                          >
+                            {key
+                              .replace(/_/g, " ")
+                              .replace(/\b\w/g, (l) => l.toUpperCase())}
+                          </span>
+                        ),
+                    )}
+                  </div>
+                </div>
+              )}
+            {quote.special_requests && (
+              <div className="col-span-2">
+                <p className="text-gray-600">Special Requests:</p>
+                <p className="font-medium text-sm">{quote.special_requests}</p>
+              </div>
+            )}
           </div>
           {quote.special_requirements && (
             <div className="mt-4">
