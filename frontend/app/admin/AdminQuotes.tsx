@@ -96,7 +96,7 @@ function ResponseModal({ quote, onClose, onSubmit }: ResponseModalProps) {
     });
     await onSubmit(quote.id, {
       categories,
-      notes: notes || `Total options: ${validPrices.length}`,
+      notes: notes || "",
     });
     setLoading(false);
     onClose();

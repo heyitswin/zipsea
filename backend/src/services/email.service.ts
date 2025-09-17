@@ -376,7 +376,7 @@ export class EmailService {
                   ${optionSections}
 
                   ${
-                    data.notes
+                    data.notes && data.notes.trim()
                       ? `
                   <!-- Note from team Section -->
                   <tr>
