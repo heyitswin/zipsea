@@ -1,64 +1,87 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
-import { sendSlackQuoteNotification } from '../../../lib/slack';
+import { NextRequest, NextResponse } from "next/server";
+import { Resend } from "resend";
+import { sendSlackQuoteNotification } from "../../../lib/slack";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 
 // Enhanced debugging for API key
-console.log('Resend API Key Debug:', {
+console.log("Resend API Key Debug:", {
   exists: !!resendApiKey,
   length: resendApiKey?.length || 0,
-  startsWithRe: resendApiKey?.startsWith('re_') || false,
-  isPlaceholder: resendApiKey === 'your_resend_api_key_here',
-  isEmpty: !resendApiKey || resendApiKey.trim() === '',
-  firstChars: resendApiKey ? resendApiKey.substring(0, 3) + '...' : 'none'
+  startsWithRe: resendApiKey?.startsWith("re_") || false,
+  isPlaceholder: resendApiKey === "your_resend_api_key_here",
+  isEmpty: !resendApiKey || resendApiKey.trim() === "",
+  firstChars: resendApiKey ? resendApiKey.substring(0, 3) + "..." : "none",
 });
 
-const resend = resendApiKey && resendApiKey !== 'your_resend_api_key_here' && resendApiKey.trim() !== ''
-  ? new Resend(resendApiKey) 
-  : null;
+const resend =
+  resendApiKey &&
+  resendApiKey !== "your_resend_api_key_here" &&
+  resendApiKey.trim() !== ""
+    ? new Resend(resendApiKey)
+    : null;
 
 // Log email configuration status
 if (resend) {
-  console.log('✅ Email service initialized successfully with Resend');
+  console.log("✅ Email service initialized successfully with Resend");
 } else {
-  console.log('❌ Email service disabled - check RESEND_API_KEY environment variable');
+  console.log(
+    "❌ Email service disabled - check RESEND_API_KEY environment variable",
+  );
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userEmail, cruiseData, passengers, discounts, cabinType, cabinPrice, travelInsurance } = body;
+    const {
+      userEmail,
+      cruiseData,
+      passengers,
+      discounts,
+      cabinType,
+      cabinPrice,
+      travelInsurance,
+    } = body;
 
-    console.log('Quote submission received:', { 
-      userEmail, 
+    console.log("Quote submission received:", {
+      userEmail,
       cruiseId: cruiseData?.id,
       cabinType,
       passengers,
       timestamp: new Date().toISOString(),
-      hasSlackUrl: !!process.env.SLACK_WEBHOOK_URL && process.env.SLACK_WEBHOOK_URL !== 'your_slack_webhook_url_here',
-      hasResendKey: !!process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 'your_resend_api_key_here'
+      hasSlackUrl:
+        !!process.env.SLACK_WEBHOOK_URL &&
+        process.env.SLACK_WEBHOOK_URL !== "your_slack_webhook_url_here",
+      hasResendKey:
+        !!process.env.RESEND_API_KEY &&
+        process.env.RESEND_API_KEY !== "your_resend_api_key_here",
     });
 
     if (!userEmail) {
-      return NextResponse.json({ error: 'Email address is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Email address is required" },
+        { status: 400 },
+      );
     }
 
     let backendSaved = false;
     let slackSent = false;
     let emailSent = false;
     let notificationSent = false;
-    let referenceNumber = '';
+    let referenceNumber = "";
 
     // Save quote request to backend database (optional - don't fail if backend is down)
     try {
-      const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://zipsea-production.onrender.com';
-      console.log('Attempting to save to backend:', backendUrl);
-      
+      const backendUrl =
+        process.env.BACKEND_URL ||
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        "https://zipsea-production.onrender.com";
+      console.log("Attempting to save to backend:", backendUrl);
+
       const quoteResponse = await fetch(`${backendUrl}/api/v1/quotes`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email: userEmail,
@@ -66,95 +89,111 @@ export async function POST(request: NextRequest) {
           cabinType: cabinType?.toLowerCase(),
           adults: passengers?.adults || 2,
           children: passengers?.children || 0,
+          childAges: passengers?.childAges || [],
           travelInsurance: travelInsurance || false,
           discountQualifiers: {
             payInFull: discounts?.payInFull || false,
             seniorCitizen: discounts?.age55Plus || false,
             military: discounts?.military || false,
-            stateOfResidence: discounts?.stateOfResidence || '',
-            loyaltyNumber: discounts?.loyaltyNumber || '',
+            stateOfResidence: discounts?.stateOfResidence || "",
+            loyaltyNumber: discounts?.loyaltyNumber || "",
           },
         }),
       });
 
       if (quoteResponse.ok) {
         const quoteData = await quoteResponse.json();
-        referenceNumber = quoteData.referenceNumber || '';
+        referenceNumber = quoteData.referenceNumber || "";
         backendSaved = true;
-        console.log('Quote saved to backend successfully with reference:', referenceNumber);
+        console.log(
+          "Quote saved to backend successfully with reference:",
+          referenceNumber,
+        );
       } else {
-        console.error('Backend response not OK:', quoteResponse.status, quoteResponse.statusText);
+        console.error(
+          "Backend response not OK:",
+          quoteResponse.status,
+          quoteResponse.statusText,
+        );
       }
     } catch (error) {
-      console.error('Error saving quote to backend database:', error);
+      console.error("Error saving quote to backend database:", error);
       // Continue - backend save is optional
     }
 
     // Send Slack notification (optional - don't fail if Slack is down)
     try {
       const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
-      if (slackWebhookUrl && slackWebhookUrl !== 'your_slack_webhook_url_here') {
-        console.log('Attempting to send Slack notification...');
+      if (
+        slackWebhookUrl &&
+        slackWebhookUrl !== "your_slack_webhook_url_here"
+      ) {
+        console.log("Attempting to send Slack notification...");
         const slackResult = await sendSlackQuoteNotification({
           userEmail,
           cruiseData,
           passengers,
           discounts: {
             ...discounts,
-            travelInsurance: travelInsurance || false
+            travelInsurance: travelInsurance || false,
           },
           cabinType,
-          cabinPrice
+          cabinPrice,
         });
-        
+
         if (slackResult?.success) {
           slackSent = true;
-          console.log('Slack notification sent successfully');
+          console.log("Slack notification sent successfully");
         } else {
-          console.error('Slack notification failed:', slackResult);
+          console.error("Slack notification failed:", slackResult);
         }
       } else {
-        console.log('Slack webhook not configured, skipping notification');
+        console.log("Slack webhook not configured, skipping notification");
       }
     } catch (error) {
-      console.error('Error sending Slack notification:', error);
+      console.error("Error sending Slack notification:", error);
       // Continue - Slack is optional
     }
 
     // Format data for email
-    const passengerInfo = `${passengers?.adults || 2} adult${(passengers?.adults || 2) !== 1 ? 's' : ''}${
-      (passengers?.children || 0) > 0 ? `, ${passengers.children} child${passengers.children !== 1 ? 'ren' : ''}` : ''
+    const passengerInfo = `${passengers?.adults || 2} adult${(passengers?.adults || 2) !== 1 ? "s" : ""}${
+      (passengers?.children || 0) > 0
+        ? `, ${passengers.children} child${passengers.children !== 1 ? "ren" : ""}`
+        : ""
     }`;
 
     const activeDiscounts = [];
-    if (discounts?.payInFull) activeDiscounts.push('Pay in full/non-refundable');
-    if (discounts?.age55Plus) activeDiscounts.push('55 or older');
-    if (discounts?.military) activeDiscounts.push('Military/Veteran');
-    if (discounts?.stateOfResidence) activeDiscounts.push(`Resident of ${discounts.stateOfResidence}`);
-    if (discounts?.loyaltyNumber) activeDiscounts.push(`Loyalty number: ${discounts.loyaltyNumber}`);
+    if (discounts?.payInFull)
+      activeDiscounts.push("Pay in full/non-refundable");
+    if (discounts?.age55Plus) activeDiscounts.push("55 or older");
+    if (discounts?.military) activeDiscounts.push("Military/Veteran");
+    if (discounts?.stateOfResidence)
+      activeDiscounts.push(`Resident of ${discounts.stateOfResidence}`);
+    if (discounts?.loyaltyNumber)
+      activeDiscounts.push(`Loyalty number: ${discounts.loyaltyNumber}`);
 
     const formatPrice = (price: string | number | undefined) => {
-      if (!price) return 'N/A';
-      const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-      if (isNaN(numPrice)) return 'N/A';
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
+      if (!price) return "N/A";
+      const numPrice = typeof price === "string" ? parseFloat(price) : price;
+      if (isNaN(numPrice)) return "N/A";
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
       }).format(numPrice);
     };
 
     const formatDate = (dateString: string | undefined) => {
-      if (!dateString) return 'N/A';
+      if (!dateString) return "N/A";
       try {
         const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          timeZone: 'UTC'
+        return date.toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          timeZone: "UTC",
         });
       } catch {
         return dateString;
@@ -164,7 +203,7 @@ export async function POST(request: NextRequest) {
     // Send email if Resend is configured
     if (resend) {
       try {
-        console.log('Attempting to send confirmation email to:', userEmail);
+        console.log("Attempting to send confirmation email to:", userEmail);
         const emailHtml = `
           <!DOCTYPE html>
           <html>
@@ -195,10 +234,10 @@ export async function POST(request: NextRequest) {
             <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #F6F3ED; min-height: 100vh;">
               <tr>
                 <td align="center" valign="top" style="padding: 20px 0;">
-                  
+
                   <!-- Main container with 10px padding -->
                   <table cellpadding="0" cellspacing="0" border="0" width="600" style="max-width: 600px; width: 100%; background-color: #F6F3ED; padding: 0 10px;">
-                    
+
                     <!-- Hero Section -->
                     <tr>
                       <td style="padding: 0;">
@@ -207,9 +246,9 @@ export async function POST(request: NextRequest) {
                             <td style="padding: 36px; text-align: center;">
                               <!-- Logo -->
                               <div style="margin-bottom: 20px;">
-                                <img src="https://zipsea.com/images/zipsea-pink.png" 
-                                     alt="ZipSea" 
-                                     width="130" 
+                                <img src="https://zipsea.com/images/zipsea-pink.png"
+                                     alt="ZipSea"
+                                     width="130"
                                      style="display: inline-block; width: 130px; height: auto;" />
                               </div>
                               <!-- Content -->
@@ -222,7 +261,7 @@ export async function POST(request: NextRequest) {
                         </table>
                       </td>
                     </tr>
-                    
+
                     <!-- Cruise Details Section -->
                     <tr>
                       <td style="padding: 0;">
@@ -230,13 +269,15 @@ export async function POST(request: NextRequest) {
                           <tr>
                             <td style="padding: 36px;">
                               <h2 style="margin: 0 0 20px 0; color: #2F2F2F; font-family: Arial, sans-serif; font-size: 32px; font-weight: bold; letter-spacing: -0.02em;">Cruise details</h2>
-                              
+
                               <!-- Two column layout -->
                               <table cellpadding="0" cellspacing="0" border="0" width="100%">
                                 <tr>
                                   <td valign="top" style="width: 50%; padding-right: 20px;">
-                                    
-                                    ${referenceNumber ? `
+
+                                    ${
+                                      referenceNumber
+                                        ? `
                                     <!-- Reference Number -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
@@ -246,9 +287,13 @@ export async function POST(request: NextRequest) {
                                         <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">#${referenceNumber}</td>
                                       </tr>
                                     </table>
-                                    ` : ''}
-                                    
-                                    ${cruiseData?.name ? `
+                                    `
+                                        : ""
+                                    }
+
+                                    ${
+                                      cruiseData?.name
+                                        ? `
                                     <!-- Cruise -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
@@ -258,9 +303,13 @@ export async function POST(request: NextRequest) {
                                         <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.name}</td>
                                       </tr>
                                     </table>
-                                    ` : ''}
-                                    
-                                    ${cruiseData?.shipName ? `
+                                    `
+                                        : ""
+                                    }
+
+                                    ${
+                                      cruiseData?.shipName
+                                        ? `
                                     <!-- Ship -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
@@ -270,9 +319,13 @@ export async function POST(request: NextRequest) {
                                         <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.shipName}</td>
                                       </tr>
                                     </table>
-                                    ` : ''}
-                                    
-                                    ${cruiseData?.nights ? `
+                                    `
+                                        : ""
+                                    }
+
+                                    ${
+                                      cruiseData?.nights
+                                        ? `
                                     <!-- Nights -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
@@ -282,8 +335,10 @@ export async function POST(request: NextRequest) {
                                         <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.nights} nights</td>
                                       </tr>
                                     </table>
-                                    ` : ''}
-                                    
+                                    `
+                                        : ""
+                                    }
+
                                     <!-- Passengers -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
@@ -293,11 +348,13 @@ export async function POST(request: NextRequest) {
                                         <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${passengerInfo}</td>
                                       </tr>
                                     </table>
-                                    
+
                                   </td>
                                   <td valign="top" style="width: 50%; padding-left: 20px;">
-                                    
-                                    ${cruiseData?.cruiseLineName ? `
+
+                                    ${
+                                      cruiseData?.cruiseLineName
+                                        ? `
                                     <!-- Cruise Line -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
@@ -307,9 +364,13 @@ export async function POST(request: NextRequest) {
                                         <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cruiseData.cruiseLineName}</td>
                                       </tr>
                                     </table>
-                                    ` : ''}
-                                    
-                                    ${cruiseData?.sailingDate ? `
+                                    `
+                                        : ""
+                                    }
+
+                                    ${
+                                      cruiseData?.sailingDate
+                                        ? `
                                     <!-- Departure -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
@@ -319,9 +380,13 @@ export async function POST(request: NextRequest) {
                                         <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${formatDate(cruiseData.sailingDate)}</td>
                                       </tr>
                                     </table>
-                                    ` : ''}
-                                    
-                                    ${cabinType ? `
+                                    `
+                                        : ""
+                                    }
+
+                                    ${
+                                      cabinType
+                                        ? `
                                     <!-- Cabin Type -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
@@ -331,9 +396,13 @@ export async function POST(request: NextRequest) {
                                         <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${cabinType}</td>
                                       </tr>
                                     </table>
-                                    ` : ''}
-                                    
-                                    ${cabinPrice ? `
+                                    `
+                                        : ""
+                                    }
+
+                                    ${
+                                      cabinPrice
+                                        ? `
                                     <!-- Starting Price -->
                                     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 15px;">
                                       <tr>
@@ -343,8 +412,10 @@ export async function POST(request: NextRequest) {
                                         <td class="cruise-details-text" style="color: #2F2F2F; font-family: Arial, sans-serif; font-size: 24px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.4;">${formatPrice(cabinPrice)} (excl. taxes/fees)</td>
                                       </tr>
                                     </table>
-                                    ` : ''}
-                                    
+                                    `
+                                        : ""
+                                    }
+
                                   </td>
                                 </tr>
                               </table>
@@ -353,7 +424,7 @@ export async function POST(request: NextRequest) {
                         </table>
                       </td>
                     </tr>
-                    
+
                     <!-- What Happens Next Section -->
                     <tr>
                       <td style="padding: 0;">
@@ -384,7 +455,7 @@ export async function POST(request: NextRequest) {
                         </table>
                       </td>
                     </tr>
-                    
+
                     <!-- Questions Section -->
                     <tr>
                       <td style="padding: 0;">
@@ -398,16 +469,16 @@ export async function POST(request: NextRequest) {
                         </table>
                       </td>
                     </tr>
-                    
+
                     <!-- Footer -->
                     <tr>
                       <td style="padding: 20px 0; text-align: center;">
                         <p style="margin: 0; color: #999999; font-family: Arial, sans-serif; font-size: 12px; line-height: 1.4; text-transform: uppercase; letter-spacing: 0.5px;">THIS EMAIL WAS SENT BECAUSE YOU REQUESTED A CRUISE QUOTE ON OUR WEBSITE ZIPSEA.COM</p>
                       </td>
                     </tr>
-                    
+
                   </table>
-                  
+
                 </td>
               </tr>
             </table>
@@ -416,29 +487,31 @@ export async function POST(request: NextRequest) {
         `;
 
         // Try with custom domain first, fallback to onboarding@resend.dev if it fails
-        const fromEmail = 'ZipSea <zippy@zipsea.com>';
-        const fallbackEmail = 'ZipSea <onboarding@resend.dev>';
-        
-        console.log('📧 Sending email with parameters:', {
+        const fromEmail = "ZipSea <zippy@zipsea.com>";
+        const fallbackEmail = "ZipSea <onboarding@resend.dev>";
+
+        console.log("📧 Sending email with parameters:", {
           from: fromEmail,
           to: userEmail,
-          subject: `Your Cruise Quote Request - ${cruiseData?.name || 'Cruise'} | ZipSea`
+          subject: `Your Cruise Quote Request - ${cruiseData?.name || "Cruise"} | ZipSea`,
         });
 
         let { data, error } = await resend.emails.send({
           from: fromEmail,
           to: [userEmail],
-          subject: `Your Cruise Quote Request - ${cruiseData?.name || 'Cruise'} | ZipSea`,
+          subject: `Your Cruise Quote Request - ${cruiseData?.name || "Cruise"} | ZipSea`,
           html: emailHtml,
         });
-        
+
         // If domain not verified, try with Resend's domain
-        if (error && error.message && error.message.includes('domain')) {
-          console.log('🔄 Domain not verified, trying with Resend default domain...');
+        if (error && error.message && error.message.includes("domain")) {
+          console.log(
+            "🔄 Domain not verified, trying with Resend default domain...",
+          );
           const fallbackResult = await resend.emails.send({
             from: fallbackEmail,
             to: [userEmail],
-            subject: `Your Cruise Quote Request - ${cruiseData?.name || 'Cruise'} | ZipSea`,
+            subject: `Your Cruise Quote Request - ${cruiseData?.name || "Cruise"} | ZipSea`,
             html: emailHtml,
           });
           data = fallbackResult.data;
@@ -446,45 +519,51 @@ export async function POST(request: NextRequest) {
         }
 
         if (error) {
-          console.error('❌ Resend API error:', error);
-          console.error('Error details:', {
+          console.error("❌ Resend API error:", error);
+          console.error("Error details:", {
             name: error.name,
             message: error.message,
-            fullError: JSON.stringify(error, null, 2)
+            fullError: JSON.stringify(error, null, 2),
           });
         } else {
           emailSent = true;
-          console.log('✅ Email sent successfully!', {
+          console.log("✅ Email sent successfully!", {
             resendId: data?.id,
             to: userEmail,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
 
           // Send notification email to zipsea@manus.bot (only for Royal Caribbean and Celebrity)
-          const cruiseLineName = cruiseData?.cruiseLineName?.toLowerCase() || '';
-          const isEligibleCruiseLine = cruiseLineName.includes('royal caribbean') || cruiseLineName.includes('celebrity');
-          
+          const cruiseLineName =
+            cruiseData?.cruiseLineName?.toLowerCase() || "";
+          const isEligibleCruiseLine =
+            cruiseLineName.includes("royal caribbean") ||
+            cruiseLineName.includes("celebrity");
+
           if (isEligibleCruiseLine) {
             try {
-              console.log('📧 Sending task notification to zipsea@manus.bot for eligible cruise line:', cruiseData?.cruiseLineName);
-              
+              console.log(
+                "📧 Sending task notification to zipsea@manus.bot for eligible cruise line:",
+                cruiseData?.cruiseLineName,
+              );
+
               // Create cruise details text for the notification
               const cruiseDetails = `
-Reference #: ${referenceNumber || 'Pending'}
+Reference #: ${referenceNumber || "Pending"}
 Email: ${userEmail}
-Cruise: ${cruiseData?.name || 'N/A'}
-Ship: ${cruiseData?.shipName || 'N/A'}
-Cruise Line: ${cruiseData?.cruiseLineName || 'N/A'}
-Departure Date: ${formatDate(cruiseData?.sailingDate) || 'N/A'}
-Nights: ${cruiseData?.nights || 'N/A'} nights
+Cruise: ${cruiseData?.name || "N/A"}
+Ship: ${cruiseData?.shipName || "N/A"}
+Cruise Line: ${cruiseData?.cruiseLineName || "N/A"}
+Departure Date: ${formatDate(cruiseData?.sailingDate) || "N/A"}
+Nights: ${cruiseData?.nights || "N/A"} nights
 Passengers: ${passengerInfo}
-Cabin Type Requested: ${cabinType || 'N/A'}
-Starting Price: ${formatPrice(cabinPrice) || 'N/A'} (excl. taxes/fees)
-Discounts: ${activeDiscounts.length > 0 ? activeDiscounts.join(', ') : 'None'}
-Travel Insurance: ${travelInsurance ? 'Yes' : 'No'}
+Cabin Type Requested: ${cabinType || "N/A"}
+Starting Price: ${formatPrice(cabinPrice) || "N/A"} (excl. taxes/fees)
+Discounts: ${activeDiscounts.length > 0 ? activeDiscounts.join(", ") : "None"}
+Travel Insurance: ${travelInsurance ? "Yes" : "No"}
             `.trim();
 
-            const notificationText = `You've received an email from the user with the subject of New quote request task
+              const notificationText = `You've received an email from the user with the subject of New quote request task
 Make sure to read the email using your browser first, repeat the subject of the email and then make sure to understand what the content of the email before starting to respond to the user's query. Do not begin with reading the raw HTML first.
 Once you've read the documents, understood the contents and the user's message to you, make sure to come up with a plan of how you're going to tackle this issue before proceeding.
 Make sure to respond in en throughout the entire conversation.
@@ -493,18 +572,18 @@ Visit https://secure.cruisingpower.com/login and login with username winlin430 p
 IMPORTANT: Close any browser password save modals by clicking "Never" or "X" to ensure clear visibility
 STEP 2: Search for Cruise
 Once logged in, scroll to the section below "book with espresso" and input:
-${cruiseData?.shipName || 'N/A'}
-${formatDate(cruiseData?.sailingDate) || 'N/A'}
+${cruiseData?.shipName || "N/A"}
+${formatDate(cruiseData?.sailingDate) || "N/A"}
 ${passengerInfo}
-Additional discount qualifiers: ${activeDiscounts.length > 0 ? activeDiscounts.join(', ') : 'None'}
+Additional discount qualifiers: ${activeDiscounts.length > 0 ? activeDiscounts.join(", ") : "None"}
 Click "search" in the same section
 STEP 3: Document All Available Categories BEFORE Filtering
 MANDATORY: Take a screenshot and document ALL visible cabin categories in the unfiltered results
-Create a complete list of all ${cabinType || 'Interior cabin'} categories visible before applying any filters
-Note the status (GTY, WLT, CLS) for each ${cabinType || 'Interior'} category
+Create a complete list of all ${cabinType || "Interior cabin"} categories visible before applying any filters
+Note the status (GTY, WLT, CLS) for each ${cabinType || "Interior"} category
 STEP 4: Apply Filters Systematically and Verify Results
-Click on the dropdown field that shows 'All Categories' text (not just the label 'Category Type') and select ${cabinType || 'Interior Cabin'}
-VERIFICATION STEP: Confirm that "${cabinType || 'Interior'}" is selected in the Category Type dropdown
+Click on the dropdown field that shows 'All Categories' text (not just the label 'Category Type') and select ${cabinType || "Interior Cabin"}
+VERIFICATION STEP: Confirm that "${cabinType || "Interior"}" is selected in the Category Type dropdown
 Click the dropdown under "Status" and select "Guaranteed"
 VERIFICATION STEP: Confirm that "Guaranteed" is selected in the Status dropdown
 CRITICAL VERIFICATION: Take a screenshot of the filtered results and compare with your pre-filter documentation
@@ -512,11 +591,11 @@ If the Status dropdown shows "Waitlisted" instead of "Guaranteed" after filterin
 If filtering for 'Guaranteed' status shows no results, document this clearly and report that no guaranteed cabins are available
 STEP 5: Count and Document All Matching Categories
 MANDATORY: Before starting any extractions, scroll through the ENTIRE filtered results table
-Count the total number of ${cabinType || 'Interior cabin'} categories that show "GTY" (Guaranteed) status
+Count the total number of ${cabinType || "Interior cabin"} categories that show "GTY" (Guaranteed) status
 Create a checklist with category codes (e.g., ZI, 1R, 2S) that need pricing extraction
 Do NOT proceed until you have a complete inventory of categories to process
 STEP 6: Systematic Data Extraction Process (repeat for EACH category on your checklist)
-For each ${cabinType || 'Interior Cabin'} category identified in Step 5:
+For each ${cabinType || "Interior Cabin"} category identified in Step 5:
 a) BEFORE CLICKING: Verify the category code and status match your checklist
 b) Click the circle/radio button next to "GTY" for that specific row
 c) Scroll down and click "Price Quote" to open the pricing modal
@@ -533,7 +612,7 @@ Verify that you have extracted data for every category that shows guaranteed sta
 Cross-reference your completed extractions with your original checklist
 If any categories remain unprocessed, complete their extraction before proceeding
 STEP 8: Raw Data Extraction with OBC Suggestions
-Ensure you have extracted data for ALL available ${cabinType || 'Interior Cabin'} categories from your verified checklist
+Ensure you have extracted data for ALL available ${cabinType || "Interior Cabin"} categories from your verified checklist
 Copy the exact pricing information from each modal as displayed
 For each cabin category, add an "OBC suggestion" row immediately after the "Vacation Subtotal" row
 Calculate the OBC suggestion by multiplying the vacation subtotal (total column) by 0.16
@@ -543,64 +622,75 @@ Send the raw pricing data with OBC suggestions without additional formatting or 
 Customer Details:
 ${cruiseDetails}`;
 
-            const notificationResult = await resend.emails.send({
-              from: fromEmail,
-              to: ['zipsea@manus.bot'],
-              subject: 'New quote request task',
-              text: notificationText,
-            });
-
-            if (notificationResult.error) {
-              console.error('❌ Notification email error:', notificationResult.error);
-            } else {
-              notificationSent = true;
-              console.log('✅ Notification email sent to zipsea@manus.bot', {
-                resendId: notificationResult.data?.id,
-                timestamp: new Date().toISOString()
+              const notificationResult = await resend.emails.send({
+                from: fromEmail,
+                to: ["zipsea@manus.bot"],
+                subject: "New quote request task",
+                text: notificationText,
               });
-            }
+
+              if (notificationResult.error) {
+                console.error(
+                  "❌ Notification email error:",
+                  notificationResult.error,
+                );
+              } else {
+                notificationSent = true;
+                console.log("✅ Notification email sent to zipsea@manus.bot", {
+                  resendId: notificationResult.data?.id,
+                  timestamp: new Date().toISOString(),
+                });
+              }
             } catch (notificationError) {
-              console.error('Error sending notification email:', notificationError);
+              console.error(
+                "Error sending notification email:",
+                notificationError,
+              );
               // Continue - notification is optional
             }
           } else {
-            console.log('📧 Skipping Manus bot notification - cruise line not Royal Caribbean or Celebrity:', cruiseData?.cruiseLineName);
+            console.log(
+              "📧 Skipping Manus bot notification - cruise line not Royal Caribbean or Celebrity:",
+              cruiseData?.cruiseLineName,
+            );
           }
         }
       } catch (error) {
-        console.error('Error sending email via Resend:', error);
+        console.error("Error sending email via Resend:", error);
         // Continue - email is optional
       }
     } else {
-      console.log('Email service not configured - emails disabled. Configure RESEND_API_KEY to enable email confirmations.');
+      console.log(
+        "Email service not configured - emails disabled. Configure RESEND_API_KEY to enable email confirmations.",
+      );
     }
 
     // Return success if at least we logged the request
-    console.log('Quote submission completed:', {
+    console.log("Quote submission completed:", {
       backendSaved,
       slackSent,
       emailSent,
       notificationSent,
       userEmail,
-      cruiseId: cruiseData?.id
+      cruiseId: cruiseData?.id,
     });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       details: {
         backendSaved,
         slackSent,
         emailSent,
-        notificationSent
-      }
+        notificationSent,
+      },
     });
-
   } catch (error: any) {
-    console.error('API error:', error);
-    const errorMessage = error?.message || 'Internal server error';
+    console.error("API error:", error);
+    const errorMessage = error?.message || "Internal server error";
     const errorDetails = {
       error: errorMessage,
-      details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      details:
+        process.env.NODE_ENV === "development" ? error?.stack : undefined,
     };
     return NextResponse.json(errorDetails, { status: 500 });
   }

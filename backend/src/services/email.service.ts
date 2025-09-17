@@ -59,6 +59,7 @@ interface ComprehensiveQuoteEmailData {
   cabinType: string;
   adults: number;
   children: number;
+  childAges?: number[];
   specialRequests?: string;
   firstName?: string;
   lastName?: string;
@@ -943,6 +944,15 @@ export class EmailService {
                   <td style="padding: 5px 0; color: #666;">Children:</td>
                   <td style="padding: 5px 0; color: #333;"><strong>${data.children}</strong></td>
                 </tr>
+                ${
+                  data.childAges && data.childAges.length > 0
+                    ? `
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Child Ages:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.childAges.map((age, i) => `Child ${i + 1}: ${age} years`).join(', ')}</strong></td>
+                </tr>`
+                    : ''
+                }
                 <tr>
                   <td style="padding: 5px 0; color: #666;">Total Passengers:</td>
                   <td style="padding: 5px 0; color: #333;"><strong>${data.totalPassengers || data.adults + data.children}</strong></td>

@@ -16,6 +16,7 @@ interface CreateQuoteData {
   cabinType: string;
   adults: number;
   children: number;
+  childAges?: number[];
   travelInsurance: boolean;
   specialRequests?: string;
   discountQualifiers: {
@@ -45,6 +46,7 @@ class QuoteService {
       const passengerDetails = {
         adults: data.adults,
         children: data.children,
+        childAges: data.childAges || [],
         totalPassengers: data.adults + data.children,
       };
 
@@ -197,6 +199,7 @@ class QuoteService {
             discountQualifiers: data.discountQualifiers,
             obcAmount,
             totalPassengers: (data.adults || 2) + (data.children || 0),
+            childAges: data.childAges || [],
           };
           const comprehensiveEmailSent =
             await emailService.sendComprehensiveQuoteNotification(comprehensiveEmailData);
