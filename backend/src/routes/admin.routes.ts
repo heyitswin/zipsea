@@ -1,8 +1,15 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { sql } from 'drizzle-orm';
+import { sql, desc, eq } from 'drizzle-orm';
+import { quoteRequests, cruises, ships, cruiseLines } from '../db/schema';
+import { emailService } from '../services/email.service';
+import { logger } from '../config/logger';
+import { quoteController } from '../controllers/quote.controller';
 
 const router = Router();
+
+// Admin quotes endpoint
+router.get('/quotes', quoteController.getQuoteRequests);
 
 // Admin cleanup endpoint
 router.post('/cleanup', async (req, res) => {
