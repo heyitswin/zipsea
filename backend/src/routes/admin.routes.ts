@@ -8,8 +8,9 @@ import { quoteController } from '../controllers/quote.controller';
 
 const router = Router();
 
-// Admin quotes endpoint
+// Admin quotes endpoints
 router.get('/quotes', quoteController.getQuoteRequests);
+router.post('/quotes/:id/respond', quoteController.respondToQuote);
 
 // Admin cleanup endpoint
 router.post('/cleanup', async (req, res) => {

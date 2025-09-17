@@ -208,6 +208,30 @@ class QuoteController {
       },
     });
   }
+
+  async respondToQuote(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { categories, notes } = req.body;
+
+      // Update the quote status to 'responded'
+      const result = await quoteService.updateQuoteStatus(id, 'responded', notes);
+
+      // Note: Email is sent separately by the frontend to avoid duplicates
+      // The frontend uses /api/send-quote-ready endpoint
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      logger.error('Error responding to quote:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to update quote response',
+      });
+    }
+  }
 }
 
 export const quoteController = new QuoteController();
