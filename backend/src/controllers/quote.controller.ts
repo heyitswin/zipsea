@@ -263,33 +263,43 @@ class QuoteController {
       // Get quote details for email
       const quoteData = await quoteService.getQuoteWithDetails(id);
 
-      if (quoteData) {
+      if (quoteData && quoteData.quote) {
+        const quote = quoteData.quote;
+        const cruise = quoteData.cruise;
+
         // Extract customer details from JSONB
         const customerDetails =
-          typeof quoteData.customer_details === 'string'
-            ? JSON.parse(quoteData.customer_details as string)
-            : (quoteData.customer_details as any) || {};
+          typeof quote.customer_details === 'string'
+            ? JSON.parse(quote.customer_details as string)
+            : (quote.customer_details as any) || {};
 
-        // Send the "Your quote is here" email from backend
-        try {
-          await emailService.sendQuoteReadyEmail({
-            email: quoteData.email || customerDetails.email,
-            referenceNumber: customerDetails.reference_number || id.substring(0, 8),
-            cruiseName: categories[0]?.category || 'Your Selected Cruise',
-            shipName: '',
-            departureDate: '',
-            returnDate: '',
-            categories: categories,
-            notes: notes,
-          });
+        // Get email from quote fields or customer details
+        const email = quote.email || quote.firstName || customerDetails.email;
 
-          logger.info('Quote ready email sent successfully', {
-            quoteId: id,
-            email: quoteData.email,
-          });
-        } catch (emailError) {
-          logger.error('Failed to send quote ready email:', emailError);
-          // Don't fail the response if email fails
+        if (!email) {
+          logger.warn('No email found for quote, skipping email notification', { quoteId: id });
+        } else {
+          // Send the "Your quote is here" email from backend
+          try {
+            await emailService.sendQuoteReadyEmail({
+              email: email,
+              referenceNumber: customerDetails.reference_number || id.substring(0, 8),
+              cruiseName: cruise?.name || categories[0]?.category || 'Your Selected Cruise',
+              shipName: cruise?.shipName || '',
+              departureDate: cruise?.sailingDate || '',
+              returnDate: cruise?.returnDate || '',
+              categories: categories,
+              notes: notes,
+            });
+
+            logger.info('Quote ready email sent successfully', {
+              quoteId: id,
+              email: email,
+            });
+          } catch (emailError) {
+            logger.error('Failed to send quote ready email:', emailError);
+            // Don't fail the response if email fails
+          }
         }
       }
 
