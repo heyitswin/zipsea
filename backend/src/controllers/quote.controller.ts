@@ -266,6 +266,8 @@ class QuoteController {
       if (quoteData && quoteData.quote) {
         const quote = quoteData.quote;
         const cruise = quoteData.cruise;
+        const ship = quoteData.ship;
+        const cruiseLine = quoteData.cruiseLine;
 
         // Extract customer details from JSONB
         const customerDetails =
@@ -276,6 +278,11 @@ class QuoteController {
         // Get email from quote fields or customer details
         const email = quote.email || quote.firstName || customerDetails.email;
 
+        // Calculate passenger count
+        const adults = customerDetails.adults || 2;
+        const children = customerDetails.children || 0;
+        const passengerCount = adults + children;
+
         if (!email) {
           logger.warn('No email found for quote, skipping email notification', { quoteId: id });
         } else {
@@ -285,9 +292,12 @@ class QuoteController {
               email: email,
               referenceNumber: customerDetails.reference_number || id.substring(0, 8),
               cruiseName: cruise?.name || categories[0]?.category || 'Your Selected Cruise',
-              shipName: cruise?.shipName || '',
+              cruiseLineName: cruiseLine?.name || '',
+              shipName: ship?.name || '',
               departureDate: cruise?.sailingDate || '',
               returnDate: cruise?.returnDate || '',
+              nights: cruise?.nights,
+              passengerCount: passengerCount,
               categories: categories,
               notes: notes,
             });

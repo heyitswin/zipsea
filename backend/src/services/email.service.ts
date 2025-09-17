@@ -8,6 +8,7 @@ interface QuoteReadyEmailData {
   email: string;
   referenceNumber: string;
   cruiseName: string;
+  cruiseLineName?: string;
   shipName: string;
   shipId?: number;
   departureDate?: string;
@@ -134,8 +135,8 @@ export class EmailService {
         }
       };
 
-      // Extract cruise line name from ship name (first word)
-      const cruiseLineName = data.shipName ? data.shipName.split(' ')[0] : 'Cruise Line';
+      // Use provided cruise line name or default
+      const cruiseLineName = data.cruiseLineName || 'Cruise Line';
 
       // Build option sections with consistent styling
       let optionSections = '';
