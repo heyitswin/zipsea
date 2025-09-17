@@ -41,6 +41,15 @@ interface QuoteRequest {
   quote_response?: any;
   special_requirements?: string;
   customer_details?: any;
+  cruise_id: string;
+  cruise_name?: string;
+  adults?: number;
+  children?: number;
+  childAges?: number[];
+  travel_insurance?: boolean;
+  discount_qualifiers?: Record<string, any>;
+  special_requests?: string;
+  notes?: string;
 }
 
 interface ResponseModalProps {
