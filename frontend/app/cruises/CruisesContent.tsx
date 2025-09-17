@@ -1633,7 +1633,7 @@ export default function CruisesContent() {
                                       .toLocaleDateString("en-US", {
                                         month: "short",
                                         day: "numeric",
-                                        year: "2-digit",
+                                        year: "numeric",
                                         timeZone: "UTC",
                                       })
                                       .replace(/,/g, "");
@@ -1666,7 +1666,7 @@ export default function CruisesContent() {
                                       .toLocaleDateString("en-US", {
                                         month: "short",
                                         day: "numeric",
-                                        year: "2-digit",
+                                        year: "numeric",
                                         timeZone: "UTC",
                                       })
                                       .replace(/,/g, "");
@@ -1743,7 +1743,7 @@ export default function CruisesContent() {
                                       .toLocaleDateString("en-US", {
                                         month: "short",
                                         day: "numeric",
-                                        year: "2-digit",
+                                        year: "numeric",
                                         timeZone: "UTC",
                                       })
                                       .replace(/,/g, "");
@@ -1783,7 +1783,7 @@ export default function CruisesContent() {
                                       .toLocaleDateString("en-US", {
                                         month: "short",
                                         day: "numeric",
-                                        year: "2-digit",
+                                        year: "numeric",
                                         timeZone: "UTC",
                                       })
                                       .replace(/,/g, "");
