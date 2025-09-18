@@ -516,14 +516,9 @@ export class CruiseService {
       // Try cache first
       const cached = await cacheManager.get<CruiseDetails>(cacheKey);
       if (cached) {
-        logger.info(`[getCruiseDetails] Returning CACHED cruise details for ${cruiseId}`);
-        logger.info(
-          `[getCruiseDetails] Cached itinerary has ${cached.itinerary ? cached.itinerary.length : 0} entries`
-        );
+        logger.debug(`Returning cached cruise details for ${cruiseId}`);
         return cached;
       }
-
-      logger.info(`[getCruiseDetails] Cache miss for cruise ${cruiseId}, fetching from database`);
 
       // Create alias for disembark port
       const disembarkPort = aliasedTable(ports, 'disembark_port');
@@ -557,8 +552,6 @@ export class CruiseService {
       const disembarkPortData = cruiseResult[0].disembarkPort;
 
       // Get additional data in parallel
-      logger.info(`[getCruiseDetails] Fetching additional data for cruise ${cruiseId}`);
-
       const [
         regionsData,
         portsData,
@@ -570,19 +563,21 @@ export class CruiseService {
       ] = await Promise.all([
         this.getCruiseRegions(cruise),
         this.getCruisePorts(cruise),
-        this.getCruiseItinerary(cruiseId).catch(err => {
-          logger.error(`[getCruiseDetails] Failed to get itinerary for cruise ${cruiseId}:`, err);
-          return [];
-        }),
+        this.getCruiseItinerary(cruiseId),
         this.getCruisePricing(cruiseId),
         this.getCheapestPricing(cruiseId),
         this.getAlternativeSailings(cruiseId),
         this.getCabinCategories(cruise.shipId),
       ]);
 
-      logger.info(
-        `[getCruiseDetails] Got itinerary with ${itineraryData.length} entries for cruise ${cruiseId}`
-      );
+      // If no cabin categories found in database, try extracting from raw_data
+      let finalCabinCategories = cabinCategoriesData;
+      if ((!cabinCategoriesData || cabinCategoriesData.length === 0) && cruise.rawData) {
+        logger.info(
+          `[getCruiseDetails] No cabin categories in DB for cruise ${cruiseId}, extracting from raw_data`
+        );
+        finalCabinCategories = extractCabinCategoriesFromRawData(cruise.rawData);
+      }
 
       const cruiseDetails: CruiseDetails = {
         id: cruise.id,
@@ -604,7 +599,7 @@ export class CruiseService {
         pricing: pricingData,
         cheapestPricing: cheapestPricingData,
         alternativeSailings: alternativeSailingsData,
-        cabinCategories: cabinCategoriesData,
+        cabinCategories: finalCabinCategories,
         currency: cruise.currency || 'USD',
         isActive: cruise.isActive,
         lastCached: cruise.lastCached
@@ -803,66 +798,32 @@ export class CruiseService {
    */
   async getCruiseItinerary(cruiseId: number | string): Promise<ItineraryDay[]> {
     try {
-      logger.info(`[getCruiseItinerary] Fetching itinerary for cruise ${cruiseId}`);
+      const results = await db
+        .select({
+          itinerary: itineraries,
+          port: ports,
+        })
+        .from(itineraries)
+        .leftJoin(ports, eq(itineraries.portId, ports.id))
+        .where(eq(itineraries.cruiseId, String(cruiseId)))
+        .orderBy(asc(itineraries.dayNumber));
 
-      // Use direct Drizzle query without SQL template to avoid parameter issues
-      const cruiseIdStr = String(cruiseId);
-
-      // Using raw SQL to avoid schema mismatches with production database
-      // Production doesn't have isSeaDay, isTenderPort, or updatedAt columns
-      const query = sql`
-        SELECT
-          i.id,
-          i.cruise_id,
-          i.day_number,
-          i.port_id,
-          i.port_name,
-          i.arrive_time,
-          i.depart_time,
-          i.description,
-          i.overnight,
-          p.name as port_name_from_table,
-          p.code as port_code,
-          p.country as port_country
-        FROM cruise_itinerary i
-        LEFT JOIN ports p ON i.port_id = p.id
-        WHERE i.cruise_id = ${cruiseIdStr}
-        ORDER BY i.day_number ASC
-      `;
-
-      const results = await db.execute(query);
-      const rows = (results as any).rows || results || [];
-
-      logger.info(
-        `[getCruiseItinerary] Found ${rows.length} itinerary entries for cruise ${cruiseId}`
-      );
-
-      return rows.map((row: any) => ({
-        id: row.id?.toString() || '',
-        day: row.day_number || 0,
+      return results.map(row => ({
+        id: row.itinerary.id.toString(),
+        day: row.itinerary.dayNumber,
         date: new Date().toISOString(), // We don't have date field in DB, using placeholder
-        portName: row.port_name || row.port_name_from_table || 'Unknown Port',
-        port:
-          row.port_id && row.port_name_from_table
-            ? {
-                id: row.port_id,
-                name: row.port_name_from_table,
-                code: row.port_code || undefined,
-                country: row.port_country || undefined,
-              }
-            : undefined,
-        arrivalTime: row.arrive_time || undefined,
-        departureTime: row.depart_time || undefined,
-        status: row.port_name?.toLowerCase().includes('sea') ? 'sea-day' : 'port',
-        overnight: row.overnight || false,
-        description: row.description || undefined,
+        portName: row.itinerary.portName || 'Unknown Port',
+        port: row.port ? this.transformPortInfo(row.port) : undefined,
+        arrivalTime: row.itinerary.arrivalTime,
+        departureTime: row.itinerary.departureTime,
+        status: row.itinerary.isSeaDay ? 'sea-day' : 'port',
+        overnight: false, // Not available in current schema
+        description: row.itinerary.description,
         activities: [], // Not available in current schema
         shoreExcursions: [], // Not available in current schema
       }));
     } catch (error) {
       logger.error(`Failed to get itinerary for cruise ${cruiseId}:`, error);
-      // Log the actual error details for debugging
-      logger.error(`Error details:`, error instanceof Error ? error.stack : error);
       return []; // Return empty array instead of throwing
     }
   }
