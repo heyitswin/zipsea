@@ -556,14 +556,16 @@ function HomeWithParams() {
               alt=""
               width={4755}
               height={60}
-              className="mr-0 w-[4755px] h-[60px] md:w-auto md:h-auto"
+              className="mr-0 h-[60px] w-auto md:h-auto md:w-auto"
+              style={{ minWidth: "4755px" }}
             />
             <Image
               src="/images/logos-strip.png"
               alt=""
               width={4755}
               height={60}
-              className="mr-0 w-[4755px] h-[60px] md:w-auto md:h-auto"
+              className="mr-0 h-[60px] w-auto md:h-auto md:w-auto"
+              style={{ minWidth: "4755px" }}
             />
           </div>
         </div>
