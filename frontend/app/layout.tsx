@@ -127,23 +127,23 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProviderWrapper>
+      {/* Google tag (gtag.js) - beforeInteractive loads in head */}
+      <Script
+        src="https://www.googletagmanager.com/gtag/js?id=AW-17578519507"
+        strategy="beforeInteractive"
+      />
+      <Script id="google-analytics" strategy="beforeInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'AW-17578519507');
+        `}
+      </Script>
       <html lang="en">
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          {/* Google tag (gtag.js) */}
-          <Script
-            src="https://www.googletagmanager.com/gtag/js?id=AW-17578519507"
-            strategy="afterInteractive"
-          />
-          <Script id="google-analytics" strategy="afterInteractive">
-            {`
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'AW-17578519507');
-            `}
-          </Script>
           <PostHogProviderWrapper>
             <Suspense fallback={null}>
               <PostHogPageView />
