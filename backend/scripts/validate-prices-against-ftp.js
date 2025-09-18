@@ -5,9 +5,7 @@ const path = require('path');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('localhost')
-    ? false
-    : { rejectUnauthorized: false }
+  ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false },
 });
 
 async function validatePricesAgainstFTP() {
@@ -21,10 +19,10 @@ async function validatePricesAgainstFTP() {
     // Connect to FTP
     console.log('Connecting to FTP server...');
     await ftpClient.access({
-      host: process.env.FTP_HOST || 'ftpeu1prod.traveltek.net',
-      user: process.env.FTP_USER || 'CEP_9_USD',
-      password: process.env.FTP_PASSWORD,
-      secure: false
+      host: process.env.TRAVELTEK_FTP_HOST || process.env.FTP_HOST || 'ftpeu1prod.traveltek.net',
+      user: process.env.TRAVELTEK_FTP_USER || process.env.FTP_USER || 'CEP_9_USD',
+      password: process.env.TRAVELTEK_FTP_PASSWORD || process.env.FTP_PASSWORD,
+      secure: false,
     });
     console.log('✅ Connected to FTP\n');
 
@@ -58,7 +56,9 @@ async function validatePricesAgainstFTP() {
     `;
 
     const result = await pool.query(sampleQuery);
-    console.log(`Found ${result.rows.length} sample cruises from ${new Set(result.rows.map(r => r.cruise_line)).size} cruise lines\n`);
+    console.log(
+      `Found ${result.rows.length} sample cruises from ${new Set(result.rows.map(r => r.cruise_line)).size} cruise lines\n`
+    );
 
     // Group by cruise line
     const cruisesByLine = {};
@@ -76,13 +76,13 @@ async function validatePricesAgainstFTP() {
       mismatches: 0,
       fileNotFound: 0,
       errors: 0,
-      details: []
+      details: [],
     };
 
     // Check each cruise line
     for (const [cruiseLine, cruises] of Object.entries(cruisesByLine)) {
       console.log(`\n${cruiseLine} (${cruises.length} cruises):`);
-      console.log('=' .repeat(60));
+      console.log('='.repeat(60));
 
       for (const cruise of cruises) {
         validationResults.totalChecked++;
@@ -104,7 +104,8 @@ async function validatePricesAgainstFTP() {
 
           // Search for the cruise file in each ship directory
           for (const dir of dirs) {
-            if (dir.type === 2) { // Directory
+            if (dir.type === 2) {
+              // Directory
               const possiblePath = `${ftpBasePath}/${dir.name}/${cruise.cruise_id}.json`;
               try {
                 // Try to download the file
@@ -131,7 +132,7 @@ async function validatePricesAgainstFTP() {
             interior: ftpData.cheapestinside ? parseFloat(String(ftpData.cheapestinside)) : null,
             oceanview: ftpData.cheapestoutside ? parseFloat(String(ftpData.cheapestoutside)) : null,
             balcony: ftpData.cheapestbalcony ? parseFloat(String(ftpData.cheapestbalcony)) : null,
-            suite: ftpData.cheapestsuite ? parseFloat(String(ftpData.cheapestsuite)) : null
+            suite: ftpData.cheapestsuite ? parseFloat(String(ftpData.cheapestsuite)) : null,
           };
 
           // Compare prices
@@ -139,7 +140,7 @@ async function validatePricesAgainstFTP() {
             interior: cruise.interior_price ? parseFloat(cruise.interior_price) : null,
             oceanview: cruise.oceanview_price ? parseFloat(cruise.oceanview_price) : null,
             balcony: cruise.balcony_price ? parseFloat(cruise.balcony_price) : null,
-            suite: cruise.suite_price ? parseFloat(cruise.suite_price) : null
+            suite: cruise.suite_price ? parseFloat(cruise.suite_price) : null,
           };
 
           const priceMatch =
@@ -150,15 +151,23 @@ async function validatePricesAgainstFTP() {
 
           if (priceMatch) {
             console.log(`  ✅ ${cruise.name} (${cruise.cruise_id})`);
-            console.log(`     Prices match! Interior: $${dbPrices.interior || 'N/A'}, Ocean: $${dbPrices.oceanview || 'N/A'}, Balcony: $${dbPrices.balcony || 'N/A'}, Suite: $${dbPrices.suite || 'N/A'}`);
+            console.log(
+              `     Prices match! Interior: $${dbPrices.interior || 'N/A'}, Ocean: $${dbPrices.oceanview || 'N/A'}, Balcony: $${dbPrices.balcony || 'N/A'}, Suite: $${dbPrices.suite || 'N/A'}`
+            );
             validationResults.matches++;
           } else {
             console.log(`  ⚠️  ${cruise.name} (${cruise.cruise_id})`);
             console.log(`     MISMATCH DETECTED!`);
-            console.log(`     DB:  Interior: $${dbPrices.interior || 'N/A'}, Ocean: $${dbPrices.oceanview || 'N/A'}, Balcony: $${dbPrices.balcony || 'N/A'}, Suite: $${dbPrices.suite || 'N/A'}`);
-            console.log(`     FTP: Interior: $${ftpPrices.interior || 'N/A'}, Ocean: $${ftpPrices.oceanview || 'N/A'}, Balcony: $${ftpPrices.balcony || 'N/A'}, Suite: $${ftpPrices.suite || 'N/A'}`);
+            console.log(
+              `     DB:  Interior: $${dbPrices.interior || 'N/A'}, Ocean: $${dbPrices.oceanview || 'N/A'}, Balcony: $${dbPrices.balcony || 'N/A'}, Suite: $${dbPrices.suite || 'N/A'}`
+            );
+            console.log(
+              `     FTP: Interior: $${ftpPrices.interior || 'N/A'}, Ocean: $${ftpPrices.oceanview || 'N/A'}, Balcony: $${ftpPrices.balcony || 'N/A'}, Suite: $${ftpPrices.suite || 'N/A'}`
+            );
             console.log(`     Last synced: ${cruise.updated_at}`);
-            console.log(`     Hours since sync: ${Math.round((Date.now() - new Date(cruise.updated_at)) / (1000 * 60 * 60))}`);
+            console.log(
+              `     Hours since sync: ${Math.round((Date.now() - new Date(cruise.updated_at)) / (1000 * 60 * 60))}`
+            );
             validationResults.mismatches++;
 
             validationResults.details.push({
@@ -168,10 +177,11 @@ async function validatePricesAgainstFTP() {
               dbPrices,
               ftpPrices,
               lastSync: cruise.updated_at,
-              hoursSinceSync: Math.round((Date.now() - new Date(cruise.updated_at)) / (1000 * 60 * 60))
+              hoursSinceSync: Math.round(
+                (Date.now() - new Date(cruise.updated_at)) / (1000 * 60 * 60)
+              ),
             });
           }
-
         } catch (error) {
           console.log(`  ❌ ${cruise.name} (${cruise.cruise_id})`);
           console.log(`     Error: ${error.message}`);
@@ -185,9 +195,15 @@ async function validatePricesAgainstFTP() {
     console.log('VALIDATION SUMMARY');
     console.log('='.repeat(80));
     console.log(`Total cruises checked: ${validationResults.totalChecked}`);
-    console.log(`✅ Matches: ${validationResults.matches} (${(validationResults.matches/validationResults.totalChecked*100).toFixed(1)}%)`);
-    console.log(`⚠️  Mismatches: ${validationResults.mismatches} (${(validationResults.mismatches/validationResults.totalChecked*100).toFixed(1)}%)`);
-    console.log(`📁 Files not found: ${validationResults.fileNotFound} (${(validationResults.fileNotFound/validationResults.totalChecked*100).toFixed(1)}%)`);
+    console.log(
+      `✅ Matches: ${validationResults.matches} (${((validationResults.matches / validationResults.totalChecked) * 100).toFixed(1)}%)`
+    );
+    console.log(
+      `⚠️  Mismatches: ${validationResults.mismatches} (${((validationResults.mismatches / validationResults.totalChecked) * 100).toFixed(1)}%)`
+    );
+    console.log(
+      `📁 Files not found: ${validationResults.fileNotFound} (${((validationResults.fileNotFound / validationResults.totalChecked) * 100).toFixed(1)}%)`
+    );
     console.log(`❌ Errors: ${validationResults.errors}`);
 
     if (validationResults.mismatches > 0) {
@@ -220,7 +236,6 @@ async function validatePricesAgainstFTP() {
         }
       }
     }
-
   } catch (error) {
     console.error('❌ Validation failed:', error.message);
   } finally {
