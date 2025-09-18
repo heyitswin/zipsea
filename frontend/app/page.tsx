@@ -190,9 +190,9 @@ function HomeWithParams() {
         </div>
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col items-center justify-center h-[calc(720px-220px)] px-4">
+        <div className="relative z-10 flex flex-col items-center justify-center h-[calc(720px-220px)] px-4 pt-[60px]">
           {/* Main Heading - Responsive */}
-          <h1 className="text-sunshine text-[48px] md:text-[72px] font-whitney uppercase text-center leading-none tracking-tight mb-6 md:mb-10">
+          <h1 className="text-sunshine text-[48px] md:text-[72px] font-whitney uppercase text-center leading-none tracking-tight mb-3 md:mb-5">
             The smartest
             <br />
             way to cruise
@@ -238,7 +238,7 @@ function HomeWithParams() {
           </button>
 
           {/* Trust Indicators */}
-          <div className="mt-[150px] flex flex-col items-center gap-2">
+          <div className="mt-[75px] flex flex-col items-center gap-2">
             <p className="text-white text-[10px] font-geograph font-bold uppercase tracking-[0.1em]">
               TRUSTED BY HUNDREDS OF CRUISERS
             </p>
@@ -249,7 +249,7 @@ function HomeWithParams() {
                   width="16"
                   height="16"
                   viewBox="0 0 24 24"
-                  fill="#F4AC38"
+                  fill="#F7F170"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />

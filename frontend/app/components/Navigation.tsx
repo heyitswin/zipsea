@@ -701,15 +701,15 @@ export default function Navigation({
                     )}
                   </div>
                 ) : (
-                  // Sign up/Log in Button
+                  // Sign in Link - no border, just text
                   <button
                     onClick={() => setIsLoginModalOpen(true)}
-                    className={`px-4 py-1.5 border rounded-full text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
+                    className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
                       isScrolled ||
                       (isCruiseDetailPage && !isScrolled) ||
                       (isCruisesPage && !isScrolled)
-                        ? "border-[#0E1B4D] text-[#0E1B4D] bg-transparent"
-                        : "border-white text-white bg-transparent"
+                        ? "text-[#0E1B4D]"
+                        : "text-white"
                     }`}
                   >
                     Sign in
