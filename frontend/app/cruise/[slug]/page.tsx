@@ -949,14 +949,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Title and Description */}
-                  <div
-                    className="px-0 md:px-5 py-4 md:py-3 flex-1"
-                    style={{ minWidth: "400px", maxWidth: "480px" }}
-                  >
+                  <div className="px-0 md:px-5 py-4 md:py-3 flex-1 min-w-0 md:min-w-[400px] max-w-full md:max-w-[480px]">
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       {getCabinName("interior") || "Inside Cabin"}
                     </h3>
-                    <p className="font-geograph text-[14px] text-gray-600 leading-relaxed">
+                    <p className="font-geograph text-[14px] text-gray-600 leading-relaxed break-words">
                       {getCabinDescription("interior") ||
                         "Comfortable interior stateroom with twin beds that can convert to queen"}
                     </p>
@@ -1029,14 +1026,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Title and Description */}
-                  <div
-                    className="px-0 md:px-5 py-4 md:py-3 flex-1"
-                    style={{ minWidth: "400px", maxWidth: "480px" }}
-                  >
+                  <div className="px-0 md:px-5 py-4 md:py-3 flex-1 min-w-0 md:min-w-[400px] max-w-full md:max-w-[480px]">
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       {getCabinName("oceanview") || "Outside Cabin"}
                     </h3>
-                    <p className="font-geograph text-[14px] text-gray-600 leading-relaxed">
+                    <p className="font-geograph text-[14px] text-gray-600 leading-relaxed break-words">
                       {getCabinDescription("oceanview") ||
                         "Ocean view stateroom with window and twin beds that can convert to queen"}
                     </p>
@@ -1109,14 +1103,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Title and Description */}
-                  <div
-                    className="px-0 md:px-5 py-4 md:py-3 flex-1"
-                    style={{ minWidth: "400px", maxWidth: "480px" }}
-                  >
+                  <div className="px-0 md:px-5 py-4 md:py-3 flex-1 min-w-0 md:min-w-[400px] max-w-full md:max-w-[480px]">
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       {getCabinName("balcony") || "Balcony Cabin"}
                     </h3>
-                    <p className="font-geograph text-[14px] text-gray-600 leading-relaxed">
+                    <p className="font-geograph text-[14px] text-gray-600 leading-relaxed break-words">
                       {getCabinDescription("balcony") ||
                         "Private balcony stateroom with sliding glass door and ocean views"}
                     </p>
@@ -1189,14 +1180,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   </div>
 
                   {/* Title and Description */}
-                  <div
-                    className="px-0 md:px-5 py-4 md:py-3 flex-1"
-                    style={{ minWidth: "400px", maxWidth: "480px" }}
-                  >
+                  <div className="px-0 md:px-5 py-4 md:py-3 flex-1 min-w-0 md:min-w-[400px] max-w-full md:max-w-[480px]">
                     <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                       {getCabinName("suite") || "Suite Cabin"}
                     </h3>
-                    <p className="font-geograph text-[14px] text-gray-600 leading-relaxed">
+                    <p className="font-geograph text-[14px] text-gray-600 leading-relaxed break-words">
                       {getCabinDescription("suite") ||
                         "Spacious suite with separate living area, private balcony, and premium amenities"}
                     </p>
