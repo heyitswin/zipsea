@@ -97,21 +97,10 @@ export class ComprehensiveSearchService {
       const conditions: any[] = [
         eq(cruises.isActive, true),
         gte(cruises.sailingDate, minDepartureDate),
-        // Filter out cruises with no valid prices or prices <= $99
-        sql`(
-          LEAST(
-            COALESCE(${cruises.interiorPrice}, 999999),
-            COALESCE(${cruises.oceanviewPrice}, 999999),
-            COALESCE(${cruises.balconyPrice}, 999999),
-            COALESCE(${cruises.suitePrice}, 999999)
-          ) > 99
-          AND (
-            ${cruises.interiorPrice} IS NOT NULL OR
-            ${cruises.oceanviewPrice} IS NOT NULL OR
-            ${cruises.balconyPrice} IS NOT NULL OR
-            ${cruises.suitePrice} IS NOT NULL
-          )
-        )`,
+        // Filter out cruises with no valid prices
+        // Use the cheapest_price field for efficient filtering
+        isNotNull(cruises.cheapestPrice),
+        sql`${cruises.cheapestPrice} > 99`,
       ];
 
       // Text search
@@ -226,6 +215,14 @@ export class ComprehensiveSearchService {
         }
       }
 
+      // Apply price filters using the cheapest_price field
+      if (filters.minPrice) {
+        conditions.push(gte(cruises.cheapestPrice, String(filters.minPrice)));
+      }
+      if (filters.maxPrice) {
+        conditions.push(lte(cruises.cheapestPrice, String(filters.maxPrice)));
+      }
+
       // Build the main query - with JOINs for proper data
       let query = db
         .select({
@@ -267,36 +264,13 @@ export class ComprehensiveSearchService {
         .leftJoin(sql`ports dp`, sql`dp.id = ${cruises.disembarkPortId}`)
         .where(and(...conditions));
 
-      // Apply price filters if we have pricing data
-      if (filters.minPrice || filters.maxPrice) {
-        // Use LEAST to get minimum price across all cabin types
-        const priceExpression = sql`LEAST(
-          COALESCE(${cruises.interiorPrice}, 999999),
-          COALESCE(${cruises.oceanviewPrice}, 999999),
-          COALESCE(${cruises.balconyPrice}, 999999),
-          COALESCE(${cruises.suitePrice}, 999999)
-        )`;
-
-        if (filters.minPrice) {
-          query = query.where(sql`${priceExpression} >= ${filters.minPrice}`);
-        }
-        if (filters.maxPrice) {
-          query = query.where(sql`${priceExpression} <= ${filters.maxPrice}`);
-        }
-      }
-
       // Apply sorting
       if (sortBy === 'price') {
-        const priceExpression = sql`LEAST(
-          COALESCE(${cruises.interiorPrice}, 999999),
-          COALESCE(${cruises.oceanviewPrice}, 999999),
-          COALESCE(${cruises.balconyPrice}, 999999),
-          COALESCE(${cruises.suitePrice}, 999999)
-        )`;
+        // Use cheapest_price field for efficient sorting
         query =
           sortOrder === 'desc'
-            ? query.orderBy(desc(priceExpression))
-            : query.orderBy(asc(priceExpression));
+            ? query.orderBy(desc(cruises.cheapestPrice))
+            : query.orderBy(asc(cruises.cheapestPrice));
       } else if (sortBy === 'nights') {
         query =
           sortOrder === 'desc'

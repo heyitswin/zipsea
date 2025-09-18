@@ -31,17 +31,19 @@ class SearchComprehensiveController {
         q: req.query.q as string,
 
         // Date filters - handle multiple months
-        departureMonth: req.query.departureMonth
-          ? Array.isArray(req.query.departureMonth)
-            ? (req.query.departureMonth as string[])
-            : [req.query.departureMonth as string]
-          : undefined,
+        // Support both 'departureMonth' and 'months' parameter names
+        departureMonth: (() => {
+          const param = req.query.departureMonth || req.query.months;
+          if (!param) return undefined;
+          return Array.isArray(param) ? (param as string[]) : [param as string];
+        })(),
         startDate: req.query.startDate as string,
         endDate: req.query.endDate as string,
 
         // Location filters - support both single and array values
+        // Support both 'cruiseLineId' and 'cruiseLines' parameter names
         cruiseLineId: (() => {
-          const param = req.query.cruiseLineId;
+          const param = req.query.cruiseLineId || req.query.cruiseLines;
           console.log(
             'Raw cruiseLineId param:',
             param,
@@ -237,17 +239,17 @@ class SearchComprehensiveController {
     try {
       // Parse current filters to get contextual facets
       const filters: ComprehensiveSearchFilters = {
-        cruiseLineId: req.query.cruiseLineId
-          ? Array.isArray(req.query.cruiseLineId)
-            ? req.query.cruiseLineId.map(Number)
-            : Number(req.query.cruiseLineId)
-          : undefined,
+        cruiseLineId: (() => {
+          const param = req.query.cruiseLineId || req.query.cruiseLines;
+          if (!param) return undefined;
+          return Array.isArray(param) ? param.map(Number) : Number(param);
+        })(),
         regionId: req.query.regionId
           ? Array.isArray(req.query.regionId)
             ? req.query.regionId.map(Number)
             : Number(req.query.regionId)
           : undefined,
-        departureMonth: req.query.departureMonth as string,
+        departureMonth: (req.query.departureMonth || req.query.months) as string,
       };
 
       const facets = await comprehensiveSearchService.getSearchFacets(filters);
