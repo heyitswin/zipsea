@@ -88,6 +88,8 @@ export interface ComprehensiveCruiseData {
     isActive?: boolean;
     createdAt: string;
     updatedAt: string;
+    // Raw JSON data from Traveltek
+    rawData?: any;
     // Raw database fields
     raw: any;
   };
@@ -1260,6 +1262,7 @@ export class CruiseService {
               ? cruise.updatedAt
               : cruise.updatedAt.toISOString()
             : null,
+          rawData: cruise.rawData, // Include rawData for cabin extraction fallback
           raw: cruise,
         },
         cruiseLine: cruiseLine
