@@ -384,47 +384,45 @@ export default function CruisesContent() {
         return;
       }
 
-      if (response.ok) {
-        const data = await response.json();
-
-        // Double-check this is still the current request before updating state
-        if (currentRequestId !== requestCounterRef.current) {
-          console.log(
-            `=== IGNORING STALE DATA #${currentRequestId} (current: ${requestCounterRef.current}) ===`,
-          );
-          return;
-        }
-
-        // Backend now filters out cruises with no prices or prices <= $99
-        // So we can directly use the results without frontend filtering
-        const cruisesData = data.results || data.cruises || [];
-
-        console.log(
-          `=== UPDATING CRUISES FROM REQUEST #${currentRequestId} ===`,
-        );
-        console.log(`Found ${cruisesData.length} cruises matching filters`);
-
-        // Log first few cruises to verify they match the filters
-        if (cruisesData.length > 0) {
-          console.log(
-            "First 3 cruises:",
-            cruisesData.slice(0, 3).map((c: any) => ({
-              id: c.id,
-              name: c.name,
-              sailingDate: c.sailing_date,
-              cruiseLine: c.cruise_line_name,
-            })),
-          );
-        }
-
-        setCruises(cruisesData);
-        // Use total from API pagination if available
-        setTotalCount(data.total || cruisesData.length);
-      } else {
+      if (!response.ok) {
         const errorText = await response.text();
         console.error("API response not ok:", response.status, errorText);
         throw new Error(`API response not ok: ${response.status}`);
       }
+
+      const data = await response.json();
+
+      // Double-check this is still the current request before updating state
+      if (currentRequestId !== requestCounterRef.current) {
+        console.log(
+          `=== IGNORING STALE DATA #${currentRequestId} (current: ${requestCounterRef.current}) ===`,
+        );
+        return;
+      }
+
+      // Backend now filters out cruises with no prices or prices <= $99
+      // So we can directly use the results without frontend filtering
+      const cruisesData = data.results || data.cruises || [];
+
+      console.log(`=== UPDATING CRUISES FROM REQUEST #${currentRequestId} ===`);
+      console.log(`Found ${cruisesData.length} cruises matching filters`);
+
+      // Log first few cruises to verify they match the filters
+      if (cruisesData.length > 0) {
+        console.log(
+          "First 3 cruises:",
+          cruisesData.slice(0, 3).map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            sailingDate: c.sailing_date,
+            cruiseLine: c.cruise_line_name,
+          })),
+        );
+      }
+
+      setCruises(cruisesData);
+      // Use total from API pagination if available
+      setTotalCount(data.total || cruisesData.length);
     } catch (error) {
       console.error("Error fetching cruises:", error);
       if (error instanceof Error && error.message.includes("abort")) {
