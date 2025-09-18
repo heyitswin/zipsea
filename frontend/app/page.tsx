@@ -550,20 +550,22 @@ function HomeWithParams() {
 
         {/* Logo Strip Marquee - Full Width */}
         <div className="w-full overflow-hidden">
-          <div className="flex animate-marquee">
+          <div className="flex animate-marquee" style={{ minWidth: "9510px" }}>
             <Image
               src="/images/logos-strip.png"
               alt=""
               width={4755}
               height={60}
-              className="mr-0"
+              className="mr-0 flex-shrink-0"
+              style={{ width: "4755px", height: "60px" }}
             />
             <Image
               src="/images/logos-strip.png"
               alt=""
               width={4755}
               height={60}
-              className="mr-0"
+              className="mr-0 flex-shrink-0"
+              style={{ width: "4755px", height: "60px" }}
             />
           </div>
         </div>
