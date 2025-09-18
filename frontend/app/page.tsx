@@ -108,7 +108,7 @@ function HomeWithParams() {
   };
 
   const handleSearchClick = () => {
-    router.push("/search");
+    router.push("/cruises");
   };
 
   return (
@@ -238,7 +238,7 @@ function HomeWithParams() {
           </button>
 
           {/* Trust Indicators */}
-          <div className="mt-[75px] flex flex-col items-center gap-2">
+          <div className="mt-[38px] flex flex-col items-center gap-2">
             <p className="text-white text-[10px] font-geograph font-bold uppercase tracking-[0.1em]">
               TRUSTED BY HUNDREDS OF CRUISERS
             </p>

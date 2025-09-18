@@ -599,18 +599,6 @@ export default function Navigation({
           {/* Navigation Links and Button (Desktop Only) */}
           <div className="hidden md:flex items-center gap-8">
             <a
-              href="/cruises"
-              className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                isScrolled ||
-                (isCruiseDetailPage && !isScrolled) ||
-                (isCruisesPage && !isScrolled)
-                  ? "text-[#0E1B4D]"
-                  : "text-white"
-              }`}
-            >
-              Browse Cruises
-            </a>
-            <a
               href="/why-zipsea"
               className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
                 isScrolled ||
@@ -718,7 +706,7 @@ export default function Navigation({
 
                 {/* Browse Cruises Button - After Sign in */}
                 <a
-                  href="/search"
+                  href="/cruises"
                   className="px-4 py-1.5 bg-[#2238C3] text-white rounded-full text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300"
                 >
                   Browse Cruises
@@ -1088,7 +1076,7 @@ export default function Navigation({
 
                   {/* Browse Cruises Button - Mobile */}
                   <a
-                    href="/search"
+                    href="/cruises"
                     className="w-full px-6 py-3 bg-[#2238C3] text-white rounded-full text-[18px] font-medium font-geograph text-center"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
