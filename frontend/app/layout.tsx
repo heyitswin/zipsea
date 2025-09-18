@@ -128,7 +128,9 @@ export default function RootLayout({
   return (
     <ClerkProviderWrapper>
       <html lang="en">
-        <head>
+        <body
+          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        >
           {/* Google tag (gtag.js) */}
           <Script
             src="https://www.googletagmanager.com/gtag/js?id=AW-17578519507"
@@ -142,10 +144,6 @@ export default function RootLayout({
               gtag('config', 'AW-17578519507');
             `}
           </Script>
-        </head>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        >
           <PostHogProviderWrapper>
             <Suspense fallback={null}>
               <PostHogPageView />
