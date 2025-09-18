@@ -499,7 +499,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
     return {
       image: cabinCategory
-        ? cabinCategory.imageUrlHd || cabinCategory.imageUrl
+        ? cabinCategory.imageUrl || cabinCategory.imageUrlHd // Prefer regular URL as HD often broken
         : null,
       description: cabinCategory?.description || null,
     };
