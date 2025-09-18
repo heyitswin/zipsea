@@ -115,7 +115,7 @@ function HomeWithParams() {
       <Navigation />
 
       {/* Hero Section */}
-      <section className="relative h-[720px] bg-light-blue pt-[80px] md:pt-[100px] pb-[10px] md:pb-[100px] overflow-visible z-20">
+      <section className="relative h-[620px] md:h-[720px] bg-light-blue pt-[80px] md:pt-[100px] pb-[10px] md:pb-[100px] overflow-visible z-20">
         {/* Floating Swimmers - Behind all content - Hidden on mobile */}
         <div className="absolute inset-0 z-0 hidden md:block">
           {/* Swimmer 1 */}
@@ -189,7 +189,7 @@ function HomeWithParams() {
         </div>
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col items-center justify-center h-[calc(720px-220px)] px-4 pt-[60px]">
+        <div className="relative z-10 flex flex-col items-center justify-center h-[calc(620px-120px)] md:h-[calc(720px-220px)] px-4 pt-[60px]">
           {/* Main Heading - Responsive */}
           <h1 className="text-sunshine text-[48px] md:text-[72px] font-whitney uppercase text-center leading-none tracking-tight mb-3 md:mb-5">
             The smartest
@@ -280,7 +280,8 @@ function HomeWithParams() {
 
           {/* Headline */}
           <h2 className="text-center text-[#0E1B4D] text-[36px] md:text-[52px] font-whitney uppercase leading-none tracking-[-0.02em] mb-8">
-            Same Ship. Same Price.
+            Same Ship.
+            <br className="md:hidden" /> Same Price.
             <br />
             More to spend onboard
           </h2>
@@ -443,7 +444,7 @@ function HomeWithParams() {
 
           {/* Everything Else Section */}
           <div className="max-w-[880px] mx-auto mt-16">
-            <h3 className="text-white text-[28px] md:text-[32px] font-whitney uppercase tracking-[-0.02em] mb-6">
+            <h3 className="text-white text-[28px] md:text-[32px] font-whitney uppercase tracking-[-0.02em] mb-6 leading-none">
               Everything else works the same
             </h3>
             <p className="text-[#E9B4EB] text-[18px] md:text-[20px] font-geograph leading-[1.5] tracking-[-0.02em]">
@@ -497,7 +498,7 @@ function HomeWithParams() {
                 alt="Royal Caribbean"
                 width={140}
                 height={60}
-                className="mb-2"
+                className="mb-2 mx-auto"
               />
               <p className="text-[#2F2F2F] text-[12px] font-geograph font-bold uppercase tracking-[0.1em]">
                 ACCREDITED TRAVEL AGENCY
@@ -518,7 +519,7 @@ function HomeWithParams() {
                 alt="Carnival"
                 width={155}
                 height={60}
-                className="mb-2"
+                className="mb-2 mx-auto"
               />
               <p className="text-[#2F2F2F] text-[12px] font-geograph font-bold uppercase tracking-[0.1em]">
                 ACCREDITED TRAVEL AGENCY
@@ -539,7 +540,7 @@ function HomeWithParams() {
                 alt="Norwegian"
                 width={180}
                 height={60}
-                className="mb-2"
+                className="mb-2 mx-auto"
               />
               <p className="text-[#2F2F2F] text-[12px] font-geograph font-bold uppercase tracking-[0.1em]">
                 ACCREDITED TRAVEL AGENCY
@@ -548,8 +549,8 @@ function HomeWithParams() {
           </div>
         </div>
 
-        {/* Logo Strip Marquee - Full Width */}
-        <div className="w-full overflow-hidden">
+        {/* Logo Strip Marquee - Full Width - Desktop Only */}
+        <div className="hidden md:block w-full overflow-hidden">
           <div className="flex animate-marquee">
             <Image
               src="/images/logos-strip.png"
