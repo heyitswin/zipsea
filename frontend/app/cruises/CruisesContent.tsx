@@ -419,7 +419,7 @@ export default function CruisesContent() {
 
         setCruises(cruisesData);
         // Use total from API pagination if available
-        setTotalCount(result.total || cruisesData.length);
+        setTotalCount(data.total || cruisesData.length);
       } else {
         const errorText = await response.text();
         console.error("API response not ok:", response.status, errorText);
