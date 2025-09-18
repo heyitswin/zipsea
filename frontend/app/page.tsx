@@ -116,27 +116,104 @@ function HomeWithParams() {
       <Navigation />
 
       {/* Hero Section */}
-      <section className="relative bg-[#0E1B4D] overflow-hidden h-[720px] md:h-[720px]">
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0E1B4D]/70 via-[#0E1B4D]/50 to-[#0E1B4D]/70 z-[5]" />
-          <div className="absolute inset-0">
+      <section className="relative h-[720px] bg-light-blue pt-[120px] md:pt-[100px] pb-[50px] md:pb-[100px] overflow-visible z-20">
+        {/* Floating Swimmers - Behind all content - Hidden on mobile */}
+        <div className="absolute inset-0 z-0 hidden md:block">
+          {/* Swimmer 1 */}
+          <div
+            className="absolute swimmer-float-1"
+            style={{
+              top: "15%",
+              left: "8%",
+              width: "auto",
+              height: "auto",
+            }}
+          >
             <OptimizedImage
-              src="/images/homepage-hero.webp"
-              alt="Cruise ship on ocean"
-              fill
-              priority
-              quality={85}
-              sizes="100vw"
+              src="/images/swimmer-1.png"
+              alt=""
+              width={200}
+              height={100}
+              className="opacity-100"
               style={{
-                objectFit: "cover",
-                objectPosition: "center",
+                width: "140px",
+                height: "auto",
+              }}
+            />
+          </div>
+
+          {/* Swimmer 2 */}
+          <div
+            className="absolute swimmer-float-2"
+            style={{
+              top: "15%",
+              right: "5%",
+              width: "auto",
+              height: "auto",
+            }}
+          >
+            <OptimizedImage
+              src="/images/swimmer-2.png"
+              alt=""
+              width={200}
+              height={100}
+              className="opacity-100"
+              style={{
+                width: "160px",
+                height: "auto",
+              }}
+            />
+          </div>
+
+          {/* Swimmer 3 */}
+          <div
+            className="absolute swimmer-float-3"
+            style={{
+              bottom: "20%",
+              left: "10%",
+              width: "auto",
+              height: "auto",
+            }}
+          >
+            <OptimizedImage
+              src="/images/swimmer-3.png"
+              alt=""
+              width={160}
+              height={80}
+              className="opacity-100"
+              style={{
+                width: "120px",
+                height: "auto",
+              }}
+            />
+          </div>
+
+          {/* Swimmer 4 */}
+          <div
+            className="absolute swimmer-float-4"
+            style={{
+              bottom: "25%",
+              right: "8%",
+              width: "auto",
+              height: "auto",
+            }}
+          >
+            <OptimizedImage
+              src="/images/swimmer-4.png"
+              alt=""
+              width={160}
+              height={80}
+              className="opacity-100"
+              style={{
+                width: "140px",
+                height: "auto",
               }}
             />
           </div>
         </div>
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col items-center justify-center h-[calc(720px-100px)] px-4 -mt-[80px]">
+        <div className="relative z-10 flex flex-col items-center justify-center h-[calc(720px-220px)] px-4">
           {/* Main Heading - Responsive */}
           <h1 className="text-sunshine text-[48px] md:text-[72px] font-whitney uppercase text-center leading-none tracking-tight mb-6 md:mb-10">
             The smartest way to cruise
@@ -153,32 +230,30 @@ function HomeWithParams() {
           {/* CTA Button */}
           <button
             onClick={handleSearchClick}
-            className="bg-sunshine hover:bg-sunshine/90 text-dark-blue px-8 py-4 rounded-full text-[20px] font-geograph font-medium tracking-tight transition-all duration-200 flex items-center gap-2"
+            className="bg-[#0E1B4D] hover:bg-[#0E1B4D]/90 text-sunshine px-8 py-4 rounded-full text-[20px] font-geograph font-medium tracking-tight transition-all duration-200 flex items-center gap-2"
             style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
           >
-            <Image
-              src="/images/search-icon.svg"
-              alt=""
-              width={20}
-              height={20}
-            />
+            <Image src="/images/search.svg" alt="" width={20} height={20} />
             Find my cruise
           </button>
 
           {/* Trust Indicators */}
-          <div className="mt-[100px] flex flex-col items-center gap-3">
+          <div className="mt-[50px] flex flex-col items-center gap-3">
             <p className="text-white text-[10px] font-geograph font-bold uppercase tracking-[0.1em]">
               TRUSTED BY HUNDREDS OF CRUISERS
             </p>
             <div className="flex items-center gap-[6px]">
               {[...Array(5)].map((_, i) => (
-                <Image
+                <svg
                   key={i}
-                  src="/images/small-star.svg"
-                  alt=""
-                  width={16}
-                  height={16}
-                />
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="#F4AC38"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                </svg>
               ))}
             </div>
           </div>
@@ -187,11 +262,12 @@ function HomeWithParams() {
 
       {/* Hero Section Separator */}
       <div
-        className="h-[4px] md:h-[6px] bg-contain"
+        className="w-full h-[21px]"
         style={{
           backgroundImage: 'url("/images/separator-7.png")',
           backgroundRepeat: "repeat-x",
-          backgroundPosition: "center",
+          backgroundSize: "1749px 21px",
+          backgroundPosition: "left top",
         }}
       />
 
@@ -199,7 +275,7 @@ function HomeWithParams() {
       <section className="bg-white py-[80px] md:py-[120px]">
         <div className="max-w-7xl mx-auto px-8">
           {/* Caption */}
-          <p className="text-center text-[#2238C3] text-[10px] font-geograph font-bold uppercase tracking-[0.1em] mb-4">
+          <p className="text-center text-[#2238C3] text-[14px] font-geograph font-bold uppercase tracking-[0.1em] mb-4">
             WHY BOOK WITH ZIPSEA?
           </p>
 
@@ -262,11 +338,12 @@ function HomeWithParams() {
 
       {/* Why Zipsea Section Separator */}
       <div
-        className="h-[4px] md:h-[6px] bg-contain"
+        className="w-full h-[21px]"
         style={{
           backgroundImage: 'url("/images/separator-8.png")',
           backgroundRepeat: "repeat-x",
-          backgroundPosition: "center",
+          backgroundSize: "1749px 21px",
+          backgroundPosition: "left top",
         }}
       />
 
@@ -274,7 +351,7 @@ function HomeWithParams() {
       <section className="bg-[#0E1B4D] py-[80px] md:py-[120px]">
         <div className="max-w-7xl mx-auto px-8">
           {/* Caption */}
-          <p className="text-center text-white text-[10px] font-geograph font-bold uppercase tracking-[0.1em] mb-4">
+          <p className="text-center text-white text-[14px] font-geograph font-bold uppercase tracking-[0.1em] mb-4">
             HOW IT WORKS
           </p>
 
@@ -290,7 +367,7 @@ function HomeWithParams() {
             {/* Step 1 */}
             <div className="flex rounded-[10px] overflow-hidden">
               <div className="bg-white rounded-tl-[10px] rounded-bl-[10px] p-[40px] md:p-[54px] flex-1 min-w-0 md:min-w-[440px]">
-                <p className="text-[#2238C3] text-[14px] font-geograph uppercase tracking-[0.1em] mb-2">
+                <p className="text-[#2238C3] text-[14px] font-geograph font-bold uppercase tracking-[0.1em] mb-2">
                   STEP 1
                 </p>
                 <h3 className="text-[#0E1B4D] text-[28px] md:text-[32px] font-whitney uppercase tracking-[-0.02em] mb-4">
@@ -316,7 +393,7 @@ function HomeWithParams() {
             {/* Step 2 */}
             <div className="flex rounded-[10px] overflow-hidden">
               <div className="bg-white rounded-tl-[10px] rounded-bl-[10px] p-[40px] md:p-[54px] flex-1 min-w-0 md:min-w-[440px]">
-                <p className="text-[#2238C3] text-[14px] font-geograph uppercase tracking-[0.1em] mb-2">
+                <p className="text-[#2238C3] text-[14px] font-geograph font-bold uppercase tracking-[0.1em] mb-2">
                   STEP 2
                 </p>
                 <h3 className="text-[#0E1B4D] text-[28px] md:text-[32px] font-whitney uppercase tracking-[-0.02em] mb-4">
@@ -342,7 +419,7 @@ function HomeWithParams() {
             {/* Step 3 */}
             <div className="flex rounded-[10px] overflow-hidden">
               <div className="bg-white rounded-tl-[10px] rounded-bl-[10px] p-[40px] md:p-[54px] flex-1 min-w-0 md:min-w-[440px]">
-                <p className="text-[#2238C3] text-[14px] font-geograph uppercase tracking-[0.1em] mb-2">
+                <p className="text-[#2238C3] text-[14px] font-geograph font-bold uppercase tracking-[0.1em] mb-2">
                   STEP 3
                 </p>
                 <h3 className="text-[#0E1B4D] text-[28px] md:text-[32px] font-whitney uppercase tracking-[-0.02em] mb-4">
@@ -382,19 +459,20 @@ function HomeWithParams() {
 
       {/* How It Works Section Separator */}
       <div
-        className="h-[4px] md:h-[6px] bg-contain"
+        className="w-full h-[21px]"
         style={{
           backgroundImage: 'url("/images/separator-9.png")',
           backgroundRepeat: "repeat-x",
-          backgroundPosition: "center",
+          backgroundSize: "1749px 21px",
+          backgroundPosition: "left top",
         }}
       />
 
       {/* Best of Both Worlds Section */}
-      <section className="bg-white py-[80px] md:py-[120px]">
+      <section className="bg-white py-[80px] md:py-[100px] overflow-hidden">
         <div className="max-w-7xl mx-auto px-8">
           {/* Caption */}
-          <p className="text-center text-[#2238C3] text-[10px] font-geograph font-bold uppercase tracking-[0.1em] mb-4">
+          <p className="text-center text-[#2238C3] text-[14px] font-geograph font-bold uppercase tracking-[0.1em] mb-4">
             THE BEST OF BOTH WORLDS
           </p>
 
@@ -414,7 +492,7 @@ function HomeWithParams() {
           </div>
 
           {/* Logo Section */}
-          <div className="flex items-center justify-center gap-8 mb-[150px]">
+          <div className="flex items-center justify-center gap-8 mb-[100px]">
             <div className="text-center">
               <Image
                 src="/images/royal.png"
@@ -427,7 +505,15 @@ function HomeWithParams() {
                 LICENSED HOST AGENCY
               </p>
             </div>
-            <Image src="/images/small-star.svg" alt="" width={16} height={16} />
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="#F4AC38"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
             <div className="text-center">
               <Image
                 src="/images/carnival.png"
@@ -440,7 +526,15 @@ function HomeWithParams() {
                 LICENSED HOST AGENCY
               </p>
             </div>
-            <Image src="/images/small-star.svg" alt="" width={16} height={16} />
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="#F4AC38"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+            </svg>
             <div className="text-center">
               <Image
                 src="/images/norwegian.png"
@@ -454,51 +548,71 @@ function HomeWithParams() {
               </p>
             </div>
           </div>
+        </div>
 
-          {/* Logo Strip Marquee */}
-          <div className="overflow-hidden -mx-8">
-            <div className="flex animate-marquee">
-              <Image
-                src="/images/logos-strip.png"
-                alt=""
-                width={4755}
-                height={60}
-                className="mr-0"
-              />
-              <Image
-                src="/images/logos-strip.png"
-                alt=""
-                width={4755}
-                height={60}
-                className="mr-0"
-              />
-            </div>
+        {/* Logo Strip Marquee - Full Width */}
+        <div className="w-full overflow-hidden">
+          <div className="flex animate-marquee">
+            <Image
+              src="/images/logos-strip.png"
+              alt=""
+              width={4755}
+              height={60}
+              className="mr-0"
+            />
+            <Image
+              src="/images/logos-strip.png"
+              alt=""
+              width={4755}
+              height={60}
+              className="mr-0"
+            />
           </div>
         </div>
       </section>
 
       {/* Best of Both Worlds Section Separator */}
       <div
-        className="h-[4px] md:h-[6px] bg-contain"
+        className="w-full h-[21px]"
         style={{
           backgroundImage: 'url("/images/separator-10.png")',
           backgroundRepeat: "repeat-x",
-          backgroundPosition: "center",
+          backgroundSize: "1749px 21px",
+          backgroundPosition: "left top",
         }}
       />
 
       {/* Last Minute Deals Section - Mobile Responsive */}
       <section className="bg-sand py-[100px] md:py-[100px] relative pt-[100px] md:pt-[200px]">
         <div className="max-w-7xl mx-auto px-8">
-          {/* Caption - Responsive */}
-          <p className="text-center text-dark-blue text-[10px] font-geograph font-bold uppercase tracking-[0.1em] mb-4">
-            DON'T MISS OUT
-          </p>
-
-          {/* Headline - Responsive */}
-          <h2 className="text-center text-dark-blue text-[36px] md:text-[52px] font-whitney uppercase leading-none tracking-[-0.02em] mb-[80px]">
-            Last Minute Deals
-          </h2>
+          {/* Headline with Hourglass Icon - Mobile Responsive */}
+          <div className="flex items-center justify-center mb-[80px]">
+            <svg
+              width="36"
+              height="36"
+              viewBox="0 0 55 55"
+              fill="none"
+              className="mr-4 md:mr-6 md:w-12 md:h-12"
+            >
+              <path
+                d="M42.7282 12.2502V10.084C42.7282 8.10861 41.1195 6.50002 39.144 6.50002H15.8563C13.8809 6.50002 12.2722 8.10861 12.2722 10.084V12.2502C12.2722 19.4316 15.5299 24.9918 20.1458 27.5001C15.5299 30.0083 12.2722 35.5686 12.2722 42.75V44.9162C12.2722 46.8916 13.8809 48.5002 15.8563 48.5002H39.144C41.1195 48.5002 42.7282 46.8916 42.7282 44.9162V42.75C42.7282 35.5686 39.4704 30.0083 34.8545 27.5001C39.4704 24.9918 42.7282 19.4316 42.7282 12.2502Z"
+                stroke="#0E1B4D"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M20.1892 12.2502C20.1892 12.2502 20.1892 23.083 34.0227 27.4998"
+                stroke="#0E1B4D"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <h2 className="text-center text-dark-blue text-[36px] md:text-[52px] font-whitney uppercase leading-none tracking-[-0.02em]">
+              Last Minute Deals
+            </h2>
+          </div>
 
           {/* Deals Grid */}
           {isLoadingDeals ? (
@@ -603,20 +717,19 @@ function HomeWithParams() {
               </p>
             </div>
           )}
-
-          {/* View All Button */}
-          {lastMinuteDeals && lastMinuteDeals.length > 6 && (
-            <div className="text-center mt-12">
-              <button
-                onClick={() => router.push("/search?deals=true")}
-                className="bg-dark-blue hover:bg-dark-blue/90 text-white px-8 py-4 rounded-full text-[18px] font-geograph font-medium tracking-tight transition-all duration-200"
-              >
-                View All Deals
-              </button>
-            </div>
-          )}
         </div>
       </section>
+
+      {/* Last Minute Deals Section Separator */}
+      <div
+        className="w-full h-[21px]"
+        style={{
+          backgroundImage: 'url("/images/separator-3.png")',
+          backgroundRepeat: "repeat-x",
+          backgroundSize: "1749px 21px",
+          backgroundPosition: "left top",
+        }}
+      />
     </>
   );
 }
