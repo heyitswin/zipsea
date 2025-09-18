@@ -712,9 +712,17 @@ export default function Navigation({
                         : "border-white text-white bg-transparent"
                     }`}
                   >
-                    Sign up/Log in
+                    Sign in
                   </button>
                 )}
+
+                {/* Browse Cruises Button - After Sign in */}
+                <a
+                  href="/search"
+                  className="px-4 py-1.5 bg-[#2238C3] text-white rounded-full text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300"
+                >
+                  Browse Cruises
+                </a>
               </>
             )}
           </div>
@@ -1074,9 +1082,18 @@ export default function Navigation({
                         setIsLoginModalOpen(true);
                       }}
                     >
-                      Sign up/Log in
+                      Sign in
                     </button>
                   )}
+
+                  {/* Browse Cruises Button - Mobile */}
+                  <a
+                    href="/search"
+                    className="w-full px-6 py-3 bg-[#2238C3] text-white rounded-full text-[18px] font-medium font-geograph text-center"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Browse Cruises
+                  </a>
                 </>
               )}
             </div>

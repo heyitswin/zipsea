@@ -187,36 +187,15 @@ function HomeWithParams() {
               }}
             />
           </div>
-
-          {/* Swimmer 4 */}
-          <div
-            className="absolute swimmer-float-4"
-            style={{
-              bottom: "25%",
-              right: "8%",
-              width: "auto",
-              height: "auto",
-            }}
-          >
-            <OptimizedImage
-              src="/images/swimmer-4.png"
-              alt=""
-              width={160}
-              height={80}
-              className="opacity-100"
-              style={{
-                width: "140px",
-                height: "auto",
-              }}
-            />
-          </div>
         </div>
 
         {/* Content */}
         <div className="relative z-10 flex flex-col items-center justify-center h-[calc(720px-220px)] px-4">
           {/* Main Heading - Responsive */}
           <h1 className="text-sunshine text-[48px] md:text-[72px] font-whitney uppercase text-center leading-none tracking-tight mb-6 md:mb-10">
-            The smartest way to cruise
+            The smartest
+            <br />
+            way to cruise
           </h1>
 
           {/* Subheading - Responsive */}
@@ -230,15 +209,36 @@ function HomeWithParams() {
           {/* CTA Button */}
           <button
             onClick={handleSearchClick}
-            className="bg-[#0E1B4D] hover:bg-[#0E1B4D]/90 text-sunshine px-8 py-4 rounded-full text-[20px] font-geograph font-medium tracking-tight transition-all duration-200 flex items-center gap-2"
+            className="bg-[#0E1B4D] hover:bg-[#0E1B4D]/90 text-white px-8 py-4 rounded-full text-[20px] font-geograph font-medium tracking-tight transition-all duration-200 flex items-center gap-2"
             style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
           >
-            <Image src="/images/search.svg" alt="" width={20} height={20} />
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M9 17C13.4183 17 17 13.4183 17 9C17 4.58172 13.4183 1 9 1C4.58172 1 1 4.58172 1 9C1 13.4183 4.58172 17 9 17Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M19 19L14.65 14.65"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
             Find my cruise
           </button>
 
           {/* Trust Indicators */}
-          <div className="mt-[50px] flex flex-col items-center gap-3">
+          <div className="mt-[150px] flex flex-col items-center gap-2">
             <p className="text-white text-[10px] font-geograph font-bold uppercase tracking-[0.1em]">
               TRUSTED BY HUNDREDS OF CRUISERS
             </p>
@@ -310,9 +310,8 @@ function HomeWithParams() {
           <div className="max-w-[700px] mx-auto mb-16">
             <p className="text-[#0E1B4D] text-[18px] md:text-[20px] font-geograph leading-[1.5] tracking-[-0.02em] text-center">
               But here's the inside scoop: cruise lines offer agencies
-              incentives to sell their sailings. Some agencies keep those perks.
-              <br />
-              At Zipsea, we pass them straight to you.
+              incentives to sell their sailings. Most agencies keep it as
+              commission. At Zipsea, we give most of it back to you.
             </p>
           </div>
 
@@ -501,7 +500,7 @@ function HomeWithParams() {
                 height={60}
                 className="mb-2"
               />
-              <p className="text-[#2F2F2F] text-[12px] font-geograph uppercase tracking-[0.1em]">
+              <p className="text-[#2F2F2F] text-[12px] font-geograph font-bold uppercase tracking-[0.1em]">
                 LICENSED HOST AGENCY
               </p>
             </div>
@@ -522,7 +521,7 @@ function HomeWithParams() {
                 height={60}
                 className="mb-2"
               />
-              <p className="text-[#2F2F2F] text-[12px] font-geograph uppercase tracking-[0.1em]">
+              <p className="text-[#2F2F2F] text-[12px] font-geograph font-bold uppercase tracking-[0.1em]">
                 LICENSED HOST AGENCY
               </p>
             </div>
@@ -543,7 +542,7 @@ function HomeWithParams() {
                 height={60}
                 className="mb-2"
               />
-              <p className="text-[#2F2F2F] text-[12px] font-geograph uppercase tracking-[0.1em]">
+              <p className="text-[#2F2F2F] text-[12px] font-geograph font-bold uppercase tracking-[0.1em]">
                 LICENSED HOST AGENCY
               </p>
             </div>
@@ -593,21 +592,24 @@ function HomeWithParams() {
               viewBox="0 0 55 55"
               fill="none"
               className="mr-4 md:mr-6 md:w-12 md:h-12"
+              style={{ shapeRendering: "geometricPrecision" }}
             >
-              <path
-                d="M42.7282 12.2502V10.084C42.7282 8.10861 41.1195 6.50002 39.144 6.50002H15.8563C13.8809 6.50002 12.2722 8.10861 12.2722 10.084V12.2502C12.2722 19.4316 15.5299 24.9918 20.1458 27.5001C15.5299 30.0083 12.2722 35.5686 12.2722 42.75V44.9162C12.2722 46.8916 13.8809 48.5002 15.8563 48.5002H39.144C41.1195 48.5002 42.7282 46.8916 42.7282 44.9162V42.75C42.7282 35.5686 39.4704 30.0083 34.8545 27.5001C39.4704 24.9918 42.7282 19.4316 42.7282 12.2502Z"
-                stroke="#0E1B4D"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M20.1892 12.2502C20.1892 12.2502 20.1892 23.083 34.0227 27.4998"
-                stroke="#0E1B4D"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+              <g clipPath="url(#clip0_573_3612)">
+                <path
+                  d="M38.4687 49.648L35.7206 48.9646L37.3152 42.5522C37.9504 39.989 37.8041 37.2943 36.8953 34.8148C35.9865 32.3354 34.3567 30.1845 32.2156 28.6388C34.8312 28.2759 37.2785 27.1389 39.2428 25.374C41.2071 23.6091 42.5986 21.297 43.2383 18.7349L44.833 12.3226L47.5812 13.006C48.0671 13.1269 48.5811 13.0497 49.0101 12.7916C49.4391 12.5335 49.748 12.1155 49.8689 11.6296C49.9897 11.1437 49.9126 10.6297 49.6544 10.2006C49.3963 9.77159 48.9783 9.46268 48.4924 9.34184L17.3467 1.59625C16.8608 1.47541 16.3468 1.55254 15.9178 1.81068C15.4888 2.06882 15.1799 2.48682 15.059 2.97272C14.9382 3.45863 15.0153 3.97263 15.2735 4.40166C15.5316 4.83069 15.9496 5.1396 16.4355 5.26044L19.1836 5.94388L17.589 12.3562C16.9541 14.9195 17.1005 17.614 18.0092 20.0935C18.918 22.5729 20.5477 24.7238 22.6886 26.2696C20.0729 26.6323 17.6255 27.7692 15.6611 29.5341C13.6968 31.2991 12.3054 33.6113 11.6659 36.1735L10.0712 42.5858L7.32304 41.9024C6.83713 41.7816 6.32313 41.8587 5.8941 42.1168C5.46507 42.375 5.15615 42.793 5.03532 43.2789C4.91448 43.7648 4.99161 44.2788 5.24975 44.7078C5.50789 45.1368 5.92589 45.4458 6.41179 45.5666L37.5575 53.3122C38.0434 53.433 38.5574 53.3559 38.9864 53.0978C39.4154 52.8396 39.7243 52.4216 39.8452 51.9357C39.966 51.4498 39.8889 50.9358 39.6307 50.5068C39.3726 50.0777 38.9546 49.7688 38.4687 49.648ZM22.7864 16.4112C23.0148 16.1494 23.311 15.9556 23.6424 15.8513C23.9738 15.747 24.3276 15.7362 24.6648 15.8201L35.3642 18.4809C35.7012 18.565 36.0085 18.7404 36.2522 18.9878C36.4959 19.2352 36.6667 19.5451 36.7457 19.8833C36.8247 20.2215 36.8088 20.5749 36.6999 20.9047C36.591 21.2345 36.3932 21.5278 36.1284 21.7525C35.0797 22.6448 33.8334 23.2744 32.4929 23.5891C31.1524 23.9039 29.7562 23.8947 28.42 23.5624C27.0837 23.2301 25.8458 22.5842 24.8089 21.6782C23.772 20.7722 22.9659 19.6322 22.4573 18.3526C22.3282 18.0301 22.2906 17.6782 22.3487 17.3356C22.4067 16.9931 22.5582 16.6732 22.7864 16.4112ZM16.9564 37.7421L23.871 33.75C24.5077 33.4096 25.248 33.3176 25.9487 33.4919C26.6493 33.6661 27.2603 34.0942 27.6634 34.6931L31.9012 41.4568C32.1985 41.9225 32.3362 42.4723 32.2936 43.0232C32.251 43.5741 32.0304 44.0962 31.6651 44.5107C31.3276 44.8836 30.8946 45.1571 30.4129 45.3017C29.9312 45.4463 29.4191 45.4564 28.9321 45.3309L17.7764 42.5566C17.2883 42.4411 16.8409 42.1945 16.4825 41.8435C16.1242 41.4924 15.8684 41.0503 15.7428 40.5646C15.6112 40.0262 15.6584 39.4595 15.8773 38.9503C16.0963 38.4411 16.475 38.017 16.9564 37.7421Z"
+                  fill="#0E1B4D"
+                />
+              </g>
+              <defs>
+                <clipPath id="clip0_573_3612">
+                  <rect
+                    width="45.3097"
+                    height="45.3097"
+                    fill="white"
+                    transform="translate(10.9351) rotate(13.9655)"
+                  />
+                </clipPath>
+              </defs>
             </svg>
             <h2 className="text-center text-dark-blue text-[36px] md:text-[52px] font-whitney uppercase leading-none tracking-[-0.02em]">
               Last Minute Deals
