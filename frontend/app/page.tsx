@@ -550,22 +550,20 @@ function HomeWithParams() {
 
         {/* Logo Strip Marquee - Full Width */}
         <div className="w-full overflow-hidden">
-          <div className="flex animate-marquee" style={{ minWidth: "9510px" }}>
+          <div className="flex animate-marquee">
             <Image
               src="/images/logos-strip.png"
               alt=""
               width={4755}
               height={60}
-              className="mr-0 flex-shrink-0"
-              style={{ width: "4755px", height: "60px" }}
+              className="mr-0 w-[4755px] h-[60px] md:w-auto md:h-auto"
             />
             <Image
               src="/images/logos-strip.png"
               alt=""
               width={4755}
               height={60}
-              className="mr-0 flex-shrink-0"
-              style={{ width: "4755px", height: "60px" }}
+              className="mr-0 w-[4755px] h-[60px] md:w-auto md:h-auto"
             />
           </div>
         </div>
@@ -708,8 +706,8 @@ function HomeWithParams() {
                         </div>
                       </div>
 
-                      {/* Price */}
-                      <div className="flex items-baseline justify-between">
+                      {/* Price and OBC */}
+                      <div className="space-y-2">
                         <div>
                           <p className="text-gray-500 text-sm">From</p>
                           <p className="text-dark-blue text-2xl font-bold">
@@ -719,9 +717,11 @@ function HomeWithParams() {
                               "N/A"}
                           </p>
                         </div>
-                        <span className="text-[#0E1B4D] font-medium group-hover:translate-x-1 transition-transform duration-200">
-                          View →
-                        </span>
+                        {deal.onboard_credit && deal.onboard_credit > 0 && (
+                          <div className="font-geograph font-medium text-[14px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block">
+                            +${deal.onboard_credit} onboard credit
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
