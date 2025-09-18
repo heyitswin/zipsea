@@ -159,20 +159,27 @@ export function extractCabinCategoriesFromRawData(rawData: any) {
   }
 
   return cabinArray.map((cabin: any) => ({
-    id: cabin.id || cabin.cabinid,
     shipId: rawData.shipid || rawData.ship_id,
-    category: cabin.codtype || cabin.category || cabin.cabintype,
-    name: cabin.name || cabin.cabinname,
+    code: cabin.cabincode || cabin.code || '',
+    codeAlt: cabin.cabincodealt,
+    name: cabin.name || cabin.cabinname || '',
     description: cabin.description,
-    maxOccupancy: cabin.maxoccupancy,
+    category: cabin.codtype || cabin.category || cabin.cabintype || '',
+    categoryAlt: cabin.categoryalt,
+    colorCode: cabin.colourcode || cabin.colorcode,
+    colorCodeAlt: cabin.colourcodealt,
     imageUrl: cabin.imageurl,
     imageUrl2k: cabin.imageurl2k,
     imageUrlHd: cabin.imageurlhd,
-    deckPlan: cabin.deckplan,
-    amenities: cabin.amenities,
-    cabinCode: cabin.cabincode,
-    // Add a type field based on codtype for easier categorization
-    type: cabin.codtype || 'unknown',
+    isDefault: cabin.isdefault || false,
+    validFrom: cabin.validfrom,
+    validTo: cabin.validto,
+    maxOccupancy: cabin.maxoccupancy || 2,
+    minOccupancy: cabin.minoccupancy || 1,
+    size: cabin.size,
+    bedConfiguration: cabin.bedconfiguration,
+    amenities: cabin.amenities || [],
+    deckLocations: cabin.decklocations || cabin.allcabindecks || [],
   }));
 }
 
