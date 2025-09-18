@@ -115,7 +115,7 @@ function HomeWithParams() {
       <Navigation />
 
       {/* Hero Section */}
-      <section className="relative h-[720px] bg-light-blue pt-[120px] md:pt-[100px] pb-[50px] md:pb-[100px] overflow-visible z-20">
+      <section className="relative h-[720px] bg-light-blue pt-[80px] md:pt-[100px] pb-[10px] md:pb-[100px] overflow-visible z-20">
         {/* Floating Swimmers - Behind all content - Hidden on mobile */}
         <div className="absolute inset-0 z-0 hidden md:block">
           {/* Swimmer 1 */}
@@ -489,8 +489,8 @@ function HomeWithParams() {
             </p>
           </div>
 
-          {/* Logo Section */}
-          <div className="flex items-center justify-center gap-8 mb-[100px]">
+          {/* Logo Section - Vertical on mobile, horizontal on desktop */}
+          <div className="flex flex-col md:flex-row items-center justify-center gap-8 mb-[100px]">
             <div className="text-center">
               <Image
                 src="/images/royal.png"
@@ -500,7 +500,7 @@ function HomeWithParams() {
                 className="mb-2"
               />
               <p className="text-[#2F2F2F] text-[12px] font-geograph font-bold uppercase tracking-[0.1em]">
-                LICENSED HOST AGENCY
+                ACCREDITED TRAVEL AGENCY
               </p>
             </div>
             <svg
@@ -521,7 +521,7 @@ function HomeWithParams() {
                 className="mb-2"
               />
               <p className="text-[#2F2F2F] text-[12px] font-geograph font-bold uppercase tracking-[0.1em]">
-                LICENSED HOST AGENCY
+                ACCREDITED TRAVEL AGENCY
               </p>
             </div>
             <svg
@@ -542,7 +542,7 @@ function HomeWithParams() {
                 className="mb-2"
               />
               <p className="text-[#2F2F2F] text-[12px] font-geograph font-bold uppercase tracking-[0.1em]">
-                LICENSED HOST AGENCY
+                ACCREDITED TRAVEL AGENCY
               </p>
             </div>
           </div>
@@ -554,18 +554,18 @@ function HomeWithParams() {
             <Image
               src="/images/logos-strip.png"
               alt=""
-              width={4755}
+              width={3553}
               height={60}
-              className="mr-0 h-[60px] w-auto md:h-auto md:w-auto"
-              style={{ minWidth: "4755px" }}
+              className="mr-0"
+              style={{ width: "3553px", height: "auto" }}
             />
             <Image
               src="/images/logos-strip.png"
               alt=""
-              width={4755}
+              width={3553}
               height={60}
-              className="mr-0 h-[60px] w-auto md:h-auto md:w-auto"
-              style={{ minWidth: "4755px" }}
+              className="mr-0"
+              style={{ width: "3553px", height: "auto" }}
             />
           </div>
         </div>
@@ -583,7 +583,7 @@ function HomeWithParams() {
       />
 
       {/* Last Minute Deals Section - Mobile Responsive */}
-      <section className="bg-sand py-[100px] md:py-[100px] relative pt-[100px] md:pt-[200px]">
+      <section className="bg-sand py-[100px] md:py-[100px] relative pt-[50px] md:pt-[100px]">
         <div className="max-w-7xl mx-auto px-8">
           {/* Headline with Hourglass Icon - Mobile Responsive */}
           <div className="flex items-center justify-center mb-[80px]">
