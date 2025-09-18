@@ -417,14 +417,24 @@ export default function CruisesContent() {
           );
         }
 
-        setCruises(cruisesData);
-        // Use total from API pagination if available
-        setTotalCount(
-          data.pagination?.total ||
-            data.totalCount ||
-            data.total ||
-            cruisesData.length,
+        // Filter out cruises departing within the next 14 days
+        const twoWeeksFromNow = new Date();
+        twoWeeksFromNow.setDate(twoWeeksFromNow.getDate() + 14);
+
+        const filteredCruises = cruisesData.filter((cruise: Cruise) => {
+          const sailingDate = new Date(
+            cruise.sailingDate || cruise.departureDate || "",
+          );
+          return sailingDate >= twoWeeksFromNow;
+        });
+
+        console.log(
+          `Filtered ${cruisesData.length} cruises to ${filteredCruises.length} (excluding departures within 14 days)`,
         );
+
+        setCruises(filteredCruises);
+        // Use total from API pagination if available, but adjust for filtered cruises
+        setTotalCount(filteredCruises.length);
       } else {
         const errorText = await response.text();
         console.error("API response not ok:", response.status, errorText);
