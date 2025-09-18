@@ -542,7 +542,7 @@ export default function Navigation({
       >
         <div className="flex items-center justify-between h-[40px] md:h-[44px]">
           {/* Logo - Responsive sizing */}
-          <div className="w-[83px] md:w-[110px]">
+          <div className="w-[83px] md:w-[110px] -ml-1 md:ml-0">
             <a href="/">
               <Image
                 src={
@@ -561,40 +561,51 @@ export default function Navigation({
             </a>
           </div>
 
-          {/* Hamburger Menu Button (Mobile Only) */}
-          <button
-            className="md:hidden flex flex-col items-center justify-center w-6 h-6 space-y-1"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle menu"
-          >
-            <span
-              className={`block w-6 h-0.5 transition-all duration-300 ${
-                isScrolled ||
-                (isCruiseDetailPage && !isScrolled) ||
-                (isCruisesPage && !isScrolled)
-                  ? "bg-[#0E1B4D]"
-                  : "bg-white"
-              } ${isMobileMenuOpen ? "rotate-45 translate-y-2" : ""}`}
-            />
-            <span
-              className={`block w-6 h-0.5 transition-all duration-300 ${
-                isScrolled ||
-                (isCruiseDetailPage && !isScrolled) ||
-                (isCruisesPage && !isScrolled)
-                  ? "bg-[#0E1B4D]"
-                  : "bg-white"
-              } ${isMobileMenuOpen ? "opacity-0" : ""}`}
-            />
-            <span
-              className={`block w-6 h-0.5 transition-all duration-300 ${
-                isScrolled ||
-                (isCruiseDetailPage && !isScrolled) ||
-                (isCruisesPage && !isScrolled)
-                  ? "bg-[#0E1B4D]"
-                  : "bg-white"
-              } ${isMobileMenuOpen ? "-rotate-45 -translate-y-2" : ""}`}
-            />
-          </button>
+          {/* Mobile Right Section - Browse button and hamburger */}
+          <div className="flex items-center gap-3 md:hidden">
+            {/* Browse Cruises Button (Mobile Only) */}
+            <a
+              href="/cruises"
+              className="px-4 py-1.5 bg-[#2238C3] text-white rounded-full text-[14px] font-medium font-geograph"
+            >
+              Browse Cruises
+            </a>
+
+            {/* Hamburger Menu Button (Mobile Only) */}
+            <button
+              className="flex flex-col items-center justify-center w-6 h-6 space-y-1"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              <span
+                className={`block w-6 h-0.5 transition-all duration-300 ${
+                  isScrolled ||
+                  (isCruiseDetailPage && !isScrolled) ||
+                  (isCruisesPage && !isScrolled)
+                    ? "bg-[#0E1B4D]"
+                    : "bg-white"
+                } ${isMobileMenuOpen ? "rotate-45 translate-y-2" : ""}`}
+              />
+              <span
+                className={`block w-6 h-0.5 transition-all duration-300 ${
+                  isScrolled ||
+                  (isCruiseDetailPage && !isScrolled) ||
+                  (isCruisesPage && !isScrolled)
+                    ? "bg-[#0E1B4D]"
+                    : "bg-white"
+                } ${isMobileMenuOpen ? "opacity-0" : ""}`}
+              />
+              <span
+                className={`block w-6 h-0.5 transition-all duration-300 ${
+                  isScrolled ||
+                  (isCruiseDetailPage && !isScrolled) ||
+                  (isCruisesPage && !isScrolled)
+                    ? "bg-[#0E1B4D]"
+                    : "bg-white"
+                } ${isMobileMenuOpen ? "-rotate-45 -translate-y-2" : ""}`}
+              />
+            </button>
+          </div>
 
           {/* Navigation Links and Button (Desktop Only) */}
           <div className="hidden md:flex items-center gap-8">
@@ -995,13 +1006,6 @@ export default function Navigation({
             {/* Navigation Links */}
             <div className="flex-1 flex flex-col justify-center px-8 space-y-8">
               <a
-                href="/cruises"
-                className="text-dark-blue text-[24px] font-medium font-geograph py-4 border-b border-gray-separator"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Browse Cruises
-              </a>
-              <a
                 href="/why-zipsea"
                 className="text-dark-blue text-[24px] font-medium font-geograph py-4 border-b border-gray-separator"
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -1073,15 +1077,6 @@ export default function Navigation({
                       Sign in
                     </button>
                   )}
-
-                  {/* Browse Cruises Button - Mobile */}
-                  <a
-                    href="/cruises"
-                    className="w-full px-6 py-3 bg-[#2238C3] text-white rounded-full text-[18px] font-medium font-geograph text-center"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Browse Cruises
-                  </a>
                 </>
               )}
             </div>
