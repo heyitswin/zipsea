@@ -13,7 +13,6 @@ import {
   LastMinuteDeals,
   fetchAvailableSailingDates,
   AvailableSailingDate,
-  normalizeCruiseData,
 } from "../lib/api";
 import { createSlugFromCruise } from "../lib/slug";
 import { useAlert } from "../components/GlobalAlertProvider";
@@ -87,7 +86,7 @@ function HomeWithParams() {
   }, []);
 
   // Handle cruise card clicks for last minute deals
-  const handleCruiseClick = (cruise: Cruise) => {
+  const handleCruiseClick = (cruise: any) => {
     try {
       const slug = createSlugFromCruise(cruise);
       // Track the engagement
@@ -627,21 +626,36 @@ function HomeWithParams() {
           ) : lastMinuteDeals && lastMinuteDeals.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {lastMinuteDeals.slice(0, 6).map((deal) => {
-                const normalizedCruise = normalizeCruiseData(deal);
+                // Create a normalized cruise object for the handleCruiseClick function
+                const cruiseForClick: any = {
+                  id: deal.id,
+                  name: deal.name,
+                  cruiseLine: { name: deal.cruise_line_name },
+                  ship: { name: deal.ship_name },
+                  ship_name: deal.ship_name,
+                  sailing_date: deal.sailing_date,
+                  sailingDate: deal.sailing_date,
+                  nights: deal.nights,
+                  embarkPort: {
+                    name: deal.embark_port_name || deal.embarkation_port_name,
+                  },
+                  disembarkPort: { name: "" },
+                  price: deal.cheapest_pricing || deal.cheapest_price,
+                };
+
                 return (
                   <div
                     key={deal.id}
                     className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group"
-                    onClick={() => handleCruiseClick(normalizedCruise)}
+                    onClick={() => handleCruiseClick(cruiseForClick)}
                   >
                     {/* Image Container */}
                     <div className="relative h-[200px] w-full overflow-hidden rounded-t-lg">
                       <Image
                         src={
-                          normalizedCruise.ship?.defaultShipImage ||
-                          "/images/cruise-placeholder.jpg"
+                          deal.ship_image || "/images/cruise-placeholder.jpg"
                         }
-                        alt={normalizedCruise.name || "Cruise"}
+                        alt={deal.name || "Cruise"}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
@@ -651,13 +665,12 @@ function HomeWithParams() {
                     <div className="p-6">
                       {/* Cruise Line & Ship */}
                       <p className="text-gray-600 text-sm font-geograph mb-2">
-                        {normalizedCruise.cruiseLine?.name || "Cruise Line"} •{" "}
-                        {normalizedCruise.ship?.name || "Ship"}
+                        {deal.cruise_line_name} • {deal.ship_name}
                       </p>
 
                       {/* Title */}
                       <h3 className="text-dark-blue text-xl font-bold font-geograph mb-3 line-clamp-2">
-                        {normalizedCruise.name || "Cruise Vacation"}
+                        {deal.name}
                       </h3>
 
                       {/* Details */}
@@ -671,13 +684,14 @@ function HomeWithParams() {
                             className="mr-2"
                           />
                           <span>
-                            {new Date(
-                              normalizedCruise.sailingDate,
-                            ).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
+                            {new Date(deal.sailing_date).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              },
+                            )}
                           </span>
                         </div>
                         <div className="flex items-center text-gray-600 text-sm">
@@ -688,7 +702,7 @@ function HomeWithParams() {
                             height={16}
                             className="mr-2"
                           />
-                          <span>{normalizedCruise.nights || 0} nights</span>
+                          <span>{deal.nights} nights</span>
                         </div>
                       </div>
 
@@ -698,8 +712,8 @@ function HomeWithParams() {
                           <p className="text-gray-500 text-sm">From</p>
                           <p className="text-dark-blue text-2xl font-bold">
                             $
-                            {normalizedCruise.cheapestPrice ||
-                              normalizedCruise.interiorPrice ||
+                            {deal.cheapest_pricing ||
+                              deal.cheapest_price ||
                               "N/A"}
                           </p>
                         </div>
