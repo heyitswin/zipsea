@@ -610,129 +610,260 @@ function HomeWithParams() {
                 </clipPath>
               </defs>
             </svg>
-            <h2 className="text-center text-dark-blue text-[36px] md:text-[52px] font-whitney uppercase leading-none tracking-[-0.02em]">
-              Last Minute Deals
+            <h2 className="text-dark-blue text-[32px] md:text-[52px] font-whitney font-black leading-none tracking-tight">
+              LAST MINUTE DEALS
             </h2>
           </div>
 
-          {/* Deals Grid */}
-          {isLoadingDeals ? (
-            <div className="flex flex-col items-center justify-center py-16">
+          {/* Loading State */}
+          {isLoadingDeals && (
+            <div className="text-center py-12">
               <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-dark-blue"></div>
               <p className="mt-4 text-gray-600 font-geograph">
                 Loading last minute deals...
               </p>
             </div>
-          ) : lastMinuteDeals && lastMinuteDeals.length > 0 ? (
+          )}
+
+          {/* Cruise Grid - 3x2 on desktop */}
+          {!isLoadingDeals && lastMinuteDeals.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {lastMinuteDeals.slice(0, 6).map((deal) => {
-                // Create a normalized cruise object for the handleCruiseClick function
-                const cruiseForClick: any = {
-                  id: deal.id,
-                  name: deal.name,
-                  cruiseLine: { name: deal.cruise_line_name },
-                  ship: { name: deal.ship_name },
-                  ship_name: deal.ship_name,
-                  sailing_date: deal.sailing_date,
-                  sailingDate: deal.sailing_date,
-                  nights: deal.nights,
-                  embarkPort: {
-                    name: deal.embark_port_name || deal.embarkation_port_name,
-                  },
-                  disembarkPort: { name: "" },
-                  price: deal.cheapest_pricing || deal.cheapest_price,
-                };
+                // Use OBC from backend (20% of cheapest pricing) or calculate if missing
+                const obc =
+                  deal.onboard_credit ||
+                  Math.floor((deal.cheapest_pricing * 0.2) / 10) * 10;
+
+                // Calculate return date from sailing_date + nights
+                const sailingDate = new Date(deal.sailing_date);
+                const returnDate = new Date(sailingDate);
+                returnDate.setDate(sailingDate.getDate() + deal.nights);
+
+                // Format date range as "Oct 5 - Oct 12"
+                const dateRange = `${sailingDate.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })} - ${returnDate.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })}`;
+
+                // Truncate cruise name to max 27 characters
+                const truncatedName =
+                  deal.name.length > 27
+                    ? deal.name.substring(0, 27) + "..."
+                    : deal.name;
 
                 return (
                   <div
                     key={deal.id}
-                    className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group"
-                    onClick={() => handleCruiseClick(cruiseForClick)}
+                    className="cursor-pointer"
+                    onClick={() => {
+                      // Handle cruise click - convert to expected format
+                      const cruiseForNavigation = {
+                        id: deal.id,
+                        shipId: deal.ship_id || 0,
+                        shipName: deal.ship_name,
+                        cruiseLineName: deal.cruise_line_name,
+                        departureDate: deal.sailing_date,
+                        returnDate: deal.return_date || "",
+                        duration: deal.nights,
+                        itinerary: [],
+                        departurePort:
+                          deal.embarkation_port_name ||
+                          deal.embark_port_name ||
+                          "",
+                        prices: {
+                          interior:
+                            deal.cheapest_price || deal.cheapest_pricing,
+                          oceanView:
+                            deal.cheapest_price || deal.cheapest_pricing,
+                          balcony: deal.cheapest_price || deal.cheapest_pricing,
+                          suite: deal.cheapest_price || deal.cheapest_pricing,
+                        },
+                      } as unknown as Cruise;
+                      handleCruiseClick(cruiseForNavigation);
+                    }}
                   >
-                    {/* Image Container */}
-                    <div className="relative h-[200px] w-full overflow-hidden rounded-t-lg">
-                      <Image
-                        src={
-                          deal.ship_image || "/images/cruise-placeholder.jpg"
-                        }
-                        alt={deal.name || "Cruise"}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-6">
-                      {/* Cruise Line & Ship */}
-                      <p className="text-gray-600 text-sm font-geograph mb-2">
-                        {deal.cruise_line_name} • {deal.ship_name}
-                      </p>
-
-                      {/* Title */}
-                      <h3 className="text-dark-blue text-xl font-bold font-geograph mb-3 line-clamp-2">
-                        {deal.name}
-                      </h3>
-
-                      {/* Details */}
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center text-gray-600 text-sm">
-                          <Image
-                            src="/images/calendar-icon.svg"
-                            alt=""
-                            width={16}
-                            height={16}
-                            className="mr-2"
+                    {/* Featured Image with Date Range Badge */}
+                    <div className="relative">
+                      <div className="h-[180px] bg-gray-200 relative overflow-hidden rounded-[18px]">
+                        {deal.ship_image ? (
+                          <OptimizedImage
+                            src={deal.ship_image}
+                            alt={deal.ship_name}
+                            fill
+                            className="object-cover"
                           />
-                          <span>
-                            {new Date(deal.sailing_date).toLocaleDateString(
-                              "en-US",
-                              {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric",
-                              },
-                            )}
-                          </span>
-                        </div>
-                        <div className="flex items-center text-gray-600 text-sm">
-                          <Image
-                            src="/images/clock-icon.svg"
-                            alt=""
-                            width={16}
-                            height={16}
-                            className="mr-2"
-                          />
-                          <span>{deal.nights} nights</span>
-                        </div>
-                      </div>
-
-                      {/* Price and OBC */}
-                      <div className="space-y-2">
-                        <div>
-                          <p className="text-gray-500 text-sm">From</p>
-                          <p className="text-dark-blue text-2xl font-bold">
-                            $
-                            {deal.cheapest_pricing ||
-                              deal.cheapest_price ||
-                              "N/A"}
-                          </p>
-                        </div>
-                        {deal.onboard_credit && deal.onboard_credit > 0 && (
-                          <div className="font-geograph font-medium text-[14px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block">
-                            +${deal.onboard_credit} onboard credit
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-light-blue to-dark-blue flex items-center justify-center">
+                            <svg
+                              width="64"
+                              height="64"
+                              viewBox="0 0 34 27"
+                              fill="none"
+                              style={{ shapeRendering: "geometricPrecision" }}
+                              className="opacity-60"
+                            >
+                              <path
+                                d="M32.8662 25.4355C32.0707 25.4334 31.2888 25.2282 30.5947 24.8395C29.9005 24.4508 29.3171 23.8914 28.8995 23.2142C28.478 23.8924 27.8906 24.4519 27.1926 24.8398C26.4947 25.2278 25.7094 25.4314 24.9109 25.4314C24.1124 25.4314 23.3271 25.2278 22.6292 24.8398C21.9313 24.4519 21.3438 23.8924 20.9223 23.2142C20.5031 23.894 19.9167 24.4551 19.2191 24.844C18.5215 25.2329 17.7359 25.4365 16.9372 25.4355C14.8689 25.4355 11.4533 22.2962 9.31413 20.0961C9.17574 19.9536 8.99997 19.8529 8.80698 19.8057C8.61399 19.7585 8.4116 19.7666 8.22303 19.8292C8.03445 19.8917 7.86733 20.0062 7.74084 20.1594C7.61435 20.3126 7.53361 20.4984 7.50788 20.6954C7.36621 22.0086 6.83213 23.3105 5.25396 23.3105C4.30812 23.2648 3.39767 22.9367 2.64011 22.3686C1.88255 21.8004 1.31265 21.0183 1.00396 20.123"
+                                stroke="white"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                vectorEffect="non-scaling-stroke"
+                              />
+                              <path
+                                d="M18 20.123L22.8875 18.9005C24.0268 18.6152 25.0946 18.097 26.0236 17.3784C26.9526 16.6598 27.7226 15.7566 28.285 14.7255L32.875 6.31055L1 12.6855"
+                                stroke="white"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                vectorEffect="non-scaling-stroke"
+                              />
+                              <path
+                                d="M25.2861 7.8278L18.0002 4.18555L4.18772 6.31055"
+                                stroke="white"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                vectorEffect="non-scaling-stroke"
+                              />
+                              <path
+                                d="M6.31254 11.6236L4.18754 6.31109L1.9662 2.60934C1.86896 2.4482 1.81632 2.26409 1.81369 2.0759C1.81107 1.8877 1.85854 1.7022 1.95125 1.53841C2.04396 1.37461 2.17857 1.23843 2.34127 1.14382C2.50397 1.0492 2.68891 0.999569 2.87712 1H6.31254L11.54 5.18059"
+                                stroke="white"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                vectorEffect="non-scaling-stroke"
+                              />
+                            </svg>
                           </div>
                         )}
+                      </div>
+
+                      {/* Date Range Badge - Moved to top-right */}
+                      <div
+                        className="absolute top-3 right-3 bg-white px-1 py-0.5 rounded-[3px]"
+                        style={{
+                          fontSize: "13px",
+                          fontFamily: "Geograph",
+                          fontWeight: "bold",
+                          color: "#3a3c3e",
+                          letterSpacing: "-0.02em",
+                          paddingLeft: "6px", // Added 2px more padding (was 4px)
+                          paddingRight: "6px", // Added 2px more padding (was 4px)
+                          paddingTop: "2px",
+                          paddingBottom: "2px",
+                        }}
+                      >
+                        {dateRange}
+                      </div>
+                    </div>
+
+                    {/* Card Content - Two Column Layout */}
+                    <div className="mt-4">
+                      <div className="flex justify-between items-start">
+                        {/* Left Side - Cruise Details */}
+                        <div className="flex-1 pr-4">
+                          {/* Cruise Name - Truncated */}
+                          <h3
+                            className="font-geograph font-medium"
+                            style={{
+                              fontSize: "18px",
+                              color: "#0E1B4D",
+                              letterSpacing: "-0.02em",
+                              marginBottom: "14px", // Reduced from 16px (mb-4) to 14px
+                              lineHeight: "1.1",
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {truncatedName}
+                          </h3>
+
+                          {/* Duration and Port */}
+                          <p
+                            className="font-geograph font-medium mb-1"
+                            style={{
+                              fontSize: "13px",
+                              color: "#2f2f2f",
+                              letterSpacing: "-0.02em",
+                            }}
+                          >
+                            {deal.nights} nights • {deal.embark_port_name}
+                          </p>
+
+                          {/* Cruise Line */}
+                          <p
+                            className="font-geograph"
+                            style={{
+                              fontSize: "13px",
+                              color: "#2f2f2f",
+                              letterSpacing: "-0.02em",
+                              fontWeight: "normal",
+                            }}
+                          >
+                            {deal.cruise_line_name || "Cruise Line"}
+                          </p>
+                        </div>
+
+                        {/* Right Side - Pricing */}
+                        <div className="flex flex-col items-end min-w-0">
+                          {/* "STARTING FROM" label */}
+                          <p
+                            className="font-geograph font-bold"
+                            style={{
+                              fontSize: "9px",
+                              color: "#474747",
+                              letterSpacing: "0.1em",
+                              marginBottom: "0.25px", // Reduced from 0.5px to half again
+                            }}
+                          >
+                            STARTING FROM
+                          </p>
+
+                          {/* Price */}
+                          <p
+                            className="font-geograph font-medium"
+                            style={{
+                              fontSize: "22px",
+                              letterSpacing: "-0.02em",
+                              marginBottom: "4px", // Reduced space between price and OBC badge by half
+                            }}
+                          >
+                            $
+                            {Math.floor(deal.cheapest_pricing).toLocaleString()}
+                          </p>
+
+                          {/* OBC Badge */}
+                          {obc > 0 && (
+                            <div
+                              className="rounded-[3px]"
+                              style={{
+                                backgroundColor: "#1b8f57",
+                                fontSize: "13px",
+                                fontFamily: "Geograph",
+                                fontWeight: "500", // Changed to medium (500)
+                                color: "white",
+                                letterSpacing: "-0.02em",
+                                paddingLeft: "7px", // Added 2px more padding (was 5px)
+                                paddingRight: "7px", // Added 2px more padding (was 5px)
+                                paddingTop: "3px", // Increased from 1px to 3px
+                                paddingBottom: "3px", // Increased from 1px to 3px
+                                whiteSpace: "nowrap", // Prevent text wrapping
+                              }}
+                            >
+                              +${obc} onboard credit
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
                 );
               })}
-            </div>
-          ) : (
-            <div className="text-center py-16">
-              <p className="text-gray-600 font-geograph">
-                No last minute deals available at the moment.
-              </p>
             </div>
           )}
         </div>
