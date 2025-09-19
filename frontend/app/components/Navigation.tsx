@@ -46,6 +46,8 @@ export default function Navigation({
   const router = useRouter();
   const isCruiseDetailPage = pathname?.startsWith("/cruise/") || false;
   const isCruisesPage = pathname === "/cruises";
+  const isFirstTimeCruisersPage = pathname === "/first-time-cruisers-guide";
+  const isAdminPage = pathname?.startsWith("/admin") || false;
   const [ships, setShips] = useState<Ship[]>([]);
   const [filteredShips, setFilteredShips] = useState<Ship[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -548,14 +550,16 @@ export default function Navigation({
                 src={
                   isScrolled ||
                   (isCruiseDetailPage && !isScrolled) ||
-                  (isCruisesPage && !isScrolled)
+                  (isCruisesPage && !isScrolled) ||
+                  (isFirstTimeCruisersPage && !isScrolled) ||
+                  (isAdminPage && !isScrolled)
                     ? "/images/zipsea-logo-blue.svg"
                     : "/images/zipsea-logo.svg"
                 }
                 alt="Zipsea"
                 width={110}
                 height={40}
-                className={`${isScrolled || (isCruiseDetailPage && !isScrolled) || (isCruisesPage && !isScrolled) ? "" : "brightness-0 invert"} w-[83px] md:w-[110px] h-auto`}
+                className={`${isScrolled || (isCruiseDetailPage && !isScrolled) || (isCruisesPage && !isScrolled) || (isFirstTimeCruisersPage && !isScrolled) || (isAdminPage && !isScrolled) ? "" : "brightness-0 invert"} w-[83px] md:w-[110px] h-auto`}
                 priority
               />
             </a>
@@ -581,7 +585,9 @@ export default function Navigation({
                 className={`block w-6 h-0.5 transition-all duration-300 ${
                   isScrolled ||
                   (isCruiseDetailPage && !isScrolled) ||
-                  (isCruisesPage && !isScrolled)
+                  (isCruisesPage && !isScrolled) ||
+                  (isFirstTimeCruisersPage && !isScrolled) ||
+                  (isAdminPage && !isScrolled)
                     ? "bg-[#0E1B4D]"
                     : "bg-white"
                 } ${isMobileMenuOpen ? "rotate-45 translate-y-2" : ""}`}
@@ -590,7 +596,9 @@ export default function Navigation({
                 className={`block w-6 h-0.5 transition-all duration-300 ${
                   isScrolled ||
                   (isCruiseDetailPage && !isScrolled) ||
-                  (isCruisesPage && !isScrolled)
+                  (isCruisesPage && !isScrolled) ||
+                  (isFirstTimeCruisersPage && !isScrolled) ||
+                  (isAdminPage && !isScrolled)
                     ? "bg-[#0E1B4D]"
                     : "bg-white"
                 } ${isMobileMenuOpen ? "opacity-0" : ""}`}
@@ -599,7 +607,9 @@ export default function Navigation({
                 className={`block w-6 h-0.5 transition-all duration-300 ${
                   isScrolled ||
                   (isCruiseDetailPage && !isScrolled) ||
-                  (isCruisesPage && !isScrolled)
+                  (isCruisesPage && !isScrolled) ||
+                  (isFirstTimeCruisersPage && !isScrolled) ||
+                  (isAdminPage && !isScrolled)
                     ? "bg-[#0E1B4D]"
                     : "bg-white"
                 } ${isMobileMenuOpen ? "-rotate-45 -translate-y-2" : ""}`}
@@ -614,7 +624,9 @@ export default function Navigation({
               className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
                 isScrolled ||
                 (isCruiseDetailPage && !isScrolled) ||
-                (isCruisesPage && !isScrolled)
+                (isCruisesPage && !isScrolled) ||
+                (isFirstTimeCruisersPage && !isScrolled) ||
+                (isAdminPage && !isScrolled)
                   ? "text-[#0E1B4D]"
                   : "text-white"
               }`}
@@ -626,7 +638,9 @@ export default function Navigation({
               className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
                 isScrolled ||
                 (isCruiseDetailPage && !isScrolled) ||
-                (isCruisesPage && !isScrolled)
+                (isCruisesPage && !isScrolled) ||
+                (isFirstTimeCruisersPage && !isScrolled) ||
+                (isAdminPage && !isScrolled)
                   ? "text-[#0E1B4D]"
                   : "text-white"
               }`}
@@ -655,7 +669,11 @@ export default function Navigation({
                         ) : (
                           <div
                             className={`w-full h-full flex items-center justify-center text-[12px] font-medium ${
-                              isScrolled || (isCruiseDetailPage && !isScrolled)
+                              isScrolled ||
+                              (isCruiseDetailPage && !isScrolled) ||
+                              (isCruisesPage && !isScrolled) ||
+                              (isFirstTimeCruisersPage && !isScrolled) ||
+                              (isAdminPage && !isScrolled)
                                 ? "text-[#0E1B4D]"
                                 : "text-white"
                             }`}
@@ -670,7 +688,9 @@ export default function Navigation({
                         className={`text-[16px] font-medium font-geograph ${
                           isScrolled ||
                           (isCruiseDetailPage && !isScrolled) ||
-                          (isCruisesPage && !isScrolled)
+                          (isCruisesPage && !isScrolled) ||
+                          (isFirstTimeCruisersPage && !isScrolled) ||
+                          (isAdminPage && !isScrolled)
                             ? "text-[#3B82F6]"
                             : "text-white"
                         }`}
@@ -706,7 +726,9 @@ export default function Navigation({
                     className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
                       isScrolled ||
                       (isCruiseDetailPage && !isScrolled) ||
-                      (isCruisesPage && !isScrolled)
+                      (isCruisesPage && !isScrolled) ||
+                      (isFirstTimeCruisersPage && !isScrolled) ||
+                      (isAdminPage && !isScrolled)
                         ? "text-[#0E1B4D]"
                         : "text-white"
                     }`}
