@@ -422,7 +422,7 @@ export default function CruisesContent() {
 
       setCruises(cruisesData);
       // Use total from API pagination if available
-      setTotalCount(data.total || cruisesData.length);
+      setTotalCount(data.pagination?.total || data.total || cruisesData.length);
     } catch (error) {
       console.error("Error fetching cruises:", error);
       if (error instanceof Error && error.message.includes("abort")) {
