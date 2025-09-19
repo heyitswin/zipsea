@@ -13,33 +13,9 @@ export function extractFromRawData(cruise: any) {
     cruise.name = raw.name;
   }
 
-  // Extract pricing from raw_data if missing
-  if (!cruise.interiorPrice && raw.cheapest?.combined?.inside) {
-    cruise.interiorPrice = raw.cheapest.combined.inside;
-  }
-  if (!cruise.oceanviewPrice && raw.cheapest?.combined?.outside) {
-    cruise.oceanviewPrice = raw.cheapest.combined.outside;
-  }
-  if (!cruise.balconyPrice && raw.cheapest?.combined?.balcony) {
-    cruise.balconyPrice = raw.cheapest.combined.balcony;
-  }
-  if (!cruise.suitePrice && raw.cheapest?.combined?.suite) {
-    cruise.suitePrice = raw.cheapest.combined.suite;
-  }
-
-  // Extract cheapest price
-  if (!cruise.cheapestPrice) {
-    const prices = [
-      raw.cheapest?.combined?.inside,
-      raw.cheapest?.combined?.outside,
-      raw.cheapest?.combined?.balcony,
-      raw.cheapest?.combined?.suite,
-    ].filter(p => p && p > 0);
-
-    if (prices.length > 0) {
-      cruise.cheapestPrice = Math.min(...prices);
-    }
-  }
+  // DO NOT extract pricing from raw_data - the database prices are correct
+  // The raw_data contains incorrect values from FTP files
+  // Database prices are properly calculated from cabin prices, not from raw JSON fields
 
   return cruise;
 }
