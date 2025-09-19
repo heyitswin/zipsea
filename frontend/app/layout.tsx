@@ -35,6 +35,32 @@ export const metadata: Metadata = {
   description:
     "Discover amazing cruise deals and book your perfect vacation with Zipsea",
   manifest: "/manifest.webmanifest",
+  metadataBase: new URL("https://www.zipsea.com"),
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://www.zipsea.com",
+    siteName: "Zipsea",
+    title: "Zipsea - Find the Best Cruise Deals",
+    description:
+      "Discover amazing cruise deals and book your perfect vacation with Zipsea. Compare prices, find last-minute deals, and sail away for less!",
+    images: [
+      {
+        url: "/images/opengraph.png",
+        width: 1200,
+        height: 630,
+        alt: "Zipsea - Your Gateway to Amazing Cruise Deals",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Zipsea - Find the Best Cruise Deals",
+    description:
+      "Discover amazing cruise deals and book your perfect vacation with Zipsea. Compare prices, find last-minute deals, and sail away for less!",
+    images: ["/images/opengraph.png"],
+    creator: "@zipsea",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
