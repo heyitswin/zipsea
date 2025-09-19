@@ -155,6 +155,7 @@ export default function RootLayout({
     <ClerkProviderWrapper>
       {/* Google tag (gtag.js) - beforeInteractive loads in head */}
       <Script
+        async
         src="https://www.googletagmanager.com/gtag/js?id=AW-17578519507"
         strategy="beforeInteractive"
       />
