@@ -653,14 +653,6 @@ export default function FirstTimeCruisersGuide() {
                 </ul>
               </div>
             </div>
-
-            <div className="mt-8 p-6 bg-blue-50 rounded-lg">
-              <p className="text-[#2238C3] font-semibold">
-                🕐 <span className="font-geograph">Time-Saver Tip:</span> Use
-                Zipsea's port guides to plan your arrival and parking in
-                advance!
-              </p>
-            </div>
           </div>
         </div>
       </section>
@@ -1353,28 +1345,6 @@ export default function FirstTimeCruisersGuide() {
             incredible food, the Broadway-style shows, the exotic ports, or
             simply lounging by the pool with a good book and a tropical drink.
           </p>
-
-          <div className="bg-white rounded-2xl p-8 mt-12 shadow-lg">
-            <h3 className="font-geograph text-2xl font-semibold text-gray-900 mb-4">
-              📞 Need More Help?
-            </h3>
-            <p className="text-gray-700 mb-6">
-              At <span className="font-semibold text-[#2238C3]">Zipsea</span>,
-              we're here to help make your cruise dreams come true! Whether you
-              need help planning shore excursions, finding the perfect cruise
-              deal, or answering any other cruise-related questions, we've got
-              you covered.
-            </p>
-            <div className="space-y-2 text-gray-700">
-              <p>Visit us for:</p>
-              <ul className="space-y-1 text-left max-w-md mx-auto">
-                <li>• Detailed port guides and excursion recommendations</li>
-                <li>• Cruise deals and booking assistance</li>
-                <li>• Cruise planning tools and checklists</li>
-                <li>• Expert advice from experienced cruise travelers</li>
-              </ul>
-            </div>
-          </div>
 
           <div className="mt-12">
             <p className="text-2xl font-geograph font-bold text-[#2238C3] mb-4">
