@@ -34,6 +34,7 @@ interface DiscountData {
   stateOfResidence: string;
   loyaltyNumber: string;
   travelInsurance: boolean;
+  customMessage: string;
 }
 
 const US_STATES = [
@@ -112,6 +113,7 @@ export default function QuoteModal({
     stateOfResidence: "",
     loyaltyNumber: "",
     travelInsurance: false,
+    customMessage: "",
   });
 
   // Reset login modal state when quote modal opens/closes
@@ -223,6 +225,7 @@ export default function QuoteModal({
           cabinType,
           cabinPrice,
           travelInsurance: discounts.travelInsurance,
+          customMessage: discounts.customMessage,
         }),
       });
 
@@ -460,6 +463,30 @@ export default function QuoteModal({
                     </span>
                   </label>
                 </div>
+              </div>
+
+              {/* Custom Message Field */}
+              <div className="mb-8">
+                <label
+                  className="font-geograph text-[18px] text-[#2f2f2f] block mb-2"
+                  style={{ letterSpacing: "0px" }}
+                >
+                  Additional Information (Optional)
+                </label>
+                <textarea
+                  value={discounts.customMessage}
+                  onChange={(e) =>
+                    handleDiscountChange("customMessage", e.target.value)
+                  }
+                  placeholder="Let us know if you have any special requests, questions, or additional information that might help us find the best deal for you..."
+                  className="w-full p-4 border border-[#d9d9d9] rounded-[10px] font-geograph text-[16px] resize-none focus:outline-none focus:ring-2 focus:ring-[#2F7DDD] focus:border-transparent"
+                  rows={4}
+                  maxLength={1000}
+                  style={{ letterSpacing: "0px" }}
+                />
+                <p className="font-geograph text-[14px] text-gray-500 mt-1">
+                  {discounts.customMessage.length}/1000 characters
+                </p>
               </div>
 
               {/* Discount Qualifiers Section */}

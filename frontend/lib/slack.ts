@@ -22,6 +22,7 @@ interface QuoteData {
     stateOfResidence: string;
     loyaltyNumber: string;
     travelInsurance: boolean;
+    customMessage?: string;
   };
   cabinType: string;
   cabinPrice: string | number;
@@ -201,6 +202,20 @@ export async function sendSlackQuoteNotification(quoteData: QuoteData) {
                 text: {
                   type: "mrkdwn" as const,
                   text: `*Discount Qualifiers:*\n• ${activeDiscounts.join("\n• ")}`,
+                },
+              },
+            ]
+          : []),
+        ...(quoteData.discounts.customMessage
+          ? [
+              {
+                type: "divider" as const,
+              },
+              {
+                type: "section" as const,
+                text: {
+                  type: "mrkdwn" as const,
+                  text: `*Additional Information from Customer:*\n${quoteData.discounts.customMessage}`,
                 },
               },
             ]

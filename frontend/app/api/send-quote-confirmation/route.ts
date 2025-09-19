@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
       cabinType,
       cabinPrice,
       travelInsurance,
+      customMessage,
     } = body;
 
     console.log("Quote submission received:", {
@@ -91,6 +92,7 @@ export async function POST(request: NextRequest) {
           children: passengers?.children || 0,
           childAges: passengers?.childAges || [],
           travelInsurance: travelInsurance || false,
+          specialRequests: customMessage || "",
           discountQualifiers: {
             payInFull: discounts?.payInFull || false,
             seniorCitizen: discounts?.age55Plus || false,
@@ -136,6 +138,7 @@ export async function POST(request: NextRequest) {
           discounts: {
             ...discounts,
             travelInsurance: travelInsurance || false,
+            customMessage: customMessage || "",
           },
           cabinType,
           cabinPrice,
@@ -425,6 +428,26 @@ export async function POST(request: NextRequest) {
                       </td>
                     </tr>
 
+                    ${
+                      customMessage
+                        ? `
+                    <!-- Custom Message Section -->
+                    <tr>
+                      <td style="padding: 0;">
+                        <table cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #FFFFFF; border-radius: 10px; margin: 10px 0;">
+                          <tr>
+                            <td style="padding: 36px;">
+                              <h2 style="margin: 0 0 20px 0; color: #2F2F2F; font-family: Arial, sans-serif; font-size: 32px; font-weight: bold; letter-spacing: -0.02em;">Your message to us</h2>
+                              <p style="margin: 0; color: #2F2F2F; font-family: Arial, sans-serif; font-size: 18px; font-weight: normal; letter-spacing: -0.02em; line-height: 1.5;">${customMessage}</p>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    `
+                        : ""
+                    }
+
                     <!-- What Happens Next Section -->
                     <tr>
                       <td style="padding: 0;">
@@ -560,7 +583,9 @@ Passengers: ${passengerInfo}
 Cabin Type Requested: ${cabinType || "N/A"}
 Starting Price: ${formatPrice(cabinPrice) || "N/A"} (excl. taxes/fees)
 Discounts: ${activeDiscounts.length > 0 ? activeDiscounts.join(", ") : "None"}
-Travel Insurance: ${travelInsurance ? "Yes" : "No"}
+Travel Insurance: ${travelInsurance ? "Yes" : "No"}${
+                customMessage ? `\nCustomer Message: ${customMessage}` : ""
+              }
             `.trim();
 
               const notificationText = `You've received an email from the user with the subject of New quote request task
