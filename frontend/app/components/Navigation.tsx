@@ -544,7 +544,7 @@ export default function Navigation({
       >
         <div className="flex items-center justify-between h-[40px] md:h-[44px]">
           {/* Logo - Responsive sizing */}
-          <div className="w-[83px] md:w-[110px] -ml-1 md:ml-0">
+          <div className="w-[83px] md:w-[110px] -ml-[5px] md:ml-0">
             <a href="/">
               <Image
                 src={

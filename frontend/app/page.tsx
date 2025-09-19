@@ -116,11 +116,11 @@ function HomeWithParams() {
 
       {/* Hero Section */}
       <section className="relative h-[620px] md:h-[720px] bg-light-blue pt-[80px] md:pt-[100px] pb-[10px] md:pb-[100px] overflow-visible z-20">
-        {/* Floating Swimmers - Behind all content - Hidden on mobile */}
-        <div className="absolute inset-0 z-0 hidden md:block">
-          {/* Swimmer 1 */}
+        {/* Floating Swimmers - Behind all content - Swimmer 1&2 Hidden on mobile, Swimmer 3 shown */}
+        <div className="absolute inset-0 z-0">
+          {/* Swimmer 1 - Hidden on mobile */}
           <div
-            className="absolute swimmer-float-1"
+            className="absolute swimmer-float-1 hidden md:block"
             style={{
               top: "15%",
               left: "8%",
@@ -141,9 +141,9 @@ function HomeWithParams() {
             />
           </div>
 
-          {/* Swimmer 2 */}
+          {/* Swimmer 2 - Hidden on mobile */}
           <div
-            className="absolute swimmer-float-2"
+            className="absolute swimmer-float-2 hidden md:block"
             style={{
               top: "15%",
               right: "5%",
@@ -164,7 +164,7 @@ function HomeWithParams() {
             />
           </div>
 
-          {/* Swimmer 3 */}
+          {/* Swimmer 3 - Shown on all devices */}
           <div
             className="absolute swimmer-float-3"
             style={{

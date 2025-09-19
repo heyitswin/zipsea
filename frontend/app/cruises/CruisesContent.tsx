@@ -758,8 +758,8 @@ export default function CruisesContent() {
 
   return (
     <div className="min-h-screen bg-[#F6F3ED] pt-[100px]">
-      {/* Banner Section */}
-      <div className="max-w-7xl mx-auto px-4">
+      {/* Banner Section - Hidden on mobile */}
+      <div className="hidden md:block max-w-7xl mx-auto px-4">
         <div
           className="bg-[#E9B4EB] rounded-[10px] px-8 py-6 cursor-pointer"
           onClick={handleOpenMissive}
@@ -783,10 +783,10 @@ export default function CruisesContent() {
       {/* Filters Section */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Mobile Filters Button */}
-        <div className="md:hidden flex justify-center mb-4">
+        <div className="md:hidden mb-4">
           <button
             onClick={() => setIsFilterModalOpen(true)}
-            className="px-6 py-3 bg-white border border-gray-300 rounded-full font-geograph font-medium text-[16px] text-dark-blue hover:border-gray-400 transition-colors"
+            className="w-full px-6 py-3 bg-white border border-gray-300 rounded-full font-geograph font-medium text-[16px] text-dark-blue hover:border-gray-400 transition-colors"
           >
             Filters
           </button>
