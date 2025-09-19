@@ -9,6 +9,11 @@ import { priceSnapshots } from '../db/schema/webhook-events';
 import { eq, sql } from 'drizzle-orm';
 import logger from '../config/logger';
 import { Writable } from 'stream';
+import {
+  processNCLPricingData,
+  extractNCLAdultPrice,
+  getNCLCheapestPrice,
+} from '../utils/ncl-pricing-fix';
 import { slackService, WebhookProcessingResult } from './slack.service';
 import { WebhookStatsTracker } from './webhook-stats-tracker';
 import * as crypto from 'crypto';
@@ -1276,10 +1281,7 @@ export class WebhookProcessorOptimizedV2 {
       // First priority: cheapest.combined (most reliable aggregated pricing)
       if (data.cheapest && data.cheapest.combined) {
         cheapestData = {
-          cheapestPrice:
-            data.cheapest.combined.price || data.cheapest.combined.total
-              ? parseFloat(data.cheapest.combined.price || data.cheapest.combined.total)
-              : null,
+          // Don't extract cheapestPrice from raw JSON - let database trigger calculate it
           interiorPrice: data.cheapest.combined.inside
             ? parseFloat(data.cheapest.combined.inside)
             : null,
@@ -1293,6 +1295,14 @@ export class WebhookProcessorOptimizedV2 {
             ? parseFloat(data.cheapest.combined.suite)
             : null,
         };
+        // Calculate cheapest overall from cabin prices, not from raw JSON
+        const prices = [
+          cheapestData.interiorPrice,
+          cheapestData.oceanviewPrice,
+          cheapestData.balconyPrice,
+          cheapestData.suitePrice,
+        ].filter(p => p > 0);
+        cheapestData.cheapestPrice = prices.length > 0 ? Math.min(...prices) : null;
       }
       // Second priority: cheapest.prices
       else if (data.cheapest && data.cheapest.prices) {
@@ -1324,11 +1334,27 @@ export class WebhookProcessorOptimizedV2 {
         data.cheapestbalcony ||
         data.cheapestsuite
       ) {
+        // Handle both direct values (strings/numbers) and objects with price property
+        const extractPrice = (value: any): number | null => {
+          if (!value) return null;
+          // If it's already a string or number, use it directly
+          if (typeof value === 'string' || typeof value === 'number') {
+            const parsed = parseFloat(String(value));
+            return parsed > 0 ? parsed : null;
+          }
+          // If it's an object, try to get the price property
+          if (typeof value === 'object' && value.price) {
+            const parsed = parseFloat(String(value.price));
+            return parsed > 0 ? parsed : null;
+          }
+          return null;
+        };
+
         cheapestData = {
-          interiorPrice: data.cheapestinside ? parseFloat(data.cheapestinside.price || 0) : null,
-          oceanviewPrice: data.cheapestoutside ? parseFloat(data.cheapestoutside.price || 0) : null,
-          balconyPrice: data.cheapestbalcony ? parseFloat(data.cheapestbalcony.price || 0) : null,
-          suitePrice: data.cheapestsuite ? parseFloat(data.cheapestsuite.price || 0) : null,
+          interiorPrice: extractPrice(data.cheapestinside),
+          oceanviewPrice: extractPrice(data.cheapestoutside),
+          balconyPrice: extractPrice(data.cheapestbalcony),
+          suitePrice: extractPrice(data.cheapestsuite),
         };
         // Calculate cheapest overall
         const prices = [
@@ -1353,26 +1379,38 @@ export class WebhookProcessorOptimizedV2 {
       });
 
       // Store the combined pricing structure in raw_json
+      // Helper to extract price from either direct value or object with price property
+      const getPriceValue = (value: any): string | null => {
+        if (!value) return null;
+        if (typeof value === 'string' || typeof value === 'number') {
+          return value.toString();
+        }
+        if (typeof value === 'object' && value.price) {
+          return value.price.toString();
+        }
+        return null;
+      };
+
       const combinedPricing = {
         inside:
           data.cheapest?.combined?.inside ||
           data.cheapest?.cachedprices?.inside ||
-          data.cheapestinside?.price ||
+          getPriceValue(data.cheapestinside) ||
           null,
         outside:
           data.cheapest?.combined?.outside ||
           data.cheapest?.cachedprices?.outside ||
-          data.cheapestoutside?.price ||
+          getPriceValue(data.cheapestoutside) ||
           null,
         balcony:
           data.cheapest?.combined?.balcony ||
           data.cheapest?.cachedprices?.balcony ||
-          data.cheapestbalcony?.price ||
+          getPriceValue(data.cheapestbalcony) ||
           null,
         suite:
           data.cheapest?.combined?.suite ||
           data.cheapest?.cachedprices?.suite ||
-          data.cheapestsuite?.price ||
+          getPriceValue(data.cheapestsuite) ||
           null,
         insidepricecode:
           data.cheapest?.combined?.insidepricecode || data.cheapestinsidepricecode || null,
@@ -1439,6 +1477,8 @@ export class WebhookProcessorOptimizedV2 {
               cheapestData.balconyPrice !== null ? cheapestData.balconyPrice.toString() : null,
             suitePrice:
               cheapestData.suitePrice !== null ? cheapestData.suitePrice.toString() : null,
+            cheapestPrice:
+              cheapestData.cheapestPrice !== null ? cheapestData.cheapestPrice.toString() : null,
             rawData: updatedRawJson,
             updatedAt: new Date(),
           })
@@ -1534,7 +1574,10 @@ export class WebhookProcessorOptimizedV2 {
   }
 
   // Helper function to extract prices from nested rate/cabin/occupancy structure
-  private async extractPricesFromNestedStructure(priceData: any): Promise<any> {
+  private async extractPricesFromNestedStructure(
+    priceData: any,
+    cruiseLineId?: number
+  ): Promise<any> {
     const result = {
       interiorPrice: null as number | null,
       oceanviewPrice: null as number | null,
@@ -1545,6 +1588,12 @@ export class WebhookProcessorOptimizedV2 {
 
     if (!priceData || typeof priceData !== 'object') {
       return result;
+    }
+
+    // Check if this is NCL (cruise line ID 17) and fix pricing if needed
+    const isNCL = cruiseLineId === 17;
+    if (isNCL) {
+      priceData = processNCLPricingData(priceData, cruiseLineId);
     }
 
     // Iterate through rate codes
@@ -1561,7 +1610,14 @@ export class WebhookProcessorOptimizedV2 {
         let cabinPrice = null;
         for (const occupancy in occupancies) {
           const priceInfo = occupancies[occupancy];
-          if (priceInfo && priceInfo.price) {
+
+          // For NCL, use our special extraction logic
+          if (isNCL && priceInfo) {
+            const nclPrice = getNCLCheapestPrice(priceInfo);
+            if (nclPrice && nclPrice > 0 && (!cabinPrice || nclPrice < cabinPrice)) {
+              cabinPrice = nclPrice;
+            }
+          } else if (priceInfo && priceInfo.price) {
             const price = parseFloat(priceInfo.price);
             if (price > 0 && (!cabinPrice || price < cabinPrice)) {
               cabinPrice = price;
