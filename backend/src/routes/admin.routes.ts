@@ -12,6 +12,72 @@ const router = Router();
 router.get('/quotes', quoteController.getQuoteRequests);
 router.post('/quotes/:id/respond', quoteController.respondToQuote);
 
+// Admin cruise lines stats endpoint
+router.get('/cruise-lines/stats', async (req, res) => {
+  try {
+    // Get all cruise lines with stats
+    const cruiseLinesData = await db.execute(sql`
+      WITH line_stats AS (
+        SELECT
+          cl.id,
+          cl.name,
+          cl.code,
+          COUNT(DISTINCT c.id) as total_cruises,
+          COUNT(DISTINCT CASE WHEN c.sailing_date > NOW() THEN c.id END) as active_cruises,
+          COUNT(DISTINCT CASE WHEN c.updated_at > NOW() - INTERVAL '24 hours' THEN c.id END) as recently_updated,
+          MAX(c.updated_at) as last_updated
+        FROM cruise_lines cl
+        LEFT JOIN cruises c ON c.cruise_line_id = cl.id
+        GROUP BY cl.id, cl.name, cl.code
+      )
+      SELECT * FROM line_stats
+      ORDER BY total_cruises DESC
+    `);
+
+    // Calculate overall stats
+    const statsData = await db.execute(sql`
+      SELECT
+        COUNT(DISTINCT cl.id) as total_lines,
+        COUNT(DISTINCT c.id) as total_cruises,
+        COUNT(DISTINCT CASE WHEN c.updated_at > NOW() - INTERVAL '24 hours' THEN c.id END) as updated_today,
+        COUNT(DISTINCT CASE WHEN c.updated_at > NOW() - INTERVAL '7 days' THEN c.id END) as updated_this_week
+      FROM cruise_lines cl
+      LEFT JOIN cruises c ON c.cruise_line_id = cl.id
+    `);
+
+    const stats = statsData.rows[0] || {
+      total_lines: 0,
+      total_cruises: 0,
+      updated_today: 0,
+      updated_this_week: 0,
+    };
+
+    res.json({
+      cruiseLines: cruiseLinesData.rows.map(row => ({
+        id: row.id,
+        name: row.name,
+        code: row.code,
+        totalCruises: parseInt(row.total_cruises) || 0,
+        activeCruises: parseInt(row.active_cruises) || 0,
+        recentlyUpdated: parseInt(row.recently_updated) || 0,
+        lastUpdated: row.last_updated,
+      })),
+      stats: {
+        totalLines: parseInt(stats.total_lines) || 0,
+        totalCruises: parseInt(stats.total_cruises) || 0,
+        updatedToday: parseInt(stats.updated_today) || 0,
+        updatedThisWeek: parseInt(stats.updated_this_week) || 0,
+      },
+    });
+  } catch (error: any) {
+    console.error('[ADMIN] Error fetching cruise lines stats:', error);
+    res.status(500).json({
+      error: 'Failed to fetch cruise lines stats',
+      message: error.message,
+    });
+  }
+});
+
 // Admin cleanup endpoint
 router.post('/cleanup', async (req, res) => {
   try {
