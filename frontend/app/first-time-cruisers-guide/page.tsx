@@ -16,7 +16,10 @@ export default function FirstTimeCruisersGuide() {
         const sectionHeight = (section as HTMLElement).offsetHeight;
         const sectionId = section.getAttribute("id");
 
-        if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+        if (
+          scrollPosition >= sectionTop &&
+          scrollPosition < sectionTop + sectionHeight
+        ) {
           setActiveSection(sectionId || "");
         }
       });
@@ -30,7 +33,8 @@ export default function FirstTimeCruisersGuide() {
     const element = document.getElementById(sectionId);
     if (element) {
       const yOffset = -80;
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      const y =
+        element.getBoundingClientRect().top + window.pageYOffset + yOffset;
       window.scrollTo({ top: y, behavior: "smooth" });
     }
   };
@@ -47,7 +51,7 @@ export default function FirstTimeCruisersGuide() {
     { id: "health-safety", title: "Health, Safety & Sea Sickness" },
     { id: "cruise-etiquette", title: "Cruise Etiquette & Social Tips" },
     { id: "disembarkation", title: "Disembarkation & Going Home" },
-    { id: "insider-secrets", title: "Insider Secrets & Pro Tips" }
+    { id: "insider-secrets", title: "Insider Secrets & Pro Tips" },
   ];
 
   return (
@@ -57,7 +61,8 @@ export default function FirstTimeCruisersGuide() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
           <div className="text-center">
             <h1 className="font-geograph text-5xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6">
-              The Ultimate First-Time<br />
+              The Ultimate First-Time
+              <br />
               Cruiser's Guide 🚢
             </h1>
             <p className="text-xl md:text-2xl text-gray-600 font-light">
@@ -81,14 +86,18 @@ export default function FirstTimeCruisersGuide() {
             Welcome Aboard, Future Cruiser! 🎉
           </h2>
           <p className="text-lg text-gray-700 mb-6">
-            Congratulations! You've just booked your first cruise, and we're absolutely thrilled for you.
-            Whether you're dreaming of tropical sunsets, endless buffets, or Broadway-style shows at sea,
-            you're about to embark on one of the most magical vacation experiences possible.
+            Congratulations! You've just booked your first cruise, and we're
+            absolutely thrilled for you. Whether you're dreaming of tropical
+            sunsets, endless buffets, or Broadway-style shows at sea, you're
+            about to embark on one of the most magical vacation experiences
+            possible.
           </p>
           <p className="text-lg text-gray-700">
-            At <span className="font-semibold text-[#2238C3]">Zipsea</span>, we've helped thousands of first-time cruisers
-            turn their ocean dreams into reality. This guide is everything we wish every new cruiser knew
-            before stepping aboard – your ultimate cheat sheet to cruise vacation success!
+            At <span className="font-semibold text-[#2238C3]">Zipsea</span>,
+            we've helped thousands of first-time cruisers turn their ocean
+            dreams into reality. This guide is everything we wish every new
+            cruiser knew before stepping aboard – your ultimate cheat sheet to
+            cruise vacation success!
           </p>
         </div>
       </div>
@@ -96,9 +105,11 @@ export default function FirstTimeCruisersGuide() {
       {/* Photo Placeholder */}
       <div className="py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gray-200 rounded-xl h-96 flex items-center justify-center">
-            <span className="text-gray-500 text-lg">[Photo Placeholder - Cruise Ship]</span>
-          </div>
+          <img
+            src="/images/cruise_images_curated/01_cruise_ship_sunset.jpg"
+            alt="Stunning cruise ship at sunset"
+            className="rounded-xl w-full h-96 object-cover shadow-lg"
+          />
         </div>
       </div>
 
@@ -114,7 +125,9 @@ export default function FirstTimeCruisersGuide() {
                 key={item.id}
                 onClick={() => scrollToSection(item.id)}
                 className={`text-left p-4 rounded-lg transition-all duration-200 hover:bg-[#2238C3] hover:text-white ${
-                  activeSection === item.id ? "bg-[#2238C3] text-white" : "bg-gray-50 text-gray-700"
+                  activeSection === item.id
+                    ? "bg-[#2238C3] text-white"
+                    : "bg-gray-50 text-gray-700"
                 }`}
               >
                 <span className="font-medium">
@@ -140,89 +153,129 @@ export default function FirstTimeCruisersGuide() {
 
             <div className="space-y-6">
               <div className="border-l-4 border-[#2238C3] pl-6">
-                <h4 className="font-semibold text-lg text-gray-900 mb-3">90 Days Before:</h4>
+                <h4 className="font-semibold text-lg text-gray-900 mb-3">
+                  90 Days Before:
+                </h4>
                 <ul className="space-y-2">
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Book your cruise (check! ✅)</span>
+                    <span className="text-gray-700">
+                      Book your cruise (check! ✅)
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Review and understand your cruise contract</span>
+                    <span className="text-gray-700">
+                      Review and understand your cruise contract
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Consider travel insurance</span>
+                    <span className="text-gray-700">
+                      Consider travel insurance
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Start researching your ports of call</span>
+                    <span className="text-gray-700">
+                      Start researching your ports of call
+                    </span>
                   </li>
                 </ul>
               </div>
 
               <div className="border-l-4 border-[#2238C3] pl-6">
-                <h4 className="font-semibold text-lg text-gray-900 mb-3">60 Days Before:</h4>
+                <h4 className="font-semibold text-lg text-gray-900 mb-3">
+                  60 Days Before:
+                </h4>
                 <ul className="space-y-2">
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Complete online check-in (usually opens 75-90 days prior)</span>
+                    <span className="text-gray-700">
+                      Complete online check-in (usually opens 75-90 days prior)
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Book specialty dining reservations</span>
+                    <span className="text-gray-700">
+                      Book specialty dining reservations
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Reserve spa appointments and shore excursions</span>
+                    <span className="text-gray-700">
+                      Reserve spa appointments and shore excursions
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Apply for passport if needed (this takes time!)</span>
+                    <span className="text-gray-700">
+                      Apply for passport if needed (this takes time!)
+                    </span>
                   </li>
                 </ul>
               </div>
 
               <div className="border-l-4 border-[#2238C3] pl-6">
-                <h4 className="font-semibold text-lg text-gray-900 mb-3">30 Days Before:</h4>
+                <h4 className="font-semibold text-lg text-gray-900 mb-3">
+                  30 Days Before:
+                </h4>
                 <ul className="space-y-2">
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Print boarding passes and luggage tags</span>
+                    <span className="text-gray-700">
+                      Print boarding passes and luggage tags
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Pack medications in carry-on</span>
+                    <span className="text-gray-700">
+                      Pack medications in carry-on
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Arrange pet care, mail hold, etc.</span>
+                    <span className="text-gray-700">
+                      Arrange pet care, mail hold, etc.
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Download your cruise line's app</span>
+                    <span className="text-gray-700">
+                      Download your cruise line's app
+                    </span>
                   </li>
                 </ul>
               </div>
 
               <div className="border-l-4 border-[#2238C3] pl-6">
-                <h4 className="font-semibold text-lg text-gray-900 mb-3">1 Week Before:</h4>
+                <h4 className="font-semibold text-lg text-gray-900 mb-3">
+                  1 Week Before:
+                </h4>
                 <ul className="space-y-2">
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Check weather forecasts for packing</span>
+                    <span className="text-gray-700">
+                      Check weather forecasts for packing
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Confirm transportation to port</span>
+                    <span className="text-gray-700">
+                      Confirm transportation to port
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Set up international phone plan if needed</span>
+                    <span className="text-gray-700">
+                      Set up international phone plan if needed
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-[#2238C3] mr-2">✓</span>
-                    <span className="text-gray-700">Pack and weigh luggage</span>
+                    <span className="text-gray-700">
+                      Pack and weigh luggage
+                    </span>
                   </li>
                 </ul>
               </div>
@@ -230,7 +283,9 @@ export default function FirstTimeCruisersGuide() {
 
             <div className="mt-8 p-6 bg-blue-50 rounded-lg">
               <p className="text-[#2238C3] font-semibold">
-                💡 <span className="font-geograph">Zipsea Pro Tip:</span> Use our cruise planning tools to stay organized and never miss a deadline!
+                💡 <span className="font-geograph">Zipsea Pro Tip:</span> Use
+                our cruise planning tools to stay organized and never miss a
+                deadline!
               </p>
             </div>
           </div>
@@ -242,9 +297,14 @@ export default function FirstTimeCruisersGuide() {
 
             <div className="grid md:grid-cols-2 gap-8">
               <div>
-                <h4 className="font-semibold text-lg text-gray-900 mb-4">Required for Everyone:</h4>
+                <h4 className="font-semibold text-lg text-gray-900 mb-4">
+                  Required for Everyone:
+                </h4>
                 <ul className="space-y-2 text-gray-700">
-                  <li>• Valid passport (recommended) or birth certificate + government-issued photo ID</li>
+                  <li>
+                    • Valid passport (recommended) or birth certificate +
+                    government-issued photo ID
+                  </li>
                   <li>• Boarding pass and luggage tags</li>
                   <li>• Travel insurance documents</li>
                   <li>• Emergency contact information</li>
@@ -252,7 +312,9 @@ export default function FirstTimeCruisersGuide() {
               </div>
 
               <div>
-                <h4 className="font-semibold text-lg text-gray-900 mb-4">Additional for International Cruises:</h4>
+                <h4 className="font-semibold text-lg text-gray-900 mb-4">
+                  Additional for International Cruises:
+                </h4>
                 <ul className="space-y-2 text-gray-700">
                   <li>• Passport valid for 6+ months beyond travel date</li>
                   <li>• Visa requirements (check each port of call)</li>
@@ -262,7 +324,9 @@ export default function FirstTimeCruisersGuide() {
             </div>
 
             <div className="mt-6">
-              <h4 className="font-semibold text-lg text-gray-900 mb-4">Don't Forget:</h4>
+              <h4 className="font-semibold text-lg text-gray-900 mb-4">
+                Don't Forget:
+              </h4>
               <ul className="space-y-2 text-gray-700">
                 <li>• Driver's license for shore excursions</li>
                 <li>• Credit cards (notify banks of travel)</li>
@@ -276,9 +340,11 @@ export default function FirstTimeCruisersGuide() {
       {/* Photo Placeholder */}
       <div className="py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gray-200 rounded-xl h-96 flex items-center justify-center">
-            <span className="text-gray-500 text-lg">[Photo Placeholder - Planning & Documents]</span>
-          </div>
+          <img
+            src="/images/cruise_images_curated/02_planning_documents.jpg"
+            alt="Travel planning documents and passport"
+            className="rounded-xl w-full h-96 object-cover shadow-lg"
+          />
         </div>
       </div>
 
@@ -296,7 +362,9 @@ export default function FirstTimeCruisersGuide() {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               <div>
-                <h4 className="font-semibold text-lg text-[#2238C3] mb-4">Daytime Casual:</h4>
+                <h4 className="font-semibold text-lg text-[#2238C3] mb-4">
+                  Daytime Casual:
+                </h4>
                 <ul className="space-y-2 text-gray-700">
                   <li>• Swimwear (bring 2-3 suits)</li>
                   <li>• Cover-ups and sundresses</li>
@@ -308,7 +376,9 @@ export default function FirstTimeCruisersGuide() {
               </div>
 
               <div>
-                <h4 className="font-semibold text-lg text-[#2238C3] mb-4">Evening Wear:</h4>
+                <h4 className="font-semibold text-lg text-[#2238C3] mb-4">
+                  Evening Wear:
+                </h4>
                 <ul className="space-y-2 text-gray-700">
                   <li>• Smart casual outfits</li>
                   <li>• Formal wear for formal nights</li>
@@ -318,7 +388,9 @@ export default function FirstTimeCruisersGuide() {
               </div>
 
               <div>
-                <h4 className="font-semibold text-lg text-[#2238C3] mb-4">Active Wear:</h4>
+                <h4 className="font-semibold text-lg text-[#2238C3] mb-4">
+                  Active Wear:
+                </h4>
                 <ul className="space-y-2 text-gray-700">
                   <li>• Workout clothes</li>
                   <li>• Athletic shoes</li>
@@ -328,7 +400,9 @@ export default function FirstTimeCruisersGuide() {
             </div>
 
             <div className="mt-8 p-6 bg-[#F6F3ED] rounded-lg">
-              <h4 className="font-semibold text-lg text-gray-900 mb-4">Must-Have Items:</h4>
+              <h4 className="font-semibold text-lg text-gray-900 mb-4">
+                Must-Have Items:
+              </h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <label className="flex items-center space-x-2">
                   <input type="checkbox" className="w-4 h-4 text-[#2238C3]" />
@@ -366,7 +440,9 @@ export default function FirstTimeCruisersGuide() {
             </div>
 
             <div className="mt-8 p-6 bg-red-50 rounded-lg border-2 border-red-200">
-              <h4 className="font-semibold text-lg text-red-900 mb-4">❌ What NOT to Pack:</h4>
+              <h4 className="font-semibold text-lg text-red-900 mb-4">
+                ❌ What NOT to Pack:
+              </h4>
               <ul className="space-y-2 text-red-700">
                 <li>• Candles or incense</li>
                 <li>• Surge protectors with outlets</li>
@@ -379,7 +455,9 @@ export default function FirstTimeCruisersGuide() {
 
             <div className="mt-8 p-6 bg-blue-50 rounded-lg">
               <p className="text-[#2238C3] font-semibold">
-                🎒 <span className="font-geograph">Packing Hack:</span> Pack one complete outfit in your carry-on in case checked luggage is delayed!
+                🎒 <span className="font-geograph">Packing Hack:</span> Pack one
+                complete outfit in your carry-on in case checked luggage is
+                delayed!
               </p>
             </div>
           </div>
@@ -389,26 +467,41 @@ export default function FirstTimeCruisersGuide() {
               👗 Formal Night Decoded
             </h3>
             <p className="text-gray-700 mb-6">
-              Most cruises have 1-2 formal nights. Here's what that actually means:
+              Most cruises have 1-2 formal nights. Here's what that actually
+              means:
             </p>
 
             <div className="space-y-4">
               <div className="flex items-start">
-                <span className="font-semibold text-[#2238C3] mr-3">Formal:</span>
-                <span className="text-gray-700">Suits, tuxedos, cocktail dresses, evening gowns</span>
+                <span className="font-semibold text-[#2238C3] mr-3">
+                  Formal:
+                </span>
+                <span className="text-gray-700">
+                  Suits, tuxedos, cocktail dresses, evening gowns
+                </span>
               </div>
               <div className="flex items-start">
-                <span className="font-semibold text-[#2238C3] mr-3">Smart Casual Alternative:</span>
-                <span className="text-gray-700">Nice slacks/dress with button-down shirt or blouse</span>
+                <span className="font-semibold text-[#2238C3] mr-3">
+                  Smart Casual Alternative:
+                </span>
+                <span className="text-gray-700">
+                  Nice slacks/dress with button-down shirt or blouse
+                </span>
               </div>
               <div className="flex items-start">
-                <span className="font-semibold text-[#2238C3] mr-3">Rental Option:</span>
-                <span className="text-gray-700">Many ships offer tuxedo rentals</span>
+                <span className="font-semibold text-[#2238C3] mr-3">
+                  Rental Option:
+                </span>
+                <span className="text-gray-700">
+                  Many ships offer tuxedo rentals
+                </span>
               </div>
             </div>
 
             <p className="mt-6 text-gray-700 italic">
-              <strong>Don't Stress:</strong> You won't be turned away from the dining room if you're not in formal wear, but you might miss some photo opportunities!
+              <strong>Don't Stress:</strong> You won't be turned away from the
+              dining room if you're not in formal wear, but you might miss some
+              photo opportunities!
             </p>
           </div>
         </div>
@@ -417,9 +510,11 @@ export default function FirstTimeCruisersGuide() {
       {/* Photo Placeholder */}
       <div className="py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gray-200 rounded-xl h-96 flex items-center justify-center">
-            <span className="text-gray-500 text-lg">[Photo Placeholder - Luggage & Packing]</span>
-          </div>
+          <img
+            src="/images/cruise_images_curated/03_packing_luggage.jpg"
+            alt="Organized luggage and packing for cruise"
+            className="rounded-xl w-full h-96 object-cover shadow-lg"
+          />
         </div>
       </div>
 
@@ -437,17 +532,34 @@ export default function FirstTimeCruisersGuide() {
 
             <div className="space-y-4">
               {[
-                { time: "10:00 AM", activity: "Arrive at port (even if boarding starts later)" },
-                { time: "10:30 AM", activity: "Complete check-in and security" },
+                {
+                  time: "10:00 AM",
+                  activity: "Arrive at port (even if boarding starts later)",
+                },
+                {
+                  time: "10:30 AM",
+                  activity: "Complete check-in and security",
+                },
                 { time: "11:00 AM", activity: "Board ship and explore" },
                 { time: "12:00 PM", activity: "Grab lunch at buffet" },
-                { time: "1:00 PM", activity: "Attend muster drill (mandatory safety briefing)" },
-                { time: "3:00 PM", activity: "Stateroom ready, start unpacking" },
-                { time: "4:00 PM", activity: "Ship sets sail! 🎉" }
+                {
+                  time: "1:00 PM",
+                  activity: "Attend muster drill (mandatory safety briefing)",
+                },
+                {
+                  time: "3:00 PM",
+                  activity: "Stateroom ready, start unpacking",
+                },
+                { time: "4:00 PM", activity: "Ship sets sail! 🎉" },
               ].map((item, index) => (
-                <div key={index} className="flex items-start border-l-4 border-[#2238C3] pl-6 pb-4">
+                <div
+                  key={index}
+                  className="flex items-start border-l-4 border-[#2238C3] pl-6 pb-4"
+                >
                   <div className="flex-shrink-0">
-                    <span className="font-semibold text-[#2238C3]">{item.time}</span>
+                    <span className="font-semibold text-[#2238C3]">
+                      {item.time}
+                    </span>
                   </div>
                   <div className="ml-4">
                     <span className="text-gray-700">{item.activity}</span>
@@ -464,11 +576,15 @@ export default function FirstTimeCruisersGuide() {
 
             <div className="grid md:grid-cols-3 gap-6">
               <div>
-                <h4 className="font-semibold text-lg text-[#2238C3] mb-4">Before Leaving Home:</h4>
+                <h4 className="font-semibold text-lg text-[#2238C3] mb-4">
+                  Before Leaving Home:
+                </h4>
                 <ul className="space-y-2">
                   <li className="flex items-start">
                     <input type="checkbox" className="mt-1 mr-2" />
-                    <span className="text-gray-700">Check flight status if flying</span>
+                    <span className="text-gray-700">
+                      Check flight status if flying
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <input type="checkbox" className="mt-1 mr-2" />
@@ -482,19 +598,27 @@ export default function FirstTimeCruisersGuide() {
               </div>
 
               <div>
-                <h4 className="font-semibold text-lg text-[#2238C3] mb-4">At the Port:</h4>
+                <h4 className="font-semibold text-lg text-[#2238C3] mb-4">
+                  At the Port:
+                </h4>
                 <ul className="space-y-2">
                   <li className="flex items-start">
                     <input type="checkbox" className="mt-1 mr-2" />
-                    <span className="text-gray-700">Take a selfie by the ship!</span>
+                    <span className="text-gray-700">
+                      Take a selfie by the ship!
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <input type="checkbox" className="mt-1 mr-2" />
-                    <span className="text-gray-700">Keep documents accessible</span>
+                    <span className="text-gray-700">
+                      Keep documents accessible
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <input type="checkbox" className="mt-1 mr-2" />
-                    <span className="text-gray-700">Tip porters ($2-3 per bag)</span>
+                    <span className="text-gray-700">
+                      Tip porters ($2-3 per bag)
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <input type="checkbox" className="mt-1 mr-2" />
@@ -504,11 +628,15 @@ export default function FirstTimeCruisersGuide() {
               </div>
 
               <div>
-                <h4 className="font-semibold text-lg text-[#2238C3] mb-4">First Hour Onboard:</h4>
+                <h4 className="font-semibold text-lg text-[#2238C3] mb-4">
+                  First Hour Onboard:
+                </h4>
                 <ul className="space-y-2">
                   <li className="flex items-start">
                     <input type="checkbox" className="mt-1 mr-2" />
-                    <span className="text-gray-700">Photo stateroom number</span>
+                    <span className="text-gray-700">
+                      Photo stateroom number
+                    </span>
                   </li>
                   <li className="flex items-start">
                     <input type="checkbox" className="mt-1 mr-2" />
@@ -528,7 +656,9 @@ export default function FirstTimeCruisersGuide() {
 
             <div className="mt-8 p-6 bg-blue-50 rounded-lg">
               <p className="text-[#2238C3] font-semibold">
-                🕐 <span className="font-geograph">Time-Saver Tip:</span> Use Zipsea's port guides to plan your arrival and parking in advance!
+                🕐 <span className="font-geograph">Time-Saver Tip:</span> Use
+                Zipsea's port guides to plan your arrival and parking in
+                advance!
               </p>
             </div>
           </div>
@@ -541,9 +671,11 @@ export default function FirstTimeCruisersGuide() {
       {/* Photo Placeholder */}
       <div className="py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gray-200 rounded-xl h-96 flex items-center justify-center">
-            <span className="text-gray-500 text-lg">[Photo Placeholder - Boarding Day]</span>
-          </div>
+          <img
+            src="/images/cruise_images_curated/04_boarding_day.jpg"
+            alt="Cruise terminal on boarding day"
+            className="rounded-xl w-full h-96 object-cover shadow-lg"
+          />
         </div>
       </div>
 
@@ -587,10 +719,12 @@ export default function FirstTimeCruisersGuide() {
               🍽️ First Day Dining Strategy
             </h3>
             <p className="text-gray-700 mb-4">
-              <strong>Lunch Options:</strong> Buffet (quick & casual), Pool Grill (burgers & pizza), Specialty Restaurants (if reserved)
+              <strong>Lunch Options:</strong> Buffet (quick & casual), Pool
+              Grill (burgers & pizza), Specialty Restaurants (if reserved)
             </p>
             <p className="text-gray-700">
-              <strong>Make Dinner Plans:</strong> Visit the maître d' to confirm dining time, make specialty reservations, check dress codes
+              <strong>Make Dinner Plans:</strong> Visit the maître d' to confirm
+              dining time, make specialty reservations, check dress codes
             </p>
           </div>
         </div>
@@ -609,8 +743,12 @@ export default function FirstTimeCruisersGuide() {
                 Main Dining Room
               </h3>
               <div className="space-y-2 text-gray-700 text-sm">
-                <p><strong>Traditional:</strong> Fixed time dining</p>
-                <p><strong>Flexible:</strong> Anytime 5:30-9:30 PM</p>
+                <p>
+                  <strong>Traditional:</strong> Fixed time dining
+                </p>
+                <p>
+                  <strong>Flexible:</strong> Anytime 5:30-9:30 PM
+                </p>
                 <p className="text-green-600">✓ Included in cruise fare</p>
                 <p className="text-green-600">✓ Full-service experience</p>
               </div>
@@ -621,8 +759,12 @@ export default function FirstTimeCruisersGuide() {
                 Buffet Dining
               </h3>
               <div className="space-y-2 text-gray-700 text-sm">
-                <p><strong>Hours:</strong> Usually 6 AM - 11 PM</p>
-                <p><strong>Dress:</strong> Casual all day</p>
+                <p>
+                  <strong>Hours:</strong> Usually 6 AM - 11 PM
+                </p>
+                <p>
+                  <strong>Dress:</strong> Casual all day
+                </p>
                 <p className="text-green-600">✓ Quick and convenient</p>
                 <p className="text-green-600">✓ Great variety</p>
               </div>
@@ -633,8 +775,12 @@ export default function FirstTimeCruisersGuide() {
                 Specialty Restaurants
               </h3>
               <div className="space-y-2 text-gray-700 text-sm">
-                <p><strong>Cost:</strong> $25-75+ per person</p>
-                <p><strong>Types:</strong> Steakhouse, Italian, Asian</p>
+                <p>
+                  <strong>Cost:</strong> $25-75+ per person
+                </p>
+                <p>
+                  <strong>Types:</strong> Steakhouse, Italian, Asian
+                </p>
                 <p className="text-amber-600">$ Additional charge</p>
                 <p className="text-amber-600">$ Book early!</p>
               </div>
@@ -649,7 +795,9 @@ export default function FirstTimeCruisersGuide() {
               <li>• Try something new every day</li>
               <li>• Ask your waiter for recommendations</li>
               <li>• Share appetizers and desserts with tablemates</li>
-              <li>• Take advantage of room service (usually free basic menu)</li>
+              <li>
+                • Take advantage of room service (usually free basic menu)
+              </li>
               <li>• Attend chef demonstrations and tastings</li>
               <li>• Eat at off-peak times to avoid crowds</li>
             </ul>
@@ -660,9 +808,11 @@ export default function FirstTimeCruisersGuide() {
       {/* Photo Placeholder */}
       <div className="py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gray-200 rounded-xl h-96 flex items-center justify-center">
-            <span className="text-gray-500 text-lg">[Photo Placeholder - Dining Experience]</span>
-          </div>
+          <img
+            src="/images/cruise_images_curated/05_dining_experience.jpg"
+            alt="Elegant cruise dining experience"
+            className="rounded-xl w-full h-96 object-cover shadow-lg"
+          />
         </div>
       </div>
 
@@ -682,7 +832,9 @@ export default function FirstTimeCruisersGuide() {
                 <li>• Broadway-style performances</li>
                 <li>• Guest entertainers & comedians</li>
                 <li>• Times: Usually 7:00 PM and 9:30 PM</li>
-                <li>• <strong>Tip:</strong> Arrive 30 minutes early for best seats</li>
+                <li>
+                  • <strong>Tip:</strong> Arrive 30 minutes early for best seats
+                </li>
               </ul>
 
               <h3 className="font-geograph text-xl font-semibold text-[#2238C3] mb-4">
@@ -703,20 +855,38 @@ export default function FirstTimeCruisersGuide() {
               </h3>
               <div className="space-y-4">
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 mb-2">Adventure Seekers:</h4>
-                  <p className="text-sm text-gray-700">Rock climbing, surf simulators, zip lines, go-kart tracks</p>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    Adventure Seekers:
+                  </h4>
+                  <p className="text-sm text-gray-700">
+                    Rock climbing, surf simulators, zip lines, go-kart tracks
+                  </p>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 mb-2">Relaxation Lovers:</h4>
-                  <p className="text-sm text-gray-700">Spa treatments, adult-only sun decks, libraries, hot tubs</p>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    Relaxation Lovers:
+                  </h4>
+                  <p className="text-sm text-gray-700">
+                    Spa treatments, adult-only sun decks, libraries, hot tubs
+                  </p>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 mb-2">Families:</h4>
-                  <p className="text-sm text-gray-700">Kids' clubs, family game shows, scavenger hunts, pool activities</p>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    Families:
+                  </h4>
+                  <p className="text-sm text-gray-700">
+                    Kids' clubs, family game shows, scavenger hunts, pool
+                    activities
+                  </p>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 mb-2">Learning Opportunities:</h4>
-                  <p className="text-sm text-gray-700">Port talks, art auctions, wine tastings, cooking demonstrations</p>
+                  <h4 className="font-semibold text-gray-900 mb-2">
+                    Learning Opportunities:
+                  </h4>
+                  <p className="text-sm text-gray-700">
+                    Port talks, art auctions, wine tastings, cooking
+                    demonstrations
+                  </p>
                 </div>
               </div>
             </div>
@@ -733,24 +903,46 @@ export default function FirstTimeCruisersGuide() {
 
           <div className="grid lg:grid-cols-3 gap-6 mb-8">
             <div className="bg-white rounded-xl p-6">
-              <h3 className="font-semibold text-lg text-[#2238C3] mb-3">Cruise Line Tours</h3>
-              <p className="text-sm text-green-600 mb-2">✓ Guaranteed return to ship</p>
+              <h3 className="font-semibold text-lg text-[#2238C3] mb-3">
+                Cruise Line Tours
+              </h3>
+              <p className="text-sm text-green-600 mb-2">
+                ✓ Guaranteed return to ship
+              </p>
               <p className="text-sm text-red-600 mb-2">✗ More expensive</p>
-              <p className="text-sm text-gray-700">Best for: First-time cruisers, exotic ports</p>
+              <p className="text-sm text-gray-700">
+                Best for: First-time cruisers, exotic ports
+              </p>
             </div>
 
             <div className="bg-white rounded-xl p-6">
-              <h3 className="font-semibold text-lg text-[#2238C3] mb-3">Independent Exploration</h3>
-              <p className="text-sm text-green-600 mb-2">✓ Less expensive, flexible</p>
-              <p className="text-sm text-red-600 mb-2">✗ Your responsibility to return</p>
-              <p className="text-sm text-gray-700">Best for: Experienced travelers, beach days</p>
+              <h3 className="font-semibold text-lg text-[#2238C3] mb-3">
+                Independent Exploration
+              </h3>
+              <p className="text-sm text-green-600 mb-2">
+                ✓ Less expensive, flexible
+              </p>
+              <p className="text-sm text-red-600 mb-2">
+                ✗ Your responsibility to return
+              </p>
+              <p className="text-sm text-gray-700">
+                Best for: Experienced travelers, beach days
+              </p>
             </div>
 
             <div className="bg-white rounded-xl p-6">
-              <h3 className="font-semibold text-lg text-[#2238C3] mb-3">Private Tours</h3>
-              <p className="text-sm text-green-600 mb-2">✓ Customized, small group</p>
-              <p className="text-sm text-red-600 mb-2">✗ Most expensive option</p>
-              <p className="text-sm text-gray-700">Best for: Special occasions, specific interests</p>
+              <h3 className="font-semibold text-lg text-[#2238C3] mb-3">
+                Private Tours
+              </h3>
+              <p className="text-sm text-green-600 mb-2">
+                ✓ Customized, small group
+              </p>
+              <p className="text-sm text-red-600 mb-2">
+                ✗ Most expensive option
+              </p>
+              <p className="text-sm text-gray-700">
+                Best for: Special occasions, specific interests
+              </p>
             </div>
           </div>
 
@@ -767,7 +959,7 @@ export default function FirstTimeCruisersGuide() {
                 "Camera with extra battery",
                 "Small backpack",
                 "Water bottle",
-                "Light snacks"
+                "Light snacks",
               ].map((item, index) => (
                 <label key={index} className="flex items-center space-x-2">
                   <input type="checkbox" className="w-4 h-4 text-[#2238C3]" />
@@ -782,9 +974,11 @@ export default function FirstTimeCruisersGuide() {
       {/* Photo Placeholder */}
       <div className="py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gray-200 rounded-xl h-96 flex items-center justify-center">
-            <span className="text-gray-500 text-lg">[Photo Placeholder - Shore Excursions]</span>
-          </div>
+          <img
+            src="/images/cruise_images_curated/01_cruise_ship_ocean_alt.jpg"
+            alt="Cruise ship on pristine blue waters"
+            className="rounded-xl w-full h-96 object-cover shadow-lg"
+          />
         </div>
       </div>
 
@@ -797,7 +991,9 @@ export default function FirstTimeCruisersGuide() {
 
           <div className="grid md:grid-cols-2 gap-8 mb-8">
             <div className="bg-green-50 rounded-xl p-6">
-              <h3 className="font-semibold text-lg text-green-900 mb-4">✅ Included in Your Fare</h3>
+              <h3 className="font-semibold text-lg text-green-900 mb-4">
+                ✅ Included in Your Fare
+              </h3>
               <ul className="space-y-2 text-green-800">
                 <li>• Stateroom accommodation</li>
                 <li>• Main dining room meals</li>
@@ -809,7 +1005,9 @@ export default function FirstTimeCruisersGuide() {
             </div>
 
             <div className="bg-amber-50 rounded-xl p-6">
-              <h3 className="font-semibold text-lg text-amber-900 mb-4">💰 Additional Costs</h3>
+              <h3 className="font-semibold text-lg text-amber-900 mb-4">
+                💰 Additional Costs
+              </h3>
               <ul className="space-y-2 text-amber-800">
                 <li>• Gratuities ($12-15 pp/day)</li>
                 <li>• Alcoholic beverages</li>
@@ -827,16 +1025,26 @@ export default function FirstTimeCruisersGuide() {
             </h3>
             <div className="space-y-4">
               <div className="flex justify-between items-center border-b pb-2">
-                <span className="font-medium text-gray-700">Budget Cruise:</span>
-                <span className="text-[#2238C3] font-semibold">$50-75 per person per day</span>
+                <span className="font-medium text-gray-700">
+                  Budget Cruise:
+                </span>
+                <span className="text-[#2238C3] font-semibold">
+                  $50-75 per person per day
+                </span>
               </div>
               <div className="flex justify-between items-center border-b pb-2">
                 <span className="font-medium text-gray-700">Mid-Range:</span>
-                <span className="text-[#2238C3] font-semibold">$75-125 per person per day</span>
+                <span className="text-[#2238C3] font-semibold">
+                  $75-125 per person per day
+                </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="font-medium text-gray-700">Luxury Experience:</span>
-                <span className="text-[#2238C3] font-semibold">$125+ per person per day</span>
+                <span className="font-medium text-gray-700">
+                  Luxury Experience:
+                </span>
+                <span className="text-[#2238C3] font-semibold">
+                  $125+ per person per day
+                </span>
               </div>
             </div>
           </div>
@@ -857,7 +1065,9 @@ export default function FirstTimeCruisersGuide() {
 
             <div className="grid md:grid-cols-2 gap-8">
               <div>
-                <h4 className="font-semibold text-[#2238C3] mb-4">Prevention Strategies:</h4>
+                <h4 className="font-semibold text-[#2238C3] mb-4">
+                  Prevention Strategies:
+                </h4>
                 <ul className="space-y-2 text-gray-700">
                   <li>• Choose lower deck, midship cabin</li>
                   <li>• Stay hydrated</li>
@@ -885,7 +1095,9 @@ export default function FirstTimeCruisersGuide() {
               🏥 General Health & Safety Tips
             </h3>
             <ul className="space-y-3 text-gray-700">
-              <li>• Wash hands frequently (hand sanitizer stations everywhere)</li>
+              <li>
+                • Wash hands frequently (hand sanitizer stations everywhere)
+              </li>
               <li>• Stay hydrated in the sun</li>
               <li>• Use sunscreen (you're closer to the equator!)</li>
               <li>• Pace yourself with alcohol</li>
@@ -900,9 +1112,11 @@ export default function FirstTimeCruisersGuide() {
       {/* Photo Placeholder */}
       <div className="py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gray-200 rounded-xl h-96 flex items-center justify-center">
-            <span className="text-gray-500 text-lg">[Photo Placeholder - Safety & Health]</span>
-          </div>
+          <img
+            src="/images/cruise_images_curated/06_safety_health.jpg"
+            alt="Cruise safety briefing at muster station"
+            className="rounded-xl w-full h-96 object-cover shadow-lg"
+          />
         </div>
       </div>
 
@@ -915,7 +1129,9 @@ export default function FirstTimeCruisersGuide() {
 
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-semibold text-lg text-[#2238C3] mb-4">🤝 Dining Etiquette</h3>
+              <h3 className="font-semibold text-lg text-[#2238C3] mb-4">
+                🤝 Dining Etiquette
+              </h3>
               <ul className="space-y-2 text-gray-700">
                 <li>• Use serving utensils at buffet</li>
                 <li>• Dress appropriately for venue</li>
@@ -926,7 +1142,9 @@ export default function FirstTimeCruisersGuide() {
             </div>
 
             <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-semibold text-lg text-[#2238C3] mb-4">🏊 Pool & Deck Etiquette</h3>
+              <h3 className="font-semibold text-lg text-[#2238C3] mb-4">
+                🏊 Pool & Deck Etiquette
+              </h3>
               <ul className="space-y-2 text-gray-700">
                 <li>• Don't save chairs and leave</li>
                 <li>• Supervise children</li>
@@ -937,7 +1155,9 @@ export default function FirstTimeCruisersGuide() {
             </div>
 
             <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-semibold text-lg text-[#2238C3] mb-4">👫 Making Friends</h3>
+              <h3 className="font-semibold text-lg text-[#2238C3] mb-4">
+                👫 Making Friends
+              </h3>
               <ul className="space-y-2 text-gray-700">
                 <li>• Chat at the bar</li>
                 <li>• Join group activities</li>
@@ -948,7 +1168,9 @@ export default function FirstTimeCruisersGuide() {
             </div>
 
             <div className="bg-gray-50 rounded-xl p-6">
-              <h3 className="font-semibold text-lg text-[#2238C3] mb-4">🎭 Entertainment Etiquette</h3>
+              <h3 className="font-semibold text-lg text-[#2238C3] mb-4">
+                🎭 Entertainment Etiquette
+              </h3>
               <ul className="space-y-2 text-gray-700">
                 <li>• Turn off cell phones</li>
                 <li>• Don't block views</li>
@@ -973,16 +1195,30 @@ export default function FirstTimeCruisersGuide() {
               🧳 Last Night Preparation
             </h3>
             <ul className="space-y-3 text-gray-700">
-              <li>• <strong>Pack Smart:</strong> Leave out clothes for disembarkation day</li>
-              <li>• <strong>Settle Your Bill:</strong> Review and pay final account</li>
-              <li>• <strong>Luggage Tags:</strong> Place provided tags on bags for pickup</li>
-              <li>• <strong>Set Bags Out:</strong> Usually by 11 PM outside your stateroom</li>
+              <li>
+                • <strong>Pack Smart:</strong> Leave out clothes for
+                disembarkation day
+              </li>
+              <li>
+                • <strong>Settle Your Bill:</strong> Review and pay final
+                account
+              </li>
+              <li>
+                • <strong>Luggage Tags:</strong> Place provided tags on bags for
+                pickup
+              </li>
+              <li>
+                • <strong>Set Bags Out:</strong> Usually by 11 PM outside your
+                stateroom
+              </li>
             </ul>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-white rounded-xl p-6">
-              <h3 className="font-semibold text-lg text-[#2238C3] mb-4">Self-Assist (Walk Off)</h3>
+              <h3 className="font-semibold text-lg text-[#2238C3] mb-4">
+                Self-Assist (Walk Off)
+              </h3>
               <ul className="space-y-2 text-gray-700">
                 <li>• Carry all your own luggage</li>
                 <li>• Disembark earliest (7:30-8:30 AM)</li>
@@ -991,7 +1227,9 @@ export default function FirstTimeCruisersGuide() {
             </div>
 
             <div className="bg-white rounded-xl p-6">
-              <h3 className="font-semibold text-lg text-[#2238C3] mb-4">Traditional Disembarkation</h3>
+              <h3 className="font-semibold text-lg text-[#2238C3] mb-4">
+                Traditional Disembarkation
+              </h3>
               <ul className="space-y-2 text-gray-700">
                 <li>• Ship delivers luggage to terminal</li>
                 <li>• Assigned time by luggage tag color</li>
@@ -1006,9 +1244,11 @@ export default function FirstTimeCruisersGuide() {
       {/* Photo Placeholder */}
       <div className="py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gray-200 rounded-xl h-96 flex items-center justify-center">
-            <span className="text-gray-500 text-lg">[Photo Placeholder - Disembarkation]</span>
-          </div>
+          <img
+            src="/images/cruise_images_curated/07_disembarkation.jpg"
+            alt="Passengers disembarking from cruise ship"
+            className="rounded-xl w-full h-96 object-cover shadow-lg"
+          />
         </div>
       </div>
 
@@ -1025,12 +1265,29 @@ export default function FirstTimeCruisersGuide() {
                 🎯 Cruise Hacks You Need to Know
               </h3>
               <ul className="space-y-3 text-gray-700">
-                <li>• <strong>Best Time to Book:</strong> 12-18 months in advance or last minute (60 days)</li>
-                <li>• <strong>Cabin Selection:</strong> Midship and lower decks for less motion</li>
-                <li>• <strong>Bring Your Own Wine:</strong> Most cruise lines allow 1-2 bottles</li>
-                <li>• <strong>Book Spa on Port Days:</strong> Often discounted when ship is in port</li>
-                <li>• <strong>Room Service Ice Cream:</strong> Usually free!</li>
-                <li>• <strong>Late Seating:</strong> Often has better service in main dining room</li>
+                <li>
+                  • <strong>Best Time to Book:</strong> 12-18 months in advance
+                  or last minute (60 days)
+                </li>
+                <li>
+                  • <strong>Cabin Selection:</strong> Midship and lower decks
+                  for less motion
+                </li>
+                <li>
+                  • <strong>Bring Your Own Wine:</strong> Most cruise lines
+                  allow 1-2 bottles
+                </li>
+                <li>
+                  • <strong>Book Spa on Port Days:</strong> Often discounted
+                  when ship is in port
+                </li>
+                <li>
+                  • <strong>Room Service Ice Cream:</strong> Usually free!
+                </li>
+                <li>
+                  • <strong>Late Seating:</strong> Often has better service in
+                  main dining room
+                </li>
               </ul>
             </div>
 
@@ -1040,7 +1297,9 @@ export default function FirstTimeCruisersGuide() {
               </h3>
               <ul className="space-y-3 text-gray-700">
                 <li>• Golden hour photos on deck are magical</li>
-                <li>• Professional formal night photos are worth the splurge</li>
+                <li>
+                  • Professional formal night photos are worth the splurge
+                </li>
                 <li>• Bring a waterproof case for port adventures</li>
                 <li>• Take photos of your room number - you'll forget!</li>
               </ul>
@@ -1051,7 +1310,10 @@ export default function FirstTimeCruisersGuide() {
                 🔌 Technology Hacks
               </h3>
               <ul className="space-y-3 text-gray-700">
-                <li>• Download Netflix/Amazon content before cruise for offline viewing</li>
+                <li>
+                  • Download Netflix/Amazon content before cruise for offline
+                  viewing
+                </li>
                 <li>• Bring a power strip (without surge protection)</li>
                 <li>• Use airplane mode and ship's WiFi to save data</li>
                 <li>• Download offline maps for ports</li>
@@ -1080,13 +1342,16 @@ export default function FirstTimeCruisersGuide() {
             Your Cruise Adventure Awaits! 🌊
           </h2>
           <p className="text-lg text-gray-700 mb-8">
-            Congratulations! You're now armed with everything you need to know for an absolutely amazing first cruise experience.
-            Remember, the most important thing is to relax, have fun, and embrace the adventure.
+            Congratulations! You're now armed with everything you need to know
+            for an absolutely amazing first cruise experience. Remember, the
+            most important thing is to relax, have fun, and embrace the
+            adventure.
           </p>
           <p className="text-lg text-gray-700 mb-8">
-            Every cruiser's experience is different, and part of the magic is discovering what you love most about cruising.
-            Maybe it's the incredible food, the Broadway-style shows, the exotic ports, or simply lounging by the pool with
-            a good book and a tropical drink.
+            Every cruiser's experience is different, and part of the magic is
+            discovering what you love most about cruising. Maybe it's the
+            incredible food, the Broadway-style shows, the exotic ports, or
+            simply lounging by the pool with a good book and a tropical drink.
           </p>
 
           <div className="bg-white rounded-2xl p-8 mt-12 shadow-lg">
@@ -1094,9 +1359,11 @@ export default function FirstTimeCruisersGuide() {
               📞 Need More Help?
             </h3>
             <p className="text-gray-700 mb-6">
-              At <span className="font-semibold text-[#2238C3]">Zipsea</span>, we're here to help make your cruise dreams come true!
-              Whether you need help planning shore excursions, finding the perfect cruise deal, or answering any other
-              cruise-related questions, we've got you covered.
+              At <span className="font-semibold text-[#2238C3]">Zipsea</span>,
+              we're here to help make your cruise dreams come true! Whether you
+              need help planning shore excursions, finding the perfect cruise
+              deal, or answering any other cruise-related questions, we've got
+              you covered.
             </p>
             <div className="space-y-2 text-gray-700">
               <p>Visit us for:</p>
@@ -1114,8 +1381,10 @@ export default function FirstTimeCruisersGuide() {
               🎉 Most Importantly: Have FUN!
             </p>
             <p className="text-lg text-gray-700">
-              Your first cruise is going to be incredible. Trust us, you're going to love it so much that
-              you'll probably start planning your next one before you even get home. Welcome to the wonderful world of cruising!
+              Your first cruise is going to be incredible. Trust us, you're
+              going to love it so much that you'll probably start planning your
+              next one before you even get home. Welcome to the wonderful world
+              of cruising!
             </p>
             <p className="mt-8 text-xl font-semibold text-gray-900">
               Bon voyage from all of us at Zipsea! ⚓
@@ -1127,17 +1396,20 @@ export default function FirstTimeCruisersGuide() {
       {/* Photo Placeholder */}
       <div className="py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gray-200 rounded-xl h-96 flex items-center justify-center">
-            <span className="text-gray-500 text-lg">[Photo Placeholder - Happy Cruisers]</span>
-          </div>
+          <img
+            src="/images/cruise_images_curated/08_happy_cruisers.jpg"
+            alt="Happy cruise passengers enjoying their vacation"
+            className="rounded-xl w-full h-96 object-cover shadow-lg"
+          />
         </div>
       </div>
 
       {/* Footer Credit */}
       <div className="py-8 text-center">
         <p className="text-gray-600 italic">
-          This guide is brought to you by <span className="font-semibold text-[#2238C3]">Zipsea</span> -
-          Your ultimate cruise planning companion.
+          This guide is brought to you by{" "}
+          <span className="font-semibold text-[#2238C3]">Zipsea</span> - Your
+          ultimate cruise planning companion.
         </p>
       </div>
     </div>
