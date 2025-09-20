@@ -27,16 +27,16 @@ function fetch(url) {
           });
         });
       })
-      .on('error', reject);
+      .on('error', ()reject);
   });
 }
 
 async function testAPIPricing() {
   console.log('🔍 API PRICING VALIDATION TEST');
-  console.log('='.repeat(70));
+  console.log('=' .repeat(70));
 
-  // Use localhost when running on Render shell
-  const apiUrl = process.env.API_URL || 'http://localhost:3001';
+  // Always use production API
+  const apiUrl = 'https://zipsea-production.onrender.com';
   console.log(`\n📡 Testing API: ${apiUrl}`);
   console.log('-'.repeat(40));
 
@@ -158,12 +158,12 @@ async function testAPIPricing() {
         }
       }
 
-      console.log(
-        `\n   Summary: ${cruisesWithPrices} with prices, ${cruisesWithoutPrices} without prices`
-      );
+      console.log(`\n   Summary: ${cruisesWithPrices} with prices, ${cruisesWithoutPrices} without prices`);
+
     } else {
       console.log('   ⚠️ No cruises returned from search');
     }
+
   } catch (error) {
     console.log(`\n❌ Error during testing: ${error.message}`);
   }
