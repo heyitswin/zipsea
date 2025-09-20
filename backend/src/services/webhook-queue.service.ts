@@ -6,6 +6,7 @@ import { cruises } from '../db/schema/cruises';
 import { eq } from 'drizzle-orm';
 import logger from '../config/logger';
 import { Writable } from 'stream';
+import { env } from '../config/environment';
 
 // Configuration
 const QUEUE_CONFIG = {
@@ -17,7 +18,7 @@ const QUEUE_CONFIG = {
 };
 
 // Redis connection for BullMQ
-const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+const redisConnection = new Redis(env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
 });
@@ -56,9 +57,9 @@ class FtpConnectionPool {
 
     console.log('[QUEUE] Initializing FTP connection pool...');
     const ftpConfig = {
-      host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
-      user: process.env.TRAVELTEK_FTP_USER || process.env.FTP_USER,
-      password: process.env.TRAVELTEK_FTP_PASSWORD || process.env.FTP_PASSWORD,
+      host: env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
+      user: env.TRAVELTEK_FTP_USER,
+      password: env.TRAVELTEK_FTP_PASSWORD,
       secure: false,
       timeout: 20000,
     };
@@ -112,7 +113,9 @@ export const webhookWorker = new Worker(
   async (job: Job) => {
     const { lineId, files, batchNumber, totalBatches } = job.data;
 
-    console.log(`[WORKER] Processing batch ${batchNumber}/${totalBatches} for line ${lineId} with ${files.length} files`);
+    console.log(
+      `[WORKER] Processing batch ${batchNumber}/${totalBatches} for line ${lineId} with ${files.length} files`
+    );
 
     const results = {
       processed: 0,
@@ -137,7 +140,9 @@ export const webhookWorker = new Worker(
       }
     }
 
-    console.log(`[WORKER] Batch ${batchNumber} completed: ${results.processed} processed, ${results.failed} failed`);
+    console.log(
+      `[WORKER] Batch ${batchNumber} completed: ${results.processed} processed, ${results.failed} failed`
+    );
     return results;
   },
   {
@@ -239,11 +244,11 @@ async function updatePricing(cruiseId: string, data: any): Promise<void> {
       for (const cabin of pricingData) {
         const price = parseFloat(
           cabin.price ||
-          cabin.adult_price ||
-          cabin.adultprice ||
-          cabin.cheapest_price ||
-          cabin.from_price ||
-          0
+            cabin.adult_price ||
+            cabin.adultprice ||
+            cabin.cheapest_price ||
+            cabin.from_price ||
+            0
         );
 
         if (!price || price === 0) continue;
@@ -365,7 +370,8 @@ export class WebhookQueueProcessor {
           const shipDirs = await client.list(linePath);
 
           for (const shipDir of shipDirs) {
-            if (shipDir.type === 2) { // Directory
+            if (shipDir.type === 2) {
+              // Directory
               const shipPath = `${linePath}/${shipDir.name}`;
               const cruiseFiles = await client.list(shipPath);
 

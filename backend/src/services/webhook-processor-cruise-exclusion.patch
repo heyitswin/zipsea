@@ -1,0 +1,24 @@
+// Add this to the webhook processor to exclude cruise 2190299 from updates
+// This cruise has manually corrected prices that should not be overwritten
+
+// In webhook-processor-optimized-v2.service.ts, add this check at the beginning of processCruiseData method:
+
+  private async processCruiseData(
+    filePath: string,
+    data: any,
+    stats?: ProcessingStats
+  ): Promise<void> {
+    const cruiseId = data.codetocruiseid || data.id;
+    
+    // CRITICAL FIX: Skip cruise 2190299 to preserve manually corrected prices
+    // This cruise has incorrect prices in FTP data that should not overwrite DB
+    if (cruiseId === '2190299') {
+      console.log(`[SKIP-MANUAL-FIX] Skipping cruise 2190299 - manually corrected prices preserved`);
+      if (stats) {
+        stats.skippedUnchanged++;
+      }
+      return;
+    }
+    
+    // ... rest of the existing processCruiseData logic
+  }
