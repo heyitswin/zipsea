@@ -18,7 +18,7 @@ const QUEUE_CONFIG = {
 };
 
 // Redis connection for BullMQ
-const redisConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+const redisConnection = new Redis(env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
 });
@@ -57,9 +57,9 @@ class FtpConnectionPool {
 
     console.log('[QUEUE] Initializing FTP connection pool...');
     const ftpConfig = {
-      host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
-      user: process.env.TRAVELTEK_FTP_USER || process.env.FTP_USER,
-      password: process.env.TRAVELTEK_FTP_PASSWORD || process.env.FTP_PASSWORD,
+      host: env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
+      user: env.TRAVELTEK_FTP_USER,
+      password: env.TRAVELTEK_FTP_PASSWORD,
       secure: false,
       timeout: 20000,
     };
