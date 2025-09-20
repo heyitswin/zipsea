@@ -6,11 +6,34 @@
  * No database connection required
  */
 
-const fetch = require('node-fetch');
+// Use native fetch (Node.js 18+) or https module as fallback
+const https = require('https');
+const http = require('http');
+
+// Simple fetch implementation using built-in modules
+function fetch(url) {
+  return new Promise((resolve, reject) => {
+    const module = url.startsWith('https') ? https : http;
+
+    module
+      .get(url, res => {
+        let data = '';
+        res.on('data', chunk => (data += chunk));
+        res.on('end', () => {
+          resolve({
+            ok: res.statusCode >= 200 && res.statusCode < 300,
+            status: res.statusCode,
+            json: () => Promise.resolve(JSON.parse(data)),
+          });
+        });
+      })
+      .on('error', reject);
+  });
+}
 
 async function testAPIPricing() {
   console.log('🔍 API PRICING VALIDATION TEST');
-  console.log('=' .repeat(70));
+  console.log('='.repeat(70));
 
   // Use localhost when running on Render shell
   const apiUrl = process.env.API_URL || 'http://localhost:3001';
@@ -135,12 +158,12 @@ async function testAPIPricing() {
         }
       }
 
-      console.log(`\n   Summary: ${cruisesWithPrices} with prices, ${cruisesWithoutPrices} without prices`);
-
+      console.log(
+        `\n   Summary: ${cruisesWithPrices} with prices, ${cruisesWithoutPrices} without prices`
+      );
     } else {
       console.log('   ⚠️ No cruises returned from search');
     }
-
   } catch (error) {
     console.log(`\n❌ Error during testing: ${error.message}`);
   }
