@@ -33,14 +33,22 @@ async function testWithCurl() {
     try {
       const searchResult = JSON.parse(searchData);
 
-      if (searchResult.data && searchResult.data.length > 0) {
-        console.log(`   ✅ Search API returned ${searchResult.data.length} cruises`);
+      // API returns { cruises: [...] }
+      if (searchResult.cruises && searchResult.cruises.length > 0) {
+        console.log(`   ✅ Search API returned ${searchResult.cruises.length} cruises`);
 
-        const firstCruise = searchResult.data[0];
+        const firstCruise = searchResult.cruises[0];
         console.log(`\n   First cruise: ${firstCruise.name}`);
         console.log(`   ID: ${firstCruise.id}`);
 
-        // Check pricing
+        // Check pricing - note it's a single "price" field
+        if (firstCruise.price !== undefined) {
+          console.log(`   ✅ Price: $${firstCruise.price || 'null'}`);
+        } else {
+          console.log('   ⚠️ No price field in search results');
+        }
+
+        // Check if there's pricing data in the cruise object
         if (firstCruise.pricing) {
           console.log('   ✅ Pricing object exists:');
           console.log(`      Interior: $${firstCruise.pricing.interior || 'null'}`);
@@ -62,7 +70,8 @@ async function testWithCurl() {
         }
 
         const detailResult = JSON.parse(detailData);
-        const cruise = detailResult.data;
+        // Check if data is wrapped or direct
+        const cruise = detailResult.data || detailResult;
 
         if (cruise) {
           console.log('   ✅ Cruise details returned');
