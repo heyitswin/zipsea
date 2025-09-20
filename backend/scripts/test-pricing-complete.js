@@ -18,15 +18,14 @@ const pool = new Pool({
   ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false },
 });
 
-// Configuration - check both staging and production
+// Configuration - test production only
 const API_URLS = {
-  staging: 'https://zipsea-backend.onrender.com',
-  production: 'https://zipsea-production.onrender.com'
+  production: 'https://zipsea-production.onrender.com',
 };
 
 async function testPricingComplete() {
   console.log('🔍 COMPLETE PRICING VALIDATION TEST');
-  console.log('=' .repeat(70));
+  console.log('='.repeat(70));
   console.log('');
 
   const results = {
@@ -36,8 +35,8 @@ async function testPricingComplete() {
     summary: {
       passed: 0,
       failed: 0,
-      warnings: 0
-    }
+      warnings: 0,
+    },
   };
 
   try {
@@ -84,16 +83,19 @@ async function testPricingComplete() {
               const detailResponse = await fetch(`${apiUrl}/api/v1/cruises/${firstCruise.id}`);
 
               if (detailResponse.ok) {
-                const detailData = await detailResponse.json();
+                const detailResponseJson = await detailResponse.json();
+                // API returns { success: true, data: {...} }
+                const detailData = detailResponseJson.data;
 
                 if (detailData) {
                   console.log(`     ✅ Cruise details returned`);
 
                   // Check individual price fields
-                  const hasPrices = detailData.interiorPrice !== undefined ||
-                                   detailData.oceanviewPrice !== undefined ||
-                                   detailData.balconyPrice !== undefined ||
-                                   detailData.suitePrice !== undefined;
+                  const hasPrices =
+                    detailData.interiorPrice !== undefined ||
+                    detailData.oceanviewPrice !== undefined ||
+                    detailData.balconyPrice !== undefined ||
+                    detailData.suitePrice !== undefined;
 
                   if (hasPrices) {
                     console.log(`     ✅ Individual price fields exist`);
@@ -189,7 +191,7 @@ async function testPricingComplete() {
         cruise.interior_price,
         cruise.oceanview_price,
         cruise.balcony_price,
-        cruise.suite_price
+        cruise.suite_price,
       ].filter(p => p && p > 0);
 
       if (prices.length > 0) {
@@ -198,7 +200,9 @@ async function testPricingComplete() {
           console.log(`    ✅ Cheapest price correctly calculated`);
           dbPricesValid++;
         } else {
-          console.log(`    ⚠️ Cheapest price mismatch: DB=${cruise.cheapest_price}, Calc=${calculatedCheapest}`);
+          console.log(
+            `    ⚠️ Cheapest price mismatch: DB=${cruise.cheapest_price}, Calc=${calculatedCheapest}`
+          );
           dbPricesInvalid++;
         }
       }
@@ -269,9 +273,12 @@ async function testPricingComplete() {
     console.log(`  ⚠️ Warnings: ${results.summary.warnings}`);
     console.log(`  ❌ Failed: ${results.summary.failed}`);
 
-    const overallStatus = results.summary.failed === 0 ?
-      (results.summary.warnings === 0 ? 'FULLY OPERATIONAL' : 'OPERATIONAL WITH WARNINGS') :
-      'ISSUES DETECTED';
+    const overallStatus =
+      results.summary.failed === 0
+        ? results.summary.warnings === 0
+          ? 'FULLY OPERATIONAL'
+          : 'OPERATIONAL WITH WARNINGS'
+        : 'ISSUES DETECTED';
 
     console.log(`\nStatus: ${overallStatus}`);
 
@@ -288,7 +295,6 @@ async function testPricingComplete() {
         console.log('  3. Verify FTP data extraction logic');
       }
     }
-
   } catch (error) {
     console.error('\n❌ Fatal error during testing:', error);
     results.summary.failed++;
