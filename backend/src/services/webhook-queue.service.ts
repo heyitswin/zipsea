@@ -1,3 +1,4 @@
+import { env } from '../config/environment'; // Load environment variables first
 import { Queue, Worker, Job, QueueEvents } from 'bullmq';
 import Redis from 'ioredis';
 import * as ftp from 'basic-ftp';
@@ -112,7 +113,9 @@ export const webhookWorker = new Worker(
   async (job: Job) => {
     const { lineId, files, batchNumber, totalBatches } = job.data;
 
-    console.log(`[WORKER] Processing batch ${batchNumber}/${totalBatches} for line ${lineId} with ${files.length} files`);
+    console.log(
+      `[WORKER] Processing batch ${batchNumber}/${totalBatches} for line ${lineId} with ${files.length} files`
+    );
 
     const results = {
       processed: 0,
@@ -137,7 +140,9 @@ export const webhookWorker = new Worker(
       }
     }
 
-    console.log(`[WORKER] Batch ${batchNumber} completed: ${results.processed} processed, ${results.failed} failed`);
+    console.log(
+      `[WORKER] Batch ${batchNumber} completed: ${results.processed} processed, ${results.failed} failed`
+    );
     return results;
   },
   {
@@ -239,11 +244,11 @@ async function updatePricing(cruiseId: string, data: any): Promise<void> {
       for (const cabin of pricingData) {
         const price = parseFloat(
           cabin.price ||
-          cabin.adult_price ||
-          cabin.adultprice ||
-          cabin.cheapest_price ||
-          cabin.from_price ||
-          0
+            cabin.adult_price ||
+            cabin.adultprice ||
+            cabin.cheapest_price ||
+            cabin.from_price ||
+            0
         );
 
         if (!price || price === 0) continue;
@@ -365,7 +370,8 @@ export class WebhookQueueProcessor {
           const shipDirs = await client.list(linePath);
 
           for (const shipDir of shipDirs) {
-            if (shipDir.type === 2) { // Directory
+            if (shipDir.type === 2) {
+              // Directory
               const shipPath = `${linePath}/${shipDir.name}`;
               const cruiseFiles = await client.list(shipPath);
 
