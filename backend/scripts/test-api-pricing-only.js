@@ -23,11 +23,22 @@ function fetch(url) {
           resolve({
             ok: res.statusCode >= 200 && res.statusCode < 300,
             status: res.statusCode,
-            json: () => Promise.resolve(JSON.parse(data)),
+            json: () => {
+              try {
+                return Promise.resolve(data ? JSON.parse(data) : null);
+              } catch (e) {
+                console.log('Failed to parse JSON. Response:', data.substring(0, 200));
+                return Promise.reject(new Error(`JSON parse error: ${e.message}`));
+              }
+            },
+            text: () => Promise.resolve(data),
           });
         });
       })
-      .on('error', reject);
+      .on('error', err => {
+        console.log('Network error:', err.message);
+        reject(err);
+      });
   });
 }
 
@@ -44,7 +55,9 @@ async function testAPIPricing() {
     // Test 1: Search API
     console.log('\n1. Testing Search API...');
     const searchUrl = `${apiUrl}/api/v1/search/cruises?limit=5`;
+    console.log(`   Fetching: ${searchUrl}`);
     const searchResponse = await fetch(searchUrl);
+    console.log(`   Response status: ${searchResponse.status}`);
 
     if (!searchResponse.ok) {
       console.log(`   ❌ Search API failed: ${searchResponse.status}`);
@@ -165,7 +178,8 @@ async function testAPIPricing() {
       console.log('   ⚠️ No cruises returned from search');
     }
   } catch (error) {
-    console.log(`\n❌ Error during testing: ${error.message}`);
+    console.log(`\n❌ Error during testing: ${error.message || error}`);
+    console.log('Stack:', error.stack);
   }
 
   console.log('\n' + '='.repeat(70));
