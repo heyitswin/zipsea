@@ -1,3 +1,4 @@
+import { env } from '../config/environment'; // Load environment variables first
 import { Queue, Worker, Job, QueueEvents } from 'bullmq';
 import Redis from 'ioredis';
 import * as ftp from 'basic-ftp';

@@ -1,3 +1,4 @@
+import { env } from '../config/environment'; // Load environment variables first
 import * as ftp from 'basic-ftp';
 import { Queue, Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
@@ -81,7 +82,7 @@ export class WebhookProcessorOptimizedV2 {
     }
 
     // Create Redis connection for BullMQ with retry logic
-    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    const redisUrl = env.REDIS_URL || 'redis://localhost:6379';
     WebhookProcessorOptimizedV2.redisConnection = new Redis(redisUrl, {
       maxRetriesPerRequest: null,
       enableReadyCheck: false,
@@ -254,9 +255,9 @@ export class WebhookProcessorOptimizedV2 {
     console.log('[OPTIMIZED-V2] Initializing FTP connection pool...');
 
     const ftpConfig = {
-      host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
-      user: process.env.TRAVELTEK_FTP_USER || process.env.FTP_USER,
-      password: process.env.TRAVELTEK_FTP_PASSWORD || process.env.FTP_PASSWORD,
+      host: env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
+      user: env.TRAVELTEK_FTP_USER,
+      password: env.TRAVELTEK_FTP_PASSWORD,
       secure: false,
       timeout: 30000,
       verbose: false,
@@ -401,9 +402,9 @@ export class WebhookProcessorOptimizedV2 {
         // Connection dead, recreate it with retry logic
         console.log('[OPTIMIZED-V2] Recreating dead connection...');
         const ftpConfig = {
-          host: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
-          user: process.env.TRAVELTEK_FTP_USER || process.env.FTP_USER,
-          password: process.env.TRAVELTEK_FTP_PASSWORD || process.env.FTP_PASSWORD,
+          host: env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
+          user: env.TRAVELTEK_FTP_USER,
+          password: env.TRAVELTEK_FTP_PASSWORD,
           secure: false,
           timeout: 30000,
           verbose: false,
