@@ -36,6 +36,12 @@ export interface CruiseDetails {
   seaDays?: number;
   sailingDate: string;
   returnDate?: string;
+  // Individual price fields from cruises table
+  interiorPrice?: any;
+  oceanviewPrice?: any;
+  balconyPrice?: any;
+  suitePrice?: any;
+  cheapestPrice?: any;
   embarkPort?: PortInfo;
   disembarkPort?: PortInfo;
   cruiseLine: CruiseLineInfo;
@@ -591,6 +597,12 @@ export class CruiseService {
         seaDays: cruise.seaDays,
         sailingDate: cruise.sailingDate,
         returnDate: cruise.returnDate,
+        // Add individual price fields from cruises table
+        interiorPrice: cruise.interiorPrice,
+        oceanviewPrice: cruise.oceanviewPrice,
+        balconyPrice: cruise.balconyPrice,
+        suitePrice: cruise.suitePrice,
+        cheapestPrice: cruise.cheapestPrice,
         embarkPort: embarkPort ? this.transformPortInfo(embarkPort) : undefined,
         disembarkPort: disembarkPortData ? this.transformPortInfo(disembarkPortData) : undefined,
         cruiseLine: this.transformCruiseLineInfo(cruiseLine),
