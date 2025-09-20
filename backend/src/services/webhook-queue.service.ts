@@ -7,7 +7,6 @@ import { cruises } from '../db/schema/cruises';
 import { eq } from 'drizzle-orm';
 import logger from '../config/logger';
 import { Writable } from 'stream';
-import { env } from '../config/environment';
 
 // Configuration
 const QUEUE_CONFIG = {
