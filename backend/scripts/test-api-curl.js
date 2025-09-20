@@ -13,7 +13,7 @@ async function testWithCurl() {
   console.log('🔍 API PRICING TEST (using curl)');
   console.log('='.repeat(70));
 
-  const apiUrl = process.env.API_URL || 'http://localhost:3001';
+  const apiUrl = 'https://zipsea-production.onrender.com';
   console.log(`\n📡 Testing API: ${apiUrl}`);
   console.log('-'.repeat(40));
 
@@ -96,16 +96,13 @@ async function testWithCurl() {
             console.log(`      Suite: $${cruise.cheapestPricing.suite || 'null'}`);
           }
         }
-
       } else {
         console.log('   ⚠️ No cruises returned from search');
       }
-
     } catch (parseErr) {
       console.log(`   ❌ Failed to parse JSON response`);
       console.log('   Response preview:', searchData.substring(0, 200));
     }
-
   } catch (error) {
     console.log(`\n❌ Error: ${error.message}`);
   }

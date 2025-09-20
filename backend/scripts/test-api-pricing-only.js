@@ -46,8 +46,8 @@ async function testAPIPricing() {
   console.log('🔍 API PRICING VALIDATION TEST');
   console.log('='.repeat(70));
 
-  // Use localhost when running on Render shell
-  const apiUrl = process.env.API_URL || 'http://localhost:3001';
+  // Always use production API
+  const apiUrl = 'https://zipsea-production.onrender.com';
   console.log(`\n📡 Testing API: ${apiUrl}`);
   console.log('-'.repeat(40));
 
