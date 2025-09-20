@@ -17,35 +17,45 @@ const QUEUE_CONFIG = {
   MAX_MONTHS_AHEAD: 2, // Only scan 2 months ahead for faster discovery
 };
 
-// Redis connection for BullMQ
-const redisConnection = new Redis(env.REDIS_URL || 'redis://localhost:6379', {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-});
+// Redis connection for BullMQ - only initialize if REDIS_URL is configured
+let redisConnection: Redis | null = null;
+let webhookQueue: Queue | null = null;
+let queueEvents: QueueEvents | null = null;
+let webhookWorker: Worker | null = null;
 
-// Create queue
-export const webhookQueue = new Queue('webhook-processing', {
-  connection: redisConnection,
-  defaultJobOptions: {
-    removeOnComplete: {
-      age: 3600, // Keep completed jobs for 1 hour
-      count: 100, // Keep maximum 100 completed jobs
-    },
-    removeOnFail: {
-      age: 86400, // Keep failed jobs for 24 hours
-    },
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2000,
-    },
-  },
-});
+// Initialize Redis and queue only if REDIS_URL is configured
+if (env.REDIS_URL) {
+  redisConnection = new Redis(env.REDIS_URL, {
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+  });
 
-// Queue events for monitoring
-const queueEvents = new QueueEvents('webhook-processing', {
-  connection: redisConnection,
-});
+  // Create queue
+  webhookQueue = new Queue('webhook-processing', {
+    connection: redisConnection,
+    defaultJobOptions: {
+      removeOnComplete: {
+        age: 3600, // Keep completed jobs for 1 hour
+        count: 100, // Keep maximum 100 completed jobs
+      },
+      removeOnFail: {
+        age: 86400, // Keep failed jobs for 24 hours
+      },
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 2000,
+      },
+    },
+  });
+
+  // Queue events for monitoring
+  queueEvents = new QueueEvents('webhook-processing', {
+    connection: redisConnection,
+  });
+} else {
+  console.log('[QUEUE] Redis URL not configured - webhook queue disabled');
+}
 
 // FTP Connection Pool
 class FtpConnectionPool {
@@ -107,50 +117,52 @@ class FtpConnectionPool {
 
 const ftpPool = new FtpConnectionPool();
 
-// Worker to process jobs
-export const webhookWorker = new Worker(
-  'webhook-processing',
-  async (job: Job) => {
-    const { lineId, files, batchNumber, totalBatches } = job.data;
+// Worker to process jobs - only initialize if Redis is configured
+if (env.REDIS_URL && redisConnection) {
+  webhookWorker = new Worker(
+    'webhook-processing',
+    async (job: Job) => {
+      const { lineId, files, batchNumber, totalBatches } = job.data;
 
-    console.log(
-      `[WORKER] Processing batch ${batchNumber}/${totalBatches} for line ${lineId} with ${files.length} files`
-    );
+      console.log(
+        `[WORKER] Processing batch ${batchNumber}/${totalBatches} for line ${lineId} with ${files.length} files`
+      );
 
-    const results = {
-      processed: 0,
-      failed: 0,
-      cruisesUpdated: 0,
-    };
+      const results = {
+        processed: 0,
+        failed: 0,
+        cruisesUpdated: 0,
+      };
 
-    // Process each file
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+      // Process each file
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
 
-      // Update job progress
-      await job.updateProgress((i / files.length) * 100);
+        // Update job progress
+        await job.updateProgress((i / files.length) * 100);
 
-      try {
-        await processFile(file);
-        results.processed++;
-        results.cruisesUpdated++;
-      } catch (error) {
-        console.error(`[WORKER] Failed to process ${file.path}:`, error);
-        results.failed++;
+        try {
+          await processFile(file);
+          results.processed++;
+          results.cruisesUpdated++;
+        } catch (error) {
+          console.error(`[WORKER] Failed to process ${file.path}:`, error);
+          results.failed++;
+        }
       }
-    }
 
-    console.log(
-      `[WORKER] Batch ${batchNumber} completed: ${results.processed} processed, ${results.failed} failed`
-    );
-    return results;
-  },
-  {
-    connection: redisConnection,
-    concurrency: QUEUE_CONFIG.MAX_CONCURRENT_JOBS,
-    stalledInterval: QUEUE_CONFIG.STALLED_INTERVAL,
-  }
-);
+      console.log(
+        `[WORKER] Batch ${batchNumber} completed: ${results.processed} processed, ${results.failed} failed`
+      );
+      return results;
+    },
+    {
+      connection: redisConnection,
+      concurrency: QUEUE_CONFIG.MAX_CONCURRENT_JOBS,
+      stalledInterval: QUEUE_CONFIG.STALLED_INTERVAL,
+    }
+  );
+}
 
 // Process a single file
 async function processFile(file: any): Promise<void> {
@@ -305,6 +317,12 @@ export class WebhookQueueProcessor {
   async processWebhook(lineId: number): Promise<{ jobIds: string[] }> {
     console.log(`[QUEUE] Starting webhook processing for line ${lineId}`);
 
+    // Check if queue is available
+    if (!webhookQueue) {
+      console.log('[QUEUE] Webhook queue not available - Redis not configured');
+      return { jobIds: [] };
+    }
+
     try {
       // Discover files
       const files = await this.discoverFiles(lineId);
@@ -403,6 +421,17 @@ export class WebhookQueueProcessor {
   }
 
   async getQueueStatus(): Promise<any> {
+    if (!webhookQueue) {
+      return {
+        waiting: 0,
+        active: 0,
+        completed: 0,
+        failed: 0,
+        recentJobs: [],
+        message: 'Webhook queue not available - Redis not configured',
+      };
+    }
+
     const [waiting, active, completed, failed] = await Promise.all([
       webhookQueue.getWaitingCount(),
       webhookQueue.getActiveCount(),
@@ -429,6 +458,10 @@ export class WebhookQueueProcessor {
   }
 
   async clearQueue(): Promise<void> {
+    if (!webhookQueue) {
+      console.log('[QUEUE] Cannot clear queue - Redis not configured');
+      return;
+    }
     await webhookQueue.obliterate({ force: true });
     console.log('[QUEUE] Queue cleared');
   }
@@ -437,15 +470,20 @@ export class WebhookQueueProcessor {
 // Export singleton instance
 export const webhookQueueProcessor = new WebhookQueueProcessor();
 
-// Monitor queue events
-queueEvents.on('completed', ({ jobId, returnvalue }) => {
-  console.log(`[QUEUE] Job ${jobId} completed:`, returnvalue);
-});
+// Export queue and worker for external access (may be null if Redis not configured)
+export { webhookQueue, webhookWorker };
 
-queueEvents.on('failed', ({ jobId, failedReason }) => {
-  console.error(`[QUEUE] Job ${jobId} failed:`, failedReason);
-});
+// Monitor queue events (only if Redis is configured)
+if (queueEvents) {
+  queueEvents.on('completed', ({ jobId, returnvalue }) => {
+    console.log(`[QUEUE] Job ${jobId} completed:`, returnvalue);
+  });
 
-queueEvents.on('progress', ({ jobId, data }) => {
-  console.log(`[QUEUE] Job ${jobId} progress: ${data}%`);
-});
+  queueEvents.on('failed', ({ jobId, failedReason }) => {
+    console.error(`[QUEUE] Job ${jobId} failed:`, failedReason);
+  });
+
+  queueEvents.on('progress', ({ jobId, data }) => {
+    console.log(`[QUEUE] Job ${jobId} progress: ${data}%`);
+  });
+}

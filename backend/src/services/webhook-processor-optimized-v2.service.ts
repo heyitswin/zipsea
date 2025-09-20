@@ -81,8 +81,14 @@ export class WebhookProcessorOptimizedV2 {
       return;
     }
 
+    // Skip Redis initialization if REDIS_URL is not configured
+    if (!env.REDIS_URL) {
+      console.log('[OPTIMIZED-V2] Redis URL not configured - webhook processing disabled');
+      return;
+    }
+
     // Create Redis connection for BullMQ with retry logic
-    const redisUrl = env.REDIS_URL || 'redis://localhost:6379';
+    const redisUrl = env.REDIS_URL;
     WebhookProcessorOptimizedV2.redisConnection = new Redis(redisUrl, {
       maxRetriesPerRequest: null,
       enableReadyCheck: false,

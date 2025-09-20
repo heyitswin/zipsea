@@ -13,9 +13,15 @@ export class RedisMaintenanceService {
   }
 
   private async initializeWithRetry(retries = 5) {
+    // Skip initialization if REDIS_URL is not configured
+    if (!env.REDIS_URL) {
+      console.log('[Redis Maintenance] Redis URL not configured - maintenance service disabled');
+      return;
+    }
+
     for (let i = 0; i < retries; i++) {
       try {
-        this.redis = new Redis(env.REDIS_URL!, {
+        this.redis = new Redis(env.REDIS_URL, {
           maxRetriesPerRequest: null,
           enableReadyCheck: false,
           retryStrategy: times => {
