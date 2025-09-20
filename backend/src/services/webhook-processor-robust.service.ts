@@ -1,3 +1,4 @@
+import { env } from '../config/environment'; // Load environment variables first
 import { Queue, Worker, QueueEvents } from 'bullmq';
 import Redis from 'ioredis';
 import * as path from 'path';
@@ -52,16 +53,16 @@ export class WebhookProcessorRobust {
 
   constructor() {
     // Use REDIS_URL if available
-    if (process.env.REDIS_URL) {
-      this.redis = new Redis(process.env.REDIS_URL, {
+    if (env.REDIS_URL) {
+      this.redis = new Redis(env.REDIS_URL, {
         maxRetriesPerRequest: null,
         enableReadyCheck: false,
       });
     } else {
       this.redis = new Redis({
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        password: process.env.REDIS_PASSWORD,
+        host: env.REDIS_HOST || 'localhost',
+        port: env.REDIS_PORT || 6379,
+        password: env.REDIS_PASSWORD,
         maxRetriesPerRequest: null,
         enableReadyCheck: false,
       });

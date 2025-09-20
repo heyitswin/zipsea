@@ -1,3 +1,4 @@
+import { env } from '../config/environment'; // Load environment variables first
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import cron from 'node-cron';
@@ -14,7 +15,7 @@ export class RedisMaintenanceService {
   private async initializeWithRetry(retries = 5) {
     for (let i = 0; i < retries; i++) {
       try {
-        this.redis = new Redis(process.env.REDIS_URL!, {
+        this.redis = new Redis(env.REDIS_URL!, {
           maxRetriesPerRequest: null,
           enableReadyCheck: false,
           retryStrategy: times => {
@@ -30,11 +31,9 @@ export class RedisMaintenanceService {
 
         this.webhookQueue = new Queue('webhook-processor', {
           connection: {
-            host: process.env.REDIS_URL ? new URL(process.env.REDIS_URL).hostname : 'localhost',
-            port: process.env.REDIS_URL
-              ? parseInt(new URL(process.env.REDIS_URL).port) || 6379
-              : 6379,
-            password: process.env.REDIS_URL ? new URL(process.env.REDIS_URL).password : undefined,
+            host: env.REDIS_URL ? new URL(env.REDIS_URL).hostname : 'localhost',
+            port: env.REDIS_URL ? parseInt(new URL(env.REDIS_URL).port) || 6379 : 6379,
+            password: env.REDIS_URL ? new URL(env.REDIS_URL).password : undefined,
           },
         });
 
