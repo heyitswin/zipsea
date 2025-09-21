@@ -20,6 +20,7 @@ class QuoteController {
         lastName,
         phone,
         specialRequests,
+        additionalNotes,
       } = req.body;
 
       // Get user ID if authenticated
@@ -45,6 +46,7 @@ class QuoteController {
         childAges,
         travelInsurance,
         specialRequests,
+        additionalNotes,
         discountQualifiers,
       });
 

@@ -19,6 +19,7 @@ interface CreateQuoteData {
   childAges?: number[];
   travelInsurance: boolean;
   specialRequests?: string;
+  additionalNotes?: string;
   discountQualifiers: {
     payInFull?: boolean;
     seniorCitizen?: boolean;
@@ -80,6 +81,7 @@ class QuoteService {
         quote_expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
         preferred_cabin_type: data.cabinType,
         special_requests: data.specialRequests,
+        additional_notes: data.additionalNotes,
         travel_insurance: data.travelInsurance,
         discount_qualifiers: data.discountQualifiers || {},
       };
@@ -197,6 +199,7 @@ class QuoteService {
             phone: data.phone,
             travelInsurance: data.travelInsurance,
             discountQualifiers: data.discountQualifiers,
+            additionalNotes: data.additionalNotes,
             obcAmount,
             totalPassengers: (data.adults || 2) + (data.children || 0),
             childAges: data.childAges || [],

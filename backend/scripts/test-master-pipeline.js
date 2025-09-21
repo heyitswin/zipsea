@@ -18,9 +18,11 @@ const { Client } = require('basic-ftp');
 const { db } = require('../dist/db/connection');
 const { sql } = require('drizzle-orm');
 // Use fetch-polyfill or native fetch if available
-const fetch = globalThis.fetch || (() => {
-  throw new Error('fetch not available - install node-fetch or use Node 18+');
-});
+const fetch =
+  globalThis.fetch ||
+  (() => {
+    throw new Error('fetch not available - install node-fetch or use Node 18+');
+  });
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -31,7 +33,7 @@ const CONFIG = {
     user: process.env.TRAVELTEK_FTP_USER,
     password: process.env.TRAVELTEK_FTP_PASSWORD,
     secure: false,
-    timeout: 30000
+    timeout: 30000,
   },
   API_URL: process.env.API_URL || 'https://zipsea-production.onrender.com',
   DATABASE_URL: process.env.DATABASE_URL,
@@ -46,7 +48,7 @@ const testResults = {
     totalTests: 0,
     passed: 0,
     failed: 0,
-    warnings: 0
+    warnings: 0,
   },
   cruiseLines: {},
   pipelineTests: {
@@ -54,22 +56,23 @@ const testResults = {
     ftpDataRetrieval: null,
     databaseStorage: null,
     priceExtraction: null,
-    apiServing: null
+    apiServing: null,
   },
   errors: [],
-  warnings: []
+  warnings: [],
 };
 
 // Utility functions
 function log(message, level = 'info') {
   const timestamp = new Date().toISOString();
-  const prefix = {
-    info: '📊',
-    success: '✅',
-    warning: '⚠️',
-    error: '❌',
-    section: '🔍'
-  }[level] || '•';
+  const prefix =
+    {
+      info: '📊',
+      success: '✅',
+      warning: '⚠️',
+      error: '❌',
+      section: '🔍',
+    }[level] || '•';
 
   console.log(`[${timestamp}] ${prefix} ${message}`);
 }
@@ -87,7 +90,7 @@ function calculatePriceChanges(oldPrices, newPrices) {
         old: oldVal,
         new: newVal,
         change: newVal - oldVal,
-        percentChange: oldVal > 0 ? ((newVal - oldVal) / oldVal * 100).toFixed(2) + '%' : 'N/A'
+        percentChange: oldVal > 0 ? (((newVal - oldVal) / oldVal) * 100).toFixed(2) + '%' : 'N/A',
       };
     }
   }
@@ -145,10 +148,13 @@ async function testWebhookAndCruiseLineUpdates() {
           completedWebhooks: parseInt(row.completed_count),
           failedWebhooks: parseInt(row.failed_count),
           activeDays: parseInt(row.active_days),
-          cruises: {}
+          cruises: {},
         };
 
-        log(`  ${row.cruise_line_name || `Line ${lineId}`}: ${row.webhook_count} webhooks, ${row.completed_count} completed, ${row.failed_count} failed`, 'info');
+        log(
+          `  ${row.cruise_line_name || `Line ${lineId}`}: ${row.webhook_count} webhooks, ${row.completed_count} completed, ${row.failed_count} failed`,
+          'info'
+        );
       }
     }
 
@@ -177,11 +183,10 @@ async function testWebhookAndCruiseLineUpdates() {
         testResults.cruiseLines[row.cruise_line_id].updatedLast7d = parseInt(row.updated_7d);
         testResults.cruiseLines[row.cruise_line_id].dateRange = {
           earliest: row.earliest_sailing,
-          latest: row.latest_sailing
+          latest: row.latest_sailing,
         };
       }
     }
-
   } catch (error) {
     test.passed = false;
     test.error = error.message;
@@ -250,13 +255,11 @@ async function testFTPDataRetrieval() {
       test.details.sampleFileCount = totalFiles;
       test.details.sampledLines = sampleLines;
       log(`Sampled ${totalFiles} cruise files across ${sampleLines} lines`, 'info');
-
     } catch (ftpError) {
       test.passed = false;
       test.error = `FTP navigation failed: ${ftpError.message}`;
       testResults.errors.push(`FTP test failed: ${ftpError.message}`);
     }
-
   } catch (error) {
     test.passed = false;
     test.error = error.message;
@@ -306,21 +309,24 @@ async function testDatabaseStorage() {
         oceanview: parseInt(integrity.has_oceanview),
         balcony: parseInt(integrity.has_balcony),
         suite: parseInt(integrity.has_suite),
-        cheapest: parseInt(integrity.has_cheapest)
+        cheapest: parseInt(integrity.has_cheapest),
       },
       withRawData: parseInt(integrity.has_raw_data),
       withValidRawData: parseInt(integrity.has_valid_raw_data),
       pricingCoverage: {
-        interior: (integrity.has_interior / integrity.total_cruises * 100).toFixed(2) + '%',
-        oceanview: (integrity.has_oceanview / integrity.total_cruises * 100).toFixed(2) + '%',
-        balcony: (integrity.has_balcony / integrity.total_cruises * 100).toFixed(2) + '%',
-        suite: (integrity.has_suite / integrity.total_cruises * 100).toFixed(2) + '%',
-        cheapest: (integrity.has_cheapest / integrity.total_cruises * 100).toFixed(2) + '%'
-      }
+        interior: ((integrity.has_interior / integrity.total_cruises) * 100).toFixed(2) + '%',
+        oceanview: ((integrity.has_oceanview / integrity.total_cruises) * 100).toFixed(2) + '%',
+        balcony: ((integrity.has_balcony / integrity.total_cruises) * 100).toFixed(2) + '%',
+        suite: ((integrity.has_suite / integrity.total_cruises) * 100).toFixed(2) + '%',
+        cheapest: ((integrity.has_cheapest / integrity.total_cruises) * 100).toFixed(2) + '%',
+      },
     };
 
     log(`Database contains ${integrity.total_cruises} active cruises`, 'success');
-    log(`Pricing coverage: ${integrity.has_cheapest}/${integrity.total_cruises} (${test.details.pricingCoverage.cheapest})`, 'info');
+    log(
+      `Pricing coverage: ${integrity.has_cheapest}/${integrity.total_cruises} (${test.details.pricingCoverage.cheapest})`,
+      'info'
+    );
 
     // Check data freshness
     const freshnessQuery = sql`
@@ -339,7 +345,7 @@ async function testDatabaseStorage() {
       lastHour: parseInt(freshness.updated_1h),
       last24Hours: parseInt(freshness.updated_24h),
       last7Days: parseInt(freshness.updated_7d),
-      last30Days: parseInt(freshness.updated_30d)
+      last30Days: parseInt(freshness.updated_30d),
     };
 
     log(`Data freshness: ${freshness.updated_24h} cruises updated in last 24h`, 'info');
@@ -364,9 +370,8 @@ async function testDatabaseStorage() {
       withInterior: parseInt(cheapestPricing.has_interior),
       withOceanview: parseInt(cheapestPricing.has_oceanview),
       withBalcony: parseInt(cheapestPricing.has_balcony),
-      withSuite: parseInt(cheapestPricing.has_suite)
+      withSuite: parseInt(cheapestPricing.has_suite),
     };
-
   } catch (error) {
     test.passed = false;
     test.error = error.message;
@@ -420,12 +425,11 @@ async function testPriceExtraction() {
     for (const cruise of samples) {
       if (!cruise.raw_data) continue;
 
-      const rawData = typeof cruise.raw_data === 'string'
-        ? JSON.parse(cruise.raw_data)
-        : cruise.raw_data;
+      const rawData =
+        typeof cruise.raw_data === 'string' ? JSON.parse(cruise.raw_data) : cruise.raw_data;
 
       // Extract prices from raw data
-      const extractPrice = (value) => {
+      const extractPrice = value => {
         if (!value) return null;
         if (typeof value === 'string' || typeof value === 'number') {
           return parseFloat(value);
@@ -461,13 +465,14 @@ async function testPriceExtraction() {
         const actual = actualPrices[key];
         if (expected !== null && actual !== null) {
           const diff = Math.abs(expected - actual);
-          if (diff > 0.01) { // Allow for minor float differences
+          if (diff > 0.01) {
+            // Allow for minor float differences
             isCorrect = false;
             cruiseMismatches.push({
               field: key,
               expected,
               actual,
-              difference: diff
+              difference: diff,
             });
           }
         }
@@ -480,7 +485,7 @@ async function testPriceExtraction() {
           cruiseId: cruise.id,
           name: cruise.name,
           cruiseLine: cruise.cruise_line_name,
-          mismatches: cruiseMismatches
+          mismatches: cruiseMismatches,
         });
       }
 
@@ -492,16 +497,15 @@ async function testPriceExtraction() {
           cruiseLine: cruise.cruise_line_name,
           prices: actualPrices,
           rawDataPrices: expectedPrices,
-          match: isCorrect
+          match: isCorrect,
         });
       }
     }
 
     test.details.totalSampled = samples.length;
     test.details.correctExtractions = correctExtractions;
-    test.details.accuracy = samples.length > 0
-      ? (correctExtractions / samples.length * 100).toFixed(2) + '%'
-      : 'N/A';
+    test.details.accuracy =
+      samples.length > 0 ? ((correctExtractions / samples.length) * 100).toFixed(2) + '%' : 'N/A';
     test.details.mismatchCount = mismatches.length;
 
     if (mismatches.length > 0) {
@@ -514,9 +518,10 @@ async function testPriceExtraction() {
       }
     }
 
-    log(`Price extraction accuracy: ${correctExtractions}/${samples.length} (${test.details.accuracy})`,
-        test.passed ? 'success' : 'warning');
-
+    log(
+      `Price extraction accuracy: ${correctExtractions}/${samples.length} (${test.details.accuracy})`,
+      test.passed ? 'success' : 'warning'
+    );
   } catch (error) {
     test.passed = false;
     test.error = error.message;
@@ -546,7 +551,7 @@ async function testAPIServing() {
       test.details.endpoints.search = {
         status: 'OK',
         cruiseCount: cruises.length,
-        hasPrices: cruises.filter(c => c.price !== null).length
+        hasPrices: cruises.filter(c => c.price !== null).length,
       };
 
       log(`Search API returned ${cruises.length} cruises`, 'success');
@@ -586,8 +591,8 @@ async function testAPIServing() {
               oceanview: cruiseDetail.oceanviewPrice,
               balcony: cruiseDetail.balconyPrice,
               suite: cruiseDetail.suitePrice,
-              cheapest: cruiseDetail.cheapestPrice
-            }
+              cheapest: cruiseDetail.cheapestPrice,
+            },
           });
         }
 
@@ -597,12 +602,13 @@ async function testAPIServing() {
       test.details.endpoints.detail = {
         tested: detailTests,
         passed: detailPassed,
-        samples: detailSamples
+        samples: detailSamples,
       };
 
-      log(`Detail API: ${detailPassed}/${detailTests} cruises have price fields`,
-          detailPassed === detailTests ? 'success' : 'warning');
-
+      log(
+        `Detail API: ${detailPassed}/${detailTests} cruises have price fields`,
+        detailPassed === detailTests ? 'success' : 'warning'
+      );
     } else {
       test.passed = false;
       test.error = `Search API failed: ${searchResponse.status}`;
@@ -640,8 +646,10 @@ async function testAPIServing() {
 
         if (dbCruise) {
           const matches =
-            parseFloat(apiCruise.prices.interior || 0) === parseFloat(dbCruise.interior_price || 0) &&
-            parseFloat(apiCruise.prices.oceanview || 0) === parseFloat(dbCruise.oceanview_price || 0) &&
+            parseFloat(apiCruise.prices.interior || 0) ===
+              parseFloat(dbCruise.interior_price || 0) &&
+            parseFloat(apiCruise.prices.oceanview || 0) ===
+              parseFloat(dbCruise.oceanview_price || 0) &&
             parseFloat(apiCruise.prices.balcony || 0) === parseFloat(dbCruise.balcony_price || 0) &&
             parseFloat(apiCruise.prices.suite || 0) === parseFloat(dbCruise.suite_price || 0);
 
@@ -656,8 +664,8 @@ async function testAPIServing() {
               oceanview: dbCruise.oceanview_price,
               balcony: dbCruise.balcony_price,
               suite: dbCruise.suite_price,
-              cheapest: dbCruise.cheapest_price
-            }
+              cheapest: dbCruise.cheapest_price,
+            },
           });
         }
       }
@@ -665,16 +673,18 @@ async function testAPIServing() {
       test.details.apiDbConsistency = {
         tested: apiDbComparison.length,
         matching: matchCount,
-        accuracy: apiDbComparison.length > 0
-          ? (matchCount / apiDbComparison.length * 100).toFixed(2) + '%'
-          : 'N/A',
-        samples: apiDbComparison.slice(0, 3)
+        accuracy:
+          apiDbComparison.length > 0
+            ? ((matchCount / apiDbComparison.length) * 100).toFixed(2) + '%'
+            : 'N/A',
+        samples: apiDbComparison.slice(0, 3),
       };
 
-      log(`API/DB consistency: ${matchCount}/${apiDbComparison.length} match (${test.details.apiDbConsistency.accuracy})`,
-          matchCount === apiDbComparison.length ? 'success' : 'warning');
+      log(
+        `API/DB consistency: ${matchCount}/${apiDbComparison.length} match (${test.details.apiDbConsistency.accuracy})`,
+        matchCount === apiDbComparison.length ? 'success' : 'warning'
+      );
     }
-
   } catch (error) {
     test.passed = false;
     test.error = error.message;
@@ -702,7 +712,7 @@ async function runMasterTests() {
       { name: 'FTP Data', fn: testFTPDataRetrieval },
       { name: 'Database Storage', fn: testDatabaseStorage },
       { name: 'Price Extraction', fn: testPriceExtraction },
-      { name: 'API Serving', fn: testAPIServing }
+      { name: 'API Serving', fn: testAPIServing },
     ];
 
     for (const test of tests) {
@@ -739,10 +749,8 @@ async function runMasterTests() {
 
     // Pipeline status overview
     console.log('\n🔄 PIPELINE STATUS:');
-    for (const [key, test of Object.entries(testResults.pipelineTests)) {
-      const status = test.skipped ? '⏭️ SKIPPED' :
-                     test.passed ? '✅ PASSED' :
-                     '❌ FAILED';
+    for (const [key, test] of Object.entries(testResults.pipelineTests)) {
+      const status = test.skipped ? '⏭️ SKIPPED' : test.passed ? '✅ PASSED' : '❌ FAILED';
       const name = key.replace(/([A-Z])/g, ' $1').toUpperCase();
       console.log(`  ${status} - ${name}`);
     }
@@ -755,7 +763,9 @@ async function runMasterTests() {
         .slice(0, 10);
 
       for (const line of sortedLines) {
-        console.log(`  ${line.name}: ${line.updatedLast24h || 0} cruises updated, ${line.webhookCount24h || 0} webhooks`);
+        console.log(
+          `  ${line.name}: ${line.updatedLast24h || 0} cruises updated, ${line.webhookCount24h || 0} webhooks`
+        );
       }
     }
 
@@ -780,13 +790,10 @@ async function runMasterTests() {
     // Overall status
     const overallPassed = testResults.summary.failed === 0;
     console.log('\n' + '='.repeat(80));
-    console.log(overallPassed ?
-      '✅ PIPELINE TEST SUITE PASSED' :
-      '❌ PIPELINE TEST SUITE FAILED');
+    console.log(overallPassed ? '✅ PIPELINE TEST SUITE PASSED' : '❌ PIPELINE TEST SUITE FAILED');
     console.log('='.repeat(80) + '\n');
 
     process.exit(overallPassed ? 0 : 1);
-
   } catch (error) {
     console.error('\n💥 CRITICAL ERROR:', error);
     process.exit(1);
