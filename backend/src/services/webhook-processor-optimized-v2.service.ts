@@ -201,29 +201,81 @@ export class WebhookProcessorOptimizedV2 {
       }
     );
 
+    // Track completed batches per webhook event
+    const completedBatchesMap = new Map<number, Set<number>>();
+    const totalBatchesMap = new Map<number, number>();
+
     // Set up event listeners
     WebhookProcessorOptimizedV2.webhookWorker.on('completed', async job => {
       console.log(`[QUEUE-V2] Job ${job.id} completed successfully`);
 
       // Update webhook event status to completed
       const { webhookEventId, batchNumber, totalBatches } = job.data;
-      if (webhookEventId && batchNumber === totalBatches) {
-        // Only update to completed when the last batch finishes
-        try {
-          await db.execute(sql`
-            UPDATE webhook_events
-            SET status = 'completed',
-                processed_at = NOW(),
-                metadata = jsonb_set(
-                  COALESCE(metadata, '{}'::jsonb),
-                  '{completed_at}',
-                  to_jsonb(NOW())
-                )
-            WHERE id = ${webhookEventId}
-          `);
-          console.log(`[QUEUE-V2] Updated webhook_event ${webhookEventId} status to completed`);
-        } catch (error) {
-          console.error(`[QUEUE-V2] Failed to update webhook_event ${webhookEventId}:`, error);
+
+      if (webhookEventId) {
+        // Track this batch completion
+        if (!completedBatchesMap.has(webhookEventId)) {
+          completedBatchesMap.set(webhookEventId, new Set());
+          totalBatchesMap.set(webhookEventId, totalBatches);
+        }
+
+        const completedBatches = completedBatchesMap.get(webhookEventId)!;
+        completedBatches.add(batchNumber);
+
+        console.log(
+          `[QUEUE-V2] Webhook ${webhookEventId}: Batch ${batchNumber}/${totalBatches} completed. Total completed: ${completedBatches.size}`
+        );
+
+        // Check if ALL batches are completed
+        if (completedBatches.size === totalBatches) {
+          // All batches completed - mark webhook as completed
+          try {
+            // Check if db connection exists, create direct connection if needed
+            if (!db) {
+              console.error(
+                '[QUEUE-V2] Database connection not available, creating direct connection...'
+              );
+              const postgres = require('postgres');
+              const directDb = postgres(env.DATABASE_URL!, {
+                ssl: env.DATABASE_URL!.includes('localhost')
+                  ? false
+                  : { rejectUnauthorized: false },
+              });
+
+              await directDb`
+                UPDATE webhook_events
+                SET status = 'completed',
+                    processed_at = NOW()
+                WHERE id = ${webhookEventId}
+              `;
+
+              await directDb.end();
+              console.log(
+                `[QUEUE-V2] ✅ Updated webhook_event ${webhookEventId} to completed via direct connection`
+              );
+            } else {
+              await db.execute(sql`
+                UPDATE webhook_events
+                SET status = 'completed',
+                    processed_at = NOW(),
+                    metadata = jsonb_set(
+                      COALESCE(metadata, '{}'::jsonb),
+                      '{completed_at}',
+                      to_jsonb(NOW())
+                    )
+                WHERE id = ${webhookEventId}
+              `);
+              console.log(
+                `[QUEUE-V2] ✅ All batches completed! Updated webhook_event ${webhookEventId} status to completed`
+              );
+            }
+
+            // Clean up tracking maps
+            completedBatchesMap.delete(webhookEventId);
+            totalBatchesMap.delete(webhookEventId);
+          } catch (error) {
+            console.error(`[QUEUE-V2] Failed to update webhook_event ${webhookEventId}:`, error);
+          }
         }
       }
     });
