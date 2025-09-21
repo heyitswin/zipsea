@@ -464,7 +464,7 @@ router.get('/recent', async (req: Request, res: Response) => {
     const events = await db
       .select()
       .from(webhookEvents)
-      .orderBy(sql`created_at DESC`)
+      .orderBy(sql`received_at DESC`)
       .limit(limit)
       .offset(offset);
 
