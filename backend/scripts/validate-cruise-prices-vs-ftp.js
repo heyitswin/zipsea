@@ -8,11 +8,10 @@ const ftp = require('basic-ftp');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-// Database connection
-const sql = postgres(process.env.DATABASE_URL, {
-  ssl: process.env.DATABASE_URL.includes('localhost')
-    ? false
-    : { rejectUnauthorized: false },
+// Database connection - use production if available
+const databaseUrl = process.env.DATABASE_URL_PRODUCTION || process.env.DATABASE_URL;
+const sql = postgres(databaseUrl, {
+  ssl: databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false },
 });
 
 // FTP configuration
@@ -42,24 +41,29 @@ async function getFtpConnection() {
 
 async function fetchFtpFile(client, filePath) {
   try {
+    // Use downloadTo with a writable stream
+    const stream = require('stream');
     const chunks = [];
-    const stream = await client.downloadToWritable(filePath);
 
-    return new Promise((resolve, reject) => {
-      stream.on('data', chunk => chunks.push(chunk));
-      stream.on('end', () => {
-        const content = Buffer.concat(chunks).toString('utf8');
-        try {
-          const json = JSON.parse(content);
-          resolve(json);
-        } catch (error) {
-          reject(new Error(`Failed to parse JSON from ${filePath}: ${error.message}`));
-        }
-      });
-      stream.on('error', reject);
+    const writable = new stream.Writable({
+      write(chunk, encoding, callback) {
+        chunks.push(chunk);
+        callback();
+      },
     });
+
+    await client.downloadTo(writable, filePath);
+
+    const content = Buffer.concat(chunks).toString('utf8');
+    try {
+      const json = JSON.parse(content);
+      return json;
+    } catch (error) {
+      console.error(`Failed to parse JSON from ${filePath}: ${error.message}`);
+      return null;
+    }
   } catch (error) {
-    console.error(`Error fetching file ${filePath}:`, error);
+    console.error(`Error fetching file ${filePath}:`, error.message);
     return null;
   }
 }
@@ -108,15 +112,29 @@ function extractPricesFromFtpData(data, lineId) {
     prices.suite = parsePrice(data.cheapest.prices.suite, 'suite');
   }
   // Priority 3: Individual cheapest objects
-  else if (data.cheapestinside || data.cheapestoutside || data.cheapestbalcony || data.cheapestsuite) {
+  else if (
+    data.cheapestinside ||
+    data.cheapestoutside ||
+    data.cheapestbalcony ||
+    data.cheapestsuite
+  ) {
     if (data.cheapestinside) {
-      prices.interior = parsePrice(data.cheapestinside.price || data.cheapestinside.total, 'interior');
+      prices.interior = parsePrice(
+        data.cheapestinside.price || data.cheapestinside.total,
+        'interior'
+      );
     }
     if (data.cheapestoutside) {
-      prices.oceanview = parsePrice(data.cheapestoutside.price || data.cheapestoutside.total, 'oceanview');
+      prices.oceanview = parsePrice(
+        data.cheapestoutside.price || data.cheapestoutside.total,
+        'oceanview'
+      );
     }
     if (data.cheapestbalcony) {
-      prices.balcony = parsePrice(data.cheapestbalcony.price || data.cheapestbalcony.total, 'balcony');
+      prices.balcony = parsePrice(
+        data.cheapestbalcony.price || data.cheapestbalcony.total,
+        'balcony'
+      );
     }
     if (data.cheapestsuite) {
       prices.suite = parsePrice(data.cheapestsuite.price || data.cheapestsuite.total, 'suite');
@@ -124,7 +142,9 @@ function extractPricesFromFtpData(data, lineId) {
   }
 
   // Calculate cheapest overall from cabin prices
-  const validPrices = [prices.interior, prices.oceanview, prices.balcony, prices.suite].filter(p => p > 0);
+  const validPrices = [prices.interior, prices.oceanview, prices.balcony, prices.suite].filter(
+    p => p > 0
+  );
   prices.cheapest = validPrices.length > 0 ? Math.min(...validPrices) : null;
 
   return prices;
@@ -212,7 +232,7 @@ async function validatePrices(cruise, ftpData) {
     else if (dbPrice !== null && ftpPrice !== null) {
       const difference = Math.abs(dbPrice - ftpPrice);
       if (difference > tolerance) {
-        const percentDiff = ((dbPrice - ftpPrice) / ftpPrice * 100).toFixed(2);
+        const percentDiff = (((dbPrice - ftpPrice) / ftpPrice) * 100).toFixed(2);
         discrepancies.push({
           type: priceType.name,
           issue: 'Price Mismatch',
@@ -234,7 +254,9 @@ async function main() {
   console.log('='.repeat(80));
   console.log(`Sample Size: ${SAMPLE_SIZE} cruises`);
   console.log(`Time Range: Last ${HOURS_BACK} hours`);
-  console.log(`Database: ${process.env.DATABASE_URL?.includes('production') ? 'PRODUCTION' : 'STAGING'}`);
+  console.log(
+    `Database: ${databaseUrl?.includes('production') || databaseUrl?.includes('d2idqjjipnbc73abma3g') ? 'PRODUCTION' : 'STAGING'}`
+  );
   console.log('='.repeat(80));
   console.log();
 
@@ -269,7 +291,9 @@ async function main() {
       const cruise = cruises[i];
       results.total++;
 
-      process.stdout.write(`[${i + 1}/${cruises.length}] Validating cruise ${cruise.id} (${cruise.name})... `);
+      process.stdout.write(
+        `[${i + 1}/${cruises.length}] Validating cruise ${cruise.id} (${cruise.name})... `
+      );
 
       // Construct FTP path
       const ftpPath = constructFtpPath(
@@ -319,9 +343,15 @@ async function main() {
     console.log('VALIDATION SUMMARY');
     console.log('='.repeat(80));
     console.log(`Total Cruises Checked: ${results.total}`);
-    console.log(`✅ Fully Validated: ${results.validated} (${(results.validated / results.total * 100).toFixed(1)}%)`);
-    console.log(`⚠️  With Discrepancies: ${results.withDiscrepancies} (${(results.withDiscrepancies / results.total * 100).toFixed(1)}%)`);
-    console.log(`❌ FTP Errors: ${results.ftpErrors} (${(results.ftpErrors / results.total * 100).toFixed(1)}%)`);
+    console.log(
+      `✅ Fully Validated: ${results.validated} (${((results.validated / results.total) * 100).toFixed(1)}%)`
+    );
+    console.log(
+      `⚠️  With Discrepancies: ${results.withDiscrepancies} (${((results.withDiscrepancies / results.total) * 100).toFixed(1)}%)`
+    );
+    console.log(
+      `❌ FTP Errors: ${results.ftpErrors} (${((results.ftpErrors / results.total) * 100).toFixed(1)}%)`
+    );
 
     if (Object.keys(results.discrepanciesByType).length > 0) {
       console.log('\nDiscrepancies by Type:');
@@ -365,7 +395,6 @@ async function main() {
         console.log(`\nFull results saved to: ${fileName}`);
       }
     }
-
   } catch (error) {
     console.error('Error during validation:', error);
   } finally {
