@@ -88,6 +88,7 @@ const US_STATES = [
   "Wyoming",
 ];
 
+// Deploy trigger: Include additional notes field
 export default function QuoteModalWithClerk({
   isOpen,
   onClose,
