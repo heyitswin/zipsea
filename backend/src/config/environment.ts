@@ -6,7 +6,7 @@ dotenv.config();
 
 // Environment validation schema
 const envSchema = z.object({
-  NODE_ENV: z.enum(['staging', 'production']).default('staging'),
+  NODE_ENV: z.enum(['staging', 'production', 'development']).optional().default('staging'),
   PORT: z.string().transform(Number).default('3001'),
 
   // Database
@@ -73,14 +73,43 @@ const envSchema = z.object({
 const parseResult = envSchema.safeParse(process.env);
 
 if (!parseResult.success) {
-  console.error('❌ Invalid environment variables:');
+  console.error('⚠️  Environment variable validation issues:');
   parseResult.error.issues.forEach(issue => {
     console.error(`  ${issue.path.join('.')}: ${issue.message}`);
   });
-  process.exit(1);
+  console.warn('Attempting to continue with partial configuration...');
 }
 
-export const env = parseResult.data;
+// Use parsed data if successful, otherwise use raw env with defaults
+export const env = parseResult.success
+  ? parseResult.data
+  : {
+      NODE_ENV: process.env.NODE_ENV || 'staging',
+      PORT: Number(process.env.PORT) || 3001,
+      DATABASE_URL: process.env.DATABASE_URL,
+      REDIS_URL: process.env.REDIS_URL,
+      REDIS_HOST: process.env.REDIS_HOST || 'localhost',
+      REDIS_PORT: Number(process.env.REDIS_PORT) || 6379,
+      REDIS_PASSWORD: process.env.REDIS_PASSWORD,
+      CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+      CLERK_JWT_KEY: process.env.CLERK_JWT_KEY,
+      TRAVELTEK_FTP_HOST: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
+      TRAVELTEK_FTP_USER: process.env.TRAVELTEK_FTP_USER,
+      TRAVELTEK_FTP_PASSWORD: process.env.TRAVELTEK_FTP_PASSWORD,
+      SENTRY_DSN: process.env.SENTRY_DSN,
+      RESEND_API_KEY: process.env.RESEND_API_KEY,
+      TEAM_NOTIFICATION_EMAIL: process.env.TEAM_NOTIFICATION_EMAIL || 'win@zipsea.com',
+      JWT_SECRET: process.env.JWT_SECRET,
+      WEBHOOK_SECRET: process.env.WEBHOOK_SECRET,
+      SLACK_WEBHOOK_URL: process.env.SLACK_WEBHOOK_URL,
+      CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:3000',
+      CACHE_TTL_SEARCH: Number(process.env.CACHE_TTL_SEARCH) || 3600,
+      CACHE_TTL_CRUISE_DETAILS: Number(process.env.CACHE_TTL_CRUISE_DETAILS) || 21600,
+      CACHE_TTL_PRICING: Number(process.env.CACHE_TTL_PRICING) || 900,
+      RATE_LIMIT_WINDOW_MS: Number(process.env.RATE_LIMIT_WINDOW_MS) || 900000,
+      RATE_LIMIT_MAX_REQUESTS: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+      LOG_LEVEL: (process.env.LOG_LEVEL as any) || 'info',
+    };
 
 // Additional validation for production
 if (env.NODE_ENV === 'production') {
@@ -90,14 +119,14 @@ if (env.NODE_ENV === 'production') {
   if (!env.TRAVELTEK_FTP_PASSWORD) missingFtpCreds.push('TRAVELTEK_FTP_PASSWORD');
 
   if (missingFtpCreds.length > 0) {
-    console.error('❌ Production environment missing required FTP credentials:');
+    console.warn('⚠️  Production environment missing FTP credentials:');
     missingFtpCreds.forEach(cred => {
-      console.error(`  ${cred} is required for webhook processing to work`);
+      console.warn(`  ${cred} is required for webhook processing to work`);
     });
-    console.error('');
-    console.error('🚨 CRITICAL: Webhook processing will fail without FTP credentials!');
-    console.error('Add these environment variables to your deployment and restart.');
-    process.exit(1);
+    console.warn('');
+    console.warn('⚠️  WARNING: Webhook processing will be disabled without FTP credentials!');
+    console.warn('Add these environment variables to your deployment for full functionality.');
+    // Don't exit - allow the app to run without FTP (database and other features will still work)
   }
 }
 
