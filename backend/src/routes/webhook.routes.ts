@@ -177,6 +177,60 @@ router.post('/traveltek', async (req: Request, res: Response) => {
 });
 
 /**
+ * Simple test endpoint to check database connectivity
+ * GET /api/webhooks/test-db
+ */
+router.get('/test-db', async (req: Request, res: Response) => {
+  try {
+    logger.info('Testing database connection for webhook_events');
+
+    // Test if pgSql is available
+    if (!pgSql) {
+      return res.status(500).json({
+        status: 'error',
+        message: 'Database connection is not available',
+        pgSql: 'null',
+      });
+    }
+
+    // Try a simple insert
+    const testData = {
+      test: true,
+      timestamp: new Date().toISOString(),
+      endpoint: 'test-db',
+    };
+
+    const result = await pgSql`
+      INSERT INTO webhook_events (line_id, webhook_type, status, metadata)
+      VALUES (999, 'test-db', 'test', ${JSON.stringify(testData)}::jsonb)
+      RETURNING id, line_id, webhook_type, status
+    `;
+
+    logger.info('Test insert successful:', result);
+
+    res.json({
+      status: 'success',
+      message: 'Database test successful',
+      insertedId: result[0]?.id,
+      result: result[0],
+    });
+
+    // Clean up test record
+    if (result[0]?.id) {
+      await pgSql`DELETE FROM webhook_events WHERE id = ${result[0].id}`;
+    }
+  } catch (error) {
+    logger.error('Database test failed:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Database test failed',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+  }
+});
+
+/**
  * Test webhook with queue - for testing queue-based processing
  * POST /api/webhooks/traveltek/test-queue
  */
