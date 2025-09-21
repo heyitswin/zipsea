@@ -484,4 +484,99 @@ router.get('/recent', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Get BullMQ queue status
+ * GET /api/webhooks/queue-status
+ */
+router.get('/queue-status', async (req: Request, res: Response) => {
+  try {
+    // Get the webhook processor instance
+    const processor = getWebhookProcessor();
+
+    // Get queue stats using the static queue reference
+    const WebhookProcessorClass = WebhookProcessorOptimizedV2 as any;
+
+    if (!WebhookProcessorClass.webhookQueue) {
+      return res.status(200).json({
+        status: 'warning',
+        message: 'Queue not initialized',
+        queue: {
+          initialized: false,
+          workerInitialized: false,
+        },
+      });
+    }
+
+    const queue = WebhookProcessorClass.webhookQueue;
+    const worker = WebhookProcessorClass.webhookWorker;
+
+    // Get queue counts
+    const [waiting, active, completed, failed, delayed, paused] = await Promise.all([
+      queue.getWaitingCount(),
+      queue.getActiveCount(),
+      queue.getCompletedCount(),
+      queue.getFailedCount(),
+      queue.getDelayedCount(),
+      queue.isPaused(),
+    ]);
+
+    // Get worker status if available
+    let workerStatus = null;
+    if (worker) {
+      try {
+        workerStatus = {
+          isRunning: await worker.isRunning(),
+          isPaused: await worker.isPaused(),
+        };
+      } catch (err) {
+        workerStatus = { error: 'Unable to get worker status' };
+      }
+    }
+
+    // Get sample of waiting jobs
+    const waitingJobs = await queue.getJobs(['waiting'], 0, 5);
+    const activeJobs = await queue.getJobs(['active'], 0, 5);
+
+    res.status(200).json({
+      status: 'success',
+      timestamp: new Date().toISOString(),
+      queue: {
+        name: 'webhook-processing',
+        counts: {
+          waiting,
+          active,
+          completed,
+          failed,
+          delayed,
+          total: waiting + active + completed + failed + delayed,
+        },
+        isPaused: paused,
+        worker: workerStatus,
+        sampleJobs: {
+          waiting: waitingJobs.map(job => ({
+            id: job.id,
+            name: job.name,
+            data: job.data,
+            timestamp: job.timestamp,
+          })),
+          active: activeJobs.map(job => ({
+            id: job.id,
+            name: job.name,
+            data: job.data,
+            timestamp: job.timestamp,
+          })),
+        },
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to get queue status:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to get queue status',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      details: error instanceof Error ? error.stack : undefined,
+    });
+  }
+});
+
 export default router;
