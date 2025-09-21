@@ -90,12 +90,19 @@ router.post('/traveltek', async (req: Request, res: Response) => {
     const webhookEventIds: number[] = [];
 
     for (const lineId of lineIds) {
-      const result = await pgSql`
-        INSERT INTO webhook_events (line_id, webhook_type, status, metadata)
-        VALUES (${lineId}, ${payload.event || 'update'}, 'pending', ${JSON.stringify(payload)})
-        RETURNING *
-      `;
-      webhookEventIds.push(result[0].id);
+      try {
+        const result = await pgSql`
+          INSERT INTO webhook_events (line_id, webhook_type, status, metadata)
+          VALUES (${lineId}, ${payload.event || 'update'}, 'pending', ${JSON.stringify(payload)}::jsonb)
+          RETURNING id
+        `;
+        if (result && result.length > 0 && result[0].id) {
+          webhookEventIds.push(result[0].id);
+        }
+      } catch (insertError) {
+        logger.error(`Failed to insert webhook event for lineId ${lineId}:`, insertError);
+        // Continue with other lineIds even if one fails
+      }
     }
 
     // Immediately acknowledge webhook to prevent timeout
