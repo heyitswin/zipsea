@@ -425,25 +425,30 @@ async function testPriceExtraction() {
         : cruise.raw_data;
 
       // Extract prices from raw data
-      const extractPrice = (value) => {
+      const extractPrice = (value, lineId) => {
         if (!value) return null;
+        let price = null;
         if (typeof value === 'string' || typeof value === 'number') {
-          return parseFloat(value);
+          price = parseFloat(value);
+        } else if (value.price !== undefined) {
+          price = parseFloat(value.price);
+        } else if (value.value !== undefined) {
+          price = parseFloat(value.value);
         }
-        if (value.price !== undefined) {
-          return parseFloat(value.price);
+
+        // Apply Riviera Travel fix (line 329)
+        if (price !== null && lineId === 329) {
+          price = price / 1000;
         }
-        if (value.value !== undefined) {
-          return parseFloat(value.value);
-        }
-        return null;
+
+        return price;
       };
 
       const expectedPrices = {
-        interior: extractPrice(rawData.cheapestinside || rawData.cheapestinterior),
-        oceanview: extractPrice(rawData.cheapestoutside || rawData.cheapestoceanview),
-        balcony: extractPrice(rawData.cheapestbalcony),
-        suite: extractPrice(rawData.cheapestsuite),
+        interior: extractPrice(rawData.cheapestinside || rawData.cheapestinterior, cruise.cruise_line_id),
+        oceanview: extractPrice(rawData.cheapestoutside || rawData.cheapestoceanview, cruise.cruise_line_id),
+        balcony: extractPrice(rawData.cheapestbalcony, cruise.cruise_line_id),
+        suite: extractPrice(rawData.cheapestsuite, cruise.cruise_line_id),
       };
 
       const actualPrices = {
