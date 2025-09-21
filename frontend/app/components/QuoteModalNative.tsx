@@ -33,6 +33,7 @@ interface DiscountData {
   stateOfResidence: string;
   loyaltyNumber: string;
   travelInsurance: boolean;
+  additionalNotes: string;
 }
 
 const US_STATES = [
@@ -110,6 +111,7 @@ export default function QuoteModalNative({
     stateOfResidence: "",
     loyaltyNumber: "",
     travelInsurance: false,
+    additionalNotes: "",
   });
 
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -241,6 +243,7 @@ export default function QuoteModalNative({
         cabinType,
         cabinPrice,
         travelInsurance: discounts.travelInsurance,
+        additionalNotes: discounts.additionalNotes,
       };
 
       localStorage.setItem("pendingQuoteSubmission", JSON.stringify(quoteData));
@@ -265,6 +268,7 @@ export default function QuoteModalNative({
           cabinType,
           cabinPrice,
           travelInsurance: discounts.travelInsurance,
+          additionalNotes: discounts.additionalNotes,
         }),
       });
 
@@ -488,6 +492,20 @@ export default function QuoteModalNative({
                       I'm interested in travel insurance for this cruise
                     </span>
                   </label>
+                </div>
+
+                {/* Additional Notes Input */}
+                <div className="border border-[#d9d9d9] rounded-[10px] p-4 mt-4">
+                  <input
+                    type="text"
+                    value={discounts.additionalNotes}
+                    onChange={(e) =>
+                      handleDiscountChange("additionalNotes", e.target.value)
+                    }
+                    placeholder="Additional comments"
+                    className="w-full border-none outline-none font-geograph text-[18px] text-[#2f2f2f] bg-transparent"
+                    style={{ letterSpacing: "0px" }}
+                  />
                 </div>
               </div>
 
