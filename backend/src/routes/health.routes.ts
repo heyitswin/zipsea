@@ -31,4 +31,24 @@ router.get('/cache/warming/status', asyncHandler(healthController.getCacheWarmin
 router.post('/cache/warming/trigger', asyncHandler(healthController.triggerCacheWarming));
 router.post('/cache/clear', asyncHandler(healthController.clearAllCaches));
 
+// Debug endpoint for environment variables (temporary - remove after debugging)
+router.get('/env-debug', (req, res) => {
+  const dbInfo = {
+    hasDatabaseUrl: !!process.env.DATABASE_URL,
+    databaseUrlLength: process.env.DATABASE_URL?.length || 0,
+    databaseUrlPrefix: process.env.DATABASE_URL?.substring(0, 20) || 'not set',
+    hasRedisUrl: !!process.env.REDIS_URL,
+    nodeEnv: process.env.NODE_ENV,
+    hasFtpUser: !!process.env.TRAVELTEK_FTP_USER,
+    hasFtpPassword: !!process.env.TRAVELTEK_FTP_PASSWORD,
+    ftpHost: process.env.TRAVELTEK_FTP_HOST || 'not set',
+  };
+
+  res.json({
+    status: 'debug',
+    environment: dbInfo,
+    message: 'This endpoint shows if critical env vars are set',
+  });
+});
+
 export default router;
