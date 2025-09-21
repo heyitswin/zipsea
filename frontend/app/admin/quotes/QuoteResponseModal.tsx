@@ -174,6 +174,31 @@ export default function QuoteResponseModal({
                   return null;
                 })()}
 
+                {/* Additional Notes from Customer */}
+                {(() => {
+                  const customerDetails = quote.customer_details || {};
+                  const details =
+                    typeof customerDetails === "string"
+                      ? JSON.parse(customerDetails)
+                      : customerDetails;
+                  const additionalNotes =
+                    details.additional_notes || details.additionalNotes;
+
+                  if (additionalNotes) {
+                    return (
+                      <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                        <h4 className="font-medium text-gray-900 mb-2">
+                          Additional Comments from Customer
+                        </h4>
+                        <div className="text-sm text-gray-700">
+                          {additionalNotes}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 {/* Notes - Moved up for prominence */}
                 <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <label

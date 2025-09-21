@@ -62,6 +62,7 @@ interface ComprehensiveQuoteEmailData {
   children: number;
   childAges?: number[];
   specialRequests?: string;
+  additionalNotes?: string;
   firstName?: string;
   lastName?: string;
   phone?: string;
@@ -982,6 +983,18 @@ export class EmailService {
             <div style="padding: 20px; border-bottom: 1px solid #eee;">
               <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #0E1B4D;">SPECIAL REQUESTS</h2>
               <p style="margin: 0; font-size: 14px; color: #333; line-height: 1.5;">${data.specialRequests}</p>
+            </div>
+            `
+                : ''
+            }
+
+            <!-- Additional Notes -->
+            ${
+              data.additionalNotes
+                ? `
+            <div style="padding: 20px; border-bottom: 1px solid #eee;">
+              <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #0E1B4D;">ADDITIONAL NOTES</h2>
+              <p style="margin: 0; font-size: 14px; color: #333; line-height: 1.5;">${data.additionalNotes}</p>
             </div>
             `
                 : ''
