@@ -9,11 +9,10 @@
 
 require('dotenv').config();
 const { Pool } = require('pg');
-const fetch = require('node-fetch');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
 });
 
 const API_BASE = 'https://zipsea-production.onrender.com';
@@ -23,11 +22,11 @@ const CONFIG = {
   SAMPLE_SIZE: 100,
   API_TEST_COUNT: 50,
   THRESHOLDS: {
-    MIN_PRICE_COVERAGE: 60,        // At least 60% should have prices
-    MAX_STALE_DATA_PERCENT: 20,    // Max 20% data older than 30 days
-    MIN_API_SUCCESS_RATE: 95,      // API should work 95% of the time
-    MAX_WEBHOOK_PENDING: 10000,    // Max pending webhooks
-  }
+    MIN_PRICE_COVERAGE: 60, // At least 60% should have prices
+    MAX_STALE_DATA_PERCENT: 20, // Max 20% data older than 30 days
+    MIN_API_SUCCESS_RATE: 95, // API should work 95% of the time
+    MAX_WEBHOOK_PENDING: 10000, // Max pending webhooks
+  },
 };
 
 // Color codes for output
@@ -43,13 +42,14 @@ const colors = {
 };
 
 function log(message, type = 'info') {
-  const color = {
-    error: colors.red,
-    success: colors.green,
-    warning: colors.yellow,
-    info: colors.cyan,
-    header: colors.magenta
-  }[type] || colors.reset;
+  const color =
+    {
+      error: colors.red,
+      success: colors.green,
+      warning: colors.yellow,
+      info: colors.cyan,
+      header: colors.magenta,
+    }[type] || colors.reset;
 
   console.log(`${color}${message}${colors.reset}`);
 }
@@ -106,9 +106,8 @@ async function testWebhookProcessing() {
     return {
       passed: true,
       processing: statuses.processing || 0,
-      pending: statuses.pending || 0
+      pending: statuses.pending || 0,
     };
-
   } catch (error) {
     log(`  ❌ Error: ${error.message}`, 'error');
     return { passed: false, error: error.message };
@@ -135,11 +134,13 @@ async function testDatabaseIntegrity() {
     `);
 
     const stats = priceCheck.rows[0];
-    const priceCoverage = (stats.has_prices / stats.total_cruises * 100).toFixed(2);
+    const priceCoverage = ((stats.has_prices / stats.total_cruises) * 100).toFixed(2);
 
     log(`  Active Cruises: ${stats.total_cruises}`, 'info');
-    log(`  With Prices: ${stats.has_prices} (${priceCoverage}%)`,
-        priceCoverage >= CONFIG.THRESHOLDS.MIN_PRICE_COVERAGE ? 'success' : 'warning');
+    log(
+      `  With Prices: ${stats.has_prices} (${priceCoverage}%)`,
+      priceCoverage >= CONFIG.THRESHOLDS.MIN_PRICE_COVERAGE ? 'success' : 'warning'
+    );
     log(`  With Cheapest Price: ${stats.has_cheapest}`, 'info');
 
     if (stats.negative_prices > 0) {
@@ -160,23 +161,25 @@ async function testDatabaseIntegrity() {
     `);
 
     const freshness = freshnessCheck.rows[0];
-    const stalePercent = (freshness.stale_30d / stats.total_cruises * 100).toFixed(2);
+    const stalePercent = ((freshness.stale_30d / stats.total_cruises) * 100).toFixed(2);
 
     log(`  Data Freshness:`, 'info');
     log(`    Updated (24h): ${freshness.fresh_24h}`, 'info');
     log(`    Updated (7d): ${freshness.fresh_7d}`, 'info');
-    log(`    Stale (>30d): ${freshness.stale_30d} (${stalePercent}%)`,
-        stalePercent <= CONFIG.THRESHOLDS.MAX_STALE_DATA_PERCENT ? 'success' : 'warning');
+    log(
+      `    Stale (>30d): ${freshness.stale_30d} (${stalePercent}%)`,
+      stalePercent <= CONFIG.THRESHOLDS.MAX_STALE_DATA_PERCENT ? 'success' : 'warning'
+    );
 
     return {
-      passed: priceCoverage >= CONFIG.THRESHOLDS.MIN_PRICE_COVERAGE &&
-              stalePercent <= CONFIG.THRESHOLDS.MAX_STALE_DATA_PERCENT,
+      passed:
+        priceCoverage >= CONFIG.THRESHOLDS.MIN_PRICE_COVERAGE &&
+        stalePercent <= CONFIG.THRESHOLDS.MAX_STALE_DATA_PERCENT,
       priceCoverage,
       stalePercent,
       negativeCount: parseInt(stats.negative_prices),
-      excessiveCount: parseInt(stats.excessive_prices)
+      excessiveCount: parseInt(stats.excessive_prices),
     };
-
   } catch (error) {
     log(`  ❌ Error: ${error.message}`, 'error');
     return { passed: false, error: error.message };
@@ -210,9 +213,8 @@ async function testRawDataState() {
     return {
       passed: true, // Not failing test for known issue
       corrupted: parseInt(stats.char_by_char),
-      note: 'Known issue - does not affect production'
+      note: 'Known issue - does not affect production',
     };
-
   } catch (error) {
     log(`  ❌ Error: ${error.message}`, 'error');
     return { passed: false, error: error.message };
@@ -232,8 +234,8 @@ async function testAPIResponses() {
         page: 1,
         pageSize: 10,
         sortBy: 'price',
-        sortDirection: 'asc'
-      })
+        sortDirection: 'asc',
+      }),
     });
 
     if (!searchResponse.ok) {
@@ -258,8 +260,11 @@ async function testAPIResponses() {
       }
 
       const detailData = await detailResponse.json();
-      const hasPrices = detailData.interiorPrice || detailData.oceanviewPrice ||
-                        detailData.balconyPrice || detailData.suitePrice;
+      const hasPrices =
+        detailData.interiorPrice ||
+        detailData.oceanviewPrice ||
+        detailData.balconyPrice ||
+        detailData.suitePrice;
 
       log(`    ✅ Detail endpoint working`, 'success');
       log(`    Cruise has prices: ${hasPrices ? 'Yes' : 'No'}`, hasPrices ? 'success' : 'warning');
@@ -293,20 +298,21 @@ async function testAPIResponses() {
       }
     }
 
-    const successRate = (successCount / CONFIG.API_TEST_COUNT * 100).toFixed(2);
-    const priceRate = (withPrices / successCount * 100).toFixed(2);
+    const successRate = ((successCount / CONFIG.API_TEST_COUNT) * 100).toFixed(2);
+    const priceRate = ((withPrices / successCount) * 100).toFixed(2);
 
     log(`  Random Sample (${CONFIG.API_TEST_COUNT} cruises):`, 'info');
-    log(`    API Success Rate: ${successRate}%`,
-        successRate >= CONFIG.THRESHOLDS.MIN_API_SUCCESS_RATE ? 'success' : 'warning');
+    log(
+      `    API Success Rate: ${successRate}%`,
+      successRate >= CONFIG.THRESHOLDS.MIN_API_SUCCESS_RATE ? 'success' : 'warning'
+    );
     log(`    Have Prices: ${priceRate}%`, 'info');
 
     return {
       passed: successRate >= CONFIG.THRESHOLDS.MIN_API_SUCCESS_RATE,
       successRate,
-      priceRate
+      priceRate,
     };
-
   } catch (error) {
     log(`  ❌ Error: ${error.message}`, 'error');
     return { passed: false, error: error.message };
@@ -335,7 +341,7 @@ async function testCriticalFunctionality() {
     `);
 
     const stats = triggerCheck.rows[0];
-    const accuracy = (stats.correct_cheapest / stats.total * 100).toFixed(2);
+    const accuracy = ((stats.correct_cheapest / stats.total) * 100).toFixed(2);
 
     log(`  Cheapest Price Calculation:`, 'info');
     log(`    Accuracy: ${accuracy}%`, accuracy > 95 ? 'success' : 'warning');
@@ -359,9 +365,8 @@ async function testCriticalFunctionality() {
     return {
       passed: accuracy > 95,
       cheapestPriceAccuracy: accuracy,
-      quoteRequests: quotes.total
+      quoteRequests: quotes.total,
     };
-
   } catch (error) {
     log(`  ❌ Error: ${error.message}`, 'error');
     return { passed: false, error: error.message };
@@ -381,7 +386,7 @@ async function main() {
     database: await testDatabaseIntegrity(),
     rawData: await testRawDataState(),
     api: await testAPIResponses(),
-    critical: await testCriticalFunctionality()
+    critical: await testCriticalFunctionality(),
   };
 
   // Generate summary
@@ -402,10 +407,14 @@ async function main() {
   }
 
   console.log('='.repeat(80));
-  const overallStatus = totalPassed === totalTests ? 'ALL TESTS PASSED' :
-                        totalPassed > totalTests / 2 ? 'PARTIAL SUCCESS' : 'CRITICAL FAILURES';
-  const overallColor = totalPassed === totalTests ? 'success' :
-                       totalPassed > totalTests / 2 ? 'warning' : 'error';
+  const overallStatus =
+    totalPassed === totalTests
+      ? 'ALL TESTS PASSED'
+      : totalPassed > totalTests / 2
+        ? 'PARTIAL SUCCESS'
+        : 'CRITICAL FAILURES';
+  const overallColor =
+    totalPassed === totalTests ? 'success' : totalPassed > totalTests / 2 ? 'warning' : 'error';
 
   log(`🎯 FINAL STATUS: ${overallStatus} (${totalPassed}/${totalTests})`, overallColor);
   console.log('='.repeat(80));
@@ -415,7 +424,7 @@ async function main() {
   log('  • Webhook processing is active (webhooks in "processing" state)', 'info');
   log('  • Database has valid prices for most cruises', 'info');
   log('  • API endpoints are serving data correctly', 'info');
-  log('  • Raw data corruption exists but doesn\'t affect production', 'warning');
+  log("  • Raw data corruption exists but doesn't affect production", 'warning');
   log('  • System is functional despite some data quality issues', 'success');
 
   await pool.end();
