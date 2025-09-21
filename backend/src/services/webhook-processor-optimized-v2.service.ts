@@ -258,11 +258,11 @@ export class WebhookProcessorOptimizedV2 {
                 UPDATE webhook_events
                 SET status = 'completed',
                     processed_at = NOW(),
-                    metadata = jsonb_set(
-                      COALESCE(metadata, '{}'::jsonb),
-                      '{completed_at}',
-                      to_jsonb(NOW())
-                    )
+                    metadata = CASE
+                      WHEN metadata IS NULL OR jsonb_typeof(metadata) != 'object'
+                      THEN jsonb_build_object('completed_at', NOW())
+                      ELSE jsonb_set(metadata, '{completed_at}', to_jsonb(NOW()))
+                    END
                 WHERE id = ${webhookEventId}
               `);
               console.log(
@@ -293,11 +293,11 @@ export class WebhookProcessorOptimizedV2 {
               SET status = 'failed',
                   processed_at = NOW(),
                   error_message = ${err.message},
-                  metadata = jsonb_set(
-                    COALESCE(metadata, '{}'::jsonb),
-                    '{failed_at}',
-                    to_jsonb(NOW())
-                  )
+                  metadata = CASE
+                    WHEN metadata IS NULL OR jsonb_typeof(metadata) != 'object'
+                    THEN jsonb_build_object('failed_at', NOW())
+                    ELSE jsonb_set(metadata, '{failed_at}', to_jsonb(NOW()))
+                  END
               WHERE id = ${webhookEventId}
             `);
             console.log(`[QUEUE-V2] Updated webhook_event ${webhookEventId} status to failed`);
@@ -683,11 +683,11 @@ export class WebhookProcessorOptimizedV2 {
             UPDATE webhook_events
             SET status = 'throttled',
                 processed_at = NOW(),
-                metadata = jsonb_set(
-                  COALESCE(metadata, '{}'::jsonb),
-                  '{throttled_reason}',
-                  to_jsonb(${'Recently processed ' + minutesAgo + ' minutes ago'}::text)
-                )
+                metadata = CASE
+                  WHEN metadata IS NULL OR jsonb_typeof(metadata) != 'object'
+                  THEN jsonb_build_object('throttled_reason', ${'Recently processed ' + minutesAgo + ' minutes ago'}::text)
+                  ELSE jsonb_set(metadata, '{throttled_reason}', to_jsonb(${'Recently processed ' + minutesAgo + ' minutes ago'}::text))
+                END
             WHERE id = ${webhookEventId}
           `);
         } else {
@@ -695,11 +695,11 @@ export class WebhookProcessorOptimizedV2 {
             UPDATE webhook_events
             SET status = 'throttled',
                 processed_at = NOW(),
-                metadata = jsonb_set(
-                  COALESCE(metadata, '{}'::jsonb),
-                  '{throttled_reason}',
-                  to_jsonb(${'Recently processed ' + minutesAgo + ' minutes ago'}::text)
-                )
+                metadata = CASE
+                  WHEN metadata IS NULL OR jsonb_typeof(metadata) != 'object'
+                  THEN jsonb_build_object('throttled_reason', ${'Recently processed ' + minutesAgo + ' minutes ago'}::text)
+                  ELSE jsonb_set(metadata, '{throttled_reason}', to_jsonb(${'Recently processed ' + minutesAgo + ' minutes ago'}::text))
+                END
             WHERE line_id = ${lineId}
               AND status = 'pending'
               AND received_at > NOW() - INTERVAL '1 hour'
@@ -824,11 +824,11 @@ export class WebhookProcessorOptimizedV2 {
           await db.execute(sql`
             UPDATE webhook_events
             SET status = 'processing',
-                metadata = jsonb_set(
-                  COALESCE(metadata, '{}'::jsonb),
-                  '{job_ids}',
-                  ${JSON.stringify(jobIds)}::jsonb
-                )
+                metadata = CASE
+                  WHEN metadata IS NULL OR jsonb_typeof(metadata) != 'object'
+                  THEN jsonb_build_object('job_ids', ${JSON.stringify(jobIds)}::jsonb)
+                  ELSE jsonb_set(metadata, '{job_ids}', ${JSON.stringify(jobIds)}::jsonb)
+                END
             WHERE id = ${webhookEventId}
           `);
           console.log(
