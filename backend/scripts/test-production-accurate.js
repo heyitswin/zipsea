@@ -227,7 +227,7 @@ async function testAPIResponses() {
   try {
     // Test search endpoint
     log(`  Testing search endpoint...`, 'info');
-    const searchResponse = await fetch(`${API_BASE}/api/cruises/search`, {
+    const searchResponse = await fetch(`${API_BASE}/api/search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
