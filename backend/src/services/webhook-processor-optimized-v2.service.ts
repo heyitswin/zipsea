@@ -1257,8 +1257,8 @@ export class WebhookProcessorOptimizedV2 {
         return true; // Return true to indicate we processed the file even if there was an error
       }
 
-      // Update pricing if available
-      await this.updatePricing(cruiseId, data);
+      // Update pricing if available (pass lineId for Riviera Travel fix)
+      await this.updatePricing(cruiseId, data, file.lineId);
 
       this.stats.filesProcessed++;
       // Update global stats if runId is provided
@@ -1275,7 +1275,7 @@ export class WebhookProcessorOptimizedV2 {
     }
   }
 
-  private async updatePricing(cruiseId: string, data: any): Promise<void> {
+  private async updatePricing(cruiseId: string, data: any, lineId: number): Promise<void> {
     try {
       // Extract pricing from Traveltek's structure
       let cheapestData: any = {};
