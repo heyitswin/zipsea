@@ -91,6 +91,10 @@ router.post('/traveltek', async (req: Request, res: Response) => {
 
     for (const lineId of lineIds) {
       try {
+        if (!pgSql) {
+          logger.error('Database connection is not available');
+          continue;
+        }
         const result = await pgSql`
           INSERT INTO webhook_events (line_id, webhook_type, status, metadata)
           VALUES (${lineId}, ${payload.event || 'update'}, 'pending', ${JSON.stringify(payload)}::jsonb)
@@ -98,6 +102,7 @@ router.post('/traveltek', async (req: Request, res: Response) => {
         `;
         if (result && result.length > 0 && result[0].id) {
           webhookEventIds.push(result[0].id);
+          logger.info(`Successfully inserted webhook event ${result[0].id} for lineId ${lineId}`);
         }
       } catch (insertError) {
         logger.error(`Failed to insert webhook event for lineId ${lineId}:`, insertError);
@@ -154,13 +159,18 @@ router.post('/traveltek', async (req: Request, res: Response) => {
       }
     });
   } catch (error) {
-    logger.error('Failed to handle webhook:', error);
+    logger.error('Failed to handle webhook:', {
+      error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
+      payload: JSON.stringify(req.body).substring(0, 500),
+    });
 
     // Still return 200 to prevent retries from Traveltek
     if (!res.headersSent) {
       res.status(200).json({
         status: 'error',
         message: 'Webhook received but initial processing failed',
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
