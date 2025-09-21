@@ -6,6 +6,8 @@ import { db } from '../db/connection';
 import { webhookEvents } from '../db/schema/webhook-events';
 import { eq, sql } from 'drizzle-orm';
 import { sql as pgSql } from '../db/connection';
+import postgres from 'postgres';
+import { env } from '../config/environment';
 
 const router = Router();
 
@@ -89,13 +91,34 @@ router.post('/traveltek', async (req: Request, res: Response) => {
     // Store webhook event in database for each lineId
     const webhookEventIds: number[] = [];
 
+    // Create a direct database connection if pgSql is not available
+    let dbConnection = pgSql;
+    let directConnection: any = null;
+
+    if (!dbConnection && env.DATABASE_URL) {
+      logger.info('Creating direct database connection for webhook event insertion');
+      directConnection = postgres(env.DATABASE_URL, {
+        ssl: env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false },
+        prepare: false,
+      });
+      dbConnection = directConnection;
+    }
+
+    if (!dbConnection) {
+      logger.error('No database connection available - DATABASE_URL may not be set');
+      // Still return success to prevent webhook retries
+      return res.status(200).json({
+        status: 'accepted',
+        message: 'Webhook received but database not available',
+        warning: 'Events could not be stored',
+        lineIds: lineIds,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     for (const lineId of lineIds) {
       try {
-        if (!pgSql) {
-          logger.error('Database connection is not available');
-          continue;
-        }
-        const result = await pgSql`
+        const result = await dbConnection`
           INSERT INTO webhook_events (line_id, webhook_type, status, metadata)
           VALUES (${lineId}, ${payload.event || 'update'}, 'pending', ${JSON.stringify(payload)}::jsonb)
           RETURNING id
@@ -108,6 +131,13 @@ router.post('/traveltek', async (req: Request, res: Response) => {
         logger.error(`Failed to insert webhook event for lineId ${lineId}:`, insertError);
         // Continue with other lineIds even if one fails
       }
+    }
+
+    // Clean up direct connection if we created one
+    if (directConnection) {
+      setTimeout(() => {
+        directConnection.end();
+      }, 1000);
     }
 
     // Immediately acknowledge webhook to prevent timeout
