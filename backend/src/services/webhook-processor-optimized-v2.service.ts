@@ -28,7 +28,7 @@ interface FtpConnection {
 export class WebhookProcessorOptimizedV2 {
   private static ftpPool: FtpConnection[] = [];
   private static poolInitialized = false;
-  private static MAX_CONNECTIONS = 8; // Increased for better performance with upgraded Redis
+  private static MAX_CONNECTIONS = 3; // Reduced to prevent FTP server connection limits
   private static KEEP_ALIVE_INTERVAL = 30000;
   private static processorInstance: WebhookProcessorOptimizedV2 | null = null;
 
@@ -304,7 +304,9 @@ export class WebhookProcessorOptimizedV2 {
       return;
     }
 
-    console.log('[OPTIMIZED-V2] Initializing FTP connection pool...');
+    console.log(
+      `[OPTIMIZED-V2] Initializing FTP connection pool with ${WebhookProcessorOptimizedV2.MAX_CONNECTIONS} connections...`
+    );
 
     const ftpConfig = {
       host: env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
@@ -334,6 +336,11 @@ export class WebhookProcessorOptimizedV2 {
         client.ftp.verbose = false;
 
         try {
+          // Add delay between connection attempts to avoid overwhelming server
+          if (i > 0) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+
           await client.access(ftpConfig);
           WebhookProcessorOptimizedV2.ftpPool.push({
             client,
@@ -344,16 +351,28 @@ export class WebhookProcessorOptimizedV2 {
             `[OPTIMIZED-V2] Connection ${i + 1}/${WebhookProcessorOptimizedV2.MAX_CONNECTIONS} established`
           );
           connected = true;
-        } catch (error) {
+        } catch (error: any) {
           retries--;
-          console.error(
-            `[OPTIMIZED-V2] Failed to create connection ${i + 1}, ${retries} retries left:`,
-            error
-          );
+          const errorMsg = error?.message || String(error);
 
-          if (retries > 0) {
-            // Wait before retrying with exponential backoff
-            await new Promise(resolve => setTimeout(resolve, (4 - retries) * 1000));
+          // Check for specific FTP errors
+          if (errorMsg.includes('FIN packet') || errorMsg.includes('ECONNRESET')) {
+            console.error(
+              `[OPTIMIZED-V2] FTP server closed connection ${i + 1} unexpectedly, ${retries} retries left`
+            );
+            // Longer wait for server-side issues
+            if (retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+          } else {
+            console.error(
+              `[OPTIMIZED-V2] Failed to create connection ${i + 1}, ${retries} retries left:`,
+              errorMsg
+            );
+            if (retries > 0) {
+              // Normal exponential backoff for other errors
+              await new Promise(resolve => setTimeout(resolve, (4 - retries) * 1000));
+            }
           }
         }
       }
