@@ -1280,6 +1280,28 @@ export class WebhookProcessorOptimizedV2 {
       // Extract pricing from Traveltek's structure
       let cheapestData: any = {};
 
+      // Helper function to parse and validate prices with Riviera Travel fix
+      const parsePriceWithValidation = (value: any, cabinType: string = 'cabin'): number | null => {
+        if (!value) return null;
+        let parsed = parseFloat(String(value));
+        if (isNaN(parsed)) return null;
+
+        // Fix Riviera Travel prices (they come in pence×10 or cents×100 from Traveltek FTP)
+        if (lineId === 329) {
+          parsed = parsed / 1000;
+        }
+
+        // Validate: no negative prices
+        if (parsed < 0) {
+          console.warn(
+            `[PRICE-VALIDATION] Negative ${cabinType} price: $${parsed} for cruise ${cruiseId}, setting to null`
+          );
+          return null;
+        }
+
+        return parsed > 0 ? parsed : null;
+      };
+
       // According to TRAVELTEK-COMPLETE-FIELD-REFERENCE.md, pricing is in:
       // 1. data.cheapest object with combined field (preferred)
       // 2. data.cheapest.prices for separated cabin types
@@ -1289,18 +1311,10 @@ export class WebhookProcessorOptimizedV2 {
       if (data.cheapest && data.cheapest.combined) {
         cheapestData = {
           // Don't extract cheapestPrice from raw JSON - let database trigger calculate it
-          interiorPrice: data.cheapest.combined.inside
-            ? parseFloat(data.cheapest.combined.inside)
-            : null,
-          oceanviewPrice: data.cheapest.combined.outside
-            ? parseFloat(data.cheapest.combined.outside)
-            : null,
-          balconyPrice: data.cheapest.combined.balcony
-            ? parseFloat(data.cheapest.combined.balcony)
-            : null,
-          suitePrice: data.cheapest.combined.suite
-            ? parseFloat(data.cheapest.combined.suite)
-            : null,
+          interiorPrice: parsePriceWithValidation(data.cheapest.combined.inside, 'interior'),
+          oceanviewPrice: parsePriceWithValidation(data.cheapest.combined.outside, 'oceanview'),
+          balconyPrice: parsePriceWithValidation(data.cheapest.combined.balcony, 'balcony'),
+          suitePrice: parsePriceWithValidation(data.cheapest.combined.suite, 'suite'),
         };
         // Calculate cheapest overall from cabin prices, not from raw JSON
         const prices = [
@@ -1314,16 +1328,10 @@ export class WebhookProcessorOptimizedV2 {
       // Second priority: cheapest.prices
       else if (data.cheapest && data.cheapest.prices) {
         cheapestData = {
-          interiorPrice: data.cheapest.prices.inside
-            ? parseFloat(data.cheapest.prices.inside)
-            : null,
-          oceanviewPrice: data.cheapest.prices.outside
-            ? parseFloat(data.cheapest.prices.outside)
-            : null,
-          balconyPrice: data.cheapest.prices.balcony
-            ? parseFloat(data.cheapest.prices.balcony)
-            : null,
-          suitePrice: data.cheapest.prices.suite ? parseFloat(data.cheapest.prices.suite) : null,
+          interiorPrice: parsePriceWithValidation(data.cheapest.prices.inside, 'interior'),
+          oceanviewPrice: parsePriceWithValidation(data.cheapest.prices.outside, 'oceanview'),
+          balconyPrice: parsePriceWithValidation(data.cheapest.prices.balcony, 'balcony'),
+          suitePrice: parsePriceWithValidation(data.cheapest.prices.suite, 'suite'),
         };
         // Calculate cheapest overall
         const prices = [
@@ -1342,26 +1350,24 @@ export class WebhookProcessorOptimizedV2 {
         data.cheapestsuite
       ) {
         // Handle both direct values (strings/numbers) and objects with price property
-        const extractPrice = (value: any): number | null => {
+        const extractPrice = (value: any, cabinType: string): number | null => {
           if (!value) return null;
-          // If it's already a string or number, use it directly
-          if (typeof value === 'string' || typeof value === 'number') {
-            const parsed = parseFloat(String(value));
-            return parsed > 0 ? parsed : null;
+
+          // If it's an object with a price property, extract it
+          let rawValue = value;
+          if (typeof value === 'object' && value.price !== undefined) {
+            rawValue = value.price;
           }
-          // If it's an object, try to get the price property
-          if (typeof value === 'object' && value.price) {
-            const parsed = parseFloat(String(value.price));
-            return parsed > 0 ? parsed : null;
-          }
-          return null;
+
+          // Use the unified validation function which handles Riviera fix and negative price validation
+          return parsePriceWithValidation(rawValue, cabinType);
         };
 
         cheapestData = {
-          interiorPrice: extractPrice(data.cheapestinside),
-          oceanviewPrice: extractPrice(data.cheapestoutside),
-          balconyPrice: extractPrice(data.cheapestbalcony),
-          suitePrice: extractPrice(data.cheapestsuite),
+          interiorPrice: extractPrice(data.cheapestinside, 'interior'),
+          oceanviewPrice: extractPrice(data.cheapestoutside, 'oceanview'),
+          balconyPrice: extractPrice(data.cheapestbalcony, 'balcony'),
+          suitePrice: extractPrice(data.cheapestsuite, 'suite'),
         };
         // Calculate cheapest overall
         const prices = [
