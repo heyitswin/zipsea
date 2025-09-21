@@ -128,7 +128,7 @@ export class WebhookProcessorOptimizedV2 {
     WebhookProcessorOptimizedV2.webhookWorker = new Worker(
       'webhook-v2-processing',
       async (job: Job) => {
-        const { lineId, files, batchNumber, totalBatches, runId } = job.data;
+        const { lineId, files, batchNumber, totalBatches, runId, webhookEventId } = job.data;
         console.log(
           `[WORKER-V2] Processing job ${job.id} (batch ${batchNumber}/${totalBatches}) for line ${lineId} with ${files.length} files`
         );
@@ -202,12 +202,58 @@ export class WebhookProcessorOptimizedV2 {
     );
 
     // Set up event listeners
-    WebhookProcessorOptimizedV2.webhookWorker.on('completed', job => {
+    WebhookProcessorOptimizedV2.webhookWorker.on('completed', async job => {
       console.log(`[QUEUE-V2] Job ${job.id} completed successfully`);
+
+      // Update webhook event status to completed
+      const { webhookEventId, batchNumber, totalBatches } = job.data;
+      if (webhookEventId && batchNumber === totalBatches) {
+        // Only update to completed when the last batch finishes
+        try {
+          await db.execute(sql`
+            UPDATE webhook_events
+            SET status = 'completed',
+                processed_at = NOW(),
+                metadata = jsonb_set(
+                  COALESCE(metadata, '{}'::jsonb),
+                  '{completed_at}',
+                  to_jsonb(NOW())
+                )
+            WHERE id = ${webhookEventId}
+          `);
+          console.log(`[QUEUE-V2] Updated webhook_event ${webhookEventId} status to completed`);
+        } catch (error) {
+          console.error(`[QUEUE-V2] Failed to update webhook_event ${webhookEventId}:`, error);
+        }
+      }
     });
 
-    WebhookProcessorOptimizedV2.webhookWorker.on('failed', (job, err) => {
+    WebhookProcessorOptimizedV2.webhookWorker.on('failed', async (job, err) => {
       console.error(`[QUEUE-V2] Job ${job?.id} failed:`, err.message);
+
+      // Update webhook event status to failed
+      if (job) {
+        const { webhookEventId } = job.data;
+        if (webhookEventId) {
+          try {
+            await db.execute(sql`
+              UPDATE webhook_events
+              SET status = 'failed',
+                  processed_at = NOW(),
+                  error_message = ${err.message},
+                  metadata = jsonb_set(
+                    COALESCE(metadata, '{}'::jsonb),
+                    '{failed_at}',
+                    to_jsonb(NOW())
+                  )
+              WHERE id = ${webhookEventId}
+            `);
+            console.log(`[QUEUE-V2] Updated webhook_event ${webhookEventId} status to failed`);
+          } catch (error) {
+            console.error(`[QUEUE-V2] Failed to update webhook_event ${webhookEventId}:`, error);
+          }
+        }
+      }
     });
 
     WebhookProcessorOptimizedV2.webhookWorker.on('active', job => {
@@ -515,7 +561,8 @@ export class WebhookProcessorOptimizedV2 {
   }
 
   async processWebhooks(
-    lineId: number
+    lineId: number,
+    webhookEventId?: number
   ): Promise<{ status: string; jobId?: string; message: string }> {
     const startTime = Date.now();
     console.log(`[OPTIMIZED-V2] Starting webhook processing for line ${lineId}`);
@@ -560,19 +607,33 @@ export class WebhookProcessorOptimizedV2 {
         console.log(`[THROTTLE] Line ${lineId} was processed ${minutesAgo} minutes ago, skipping`);
 
         // Update webhook status to throttled
-        await db.execute(sql`
-          UPDATE webhook_events
-          SET status = 'throttled',
-              processed_at = NOW(),
-              metadata = jsonb_set(
-                COALESCE(metadata, '{}'::jsonb),
-                '{throttled_reason}',
-                to_jsonb(${'Recently processed ' + minutesAgo + ' minutes ago'}::text)
-              )
-          WHERE line_id = ${lineId}
-            AND status = 'pending'
-            AND received_at > NOW() - INTERVAL '1 hour'
-        `);
+        if (webhookEventId) {
+          await db.execute(sql`
+            UPDATE webhook_events
+            SET status = 'throttled',
+                processed_at = NOW(),
+                metadata = jsonb_set(
+                  COALESCE(metadata, '{}'::jsonb),
+                  '{throttled_reason}',
+                  to_jsonb(${'Recently processed ' + minutesAgo + ' minutes ago'}::text)
+                )
+            WHERE id = ${webhookEventId}
+          `);
+        } else {
+          await db.execute(sql`
+            UPDATE webhook_events
+            SET status = 'throttled',
+                processed_at = NOW(),
+                metadata = jsonb_set(
+                  COALESCE(metadata, '{}'::jsonb),
+                  '{throttled_reason}',
+                  to_jsonb(${'Recently processed ' + minutesAgo + ' minutes ago'}::text)
+                )
+            WHERE line_id = ${lineId}
+              AND status = 'pending'
+              AND received_at > NOW() - INTERVAL '1 hour'
+          `);
+        }
 
         return {
           status: 'throttled',
@@ -667,6 +728,7 @@ export class WebhookProcessorOptimizedV2 {
           {
             lineId,
             runId, // Pass the unique run ID
+            webhookEventId, // Pass webhook event ID for status tracking
             files: batches[i],
             batchNumber: i + 1,
             totalBatches: batches.length,
@@ -684,6 +746,27 @@ export class WebhookProcessorOptimizedV2 {
       const duration = Date.now() - startTime;
       console.log(`[OPTIMIZED-V2] Queued ${batches.length} jobs in ${duration}ms`);
       console.log(`[OPTIMIZED-V2] Job IDs: ${jobIds.join(', ')}`);
+
+      // Update webhook status to processing now that jobs are queued
+      if (webhookEventId) {
+        try {
+          await db.execute(sql`
+            UPDATE webhook_events
+            SET status = 'processing',
+                metadata = jsonb_set(
+                  COALESCE(metadata, '{}'::jsonb),
+                  '{job_ids}',
+                  ${JSON.stringify(jobIds)}::jsonb
+                )
+            WHERE id = ${webhookEventId}
+          `);
+          console.log(
+            `[OPTIMIZED-V2] Updated webhook_event ${webhookEventId} status to processing`
+          );
+        } catch (error) {
+          console.error(`[OPTIMIZED-V2] Failed to update webhook_event ${webhookEventId}:`, error);
+        }
+      }
 
       // Check queue status immediately after adding jobs
       const waiting = await WebhookProcessorOptimizedV2.webhookQueue.getWaitingCount();

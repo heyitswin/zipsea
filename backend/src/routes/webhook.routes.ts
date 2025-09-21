@@ -115,7 +115,8 @@ router.post('/traveltek', async (req: Request, res: Response) => {
 
         try {
           // Use V2 processor (the only one we should be using)
-          const result = await getWebhookProcessor().processWebhooks(lineId);
+          // Pass webhook event ID for status tracking
+          const result = await getWebhookProcessor().processWebhooks(lineId, webhookEventId);
 
           // Update webhook status based on result
           await db
