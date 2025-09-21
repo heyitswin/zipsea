@@ -45,7 +45,7 @@ router.get('/cruise-lines/stats', async (req, res) => {
       LEFT JOIN cruises c ON c.cruise_line_id = cl.id
     `);
 
-    const stats = statsData.rows[0] || {
+    const stats = (statsData as any)[0] || {
       total_lines: 0,
       total_cruises: 0,
       updated_today: 0,
@@ -53,7 +53,7 @@ router.get('/cruise-lines/stats', async (req, res) => {
     };
 
     res.json({
-      cruiseLines: cruiseLinesData.rows.map(row => ({
+      cruiseLines: (cruiseLinesData as any).map((row: any) => ({
         id: row.id,
         name: row.name,
         code: row.code,
