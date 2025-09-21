@@ -23,6 +23,7 @@ interface QuoteData {
     loyaltyNumber: string;
     travelInsurance: boolean;
     customMessage?: string;
+    additionalNotes?: string;
   };
   cabinType: string;
   cabinPrice: string | number;
@@ -216,6 +217,17 @@ export async function sendSlackQuoteNotification(quoteData: QuoteData) {
                 text: {
                   type: "mrkdwn" as const,
                   text: `*Additional Information from Customer:*\n${quoteData.discounts.customMessage}`,
+                },
+              },
+            ]
+          : []),
+        ...(quoteData.discounts.additionalNotes
+          ? [
+              {
+                type: "section" as const,
+                text: {
+                  type: "mrkdwn" as const,
+                  text: `*Customer Comments:*\n${quoteData.discounts.additionalNotes}`,
                 },
               },
             ]

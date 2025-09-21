@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
       cabinPrice,
       travelInsurance,
       customMessage,
+      additionalNotes,
     } = body;
 
     console.log("Quote submission received:", {
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
       cruiseId: cruiseData?.id,
       cabinType,
       passengers,
+      additionalNotes: additionalNotes || "(not provided)",
       timestamp: new Date().toISOString(),
       hasSlackUrl:
         !!process.env.SLACK_WEBHOOK_URL &&
@@ -93,6 +95,7 @@ export async function POST(request: NextRequest) {
           childAges: passengers?.childAges || [],
           travelInsurance: travelInsurance || false,
           specialRequests: customMessage || "",
+          additionalNotes: additionalNotes || "",
           discountQualifiers: {
             payInFull: discounts?.payInFull || false,
             seniorCitizen: discounts?.age55Plus || false,
@@ -139,6 +142,7 @@ export async function POST(request: NextRequest) {
             ...discounts,
             travelInsurance: travelInsurance || false,
             customMessage: customMessage || "",
+            additionalNotes: additionalNotes || "",
           },
           cabinType,
           cabinPrice,
