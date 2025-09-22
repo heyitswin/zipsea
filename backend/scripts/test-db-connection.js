@@ -1,77 +1,56 @@
-const { Pool } = require('pg');
+/**
+ * Quick database connection test
+ */
 
-async function testAndMigrate() {
-  // Use the production database URL from environment
-  const connectionString = process.env.DATABASE_URL || process.env.DATABASE_URL_PRODUCTION;
+const postgres = require('postgres');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
-  if (!connectionString) {
-    console.error('❌ No DATABASE_URL found in environment');
-    process.exit(1);
+async function test() {
+  console.log('Testing database connection...\n');
+
+  // Try with environment variable first
+  const dbUrl = process.env.DATABASE_URL || process.env.DATABASE_URL_PRODUCTION;
+
+  if (!dbUrl) {
+    console.log('❌ No DATABASE_URL found in environment');
+    console.log(
+      'Available env vars:',
+      Object.keys(process.env).filter(k => k.includes('DATABASE'))
+    );
+    return;
   }
 
-  console.log('🔧 Connecting to database...');
-  const pool = new Pool({ connectionString });
+  console.log('Using DATABASE_URL:', dbUrl.substring(0, 30) + '...');
 
   try {
-    // Test connection
-    const testResult = await pool.query('SELECT current_database(), current_user, version()');
-    console.log('✅ Connected to database:', testResult.rows[0].current_database);
-    console.log('   User:', testResult.rows[0].current_user);
+    const sql = postgres(dbUrl, {
+      ssl: { rejectUnauthorized: false },
+      max: 1,
+      idle_timeout: 5,
+      connect_timeout: 10,
+    });
 
-    // Check if columns exist
-    const checkResult = await pool.query(`
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_name = 'cruises'
-      AND column_name IN ('needs_price_update', 'price_update_requested_at')
-    `);
+    console.log('Connection created, testing query...');
 
-    console.log(
-      '📋 Existing columns:',
-      checkResult.rows.map(r => r.column_name)
-    );
+    // Simple count query
+    const result = await sql`SELECT COUNT(*) as count FROM cruises LIMIT 1`;
+    console.log('✅ Database connected! Total cruises:', result[0].count);
 
-    if (checkResult.rows.length < 2) {
-      console.log('🔧 Adding missing columns...');
+    // Test if we can read raw_data
+    const sample = await sql`
+      SELECT id, name, raw_data IS NOT NULL as has_raw_data
+      FROM cruises
+      LIMIT 1
+    `;
+    console.log('✅ Sample cruise:', sample[0]);
 
-      // Add columns
-      await pool.query(`
-        ALTER TABLE cruises
-        ADD COLUMN IF NOT EXISTS needs_price_update BOOLEAN DEFAULT FALSE,
-        ADD COLUMN IF NOT EXISTS price_update_requested_at TIMESTAMP
-      `);
-      console.log('✅ Columns added');
-
-      // Create index
-      await pool.query(`
-        CREATE INDEX IF NOT EXISTS idx_cruises_needs_price_update
-        ON cruises(needs_price_update)
-        WHERE needs_price_update = true
-      `);
-      console.log('✅ Index created');
-
-      // Verify
-      const verifyResult = await pool.query(`
-        SELECT column_name, data_type
-        FROM information_schema.columns
-        WHERE table_name = 'cruises'
-        AND column_name IN ('needs_price_update', 'price_update_requested_at')
-        ORDER BY column_name
-      `);
-
-      console.log('✅ Migration complete! Columns now present:');
-      verifyResult.rows.forEach(row => {
-        console.log(`   - ${row.column_name}: ${row.data_type}`);
-      });
-    } else {
-      console.log('✅ All required columns already exist');
-    }
+    await sql.end();
+    console.log('✅ Connection closed successfully');
   } catch (error) {
-    console.error('❌ Error:', error.message);
-    process.exit(1);
-  } finally {
-    await pool.end();
+    console.error('❌ Database error:', error.message);
+    console.error('Full error:', error);
   }
 }
 
-testAndMigrate();
+test();
