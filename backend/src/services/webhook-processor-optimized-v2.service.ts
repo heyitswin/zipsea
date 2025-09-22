@@ -1456,56 +1456,20 @@ export class WebhookProcessorOptimizedV2 {
         return parsed > 0 ? parsed : null;
       };
 
-      // According to TRAVELTEK-COMPLETE-FIELD-REFERENCE.md, pricing is in:
-      // 1. data.cheapest object with combined field (preferred)
-      // 2. data.cheapest.prices for separated cabin types
-      // 3. data.cheapestinside, cheapestoutside, cheapestbalcony, cheapestsuite objects
+      // IMPORTANT: Pricing priority has been updated to fix pricing mismatches
+      // The direct cheapestX fields from FTP are the authoritative prices
+      // cheapest.combined may contain stale cached data
 
-      // First priority: cheapest.combined (most reliable aggregated pricing)
-      if (data.cheapest && data.cheapest.combined) {
-        cheapestData = {
-          // Don't extract cheapestPrice from raw JSON - let database trigger calculate it
-          interiorPrice: parsePriceWithValidation(data.cheapest.combined.inside, 'interior'),
-          oceanviewPrice: parsePriceWithValidation(data.cheapest.combined.outside, 'oceanview'),
-          balconyPrice: parsePriceWithValidation(data.cheapest.combined.balcony, 'balcony'),
-          suitePrice: parsePriceWithValidation(data.cheapest.combined.suite, 'suite'),
-        };
-        // Calculate cheapest overall from cabin prices, not from raw JSON
-        const prices = [
-          cheapestData.interiorPrice,
-          cheapestData.oceanviewPrice,
-          cheapestData.balconyPrice,
-          cheapestData.suitePrice,
-        ].filter(p => p > 0);
-        cheapestData.cheapestPrice = prices.length > 0 ? Math.min(...prices) : null;
-      }
-      // Second priority: cheapest.prices
-      else if (data.cheapest && data.cheapest.prices) {
-        cheapestData = {
-          interiorPrice: parsePriceWithValidation(data.cheapest.prices.inside, 'interior'),
-          oceanviewPrice: parsePriceWithValidation(data.cheapest.prices.outside, 'oceanview'),
-          balconyPrice: parsePriceWithValidation(data.cheapest.prices.balcony, 'balcony'),
-          suitePrice: parsePriceWithValidation(data.cheapest.prices.suite, 'suite'),
-        };
-        // Calculate cheapest overall
-        const prices = [
-          cheapestData.interiorPrice,
-          cheapestData.oceanviewPrice,
-          cheapestData.balconyPrice,
-          cheapestData.suitePrice,
-        ].filter(p => p > 0);
-        cheapestData.cheapestPrice = prices.length > 0 ? Math.min(...prices) : null;
-      }
-      // Third priority: Individual cheapest objects
-      else if (
-        data.cheapestinside ||
-        data.cheapestoutside ||
-        data.cheapestbalcony ||
-        data.cheapestsuite
+      // First priority: Direct cheapestX fields from FTP (MOST RELIABLE)
+      if (
+        data.cheapestinside !== undefined ||
+        data.cheapestoutside !== undefined ||
+        data.cheapestbalcony !== undefined ||
+        data.cheapestsuite !== undefined
       ) {
         // Handle both direct values (strings/numbers) and objects with price property
         const extractPrice = (value: any, cabinType: string): number | null => {
-          if (!value) return null;
+          if (value === undefined || value === null) return null;
 
           // If it's an object with a price property, extract it
           let rawValue = value;
@@ -1522,6 +1486,48 @@ export class WebhookProcessorOptimizedV2 {
           oceanviewPrice: extractPrice(data.cheapestoutside, 'oceanview'),
           balconyPrice: extractPrice(data.cheapestbalcony, 'balcony'),
           suitePrice: extractPrice(data.cheapestsuite, 'suite'),
+        };
+
+        // Calculate cheapest overall
+        const prices = [
+          cheapestData.interiorPrice,
+          cheapestData.oceanviewPrice,
+          cheapestData.balconyPrice,
+          cheapestData.suitePrice,
+        ].filter(p => p > 0);
+        cheapestData.cheapestPrice = prices.length > 0 ? Math.min(...prices) : null;
+      }
+      // Second priority: cheapest.combined (only if no direct cheapestX fields)
+      else if (data.cheapest && data.cheapest.combined) {
+        console.log(
+          `[PRICE-WARNING] Using cheapest.combined for cruise ${cruiseId} - may contain cached data`
+        );
+        cheapestData = {
+          // Don't extract cheapestPrice from raw JSON - let database trigger calculate it
+          interiorPrice: parsePriceWithValidation(data.cheapest.combined.inside, 'interior'),
+          oceanviewPrice: parsePriceWithValidation(data.cheapest.combined.outside, 'oceanview'),
+          balconyPrice: parsePriceWithValidation(data.cheapest.combined.balcony, 'balcony'),
+          suitePrice: parsePriceWithValidation(data.cheapest.combined.suite, 'suite'),
+        };
+        // Calculate cheapest overall from cabin prices, not from raw JSON
+        const prices = [
+          cheapestData.interiorPrice,
+          cheapestData.oceanviewPrice,
+          cheapestData.balconyPrice,
+          cheapestData.suitePrice,
+        ].filter(p => p > 0);
+        cheapestData.cheapestPrice = prices.length > 0 ? Math.min(...prices) : null;
+      }
+      // Third priority: cheapest.prices
+      else if (data.cheapest && data.cheapest.prices) {
+        console.log(
+          `[PRICE-WARNING] Using cheapest.prices for cruise ${cruiseId} - may not reflect FTP prices`
+        );
+        cheapestData = {
+          interiorPrice: parsePriceWithValidation(data.cheapest.prices.inside, 'interior'),
+          oceanviewPrice: parsePriceWithValidation(data.cheapest.prices.outside, 'oceanview'),
+          balconyPrice: parsePriceWithValidation(data.cheapest.prices.balcony, 'balcony'),
+          suitePrice: parsePriceWithValidation(data.cheapest.prices.suite, 'suite'),
         };
         // Calculate cheapest overall
         const prices = [
