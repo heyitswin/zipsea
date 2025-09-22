@@ -70,14 +70,18 @@ export default function FirstTimeCruisersGuide() {
             </p>
           </div>
         </div>
-
-        {/* Wave decoration */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 120" className="w-full h-20 fill-white">
-            <path d="M0,64 C320,100 420,20 720,60 C1020,100 1120,20 1440,64 L1440,120 L0,120 Z"></path>
-          </svg>
-        </div>
       </div>
+
+      {/* Separator 1 - After Hero */}
+      <div
+        className="w-full h-[21px]"
+        style={{
+          backgroundImage: 'url("/images/separator-3.png")',
+          backgroundRepeat: "repeat-x",
+          backgroundSize: "1749px 21px",
+          backgroundPosition: "left top",
+        }}
+      />
 
       {/* Welcome Section */}
       <div className="bg-white py-16">
@@ -102,6 +106,17 @@ export default function FirstTimeCruisersGuide() {
         </div>
       </div>
 
+      {/* Separator 2 */}
+      <div
+        className="w-full h-[21px]"
+        style={{
+          backgroundImage: 'url("/images/separator-10.png")',
+          backgroundRepeat: "repeat-x",
+          backgroundSize: "1749px 21px",
+          backgroundPosition: "left top",
+        }}
+      />
+
       {/* Photo Placeholder */}
       <div className="py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -112,6 +127,17 @@ export default function FirstTimeCruisersGuide() {
           />
         </div>
       </div>
+
+      {/* Separator 3 */}
+      <div
+        className="w-full h-[21px]"
+        style={{
+          backgroundImage: 'url("/images/separator-3.png")',
+          backgroundRepeat: "repeat-x",
+          backgroundSize: "1749px 21px",
+          backgroundPosition: "left top",
+        }}
+      />
 
       {/* Table of Contents */}
       <div className="bg-white py-16">
@@ -138,6 +164,17 @@ export default function FirstTimeCruisersGuide() {
           </div>
         </div>
       </div>
+
+      {/* Separator 4 */}
+      <div
+        className="w-full h-[21px]"
+        style={{
+          backgroundImage: 'url("/images/separator-10.png")',
+          backgroundRepeat: "repeat-x",
+          backgroundSize: "1749px 21px",
+          backgroundPosition: "left top",
+        }}
+      />
 
       {/* Pre-Cruise Planning Section */}
       <section id="pre-cruise-planning" className="py-16">
@@ -722,6 +759,17 @@ export default function FirstTimeCruisersGuide() {
         </div>
       </section>
 
+      {/* Separator 8 */}
+      <div
+        className="w-full h-[21px]"
+        style={{
+          backgroundImage: 'url("/images/separator-10.png")',
+          backgroundRepeat: "repeat-x",
+          backgroundSize: "1749px 21px",
+          backgroundPosition: "left top",
+        }}
+      />
+
       {/* Dining & Food Section */}
       <section id="dining-food" className="py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -886,6 +934,17 @@ export default function FirstTimeCruisersGuide() {
         </div>
       </section>
 
+      {/* Separator 10 */}
+      <div
+        className="w-full h-[21px]"
+        style={{
+          backgroundImage: 'url("/images/separator-10.png")',
+          backgroundRepeat: "repeat-x",
+          backgroundSize: "1749px 21px",
+          backgroundPosition: "left top",
+        }}
+      />
+
       {/* Shore Excursions Section */}
       <section id="shore-excursions" className="py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1043,6 +1102,17 @@ export default function FirstTimeCruisersGuide() {
         </div>
       </section>
 
+      {/* Separator 12 */}
+      <div
+        className="w-full h-[21px]"
+        style={{
+          backgroundImage: 'url("/images/separator-10.png")',
+          backgroundRepeat: "repeat-x",
+          backgroundSize: "1749px 21px",
+          backgroundPosition: "left top",
+        }}
+      />
+
       {/* Health & Safety Section */}
       <section id="health-safety" className="py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1174,6 +1244,17 @@ export default function FirstTimeCruisersGuide() {
           </div>
         </div>
       </section>
+
+      {/* Separator 14 */}
+      <div
+        className="w-full h-[21px]"
+        style={{
+          backgroundImage: 'url("/images/separator-10.png")',
+          backgroundRepeat: "repeat-x",
+          backgroundSize: "1749px 21px",
+          backgroundPosition: "left top",
+        }}
+      />
 
       {/* Disembarkation Section */}
       <section id="disembarkation" className="py-16">

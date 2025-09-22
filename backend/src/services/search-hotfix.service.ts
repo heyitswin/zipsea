@@ -19,13 +19,13 @@ export class SearchHotfixService {
             limit,
             offset,
             page: Math.floor(offset / limit) + 1,
-            totalPages: 0
-          }
+            totalPages: 0,
+          },
         };
       }
       // Much simpler query without complex joins
       const results = await db.execute(sql`
-        SELECT 
+        SELECT
           c.id,
           c.name,
           c.sailing_date,
@@ -43,7 +43,7 @@ export class SearchHotfixService {
         LEFT JOIN ports p1 ON c.embarkation_port_id = p1.id
         LEFT JOIN ports p2 ON c.disembarkation_port_id = p2.id
         WHERE c.is_active = true
-        AND c.sailing_date >= CURRENT_DATE
+        AND c.sailing_date >= CURRENT_DATE + INTERVAL '14 days'
         ORDER BY c.sailing_date ASC
         LIMIT ${limit}
         OFFSET ${offset}
@@ -54,7 +54,7 @@ export class SearchHotfixService {
         SELECT COUNT(*) as count
         FROM cruises
         WHERE is_active = true
-        AND sailing_date >= CURRENT_DATE
+        AND sailing_date >= CURRENT_DATE + INTERVAL '14 days'
       `);
 
       // Handle both possible response formats from drizzle
@@ -69,29 +69,31 @@ export class SearchHotfixService {
           sailingDate: row.sailing_date,
           nights: row.nights,
           cruiseLine: {
-            name: row.cruise_line_name || 'Unknown'
+            name: row.cruise_line_name || 'Unknown',
           },
           ship: {
-            name: row.ship_name || 'Unknown'
+            name: row.ship_name || 'Unknown',
           },
           embarkPort: {
-            name: row.embark_port || 'Unknown'
+            name: row.embark_port || 'Unknown',
           },
           disembarkPort: {
-            name: row.disembark_port || 'Unknown'
+            name: row.disembark_port || 'Unknown',
           },
-          price: row.cheapest_price ? {
-            amount: Number(row.cheapest_price),
-            currency: 'USD'
-          } : null
+          price: row.cheapest_price
+            ? {
+                amount: Number(row.cheapest_price),
+                currency: 'USD',
+              }
+            : null,
         })),
         meta: {
           total,
           limit,
           offset,
           page: Math.floor(offset / limit) + 1,
-          totalPages: Math.ceil(total / limit)
-        }
+          totalPages: Math.ceil(total / limit),
+        },
       };
     } catch (error) {
       logger.error('Hotfix search failed:', error);
