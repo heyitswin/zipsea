@@ -1049,6 +1049,54 @@ export class WebhookProcessorOptimizedV2 {
     }
   }
 
+  
+  /**
+   * Ensure raw_data is a proper object, not a string or character array
+   * This prevents the corruption where JSON strings get stored as character arrays
+   */
+  private ensureValidRawData(data: any): any {
+    // If data is a string, parse it
+    if (typeof data === 'string') {
+      try {
+        console.warn('[OPTIMIZED-V2] WARNING: rawData was a string, parsing to object');
+        return JSON.parse(data);
+      } catch (e) {
+        console.error('[OPTIMIZED-V2] ERROR: Could not parse rawData string:', e);
+        return {};
+      }
+    }
+
+    // If data looks like a character array (has numeric string keys)
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      // Check for character array pattern
+      if (data['0'] !== undefined && data['1'] !== undefined &&
+          typeof data['0'] === 'string' && data['0'].length === 1) {
+        console.warn('[OPTIMIZED-V2] WARNING: Detected character array in rawData, reconstructing');
+
+        // Reconstruct the JSON string
+        let jsonString = '';
+        let i = 0;
+        const maxChars = 10000000; // Safety limit
+
+        while (data[i.toString()] !== undefined && i < maxChars) {
+          jsonString += data[i.toString()];
+          i++;
+        }
+
+        try {
+          return JSON.parse(jsonString);
+        } catch (e) {
+          console.error('[OPTIMIZED-V2] ERROR: Could not parse reconstructed JSON:', e);
+          return {};
+        }
+      }
+    }
+
+    // Data is already a proper object
+    return data;
+  }
+
+
   private async processFile(file: any, runId?: string): Promise<boolean> {
     let conn;
 
@@ -1250,7 +1298,7 @@ export class WebhookProcessorOptimizedV2 {
         showCruise: data.showcruise !== false, // Default to true unless explicitly false
         lastCached: safeParseInt(data.lastcached, null),
         cachedDate: data.cacheddate || null,
-        rawData: data,
+        rawData: this.ensureValidRawData(data),
         updatedAt: new Date(),
       };
 
@@ -1652,7 +1700,7 @@ export class WebhookProcessorOptimizedV2 {
               cheapestData.suitePrice !== null ? cheapestData.suitePrice.toString() : null,
             cheapestPrice:
               cheapestData.cheapestPrice !== null ? cheapestData.cheapestPrice.toString() : null,
-            rawData: updatedRawJson,
+            rawData: this.ensureValidRawData(updatedRawJson),
             updatedAt: new Date(),
           })
           .where(eq(cruises.id, cruiseId));
