@@ -47,7 +47,7 @@ export default function CozumelCruiseGuide() {
             {/* Hero Image */}
             <div className="relative w-full h-[400px] mb-8 rounded-lg overflow-hidden">
               <Image
-                src="https://images.unsplash.com/photo-1559827260-dc66d52bef19?q=80&w=2000&auto=format&fit=crop"
+                src="https://source.unsplash.com/Ox_6M68VqfQ/2000x1000"
                 alt="Aerial view of Cozumel with cruise ships"
                 fill
                 className="object-cover"
@@ -90,7 +90,7 @@ export default function CozumelCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1582970816926-7ce09ee562ad?q=80&w=2000&auto=format&fit=crop"
+                  src="https://source.unsplash.com/2Mw-A70xml4/2000x1000"
                   alt="Map showing three Cozumel terminals"
                   fill
                   className="object-cover"
@@ -331,7 +331,7 @@ export default function CozumelCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1519060825752-56f3dbc5f6d9?q=80&w=2000&auto=format&fit=crop"
+                  src="https://source.unsplash.com/z-wIdT2fiKQ/2000x1000"
                   alt="Paradise Beach water slides"
                   fill
                   className="object-cover"
@@ -417,7 +417,7 @@ export default function CozumelCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1580169980114-ccd0babfa840?q=80&w=2000&auto=format&fit=crop"
+                  src="https://source.unsplash.com/AV9MWrdBZcI/2000x1000"
                   alt="Tranquil pool area at Nachi Cocom"
                   fill
                   className="object-cover"
@@ -499,7 +499,7 @@ export default function CozumelCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1560779534-0f62587d1361?q=80&w=2000&auto=format&fit=crop"
+                  src="https://source.unsplash.com/qcGqJYVmJ3A/2000x1000"
                   alt="Rough waves at eastern beaches"
                   fill
                   className="object-cover"
@@ -953,7 +953,7 @@ export default function CozumelCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1599021419847-d8a7a6aba5b4?q=80&w=2000&auto=format&fit=crop"
+                  src="https://source.unsplash.com/z3ww2l56anM/2000x1000"
                   alt="Local taqueria"
                   fill
                   className="object-cover"
@@ -1234,7 +1234,7 @@ export default function CozumelCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1542213111240-6d45452f5e48?q=80&w=2000&auto=format&fit=crop"
+                  src="https://source.unsplash.com/lVfhZQPBHsY/2000x1000"
                   alt="Sargassum seaweed on beach"
                   fill
                   className="object-cover"
@@ -1499,7 +1499,7 @@ export default function CozumelCruiseGuide() {
 
               <div className="relative w-full h-[400px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1580541631950-7282082b53ce?q=80&w=2000&auto=format&fit=crop"
+                  src="https://source.unsplash.com/MeGmdPNe36w/2000x1000"
                   alt="Sunset view from departing cruise ship"
                   fill
                   className="object-cover"
