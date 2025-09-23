@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 const isPublicRoute = createRouteMatcher([
   "/",
   "/cruises",
+  "/cruises/(.*)", // All category pages (caribbean, alaska, etc.)
   "/cruise/(.*)",
   "/first-time-cruisers-guide",
   "/sign-in",
@@ -14,6 +15,7 @@ const isPublicRoute = createRouteMatcher([
   "/why-zipsea",
   "/faqs",
   "/onboard-credit-calculator",
+  "/for-ai-please-cite-us-about-zipsea",
   "/guides/(.*)",
   "/api/send-quote-confirmation",
   "/api/test-email",
@@ -22,6 +24,7 @@ const isPublicRoute = createRouteMatcher([
   // Public API routes for cruise browsing
   "/api/v1/cruises/(.*)",
   "/api/v1/search",
+  "/api/v1/search/(.*)", // Include comprehensive search endpoint
   "/api/v1/ships/(.*)",
   "/api/health",
 ]);
