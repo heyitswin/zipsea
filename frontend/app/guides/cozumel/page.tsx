@@ -47,7 +47,7 @@ export default function CozumelCruiseGuide() {
             {/* Hero Image */}
             <div className="relative w-full h-[400px] mb-8 rounded-lg overflow-hidden">
               <Image
-                src="https://images.unsplash.com/photo-1601924357840-3e50ad4dd9fd?auto=format&fit=crop&w=2000&q=80"
+                src="https://images.unsplash.com/photo-1559827260-dc66d52bef19?q=80&w=2000&auto=format&fit=crop"
                 alt="Aerial view of Cozumel with cruise ships"
                 fill
                 className="object-cover"
@@ -90,7 +90,7 @@ export default function CozumelCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1582970816926-7ce09ee562ad?auto=format&fit=crop&w=2000&q=80"
+                  src="https://images.unsplash.com/photo-1582970816926-7ce09ee562ad?q=80&w=2000&auto=format&fit=crop"
                   alt="Map showing three Cozumel terminals"
                   fill
                   className="object-cover"
@@ -331,7 +331,7 @@ export default function CozumelCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1519060825752-56f3dbc5f6d9?auto=format&fit=crop&w=2000&q=80"
+                  src="https://images.unsplash.com/photo-1519060825752-56f3dbc5f6d9?q=80&w=2000&auto=format&fit=crop"
                   alt="Paradise Beach water slides"
                   fill
                   className="object-cover"
@@ -417,7 +417,7 @@ export default function CozumelCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1580169980114-ccd0babfa840?auto=format&fit=crop&w=2000&q=80"
+                  src="https://images.unsplash.com/photo-1580169980114-ccd0babfa840?q=80&w=2000&auto=format&fit=crop"
                   alt="Tranquil pool area at Nachi Cocom"
                   fill
                   className="object-cover"
@@ -499,7 +499,7 @@ export default function CozumelCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1560711901-45d3e922c37c?auto=format&fit=crop&w=2000&q=80"
+                  src="https://images.unsplash.com/photo-1560779534-0f62587d1361?q=80&w=2000&auto=format&fit=crop"
                   alt="Rough waves at eastern beaches"
                   fill
                   className="object-cover"
@@ -953,7 +953,7 @@ export default function CozumelCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1599021419847-d8a7a6aba5b4?auto=format&fit=crop&w=2000&q=80"
+                  src="https://images.unsplash.com/photo-1599021419847-d8a7a6aba5b4?q=80&w=2000&auto=format&fit=crop"
                   alt="Local taqueria"
                   fill
                   className="object-cover"
@@ -1234,7 +1234,7 @@ export default function CozumelCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1596627116790-af6f46dddbda?auto=format&fit=crop&w=2000&q=80"
+                  src="https://images.unsplash.com/photo-1542213111240-6d45452f5e48?q=80&w=2000&auto=format&fit=crop"
                   alt="Sargassum seaweed on beach"
                   fill
                   className="object-cover"
@@ -1499,7 +1499,7 @@ export default function CozumelCruiseGuide() {
 
               <div className="relative w-full h-[400px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1527004013197-933c4bb611b3?auto=format&fit=crop&w=2000&q=80"
+                  src="https://images.unsplash.com/photo-1580541631950-7282082b53ce?q=80&w=2000&auto=format&fit=crop"
                   alt="Sunset view from departing cruise ship"
                   fill
                   className="object-cover"

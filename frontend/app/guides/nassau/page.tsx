@@ -47,7 +47,7 @@ export default function NassauCruiseGuide() {
             {/* Hero Image */}
             <div className="relative w-full h-[400px] mb-8 rounded-lg overflow-hidden">
               <Image
-                src="https://images.unsplash.com/photo-1580541832626-2a7131ee809f?auto=format&fit=crop&w=2000&q=80"
+                src="https://images.unsplash.com/photo-1547482843-9d6b884af7e0?q=80&w=2000&auto=format&fit=crop"
                 alt="Aerial view of Prince George Wharf with cruise ships"
                 fill
                 className="object-cover"
@@ -80,7 +80,7 @@ export default function NassauCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1580541831971-b7e970de6c94?auto=format&fit=crop&w=2000&q=80"
+                  src="https://images.unsplash.com/photo-1580541831949-61ea79d8f5c0?q=80&w=2000&auto=format&fit=crop"
                   alt="Modern Nassau cruise terminal"
                   fill
                   className="object-cover"
@@ -194,7 +194,7 @@ export default function NassauCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1521335629791-ce4aec67dd15?auto=format&fit=crop&w=2000&q=80"
+                  src="https://images.unsplash.com/photo-1618843479619-f3d19b3deaae?q=80&w=2000&auto=format&fit=crop"
                   alt="Colorful jitney bus on Bay Street"
                   fill
                   className="object-cover"
@@ -279,7 +279,7 @@ export default function NassauCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1615571022706-948f6e3372df?auto=format&fit=crop&w=2000&q=80"
+                  src="https://images.unsplash.com/photo-1615571737499-439eb7a594fa?q=80&w=2000&auto=format&fit=crop"
                   alt="Junkanoo Beach with cruise ships"
                   fill
                   className="object-cover"
@@ -367,7 +367,7 @@ export default function NassauCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1582970816926-7ce09ee562ad?auto=format&fit=crop&w=2000&q=80"
+                  src="https://images.unsplash.com/photo-1582970816926-7ce09ee562ad?q=80&w=2000&auto=format&fit=crop"
                   alt="Aerial view of Blue Lagoon Island"
                   fill
                   className="object-cover"
@@ -546,7 +546,7 @@ export default function NassauCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1613482105566-cfc3b173bb0f?auto=format&fit=crop&w=2000&q=80"
+                  src="https://images.unsplash.com/photo-1613482105566-cfc3b173bb0f?q=80&w=2000&auto=format&fit=crop"
                   alt="Colorful shacks at Fish Fry"
                   fill
                   className="object-cover"
@@ -694,7 +694,7 @@ export default function NassauCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1521335629791-ce4aec67dd15?auto=format&fit=crop&w=2000&q=80"
+                  src="https://images.unsplash.com/photo-1618843479619-f3d19b3deaae?q=80&w=2000&auto=format&fit=crop"
                   alt="Busy Bay Street with tourists"
                   fill
                   className="object-cover"
@@ -937,7 +937,7 @@ export default function NassauCruiseGuide() {
 
               <div className="relative w-full h-[400px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.unsplash.com/photo-1527004013197-933c4bb611b3?auto=format&fit=crop&w=2000&q=80"
+                  src="https://images.unsplash.com/photo-1580541631950-7282082b53ce?q=80&w=2000&auto=format&fit=crop"
                   alt="Sunset view from departing cruise ship"
                   fill
                   className="object-cover"
