@@ -258,8 +258,12 @@ export default function OnboardCreditCalculator() {
       >
         <div className="max-w-4xl mx-auto px-8 text-center">
           <h1
-            className="font-whitney font-black uppercase text-[42px] md:text-[72px] leading-tight"
-            style={{ color: "#F7F170", letterSpacing: "-0.02em" }}
+            className="font-whitney font-black uppercase text-[42px] md:text-[72px]"
+            style={{
+              color: "#F7F170",
+              letterSpacing: "-0.02em",
+              lineHeight: 1,
+            }}
           >
             Onboard Credit Calculator
           </h1>
