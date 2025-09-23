@@ -588,6 +588,33 @@ export default function OnboardCreditCalculator() {
                     </li>
                   </ul>
                 </div>
+
+                {/* Browse Cruises Callout */}
+                <div
+                  className="mt-8 p-6 rounded-lg"
+                  style={{ backgroundColor: "#F7F170" }}
+                >
+                  <h3
+                    className="font-geograph font-bold text-[20px] mb-3"
+                    style={{ color: "#0E1B4D" }}
+                  >
+                    Ready to Book Your Cruise?
+                  </h3>
+                  <p
+                    className="font-geograph text-[16px] mb-4"
+                    style={{ color: "#0E1B4D" }}
+                  >
+                    Now that you've planned your onboard spending, browse
+                    thousands of cruises and see exactly how much onboard credit
+                    you'll get with Zipsea!
+                  </p>
+                  <a
+                    href="/cruises"
+                    className="inline-block px-6 py-3 bg-[#2238C3] text-white rounded-full text-[16px] font-medium font-geograph hover:opacity-90 transition-all duration-300"
+                  >
+                    Browse Cruises →
+                  </a>
+                </div>
               </div>
             </div>
           </div>
