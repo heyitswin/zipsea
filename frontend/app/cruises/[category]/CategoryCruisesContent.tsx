@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Navigation from "../../components/Navigation";
 import { formatPrice } from "../../../lib/utils";
@@ -74,114 +74,33 @@ interface Props {
 
 export default function CategoryCruisesContent({ category }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   // State management
-  const [cruises, setCruises] = useState<Cruise[]>([]);
+  const [featuredCruises, setFeaturedCruises] = useState<Cruise[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [totalCount, setTotalCount] = useState(0);
-  const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState<string>("soonest");
-  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+
+  // Search state
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [selectedCruiseLine, setSelectedCruiseLine] = useState<string>("");
+  const [cruiseLines, setCruiseLines] = useState<FilterOption[]>([]);
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] = useState(false);
+
+  // Refs for dropdown click outside detection
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
+  const cruiseLineDropdownRef = useRef<HTMLDivElement>(null);
 
   // Track requests to prevent race conditions
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Pre-set filters based on category
-  const categoryFilters = useMemo(() => {
-    const filters: any = {};
+  // Get current year and month for date picker
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth(); // 0-indexed
 
-    if (category.filters.regionId) {
-      filters.regionId = Array.isArray(category.filters.regionId)
-        ? category.filters.regionId.join(",")
-        : category.filters.regionId.toString();
-    }
-
-    if (category.filters.cruiseLineId) {
-      filters.cruiseLineId = Array.isArray(category.filters.cruiseLineId)
-        ? category.filters.cruiseLineId.join(",")
-        : category.filters.cruiseLineId.toString();
-    }
-
-    if (category.filters.departurePortId) {
-      filters.departurePortId = Array.isArray(category.filters.departurePortId)
-        ? category.filters.departurePortId.join(",")
-        : category.filters.departurePortId.toString();
-    }
-
-    if (category.filters.minNights !== undefined) {
-      filters.minNights = category.filters.minNights;
-    }
-
-    if (category.filters.maxNights !== undefined) {
-      filters.maxNights = category.filters.maxNights;
-    }
-
-    if (category.filters.maxPrice !== undefined) {
-      filters.maxPrice = category.filters.maxPrice;
-    }
-
-    // Special handling for last-minute cruises (departing within 60 days)
-    if (category.slug === "last-minute") {
-      const today = new Date();
-      const sixtyDaysFromNow = new Date(
-        today.getTime() + 60 * 24 * 60 * 60 * 1000,
-      );
-      filters.endDate = sixtyDaysFromNow.toISOString().split("T")[0];
-    }
-
-    return filters;
-  }, [category]);
-
-  // Additional user filters from URL params
-  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<{ min?: number; max?: number }>(
-    {},
-  );
-
-  // Stats for display
-  const [lowestPrice, setLowestPrice] = useState<number | null>(null);
-
-  // Initialize filters from URL on mount
-  useEffect(() => {
-    const monthsParam = searchParams.get("months");
-    const pageParam = searchParams.get("page");
-    const sortParam = searchParams.get("sort");
-    const minPriceParam = searchParams.get("minPrice");
-    const maxPriceParam = searchParams.get("maxPrice");
-
-    if (monthsParam) {
-      setSelectedMonths(monthsParam.split(","));
-    }
-
-    if (pageParam) {
-      const pageNum = parseInt(pageParam);
-      if (!isNaN(pageNum) && pageNum > 0) {
-        setPage(pageNum);
-      }
-    }
-
-    if (sortParam) {
-      setSortBy(sortParam);
-    }
-
-    const newPriceRange: { min?: number; max?: number } = {};
-    if (minPriceParam) {
-      const min = parseFloat(minPriceParam);
-      if (!isNaN(min)) newPriceRange.min = min;
-    }
-    if (maxPriceParam) {
-      const max = parseFloat(maxPriceParam);
-      if (!isNaN(max)) newPriceRange.max = max;
-    }
-    if (Object.keys(newPriceRange).length > 0) {
-      setPriceRange(newPriceRange);
-    }
-  }, [searchParams]);
-
-  // Fetch cruises with category filters
-  const fetchCruises = useCallback(async () => {
+  // Fetch featured cruises for this category (just 6)
+  const fetchFeaturedCruises = useCallback(async () => {
     // Cancel any pending request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -198,28 +117,49 @@ export default function CategoryCruisesContent({ category }: Props) {
       const params = new URLSearchParams();
 
       // Add category filters
-      Object.entries(categoryFilters).forEach(([key, value]) => {
-        params.append(key, String(value));
-      });
-
-      // Add user filters
-      if (selectedMonths.length > 0) {
-        params.append("departureMonth", selectedMonths.join(","));
+      if (category.filters.regionId) {
+        const regionIds = Array.isArray(category.filters.regionId)
+          ? category.filters.regionId
+          : [category.filters.regionId];
+        regionIds.forEach(id => params.append("regionId", id.toString()));
       }
 
-      if (priceRange.min !== undefined) {
-        params.append("minPrice", priceRange.min.toString());
+      if (category.filters.cruiseLineId) {
+        const lineIds = Array.isArray(category.filters.cruiseLineId)
+          ? category.filters.cruiseLineId
+          : [category.filters.cruiseLineId];
+        lineIds.forEach(id => params.append("cruiseLineId", id.toString()));
       }
 
-      if (priceRange.max !== undefined && !category.filters.maxPrice) {
-        // Only apply user's max price if category doesn't have one
-        params.append("maxPrice", priceRange.max.toString());
+      if (category.filters.departurePortId) {
+        const portIds = Array.isArray(category.filters.departurePortId)
+          ? category.filters.departurePortId
+          : [category.filters.departurePortId];
+        portIds.forEach(id => params.append("departurePortId", id.toString()));
       }
 
-      params.append("page", page.toString());
-      params.append("limit", "20");
-      params.append("sortBy", sortBy === "soonest" ? "date" : sortBy);
-      params.append("sortOrder", sortBy === "price-high" ? "desc" : "asc");
+      if (category.filters.minNights !== undefined) {
+        params.append("minNights", category.filters.minNights.toString());
+      }
+
+      if (category.filters.maxNights !== undefined) {
+        params.append("maxNights", category.filters.maxNights.toString());
+      }
+
+      if (category.filters.maxPrice !== undefined) {
+        params.append("maxPrice", category.filters.maxPrice.toString());
+      }
+
+      // Special handling for last-minute cruises (departing within 60 days)
+      if (category.slug === 'last-minute') {
+        const today = new Date();
+        const sixtyDaysFromNow = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);
+        params.append("endDate", sixtyDaysFromNow.toISOString().split('T')[0]);
+      }
+
+      params.append("limit", "6"); // Only get 6 featured cruises
+      params.append("sortBy", "date");
+      params.append("sortOrder", "asc");
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || ""}/search/comprehensive?${params.toString()}`,
@@ -236,20 +176,7 @@ export default function CategoryCruisesContent({ category }: Props) {
       }
 
       const data = await response.json();
-
-      setCruises(data.results || []);
-      setTotalCount(data.total || 0);
-
-      // Calculate lowest price from results
-      if (data.results && data.results.length > 0) {
-        const prices = data.results
-          .map((c: Cruise) => parseFloat(c.cheapestPrice || "0"))
-          .filter((p: number) => p > 0);
-        if (prices.length > 0) {
-          setLowestPrice(Math.min(...prices));
-        }
-      }
-
+      setFeaturedCruises(data.results || []);
       setLoading(false);
     } catch (err: any) {
       if (err.name !== "AbortError") {
@@ -258,18 +185,55 @@ export default function CategoryCruisesContent({ category }: Props) {
         setLoading(false);
       }
     }
-  }, [categoryFilters, selectedMonths, priceRange, page, sortBy]);
+  }, [category]);
 
-  // Fetch cruises when dependencies change
+  // Fetch cruise lines for dropdown
+  const fetchCruiseLines = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || ""}/api/v1/filters/cruise-lines`,
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setCruiseLines(data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching cruise lines:", err);
+    }
+  }, []);
+
+  // Fetch data on mount
   useEffect(() => {
-    fetchCruises();
+    fetchFeaturedCruises();
+    fetchCruiseLines();
 
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [fetchCruises]);
+  }, [fetchFeaturedCruises, fetchCruiseLines]);
+
+  // Handle click outside dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dateDropdownRef.current &&
+        !dateDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDateDropdownOpen(false);
+      }
+      if (
+        cruiseLineDropdownRef.current &&
+        !cruiseLineDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsCruiseLineDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Helper function to parse price
   const getPrice = (cruise: Cruise): number => {
@@ -284,243 +248,301 @@ export default function CategoryCruisesContent({ category }: Props) {
     return 0;
   };
 
-  // Update URL when filters change
-  const updateURL = useCallback(() => {
+  // Handle search button click
+  const handleSearch = () => {
     const params = new URLSearchParams();
 
-    if (selectedMonths.length > 0) {
-      params.set("months", selectedMonths.join(","));
-    }
-    if (priceRange.min) {
-      params.set("minPrice", priceRange.min.toString());
-    }
-    if (priceRange.max && !category.filters.maxPrice) {
-      params.set("maxPrice", priceRange.max.toString());
-    }
-    if (page > 1) {
-      params.set("page", page.toString());
-    }
-    if (sortBy !== "soonest") {
-      params.set("sort", sortBy);
+    // Add category filters
+    if (category.filters.regionId) {
+      params.append("regions", Array.isArray(category.filters.regionId)
+        ? category.filters.regionId.join(',')
+        : category.filters.regionId.toString());
     }
 
-    const queryString = params.toString();
-    router.push(
-      `/cruises/${category.slug}${queryString ? `?${queryString}` : ""}`,
-      {
-        scroll: false,
-      },
-    );
-  }, [selectedMonths, priceRange, page, sortBy, category, router]);
+    if (category.filters.departurePortId) {
+      params.append("departurePorts", Array.isArray(category.filters.departurePortId)
+        ? category.filters.departurePortId.join(',')
+        : category.filters.departurePortId.toString());
+    }
 
-  useEffect(() => {
-    updateURL();
-  }, [updateURL]);
+    if (category.filters.minNights !== undefined) {
+      params.append("minNights", category.filters.minNights.toString());
+    }
 
-  const totalPages = Math.ceil(totalCount / 20);
+    if (category.filters.maxNights !== undefined) {
+      params.append("maxNights", category.filters.maxNights.toString());
+    }
+
+    if (category.filters.maxPrice !== undefined) {
+      params.append("maxPrice", category.filters.maxPrice.toString());
+    }
+
+    // Add user selections
+    if (selectedMonth) {
+      params.append("months", selectedMonth);
+    }
+
+    if (selectedCruiseLine) {
+      params.append("cruiseLines", selectedCruiseLine);
+    }
+
+    // Navigate to cruises page with filters
+    router.push(`/cruises?${params.toString()}`);
+  };
 
   return (
-    <div className="min-h-screen bg-[#F6F3ED] pt-[100px]">
+    <div className="min-h-screen bg">
       <Navigation />
 
-      {/* SEO Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 mb-8">
-        <div>
-          {/* Breadcrumbs */}
-          <nav className="text-sm mb-6">
-            <ol className="flex items-center space-x-2">
-              <li>
-                <a
-                  href="/"
-                  className="font-geograph text-[#666] hover:text-[#2238C3] transition-colors"
-                >
-                  Home
-                </a>
-              </li>
-              <li className="font-geograph text-[#666]">/</li>
-              <li>
-                <a
-                  href="/cruises"
-                  className="font-geograph text-[#666] hover:text-[#2238C3] transition-colors"
-                >
-                  Cruises
-                </a>
-              </li>
-              <li className="font-geograph text-[#666]">/</li>
-              <li className="font-geograph font-medium text-[#0E1B4D]">
-                {category.name}
-              </li>
-            </ol>
-          </nav>
-
-          {/* Hero Content */}
+      {/* Hero Section - Centered like guides */}
+      <section
+        className="relative pt-[100px] pb-[80px]"
+        style={{ backgroundColor: "#0E1B4D" }}
+      >
+        <div className="max-w-4xl mx-auto px-8 text-center">
           <h1
-            className="font-whitney font-black uppercase text-[32px] md:text-[48px] text-[#0E1B4D] mb-6"
+            className="font-whitney font-black uppercase text-[32px]42px md:text-[48px]72px"
+              color:"#F7F170",
+
+              ,
+
             style={{ letterSpacing: "-0.02em", lineHeight: 1 }}
           >
-            {category.h1}
+            {category.title}
           </h1>
+          <h2 className="font-geograph text-white text-[18px] md:text-[22px] mt-6 leading-relaxed">
+            {category.name} - Best Deals & Maximum Onboard Credit
+          </h2>
+        </div>
+      </section>
 
-          {/* Quick Stats */}
-          <div className="flex flex-wrap gap-6 mb-6">
-            <span className="font-geograph text-[18px] text-[#0E1B4D]">
-              <strong>{totalCount.toLocaleString()}</strong> {category.name}{" "}
-              cruises available
-            </span>
-            {lowestPrice && (
-              <span className="font-geograph text-[18px] text-[#0E1B4D]">
-                Starting from{" "}
-                <strong className="text-[#2238C3]">${lowestPrice}</strong>
-              </span>
-            )}
-          </div>
+      {/* Separator Image */}
+      <div
+        className="w-full h-[21px]"
+        style={{
+          backgroundImage: 'url("/images/separator-5.png")',
+          backgroundRepeat: "repeat-x",
+          backgroundSize: "1749px 21px",
+          backgroundPosition: "left top",
+        }}
+      />
 
+      {/* Main Content */}
+      <main className="py-[40px] md:py-[80px]">
+        <div className="max-w-7xl mx-auto px-4">
           {/* SEO Description */}
-          <div className="max-w-none">
-            <p className="font-geograph text-[16px] text-[#666] leading-relaxed">
+          <div className="max-w-4xl mx-auto text-center mb-12">
+            <p className="font-geograph text-[16px] text18px-[#666] leading-relaxed">
               {category.description}
             </p>
           </div>
-        </div>
-      </div>
 
-      {/* Filters and Sorting Bar */}
-      <div className="border-b border-[#E5E5E5] bg-white sticky top-[100px] z-10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="font-geograph text-[14px] text-[#666]">
-              Showing {cruises.length} of {totalCount} results
-            </div>
+          {/* Search Bar Section */}
+          <div className="max-w-4xl mx-auto mb-12">
+            <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-6">
+              <h3 className="font-geograph font-bold text-[18px] text-[#0E1B4D] mb-4">
+                Refine Your {category.name} Search
+              </h3>
 
-            {/* Sort Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
-                className="flex items-center gap-2 px-4 py-2 border border-[#E5E5E5] rounded-[10px] hover:bg-[#F6F3ED] transition-colors"
-              >
-                <span className="font-geograph text-[14px] text-[#0E1B4D]">
-                  Sort:{" "}
-                  {sortBy === "soonest"
-                    ? "Soonest"
-                    : sortBy === "price"
-                      ? "Price (Low to High)"
-                      : "Price (High to Low)"}
-                </span>
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
+              <div className="flex flex-col md:flex-row gap-4">
+                {/* Month Selector */}
+                <div className="flex-1 relative" ref={dateDropdownRef}>
+                  <button
+                    onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
+                    className="w-full flex items-center justify-between px-4 py-3 border border-[#E5E5E5] rounded-[10px] hover:border-[#0E1B4D] transition-colors"
+                  >
+                    <span className="font-geograph text-[16px] text-[#0E1B4D]">
+                      {selectedMonth ?
+                        new Date(selectedMonth + "-01").toLocaleDateString("en-US", { month: "short", year: "numeric" }) :
+                        "Select Month"}
+                    </span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
 
-              {isSortDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-[10px] shadow-lg border border-[#E5E5E5] z-50">
-                  <button
-                    onClick={() => {
-                      setSortBy("soonest");
-                      setIsSortDropdownOpen(false);
-                    }}
-                    className="block w-full text-left px-4 py-2 font-geograph text-[14px] text-[#0E1B4D] hover:bg-[#F6F3ED] transition-colors"
-                  >
-                    Soonest
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSortBy("price");
-                      setIsSortDropdownOpen(false);
-                    }}
-                    className="block w-full text-left px-4 py-2 font-geograph text-[14px] text-[#0E1B4D] hover:bg-[#F6F3ED] transition-colors"
-                  >
-                    Price (Low to High)
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSortBy("price-high");
-                      setIsSortDropdownOpen(false);
-                    }}
-                    className="block w-full text-left px-4 py-2 font-geograph text-[14px] text-[#0E1B4D] hover:bg-[#F6F3ED] transition-colors"
-                  >
-                    Price (High to Low)
-                  </button>
+                  {isDateDropdownOpen && (
+                    <div className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg border border-[#E5E5E5] z-50 p-4 max-h-96 overflow-y-auto">
+                      {[currentYear, currentYear + 1, currentYear + 2].map((year) => (
+                        <div key={year} className="mb-4">
+                          <div className="font-geograph font-bold text-[14px] text-gray-700 mb-2">
+                            {year}
+                          </div>
+                          <div className="grid grid-cols-4 gap-2">
+                            {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((month, index) => {
+                              const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
+                              const isSelected = selectedMonth === monthStr;
+                              const isPast = year < currentYear || (year === currentYear && index < currentMonth);
+
+                              return (
+                                <button
+                                  key={monthStr}
+                                  onClick={() => {
+                                    if (!isPast) {
+                                      setSelectedMonth(isSelected ? "" : monthStr);
+                                    }
+                                  }}
+                                  disabled={isPast}
+                                  className={`px-3 py-1 rounded-full text-[14px] font-geograph transition-colors ${
+                                    isPast
+                                      ? "bg-gray-50 text-gray-400 cursor-not-allowed"
+                                      : isSelected
+                                        ? "bg-[#0E1B4D] text-white"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                  }`}
+                                >
+                                  {month}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {/* Cruise Line Selector */}
+                <div className="flex-1 relative" ref={cruiseLineDropdownRef}>
+                  <button
+                    onClick={() => setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)}
+                    className="w-full flex items-center justify-between px-4 py-3 border border-[#E5E5E5] rounded-[10px] hover:border-[#0E1B4D] transition-colors"
+                  >
+                    <span className="font-geograph text-[16px] text-[#0E1B4D]">
+                      {selectedCruiseLine ?
+                        cruiseLines.find(cl => cl.id.toString() === selectedCruiseLine)?.name || "Select Cruise Line" :
+                        "Select Cruise Line"}
+                    </span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {isCruiseLineDropdownOpen && (
+                    <div className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg border border-[#E5E5E5] z-50 p-2 max-h-96 overflow-y-auto">
+                      <button
+                        onClick={() => {
+                          setSelectedCruiseLine("");
+                          setIsCruiseLineDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 font-geograph text-[16px] rounded-[8px] transition-colors ${
+                          !selectedCruiseLine ? "bg-[#F6F3ED]" : "hover:bg-[#F6F3ED]"
+                        }`}
+                      >
+                        All Cruise Lines
+                      </button>
+                      {cruiseLines.map((line) => (
+                        <button
+                          key={line.id}
+                          onClick={() => {
+                            setSelectedCruiseLine(line.id.toString());
+                            setIsCruiseLineDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 font-geograph text-[16px] rounded-[8px] transition-colors ${
+                            selectedCruiseLine === line.id.toString() ? "bg-[#F6F3ED]" : "hover:bg-[#F6F3ED]"
+                          }`}
+                        >
+                          {line.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Search Button */}
+                <button
+                  onClick={handleSearch}
+                  className="px-8 py-3 bg-[#0E1B4D] text-white font-geograph font-bold text-[16px] rounded-[10px] hover:bg-[#2238C3] transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  Search Cruises
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 max-w-7xl mx-auto px-4 py-6">
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <p className="text-red-600">
-              Failed to load cruises. Please try again.
-            </p>
-          </div>
-        ) : cruises.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600">
-              No cruises found matching your criteria.
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Cruise List */}
-            <div className="space-y-4">
-              {cruises.map((cruise) => {
-                const price = getPrice(cruise);
-                const cruiseSlug = createSlugFromCruise({
-                  id: cruise.id,
-                  shipName: cruise.ship?.name || "unknown",
-                  sailingDate: cruise.sailingDate,
-                });
+          {/* Featured Cruises Section */}
+          <div className="mb-12">
+            <h3 className="font-whitney font-black uppercase text-[32px] text-[#0E1B4D] mb-8 text-center">
+              Featured {category.name} Cruises
+            </h3>
 
-                return (
-                  <div
-                    key={cruise.id}
-                    className="bg-white border border-[#E5E5E5] rounded-[10px] md:p-4 cursor-pointer overflow-hidden hover:shadow-lg transition-shadow"
-                    onClick={() => router.push(`/cruise/${cruiseSlug}`)}
-                  >
-                    <div className="flex md:gap-6">
-                      {/* Cruise Image */}
-                      <div
-                        className="w-[70px] md:w-48 h-auto min-h-[100px] md:h-32 bg-gray-200 md:rounded-[10px] overflow-hidden flex-shrink-0 bg-cover bg-center"
-                        style={{
-                          backgroundImage:
-                            cruise.ship?.defaultShipImageHd ||
-                            cruise.ship?.defaultShipImage2k ||
-                            cruise.ship?.defaultShipImage ||
-                            cruise.shipImage
-                              ? `url(${
-                                  cruise.ship?.defaultShipImageHd ||
-                                  cruise.ship?.defaultShipImage2k ||
-                                  cruise.ship?.defaultShipImage ||
-                                  cruise.shipImage
-                                })`
-                              : undefined,
-                        }}
-                      >
-                        {!cruise.ship?.defaultShipImageHd &&
-                          !cruise.ship?.defaultShipImage2k &&
-                          !cruise.ship?.defaultShipImage &&
-                          !cruise.shipImage && (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                              No image
-                            </div>
-                          )}
-                      </div>
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0E1B4D]"></div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <p className="text-red-600 font-geograph">Failed to load cruises. Please try again.</p>
+              </div>
+            ) : featuredCruises.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-[#666] font-geograph">No cruises found for this category.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {featuredCruises.map((cruise) => {
+                  const price = getPrice(cruise);
+                  const cruiseSlug = createSlugFromCruise({
+                    id: cruise.id,
+                    shipName: cruise.ship?.name || "unknown",
+                    sailingDate: cruise.sailingDate,
+                  });
+
+                  // Calculate return date
+                  const sailingDate = new Date(cruise.sailingDate);
+                  const returnDate = new Date(sailingDate);
+                  returnDate.setDate(sailingDate.getDate() + cruise.nights);
+
+                  // Format date range
+                  const dateRange = `${sailingDate.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })} - ${returnDate.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}`;
+
+                  // Truncate name if too long
+                  const truncatedName = (cruise.ship?.name || cruise.name).length > 27
+                    ? (cruise.ship?.name || cruise.name).substring(0, 27) + "..."
+                    : (cruise.ship?.name || cruise.name);
+
+                  // Calculate OBC (20% of cheapest price, rounded to nearest 10)
+                  const obc = Math.floor((price * 0.2) / 10) * 10;
+
+                  return (
+                    <div
+                      key={cruise.id}
+                      className="cursor-pointer"
+                      onClick={() => router.push(`/cruise/${cruiseSlug}`)}
+                    >
+                      {/* Featured Image with Date Range Badge */}
+                      <div className="relative">
+                        <div className="h-[180px] bg-gray-200 relative overflow-hidden rounded-[18px]">
+                          {cruise.ship?.defaultShipImage2k || cruise.ship?.defaultShipImage || cruise.shipImage ? (
+                            <Image
+                              src={
+                                cruise.ship?.defaultShipImage2k ||
+                                cruise.ship?.defaultShipImage ||
+                                cruise.shipImage ||
+                                ""
+                              }
+                              alt={cruise.ship?.name || "Cruise ship"}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                        </div>
+
+                        {/* Date Range Badge */}
+                        <div className="absolute top-3 left-3 bg-white px-3 py-1 rounded-full">
+                          <span className="font-geograph font-bold text-[14px] text-[#0E1B4D]">
+                            {dateRange}
+                          </span>
+                        </div>
 
                       {/* Cruise Details */}
                       <div className="flex-1 flex flex-col md:flex-row md:justify-between md:items-center p-3 md:p-0">
@@ -569,6 +591,28 @@ export default function CategoryCruisesContent({ category }: Props) {
                               )}
                             </p>
                           </div>
+mt4
+                          20px] text-[0E1B4D
+
+                        {truncatedName}
+                                                <p className="font-geograph text-[14px] text-[#666] mb-1">
+                          {cruise.cruiseLine?.name}
+                        </p>
+                        <p className="font-geograph text-[14px] text-[#666] mb-3">
+                          {cruise.nights} Nights • {cruise.embarkPortName}
+                        </p>
+
+                        {/* Price and OBC */}
+                        <div className="flex justify-between items-end">
+                          <div>
+                            <p className="font-geograph font-bold text-[12px] text-gray-500 uppercase tracking-wider">
+                              FROM
+                            <p className="font-geograph font-bold text-[24px] text-[#0E1B4D]">
+                              ${price.toFixed(0)}
+                          <div className="text-right">
+                            <p className="font-geograph text-[12px] text-[#666]">
+                              + ${obc} Onboard Credit
+                            </p>
                         </div>
 
                         {/* Desktop Price */}
@@ -582,177 +626,116 @@ export default function CategoryCruisesContent({ category }: Props) {
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="mt-8 flex justify-center">
-                <div className="flex gap-2">
-                  {page > 1 && (
-                    <button
-                      onClick={() => setPage(page - 1)}
-                      className="px-4 py-2 border border-[#E5E5E5] rounded-[10px] font-geograph text-[14px] text-[#0E1B4D] hover:bg-[#F6F3ED] transition-colors"
-                    >
-                      Previous
-                    </button>
-                  )}
-
-                  {/* Page Numbers */}
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (page <= 3) {
-                      pageNum = i + 1;
-                    } else if (page >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = page - 2 + i;
-                    }
-
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setPage(pageNum)}
-                        className={`px-4 py-2 rounded-[10px] font-geograph text-[14px] ${
-                          pageNum === page
-                            ? "bg-[#0E1B4D] text-white"
-                            : "border border-[#E5E5E5] text-[#0E1B4D] hover:bg-[#F6F3ED]"
-                        } transition-colors`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-
-                  {page < totalPages && (
-                    <button
-                      onClick={() => setPage(page + 1)}
-                      className="px-4 py-2 border border-[#E5E5E5] rounded-[10px] font-geograph text-[14px] text-[#0E1B4D] hover:bg-[#F6F3ED] transition-colors"
-                    >
-                      Next
-                    </button>
-                  )}
-                </div>
+                  );
+                })}
               </div>
             )}
-          </>
-        )}
-      </div>
-
-      {/* SEO Content Section */}
-      {!loading && !error && (
-        <div className="bg-[#F6F3ED] py-12 mt-8 border-t border-[#E5E5E5]">
-          <div className="max-w-7xl mx-auto px-4">
-            {/* FAQs */}
-            {category.faqItems && category.faqItems.length > 0 && (
-              <div className="mb-8">
-                <h2
-                  className="font-whitney font-black uppercase text-[28px] text-[#0E1B4D] mb-6"
-                  style={{ letterSpacing: "-0.02em" }}
-                >
-                  Frequently Asked Questions about {category.title}
-                </h2>
-                <div className="space-y-4">
-                  {category.faqItems.map((faq, index) => (
-                    <div
-                      key={index}
-                      className="bg-white p-6 rounded-[10px] border border-[#E5E5E5]"
-                    >
-                      <h3 className="font-geograph font-bold text-[18px] text-[#0E1B4D] mb-2">
-                        {faq.question}
-                      </h3>
-                      <p className="font-geograph text-[16px] text-[#666] leading-relaxed">
-                        {faq.answer}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Why Book With Us */}
-            <div className="bg-white p-6 rounded-[10px] border border-[#E5E5E5]">
-              <h2
-                className="font-whitney font-black uppercase text-[28px] text-[#0E1B4D] mb-4"
-                style={{ letterSpacing: "-0.02em" }}
-              >
-                Why Book Your {category.name} Cruise with Zipsea?
-              </h2>
-              <ul className="space-y-3">
-                <li className="flex items-start">
-                  <svg
-                    className="w-5 h-5 text-[#2238C3] mr-3 mt-1 flex-shrink-0"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="font-geograph text-[16px] text-[#666]">
-                    Maximum onboard credit on every booking - more spending
-                    money for your vacation
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <svg
-                    className="w-5 h-5 text-[#2238C3] mr-3 mt-1 flex-shrink-0"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="font-geograph text-[16px] text-[#666]">
-                    Compare prices across all major cruise lines in one place
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <svg
-                    className="w-5 h-5 text-[#2238C3] mr-3 mt-1 flex-shrink-0"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="font-geograph text-[16px] text-[#666]">
-                    Real-time pricing and availability direct from cruise lines
-                  </span>
-                </li>
-                <li className="flex items-start">
-                  <svg
-                    className="w-5 h-5 text-[#2238C3] mr-3 mt-1 flex-shrink-0"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="font-geograph text-[16px] text-[#666]">
-                    Expert cruise consultants available to help you plan
-                  </span>
-                </li>
-              </ul>
-            </div>
           </div>
+
+          {/* SEO Content Section */}
+          {!loading && !error && (
+            <>
+              {/* FAQs */}
+              {category.faqItems && category.faqItems.length > 0 && (
+                <div className="mb-12">
+                  <h2
+                    className="font-whitney font-black uppercase text-[28px] text-[#0E1B4D] mb-6 text-center"
+                    style={{ letterSpacing: "-0.02em" }}
+                  >
+                    Frequently Asked Questions
+                  </h2>
+                  <div className="max-w-4xl mx-auto space-y-4">
+                    {category.faqItems.map((faq, index) => (
+                      <div key={index} className="bg-white p-6 rounded-[10px] border border-[#E5E5E5]">
+                        <h3 className="font-geograph font-bold text-[18px] text-[#0E1B4D] mb-2">{faq.question}</h3>
+                        <p className="font-geograph text-[16px] text-[#666] leading-relaxed">{faq.answer}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Why Book With Us */}
+              <div className="max-w-4xl mx-auto">
+                <div className="bg-white p-6 rounded-[10px] border border-[#E5E5E5]">
+                  <h2
+                    className="font-whitney font-black uppercase text-[28px] text-[#0E1B4D] mb-4 text-center"
+                    style={{ letterSpacing: "-0.02em" }}
+                  >
+                    Why Book with Zipsea?
+                  </h2>
+                  <ul className="space-y-3">
+                    <li className="flex items-start">
+                      <svg
+                        className="w-5 h-5 text-[#2238C3] mr-3 mt-1 flex-shrink-0"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span className="font-geograph text-[16px] text-[#666]">
+                        Maximum onboard credit on every booking - more spending money for your vacation
+                      </span>
+                    </li>
+                    <li className="flex items-start">
+                      <svg
+                        className="w-5 h-5 text-[#2238C3] mr-3 mt-1 flex-shrink-0"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span className="font-geograph text-[16px] text-[#666]">
+                        Compare prices across all major cruise lines in one place
+                      </span>
+                    </li>
+                    <li className="flex items-start">
+                      <svg
+                        className="w-5 h-5 text-[#2238C3] mr-3 mt-1 flex-shrink-0"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span className="font-geograph text-[16px] text-[#666]">
+                        Real-time pricing and availability direct from cruise lines
+                      </span>
+                    </li>
+                    <li className="flex items-start">
+                      <svg
+                        className="w-5 h-5 text-[#2238C3] mr-3 mt-1 flex-shrink-0"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span className="font-geograph text-[16px] text-[#666]">
+                        Expert cruise consultants available to help you plan
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </main>
     </div>
   );
 }
