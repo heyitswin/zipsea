@@ -199,7 +199,7 @@ export default function CategoryCruisesContent({ category }: Props) {
 
       // Add category filters
       Object.entries(categoryFilters).forEach(([key, value]) => {
-        params.append(key, value.toString());
+        params.append(key, String(value));
       });
 
       // Add user filters
