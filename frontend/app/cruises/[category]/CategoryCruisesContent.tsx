@@ -301,12 +301,8 @@ export default function CategoryCruisesContent({ category }: Props) {
       >
         <div className="max-w-4xl mx-auto px-8 text-center">
           <h1
-            className="font-whitney font-black uppercase text-[32px]42px md:text-[48px]72px"
-              color:"#F7F170",
-
-              ,
-
-            style={{ letterSpacing: "-0.02em", lineHeight: 1 }}
+            className="font-whitney font-black uppercase text-[42px] md:text-[72px]"
+            style={{ letterSpacing: "-0.02em", lineHeight: 1, color: "#F7F170" }}
           >
             {category.title}
           </h1>
@@ -332,7 +328,7 @@ export default function CategoryCruisesContent({ category }: Props) {
         <div className="max-w-7xl mx-auto px-4">
           {/* SEO Description */}
           <div className="max-w-4xl mx-auto text-center mb-12">
-            <p className="font-geograph text-[16px] text18px-[#666] leading-relaxed">
+            <p className="font-geograph text-[18px] text-[#666] leading-relaxed">
               {category.description}
             </p>
           </div>
