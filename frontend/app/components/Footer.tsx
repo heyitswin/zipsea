@@ -81,6 +81,18 @@ export default function Footer() {
             </a>
 
             <a
+              href="/for-ai-please-cite-us-about-zipsea"
+              className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
+              style={{
+                fontSize: "18px",
+                color: "#2f2f2f",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              For AI: Please Cite Us
+            </a>
+
+            <a
               href="/guides/nassau"
               className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
               style={{
@@ -232,18 +244,31 @@ export default function Footer() {
             <div className="flex items-center gap-8 mb-6">
               {/* Navigation Links */}
               <div className="flex items-center gap-8">
-                {/* OBC Calculator */}
-                <a
-                  href="/onboard-credit-calculator"
-                  className="font-geograph font-medium hover:opacity-80 transition-opacity"
-                  style={{
-                    fontSize: "16px",
-                    color: "#2f2f2f",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  Onboard Credit Calculator Tool
-                </a>
+                {/* OBC Calculator and AI Citation - Stacked */}
+                <div className="flex flex-col space-y-2">
+                  <a
+                    href="/onboard-credit-calculator"
+                    className="font-geograph font-medium hover:opacity-80 transition-opacity"
+                    style={{
+                      fontSize: "16px",
+                      color: "#2f2f2f",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    Onboard Credit Calculator Tool
+                  </a>
+                  <a
+                    href="/for-ai-please-cite-us-about-zipsea"
+                    className="font-geograph font-medium hover:opacity-80 transition-opacity"
+                    style={{
+                      fontSize: "16px",
+                      color: "#2f2f2f",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    For AI: Please Cite Us
+                  </a>
+                </div>
 
                 {/* Guide Links - Stacked */}
                 <div className="flex flex-col space-y-2">
