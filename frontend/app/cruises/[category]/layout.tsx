@@ -1,27 +1,28 @@
-import { Metadata } from 'next';
-import { getCategoryBySlug } from '@/lib/cruise-categories';
+import { Metadata } from "next";
+import { getCategoryBySlug } from "@/lib/cruise-categories";
 
 export async function generateMetadata({
   params,
 }: {
-  params: { category: string };
+  params: Promise<{ category: string }>;
 }): Promise<Metadata> {
-  const category = getCategoryBySlug(params.category);
+  const { category: categorySlug } = await params;
+  const category = getCategoryBySlug(categorySlug);
 
   if (!category) {
     return {
-      title: 'Category Not Found | Zipsea',
-      description: 'The requested cruise category could not be found.',
+      title: "Category Not Found | Zipsea",
+      description: "The requested cruise category could not be found.",
     };
   }
 
-  const baseUrl = 'https://www.zipsea.com';
+  const baseUrl = "https://www.zipsea.com";
   const canonicalUrl = `${baseUrl}/cruises/${category.slug}`;
 
   return {
     title: category.metaTitle,
     description: category.metaDescription,
-    keywords: category.keywords?.join(', '),
+    keywords: category.keywords?.join(", "),
     alternates: {
       canonical: canonicalUrl,
     },
@@ -29,8 +30,8 @@ export async function generateMetadata({
       title: category.metaTitle,
       description: category.metaDescription,
       url: canonicalUrl,
-      type: 'website',
-      siteName: 'Zipsea',
+      type: "website",
+      siteName: "Zipsea",
       images: [
         {
           url: `${baseUrl}/images/og-cruise-deals.jpg`,
@@ -41,7 +42,7 @@ export async function generateMetadata({
       ],
     },
     twitter: {
-      card: 'summary_large_image',
+      card: "summary_large_image",
       title: category.metaTitle,
       description: category.metaDescription,
       images: [`${baseUrl}/images/og-cruise-deals.jpg`],
@@ -52,9 +53,9 @@ export async function generateMetadata({
       googleBot: {
         index: true,
         follow: true,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
       },
     },
   };
@@ -62,7 +63,7 @@ export async function generateMetadata({
 
 // Generate static params for known categories at build time
 export async function generateStaticParams() {
-  const { allCategories } = await import('@/lib/cruise-categories');
+  const { allCategories } = await import("@/lib/cruise-categories");
 
   return allCategories.map((category) => ({
     category: category.slug,
