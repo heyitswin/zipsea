@@ -222,7 +222,7 @@ export default function CategoryCruisesContent({ category }: Props) {
       params.append("sortOrder", sortBy === "price-high" ? "desc" : "asc");
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || ""}/api/v1/search/comprehensive?${params.toString()}`,
+        `${process.env.NEXT_PUBLIC_API_URL || ""}/search/comprehensive?${params.toString()}`,
         {
           signal: abortController.signal,
           headers: {
@@ -320,49 +320,64 @@ export default function CategoryCruisesContent({ category }: Props) {
   const totalPages = Math.ceil(totalCount / 20);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-[#F6F3ED] pt-[100px]">
       <Navigation />
 
       {/* SEO Hero Section */}
-      <div className="bg-gradient-to-b from-blue-50 to-white pt-20 pb-8">
-        <div className="container mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4 mb-8">
+        <div>
           {/* Breadcrumbs */}
-          <nav className="text-sm mb-4">
-            <ol className="flex items-center space-x-2 text-gray-600">
+          <nav className="text-sm mb-6">
+            <ol className="flex items-center space-x-2">
               <li>
-                <a href="/" className="hover:text-blue-600">
+                <a
+                  href="/"
+                  className="font-geograph text-[#666] hover:text-[#2238C3] transition-colors"
+                >
                   Home
                 </a>
               </li>
-              <li>/</li>
+              <li className="font-geograph text-[#666]">/</li>
               <li>
-                <a href="/cruises" className="hover:text-blue-600">
+                <a
+                  href="/cruises"
+                  className="font-geograph text-[#666] hover:text-[#2238C3] transition-colors"
+                >
                   Cruises
                 </a>
               </li>
-              <li>/</li>
-              <li className="text-gray-900 font-medium">{category.name}</li>
+              <li className="font-geograph text-[#666]">/</li>
+              <li className="font-geograph font-medium text-[#0E1B4D]">
+                {category.name}
+              </li>
             </ol>
           </nav>
 
           {/* Hero Content */}
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <h1
+            className="font-whitney font-black uppercase text-[32px] md:text-[48px] text-[#0E1B4D] mb-6"
+            style={{ letterSpacing: "-0.02em", lineHeight: 1 }}
+          >
             {category.h1}
           </h1>
 
           {/* Quick Stats */}
-          <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-6">
-            <span className="font-medium">
-              {totalCount.toLocaleString()} {category.name} cruises available
+          <div className="flex flex-wrap gap-6 mb-6">
+            <span className="font-geograph text-[18px] text-[#0E1B4D]">
+              <strong>{totalCount.toLocaleString()}</strong> {category.name}{" "}
+              cruises available
             </span>
             {lowestPrice && (
-              <span className="font-medium">Starting from ${lowestPrice}</span>
+              <span className="font-geograph text-[18px] text-[#0E1B4D]">
+                Starting from{" "}
+                <strong className="text-[#2238C3]">${lowestPrice}</strong>
+              </span>
             )}
           </div>
 
           {/* SEO Description */}
-          <div className="prose prose-blue max-w-none mb-6">
-            <p className="text-gray-700 leading-relaxed">
+          <div className="max-w-none">
+            <p className="font-geograph text-[16px] text-[#666] leading-relaxed">
               {category.description}
             </p>
           </div>
@@ -370,10 +385,10 @@ export default function CategoryCruisesContent({ category }: Props) {
       </div>
 
       {/* Filters and Sorting Bar */}
-      <div className="border-b bg-white sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4">
+      <div className="border-b border-[#E5E5E5] bg-white sticky top-[100px] z-10">
+        <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-600">
+            <div className="font-geograph text-[14px] text-[#666]">
               Showing {cruises.length} of {totalCount} results
             </div>
 
@@ -381,9 +396,9 @@ export default function CategoryCruisesContent({ category }: Props) {
             <div className="relative">
               <button
                 onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
-                className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50"
+                className="flex items-center gap-2 px-4 py-2 border border-[#E5E5E5] rounded-[10px] hover:bg-[#F6F3ED] transition-colors"
               >
-                <span className="text-sm">
+                <span className="font-geograph text-[14px] text-[#0E1B4D]">
                   Sort:{" "}
                   {sortBy === "soonest"
                     ? "Soonest"
@@ -407,13 +422,13 @@ export default function CategoryCruisesContent({ category }: Props) {
               </button>
 
               {isSortDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-[10px] shadow-lg border border-[#E5E5E5] z-50">
                   <button
                     onClick={() => {
                       setSortBy("soonest");
                       setIsSortDropdownOpen(false);
                     }}
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                    className="block w-full text-left px-4 py-2 font-geograph text-[14px] text-[#0E1B4D] hover:bg-[#F6F3ED] transition-colors"
                   >
                     Soonest
                   </button>
@@ -422,7 +437,7 @@ export default function CategoryCruisesContent({ category }: Props) {
                       setSortBy("price");
                       setIsSortDropdownOpen(false);
                     }}
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                    className="block w-full text-left px-4 py-2 font-geograph text-[14px] text-[#0E1B4D] hover:bg-[#F6F3ED] transition-colors"
                   >
                     Price (Low to High)
                   </button>
@@ -431,7 +446,7 @@ export default function CategoryCruisesContent({ category }: Props) {
                       setSortBy("price-high");
                       setIsSortDropdownOpen(false);
                     }}
-                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-50"
+                    className="block w-full text-left px-4 py-2 font-geograph text-[14px] text-[#0E1B4D] hover:bg-[#F6F3ED] transition-colors"
                   >
                     Price (High to Low)
                   </button>
@@ -443,7 +458,7 @@ export default function CategoryCruisesContent({ category }: Props) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 container mx-auto px-4 py-6">
+      <div className="flex-1 max-w-7xl mx-auto px-4 py-6">
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -462,8 +477,8 @@ export default function CategoryCruisesContent({ category }: Props) {
           </div>
         ) : (
           <>
-            {/* Cruise Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {/* Cruise List */}
+            <div className="space-y-4">
               {cruises.map((cruise) => {
                 const price = getPrice(cruise);
                 const cruiseSlug = createSlugFromCruise({
@@ -475,55 +490,96 @@ export default function CategoryCruisesContent({ category }: Props) {
                 return (
                   <div
                     key={cruise.id}
-                    className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                    className="bg-white border border-[#E5E5E5] rounded-[10px] md:p-4 cursor-pointer overflow-hidden hover:shadow-lg transition-shadow"
                     onClick={() => router.push(`/cruise/${cruiseSlug}`)}
                   >
-                    {/* Cruise Image */}
-                    <div className="relative h-48">
-                      <Image
-                        src={
-                          cruise.ship?.defaultShipImage2k ||
-                          cruise.ship?.defaultShipImage ||
-                          cruise.shipImage ||
-                          "/images/cruise-placeholder.jpg"
-                        }
-                        alt={cruise.ship?.name || "Cruise ship"}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
+                    <div className="flex md:gap-6">
+                      {/* Cruise Image */}
+                      <div
+                        className="w-[70px] md:w-48 h-auto min-h-[100px] md:h-32 bg-gray-200 md:rounded-[10px] overflow-hidden flex-shrink-0 bg-cover bg-center"
+                        style={{
+                          backgroundImage:
+                            cruise.ship?.defaultShipImageHd ||
+                            cruise.ship?.defaultShipImage2k ||
+                            cruise.ship?.defaultShipImage ||
+                            cruise.shipImage
+                              ? `url(${
+                                  cruise.ship?.defaultShipImageHd ||
+                                  cruise.ship?.defaultShipImage2k ||
+                                  cruise.ship?.defaultShipImage ||
+                                  cruise.shipImage
+                                })`
+                              : undefined,
+                        }}
+                      >
+                        {!cruise.ship?.defaultShipImageHd &&
+                          !cruise.ship?.defaultShipImage2k &&
+                          !cruise.ship?.defaultShipImage &&
+                          !cruise.shipImage && (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              No image
+                            </div>
+                          )}
+                      </div>
 
-                    {/* Cruise Details */}
-                    <div className="p-4">
-                      <h3 className="font-semibold text-lg mb-1">
-                        {cruise.ship?.name || cruise.name}
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-2">
-                        {cruise.cruiseLine?.name}
-                      </p>
-                      <p className="text-sm mb-2">
-                        {cruise.nights} Nights • {cruise.embarkPortName}
-                      </p>
-                      <p className="text-sm text-gray-600 mb-3">
-                        {new Date(cruise.sailingDate).toLocaleDateString(
-                          "en-US",
-                          {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          },
-                        )}
-                      </p>
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="text-xs text-gray-500">From</p>
-                          <p className="text-xl font-bold text-blue-600">
-                            ${price.toFixed(0)}
-                          </p>
+                      {/* Cruise Details */}
+                      <div className="flex-1 flex flex-col md:flex-row md:justify-between md:items-center p-3 md:p-0">
+                        <div className="flex-1">
+                          <h3
+                            className="font-whitney font-black uppercase text-[#2F2F2F] text-[18px] md:text-[24px] mb-1"
+                            style={{ letterSpacing: "-0.02em" }}
+                          >
+                            {cruise.ship?.name || cruise.name}
+                          </h3>
+
+                          {/* Mobile: Cruise line/ship and price block */}
+                          <div className="md:hidden flex justify-between items-start mb-2">
+                            <div className="flex-1 mr-3">
+                              <p className="font-geograph text-[14px] text-[#606060]">
+                                {cruise.cruiseLine?.name || "Unknown Line"}
+                              </p>
+                              <p className="font-geograph text-[14px] text-[#606060]">
+                                {cruise.nights} Nights • {cruise.embarkPortName}
+                              </p>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <div className="font-geograph font-bold text-[12px] text-gray-500 uppercase tracking-wider mb-1">
+                                STARTING FROM
+                              </div>
+                              <div className="font-geograph font-bold text-[20px] text-[#0E1B4D]">
+                                ${price.toFixed(0)}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Desktop: Cruise details */}
+                          <div className="hidden md:block">
+                            <p className="font-geograph text-[14px] text-[#606060] mb-1">
+                              {cruise.cruiseLine?.name} • {cruise.nights} Nights
+                            </p>
+                            <p className="font-geograph text-[14px] text-[#606060]">
+                              {cruise.embarkPortName} •{" "}
+                              {new Date(cruise.sailingDate).toLocaleDateString(
+                                "en-US",
+                                {
+                                  month: "short",
+                                  day: "numeric",
+                                  year: "numeric",
+                                },
+                              )}
+                            </p>
+                          </div>
                         </div>
-                        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                          View Deal
-                        </button>
+
+                        {/* Desktop Price */}
+                        <div className="hidden md:block text-right">
+                          <div className="font-geograph font-bold text-[12px] text-gray-500 uppercase tracking-wider mb-1">
+                            STARTING FROM
+                          </div>
+                          <div className="font-geograph font-bold text-[28px] text-[#0E1B4D]">
+                            ${price.toFixed(0)}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -538,7 +594,7 @@ export default function CategoryCruisesContent({ category }: Props) {
                   {page > 1 && (
                     <button
                       onClick={() => setPage(page - 1)}
-                      className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                      className="px-4 py-2 border border-[#E5E5E5] rounded-[10px] font-geograph text-[14px] text-[#0E1B4D] hover:bg-[#F6F3ED] transition-colors"
                     >
                       Previous
                     </button>
@@ -561,11 +617,11 @@ export default function CategoryCruisesContent({ category }: Props) {
                       <button
                         key={pageNum}
                         onClick={() => setPage(pageNum)}
-                        className={`px-4 py-2 rounded-lg ${
+                        className={`px-4 py-2 rounded-[10px] font-geograph text-[14px] ${
                           pageNum === page
-                            ? "bg-blue-600 text-white"
-                            : "border hover:bg-gray-50"
-                        }`}
+                            ? "bg-[#0E1B4D] text-white"
+                            : "border border-[#E5E5E5] text-[#0E1B4D] hover:bg-[#F6F3ED]"
+                        } transition-colors`}
                       >
                         {pageNum}
                       </button>
@@ -575,7 +631,7 @@ export default function CategoryCruisesContent({ category }: Props) {
                   {page < totalPages && (
                     <button
                       onClick={() => setPage(page + 1)}
-                      className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+                      className="px-4 py-2 border border-[#E5E5E5] rounded-[10px] font-geograph text-[14px] text-[#0E1B4D] hover:bg-[#F6F3ED] transition-colors"
                     >
                       Next
                     </button>
@@ -589,19 +645,29 @@ export default function CategoryCruisesContent({ category }: Props) {
 
       {/* SEO Content Section */}
       {!loading && !error && (
-        <div className="bg-gray-50 py-12 mt-8">
-          <div className="container mx-auto px-4">
+        <div className="bg-[#F6F3ED] py-12 mt-8 border-t border-[#E5E5E5]">
+          <div className="max-w-7xl mx-auto px-4">
             {/* FAQs */}
             {category.faqItems && category.faqItems.length > 0 && (
               <div className="mb-8">
-                <h2 className="text-2xl font-bold mb-6">
+                <h2
+                  className="font-whitney font-black uppercase text-[28px] text-[#0E1B4D] mb-6"
+                  style={{ letterSpacing: "-0.02em" }}
+                >
                   Frequently Asked Questions about {category.title}
                 </h2>
                 <div className="space-y-4">
                   {category.faqItems.map((faq, index) => (
-                    <div key={index} className="bg-white p-6 rounded-lg">
-                      <h3 className="font-semibold mb-2">{faq.question}</h3>
-                      <p className="text-gray-700">{faq.answer}</p>
+                    <div
+                      key={index}
+                      className="bg-white p-6 rounded-[10px] border border-[#E5E5E5]"
+                    >
+                      <h3 className="font-geograph font-bold text-[18px] text-[#0E1B4D] mb-2">
+                        {faq.question}
+                      </h3>
+                      <p className="font-geograph text-[16px] text-[#666] leading-relaxed">
+                        {faq.answer}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -609,14 +675,17 @@ export default function CategoryCruisesContent({ category }: Props) {
             )}
 
             {/* Why Book With Us */}
-            <div className="bg-white p-6 rounded-lg">
-              <h2 className="text-2xl font-bold mb-4">
+            <div className="bg-white p-6 rounded-[10px] border border-[#E5E5E5]">
+              <h2
+                className="font-whitney font-black uppercase text-[28px] text-[#0E1B4D] mb-4"
+                style={{ letterSpacing: "-0.02em" }}
+              >
                 Why Book Your {category.name} Cruise with Zipsea?
               </h2>
-              <ul className="space-y-2 text-gray-700">
+              <ul className="space-y-3">
                 <li className="flex items-start">
                   <svg
-                    className="w-5 h-5 text-green-500 mr-2 mt-1 flex-shrink-0"
+                    className="w-5 h-5 text-[#2238C3] mr-3 mt-1 flex-shrink-0"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -626,12 +695,14 @@ export default function CategoryCruisesContent({ category }: Props) {
                       clipRule="evenodd"
                     />
                   </svg>
-                  Maximum onboard credit on every booking - more spending money
-                  for your vacation
+                  <span className="font-geograph text-[16px] text-[#666]">
+                    Maximum onboard credit on every booking - more spending
+                    money for your vacation
+                  </span>
                 </li>
                 <li className="flex items-start">
                   <svg
-                    className="w-5 h-5 text-green-500 mr-2 mt-1 flex-shrink-0"
+                    className="w-5 h-5 text-[#2238C3] mr-3 mt-1 flex-shrink-0"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -641,11 +712,13 @@ export default function CategoryCruisesContent({ category }: Props) {
                       clipRule="evenodd"
                     />
                   </svg>
-                  Compare prices across all major cruise lines in one place
+                  <span className="font-geograph text-[16px] text-[#666]">
+                    Compare prices across all major cruise lines in one place
+                  </span>
                 </li>
                 <li className="flex items-start">
                   <svg
-                    className="w-5 h-5 text-green-500 mr-2 mt-1 flex-shrink-0"
+                    className="w-5 h-5 text-[#2238C3] mr-3 mt-1 flex-shrink-0"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -655,11 +728,13 @@ export default function CategoryCruisesContent({ category }: Props) {
                       clipRule="evenodd"
                     />
                   </svg>
-                  Real-time pricing and availability direct from cruise lines
+                  <span className="font-geograph text-[16px] text-[#666]">
+                    Real-time pricing and availability direct from cruise lines
+                  </span>
                 </li>
                 <li className="flex items-start">
                   <svg
-                    className="w-5 h-5 text-green-500 mr-2 mt-1 flex-shrink-0"
+                    className="w-5 h-5 text-[#2238C3] mr-3 mt-1 flex-shrink-0"
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
@@ -669,7 +744,9 @@ export default function CategoryCruisesContent({ category }: Props) {
                       clipRule="evenodd"
                     />
                   </svg>
-                  Expert cruise consultants available to help you plan
+                  <span className="font-geograph text-[16px] text-[#666]">
+                    Expert cruise consultants available to help you plan
+                  </span>
                 </li>
               </ul>
             </div>
