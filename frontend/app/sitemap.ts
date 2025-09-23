@@ -1,4 +1,5 @@
 import { MetadataRoute } from "next";
+import { getCategorySitemapEntries } from "../lib/cruise-categories";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://www.zipsea.com";
@@ -71,8 +72,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
+  // Cruise category pages (Caribbean, Alaska, Royal Caribbean, etc.)
+  const categoryPages = getCategorySitemapEntries().map((entry) => ({
+    ...entry,
+    url: `${baseUrl}${entry.url}`,
+  }));
+
   // TODO: Add dynamic cruise pages here by fetching from API
   // const cruisePages = await fetchCruisePages();
 
-  return [...staticPages, ...guidePages];
+  return [...staticPages, ...guidePages, ...categoryPages];
 }
