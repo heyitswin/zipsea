@@ -48,6 +48,34 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  // Redirects for SEO optimization
+  async redirects() {
+    return [
+      // Redirect privacy-policy to privacy
+      {
+        source: "/privacy-policy",
+        destination: "/privacy",
+        permanent: true,
+      },
+      // Remove trailing slashes for consistency
+      {
+        source: "/:path+/",
+        destination: "/:path+",
+        permanent: true,
+      },
+      // Handle partytown (remove if not needed)
+      {
+        source: "/~partytown/:path*",
+        destination: "/",
+        permanent: false,
+      },
+      {
+        source: "/~partytown",
+        destination: "/",
+        permanent: false,
+      },
+    ];
+  },
   // Proxy API requests to backend to avoid CORS and SSL issues
   async rewrites() {
     return [

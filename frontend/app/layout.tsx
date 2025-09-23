@@ -33,9 +33,26 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Zipsea - Find the Best Cruise Deals",
   description:
-    "Discover amazing cruise deals and book your perfect vacation with Zipsea",
+    "Discover amazing cruise deals and book your perfect vacation with Zipsea. Get maximum onboard credit on every cruise booking.",
   manifest: "/manifest.webmanifest",
   metadataBase: new URL("https://www.zipsea.com"),
+  alternates: {
+    canonical: "https://www.zipsea.com",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",

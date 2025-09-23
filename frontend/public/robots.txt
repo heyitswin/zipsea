@@ -1,0 +1,16 @@
+# Robots.txt for zipsea.com
+# Allow all search engines to crawl the site
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /sign-in
+Disallow: /sign-up
+Disallow: /auth/
+Disallow: /_next/
+Disallow: /test-*
+Disallow: /*.json$
+
+# Sitemap location
+Sitemap: https://www.zipsea.com/sitemap.xml
