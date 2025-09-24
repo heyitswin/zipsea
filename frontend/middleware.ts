@@ -26,12 +26,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/test-config",
   "/api/image-proxy", // Allow public access to image proxy
   // Public API routes for cruise browsing
-  "/api/v1/cruises/(.*)",
-  "/api/v1/search",
-  "/api/v1/search/(.*)", // Include comprehensive search endpoint
-  "/api/v1/ships/(.*)",
-  "/api/v1/filter-options", // Filter options for dropdowns
-  "/api/v1/filters/(.*)", // All filter endpoints
+  "/api/v1/(.*)", // All backend API routes are public (read-only)
   "/api/health",
 ]);
 
