@@ -220,7 +220,7 @@ export const destinationCategories: CategoryConfig[] = [
     royal palaces, and cruise past stunning coastal scenery. Popular itineraries include the Norwegian Fjords with their waterfalls and
     mountains, Baltic cruises visiting St. Petersburg, Stockholm, and Copenhagen, and British Isles voyages exploring Scotland and Ireland.`,
     filters: {
-      regionId: [6, 9, 10, 16], // European region IDs
+      regionId: [4, 20, 9, 22], // Europe, Baltic, Scandinavia, Iberian Peninsula
     },
     priority: 0.8,
     changeFrequency: "weekly",

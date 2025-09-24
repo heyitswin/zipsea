@@ -145,12 +145,14 @@ export default function CategoryCruisesContent({ category }: Props) {
         );
       }
 
-      if (category.filters.minNights !== undefined) {
-        params.append("minNights", category.filters.minNights.toString());
-      }
-
-      if (category.filters.maxNights !== undefined) {
-        params.append("maxNights", category.filters.maxNights.toString());
+      // Handle nights filter for special cruises
+      if (
+        category.filters.minNights !== undefined ||
+        category.filters.maxNights !== undefined
+      ) {
+        const min = category.filters.minNights || 1;
+        const max = category.filters.maxNights || 30;
+        params.append("nights", `${min}-${max}`);
       }
 
       if (category.filters.maxPrice !== undefined) {
@@ -315,19 +317,21 @@ export default function CategoryCruisesContent({ category }: Props) {
 
     if (category.filters.departurePortId) {
       params.append(
-        "departurePorts",
+        "ports",
         Array.isArray(category.filters.departurePortId)
           ? category.filters.departurePortId.join(",")
           : category.filters.departurePortId.toString(),
       );
     }
 
-    if (category.filters.minNights !== undefined) {
-      params.append("minNights", category.filters.minNights.toString());
-    }
-
-    if (category.filters.maxNights !== undefined) {
-      params.append("maxNights", category.filters.maxNights.toString());
+    // Handle nights filter for special cruises
+    if (
+      category.filters.minNights !== undefined ||
+      category.filters.maxNights !== undefined
+    ) {
+      const min = category.filters.minNights || 1;
+      const max = category.filters.maxNights || 30;
+      params.append("nights", `${min}-${max}`);
     }
 
     if (category.filters.maxPrice !== undefined) {
