@@ -289,9 +289,9 @@ export default function Footer() {
 
           {/* Right side - Navigation links, social icons, and CLIA */}
           <div className="flex flex-col items-end">
-            <div className="flex items-center gap-8 mb-6">
+            <div className="flex items-start gap-8 mb-6">
               {/* Navigation Links */}
-              <div className="flex items-center gap-8">
+              <div className="flex items-start gap-8">
                 {/* OBC Calculator and AI Citation - Stacked */}
                 <div className="flex flex-col space-y-2">
                   <a

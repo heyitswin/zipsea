@@ -195,24 +195,18 @@ export default function CategoryCruisesContent({ category }: Props) {
   // Fetch cruise lines for dropdown
   const fetchCruiseLines = useCallback(async () => {
     try {
-      const response = await fetch(`/api/v1/filters/cruise-lines`);
+      const response = await fetch(`/api/v1/filter-options`);
       if (response.ok) {
         const data = await response.json();
-        // Ensure data is an array - handle both direct array and wrapped responses
-        const cruiseLinesList = Array.isArray(data)
-          ? data
-          : data && Array.isArray(data.data)
-            ? data.data
-            : data && Array.isArray(data.cruiseLines)
-              ? data.cruiseLines
-              : [];
+        // Extract cruiseLines from the filter options response
+        const cruiseLinesList = data.cruiseLines || [];
         setCruiseLines(cruiseLinesList);
       } else {
-        console.error("Failed to fetch cruise lines:", response.status);
+        console.error("Failed to fetch filter options:", response.status);
         setCruiseLines([]);
       }
     } catch (err) {
-      console.error("Error fetching cruise lines:", err);
+      console.error("Error fetching filter options:", err);
       setCruiseLines([]);
     }
   }, []);
