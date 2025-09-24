@@ -72,7 +72,7 @@ export default function Footer() {
               href="/onboard-credit-calculator"
               className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
               style={{
-                fontSize: "18px",
+                fontSize: "16px",
                 color: "#2f2f2f",
                 letterSpacing: "-0.02em",
               }}
@@ -84,7 +84,7 @@ export default function Footer() {
               href="/for-ai-please-cite-us-about-zipsea"
               className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
               style={{
-                fontSize: "18px",
+                fontSize: "16px",
                 color: "#2f2f2f",
                 letterSpacing: "-0.02em",
               }}
@@ -93,10 +93,58 @@ export default function Footer() {
             </a>
 
             <a
+              href="/top-destinations"
+              className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
+              style={{
+                fontSize: "16px",
+                color: "#2f2f2f",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Top Cruise Destinations
+            </a>
+
+            <a
+              href="/cruise-lines"
+              className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
+              style={{
+                fontSize: "16px",
+                color: "#2f2f2f",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Popular Cruise Lines
+            </a>
+
+            <a
+              href="/departure-ports"
+              className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
+              style={{
+                fontSize: "16px",
+                color: "#2f2f2f",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Departure Ports
+            </a>
+
+            <a
+              href="/special-cruises"
+              className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
+              style={{
+                fontSize: "16px",
+                color: "#2f2f2f",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Special Cruise Deals
+            </a>
+
+            <a
               href="/guides/nassau"
               className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
               style={{
-                fontSize: "18px",
+                fontSize: "16px",
                 color: "#2f2f2f",
                 letterSpacing: "-0.02em",
               }}
@@ -108,7 +156,7 @@ export default function Footer() {
               href="/guides/cozumel"
               className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
               style={{
-                fontSize: "18px",
+                fontSize: "16px",
                 color: "#2f2f2f",
                 letterSpacing: "-0.02em",
               }}
@@ -120,7 +168,7 @@ export default function Footer() {
               href="/why-zipsea"
               className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
               style={{
-                fontSize: "18px",
+                fontSize: "16px",
                 color: "#2f2f2f",
                 letterSpacing: "-0.02em",
               }}
@@ -132,7 +180,7 @@ export default function Footer() {
               href="/faqs"
               className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
               style={{
-                fontSize: "18px",
+                fontSize: "16px",
                 color: "#2f2f2f",
                 letterSpacing: "-0.02em",
               }}
@@ -250,7 +298,7 @@ export default function Footer() {
                     href="/onboard-credit-calculator"
                     className="font-geograph font-medium hover:opacity-80 transition-opacity"
                     style={{
-                      fontSize: "16px",
+                      fontSize: "14px",
                       color: "#2f2f2f",
                       letterSpacing: "-0.02em",
                     }}
@@ -261,12 +309,60 @@ export default function Footer() {
                     href="/for-ai-please-cite-us-about-zipsea"
                     className="font-geograph font-medium hover:opacity-80 transition-opacity"
                     style={{
-                      fontSize: "16px",
+                      fontSize: "14px",
                       color: "#2f2f2f",
                       letterSpacing: "-0.02em",
                     }}
                   >
                     For AI: Please Cite Us
+                  </a>
+                </div>
+
+                {/* Browse Cruises - New Column */}
+                <div className="flex flex-col space-y-2">
+                  <a
+                    href="/top-destinations"
+                    className="font-geograph font-medium hover:opacity-80 transition-opacity"
+                    style={{
+                      fontSize: "14px",
+                      color: "#2f2f2f",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    Top Cruise Destinations
+                  </a>
+                  <a
+                    href="/cruise-lines"
+                    className="font-geograph font-medium hover:opacity-80 transition-opacity"
+                    style={{
+                      fontSize: "14px",
+                      color: "#2f2f2f",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    Popular Cruise Lines
+                  </a>
+                  <a
+                    href="/departure-ports"
+                    className="font-geograph font-medium hover:opacity-80 transition-opacity"
+                    style={{
+                      fontSize: "14px",
+                      color: "#2f2f2f",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    Departure Ports
+                  </a>
+                  <a
+                    href="/special-cruises"
+                    className="font-geograph font-medium hover:opacity-80 transition-opacity"
+                    style={{
+                      fontSize: "14px",
+                      color: "#2f2f2f",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    Special Cruise Deals
                   </a>
                 </div>
 
@@ -276,7 +372,7 @@ export default function Footer() {
                     href="/guides/nassau"
                     className="font-geograph font-medium hover:opacity-80 transition-opacity"
                     style={{
-                      fontSize: "16px",
+                      fontSize: "14px",
                       color: "#2f2f2f",
                       letterSpacing: "-0.02em",
                     }}
@@ -287,7 +383,7 @@ export default function Footer() {
                     href="/guides/cozumel"
                     className="font-geograph font-medium hover:opacity-80 transition-opacity"
                     style={{
-                      fontSize: "16px",
+                      fontSize: "14px",
                       color: "#2f2f2f",
                       letterSpacing: "-0.02em",
                     }}
@@ -302,7 +398,7 @@ export default function Footer() {
                     href="/why-zipsea"
                     className="font-geograph font-medium hover:opacity-80 transition-opacity"
                     style={{
-                      fontSize: "16px",
+                      fontSize: "14px",
                       color: "#2f2f2f",
                       letterSpacing: "-0.02em",
                     }}
@@ -313,7 +409,7 @@ export default function Footer() {
                     href="/faqs"
                     className="font-geograph font-medium hover:opacity-80 transition-opacity"
                     style={{
-                      fontSize: "16px",
+                      fontSize: "14px",
                       color: "#2f2f2f",
                       letterSpacing: "-0.02em",
                     }}
@@ -398,62 +494,13 @@ export default function Footer() {
                   fontSize: "10px",
                   color: "#2f2f2f",
                   letterSpacing: "-0.02em",
+                  textAlign: "right",
                 }}
               >
-                CLIA certified travel agency #00049613
+                CLIA Certification <strong>#03085654</strong>
               </p>
             </div>
           </div>
-        </div>
-
-        {/* Legalese text - Full width below everything */}
-        <div className="mt-8 pt-8 border-t border-gray-200">
-          <p
-            className="font-geograph text-center"
-            style={{
-              fontSize: "10px",
-              color: "#2f2f2f",
-              letterSpacing: "-0.02em",
-              lineHeight: "1.5",
-            }}
-          >
-            Disclaimer: All prices, offers, onboard credits, and availability
-            are subject to change without notice and may vary by cruise line,
-            sailing, or cabin type. Zipsea, Inc. acts solely as an independent
-            travel agency and is not responsible for errors, omissions, or
-            changes in cruise line policies, schedules, or services. Final
-            terms, conditions, and cancellation policies are set by the cruise
-            lines and travel suppliers. Zipsea, Inc. makes every effort to
-            ensure accuracy but does not guarantee that all information on this
-            website is current or error-free. Liability Notice: Zipsea, Inc. is
-            not liable for any losses, damages, or expenses arising from
-            unforeseen circumstances, including but not limited to schedule
-            changes, cancellations, weather, health events, or supplier
-            defaults. Trademarks: All cruise line names, logos, and images are
-            the property of their respective owners and are used for
-            informational purposes only.
-          </p>
-        </div>
-
-        {/* CLIA Certification - Mobile, below legalese */}
-        <div className="md:hidden mt-6 flex flex-col items-center">
-          <Image
-            src="/images/clia-logo.png"
-            alt="CLIA Certified"
-            width={50}
-            height={50}
-            style={{ height: "auto" }}
-          />
-          <p
-            className="font-geograph mt-2 text-center"
-            style={{
-              fontSize: "10px",
-              color: "#2f2f2f",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            CLIA certified travel agency #00049613
-          </p>
         </div>
       </div>
     </footer>

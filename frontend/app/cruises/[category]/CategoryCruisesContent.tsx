@@ -167,7 +167,7 @@ export default function CategoryCruisesContent({ category }: Props) {
       params.append("sortOrder", "asc");
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || ""}/search/comprehensive?${params.toString()}`,
+        `/api/v1/search/comprehensive?${params.toString()}`,
         {
           signal: abortController.signal,
           headers: {
@@ -195,9 +195,7 @@ export default function CategoryCruisesContent({ category }: Props) {
   // Fetch cruise lines for dropdown
   const fetchCruiseLines = useCallback(async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || ""}/api/v1/filters/cruise-lines`,
-      );
+      const response = await fetch(`/api/v1/filters/cruise-lines`);
       if (response.ok) {
         const data = await response.json();
         setCruiseLines(data || []);
@@ -331,7 +329,7 @@ export default function CategoryCruisesContent({ category }: Props) {
       <div
         className="w-full h-[21px]"
         style={{
-          backgroundImage: 'url("/images/separator-5.png")',
+          backgroundImage: 'url("/images/separator-2.png")',
           backgroundRepeat: "repeat-x",
           backgroundSize: "1749px 21px",
           backgroundPosition: "left top",
@@ -339,7 +337,10 @@ export default function CategoryCruisesContent({ category }: Props) {
       />
 
       {/* Main Content */}
-      <main className="py-[40px] md:py-[80px]">
+      <main
+        className="py-[40px] md:py-[80px]"
+        style={{ backgroundColor: "#F6F3ED" }}
+      >
         <div className="max-w-7xl mx-auto px-4">
           {/* SEO Description */}
           <div className="max-w-4xl mx-auto text-center mb-12">
@@ -350,7 +351,10 @@ export default function CategoryCruisesContent({ category }: Props) {
 
           {/* Search Bar Section */}
           <div className="max-w-4xl mx-auto mb-12">
-            <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-6">
+            <div
+              className="rounded-[10px] border border-[#E5E5E5] p-6"
+              style={{ backgroundColor: "white" }}
+            >
               <h3 className="font-geograph font-bold text-[18px] text-[#0E1B4D] mb-4">
                 Refine Your {category.name} Search
               </h3>
@@ -617,70 +621,121 @@ export default function CategoryCruisesContent({ category }: Props) {
                           ) : null}
                         </div>
 
-                        {/* Date Range Badge */}
-                        <div className="absolute top-3 left-3 bg-white px-3 py-1 rounded-full">
-                          <span className="font-geograph font-bold text-[14px] text-[#0E1B4D]">
-                            {dateRange}
-                          </span>
+                        {/* Date Range Badge - Moved to top-right */}
+                        <div
+                          className="absolute top-3 right-3 bg-white px-1 py-0.5 rounded-[3px]"
+                          style={{
+                            fontSize: "13px",
+                            fontFamily: "Geograph",
+                            fontWeight: "bold",
+                            color: "#3a3c3e",
+                            letterSpacing: "-0.02em",
+                            paddingLeft: "6px",
+                            paddingRight: "6px",
+                            paddingTop: "2px",
+                            paddingBottom: "2px",
+                          }}
+                        >
+                          {dateRange}
                         </div>
                       </div>
 
-                      {/* Cruise Details */}
-                      <div className="flex-1 flex flex-col md:flex-row md:justify-between md:items-center p-3 md:p-0">
-                        <div className="flex-1">
-                          <h3
-                            className="font-whitney font-black uppercase text-[#2F2F2F] text-[18px] md:text-[24px] mb-1"
-                            style={{ letterSpacing: "-0.02em" }}
-                          >
-                            {cruise.ship?.name || cruise.name}
-                          </h3>
+                      {/* Card Content - Two Column Layout */}
+                      <div className="mt-4">
+                        <div className="flex justify-between items-start">
+                          {/* Left Side - Cruise Details */}
+                          <div className="flex-1 pr-4">
+                            {/* Cruise Name - Truncated */}
+                            <h3
+                              className="font-geograph font-medium"
+                              style={{
+                                fontSize: "18px",
+                                color: "#0E1B4D",
+                                letterSpacing: "-0.02em",
+                                marginBottom: "14px",
+                                lineHeight: "1.1",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                            >
+                              {truncatedName}
+                            </h3>
 
-                          {/* Mobile: Cruise line/ship and price block */}
-                          <div className="md:hidden flex justify-between items-start mb-2">
-                            <div className="flex-1 mr-3">
-                              <p className="font-geograph text-[14px] text-[#606060]">
-                                {cruise.cruiseLine?.name || "Unknown Line"}
-                              </p>
-                              <p className="font-geograph text-[14px] text-[#606060]">
-                                {cruise.nights} Nights • {cruise.embarkPortName}
-                              </p>
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              <div className="font-geograph font-bold text-[12px] text-gray-500 uppercase tracking-wider mb-1">
-                                STARTING FROM
-                              </div>
-                              <div className="font-geograph font-bold text-[20px] text-[#0E1B4D]">
-                                ${price.toFixed(0)}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Desktop: Cruise details */}
-                          <div className="hidden md:block">
-                            <p className="font-geograph text-[14px] text-[#606060] mb-1">
-                              {cruise.cruiseLine?.name} • {cruise.nights} Nights
+                            {/* Duration and Port */}
+                            <p
+                              className="font-geograph font-medium mb-1"
+                              style={{
+                                fontSize: "13px",
+                                color: "#2f2f2f",
+                                letterSpacing: "-0.02em",
+                              }}
+                            >
+                              {cruise.nights} nights • {cruise.embarkPortName}
                             </p>
-                            <p className="font-geograph text-[14px] text-[#606060]">
-                              {cruise.embarkPortName} •{" "}
-                              {new Date(cruise.sailingDate).toLocaleDateString(
-                                "en-US",
-                                {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                },
-                              )}
+
+                            {/* Cruise Line */}
+                            <p
+                              className="font-geograph"
+                              style={{
+                                fontSize: "13px",
+                                color: "#2f2f2f",
+                                letterSpacing: "-0.02em",
+                                fontWeight: "normal",
+                              }}
+                            >
+                              {cruise.cruiseLine?.name || "Cruise Line"}
                             </p>
                           </div>
-                        </div>
 
-                        {/* Desktop Price */}
-                        <div className="hidden md:block text-right">
-                          <div className="font-geograph font-bold text-[12px] text-gray-500 uppercase tracking-wider mb-1">
-                            STARTING FROM
-                          </div>
-                          <div className="font-geograph font-bold text-[28px] text-[#0E1B4D]">
-                            ${price.toFixed(0)}
+                          {/* Right Side - Pricing */}
+                          <div className="flex flex-col items-end min-w-0">
+                            {/* "STARTING FROM" label */}
+                            <p
+                              className="font-geograph font-bold"
+                              style={{
+                                fontSize: "9px",
+                                color: "#474747",
+                                letterSpacing: "0.1em",
+                                marginBottom: "0.25px",
+                              }}
+                            >
+                              STARTING FROM
+                            </p>
+
+                            {/* Price */}
+                            <p
+                              className="font-geograph font-medium"
+                              style={{
+                                fontSize: "22px",
+                                letterSpacing: "-0.02em",
+                                marginBottom: "4px",
+                              }}
+                            >
+                              ${Math.floor(price).toLocaleString()}
+                            </p>
+
+                            {/* OBC Badge */}
+                            {obc > 0 && (
+                              <div
+                                className="rounded-[3px]"
+                                style={{
+                                  backgroundColor: "#1b8f57",
+                                  fontSize: "13px",
+                                  fontFamily: "Geograph",
+                                  fontWeight: "500",
+                                  color: "white",
+                                  letterSpacing: "-0.02em",
+                                  paddingLeft: "7px",
+                                  paddingRight: "7px",
+                                  paddingTop: "3px",
+                                  paddingBottom: "3px",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                +${obc} onboard credit
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -707,7 +762,8 @@ export default function CategoryCruisesContent({ category }: Props) {
                     {category.faqItems.map((faq, index) => (
                       <div
                         key={index}
-                        className="bg-white p-6 rounded-[10px] border border-[#E5E5E5]"
+                        className="p-6 rounded-[10px] border border-[#E5E5E5]"
+                        style={{ backgroundColor: "white" }}
                       >
                         <h3 className="font-geograph font-bold text-[18px] text-[#0E1B4D] mb-2">
                           {faq.question}
