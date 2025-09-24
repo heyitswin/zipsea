@@ -125,6 +125,7 @@ export default function CruisesContent() {
   >([]);
   const [selectedShips, setSelectedShips] = useState<number[]>([]);
   const [selectedRegions, setSelectedRegions] = useState<number[]>([]);
+  const [maxPrice, setMaxPrice] = useState<number | null>(null);
 
   // Filter dropdown states
   const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] =
@@ -329,6 +330,11 @@ export default function CruisesContent() {
         });
       }
 
+      // Add maxPrice filter if present
+      if (maxPrice !== null) {
+        params.append("maxPrice", maxPrice.toString());
+      }
+
       // Add sorting
       switch (sortBy) {
         case "soonest":
@@ -454,6 +460,7 @@ export default function CruisesContent() {
     setSelectedDeparturePorts([]);
     setSelectedShips([]);
     setSelectedRegions([]);
+    setMaxPrice(null);
     setPage(1);
     setSortBy("soonest");
 
@@ -464,6 +471,7 @@ export default function CruisesContent() {
     const portsParam = searchParams.get("ports");
     const shipsParam = searchParams.get("ships");
     const regionsParam = searchParams.get("regions");
+    const maxPriceParam = searchParams.get("maxPrice");
     const pageParam = searchParams.get("page");
     const sortParam = searchParams.get("sort");
 
@@ -521,6 +529,15 @@ export default function CruisesContent() {
       setSelectedRegions(regionIds);
     }
 
+    // Update maxPrice if specified
+    if (maxPriceParam) {
+      const price = parseInt(maxPriceParam);
+      if (!isNaN(price) && price > 0) {
+        console.log("Setting maxPrice from URL:", price);
+        setMaxPrice(price);
+      }
+    }
+
     // Update page if specified
     if (pageParam) {
       const pageNum = parseInt(pageParam);
@@ -561,6 +578,7 @@ export default function CruisesContent() {
       selectedDeparturePorts,
       selectedShips,
       selectedRegions,
+      maxPrice,
       sortBy,
     });
     fetchCruises();
@@ -582,6 +600,7 @@ export default function CruisesContent() {
     selectedDeparturePorts,
     selectedShips,
     selectedRegions,
+    maxPrice,
     sortBy,
   ]);
 
