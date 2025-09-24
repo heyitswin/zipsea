@@ -166,23 +166,29 @@ export default function CategoryCruisesContent({ category }: Props) {
       params.append("sortBy", "date");
       params.append("sortOrder", "asc");
 
-      const response = await fetch(
-        `/api/v1/search/comprehensive?${params.toString()}`,
-        {
-          signal: abortController.signal,
-          headers: {
-            "Content-Type": "application/json",
-          },
+      const url = `/api/v1/search/comprehensive?${params.toString()}`;
+      console.log(`Fetching cruises from: ${url}`);
+
+      const response = await fetch(url, {
+        signal: abortController.signal,
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch cruises");
+        console.error(
+          `Failed to fetch cruises: ${response.status} ${response.statusText}`,
+        );
+        const errorText = await response.text();
+        console.error(`Error details:`, errorText);
+        throw new Error(`Failed to fetch cruises: ${response.status}`);
       }
 
       const data = await response.json();
       console.log(
         `Fetched ${data.results?.length || 0} cruises for ${category.name}`,
+        data,
       );
       setFeaturedCruises(data.results || []);
       setLoading(false);
@@ -198,19 +204,27 @@ export default function CategoryCruisesContent({ category }: Props) {
   // Fetch cruise lines for dropdown
   const fetchCruiseLines = useCallback(async () => {
     try {
+      console.log("Fetching cruise lines from /api/v1/filter-options");
       const response = await fetch(`/api/v1/filter-options`);
-      if (response.ok) {
-        const data = await response.json();
-        // Extract cruiseLines from the filter options response
-        const cruiseLinesList = data.cruiseLines || [];
-        console.log(
-          `Fetched ${cruiseLinesList.length} cruise lines for dropdown`,
+
+      if (!response.ok) {
+        console.error(
+          `Failed to fetch filter options: ${response.status} ${response.statusText}`,
         );
-        setCruiseLines(cruiseLinesList);
-      } else {
-        console.error("Failed to fetch filter options:", response.status);
+        const errorText = await response.text();
+        console.error(`Error details:`, errorText);
         setCruiseLines([]);
+        return;
       }
+
+      const data = await response.json();
+      // Extract cruiseLines from the filter options response
+      const cruiseLinesList = data.cruiseLines || [];
+      console.log(
+        `Fetched ${cruiseLinesList.length} cruise lines for dropdown`,
+        cruiseLinesList.slice(0, 5),
+      );
+      setCruiseLines(cruiseLinesList);
     } catch (err) {
       console.error("Error fetching filter options:", err);
       setCruiseLines([]);
