@@ -530,7 +530,7 @@ export default function CategoryCruisesContent({ category }: Props) {
                               fill
                               className="object-cover"
                             />
-                          ) : (
+                          ) : null}
                         </div>
 
                         {/* Date Range Badge */}
