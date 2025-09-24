@@ -78,12 +78,12 @@ const nextConfig: NextConfig = {
   },
   // Proxy API requests to backend to avoid CORS and SSL issues
   async rewrites() {
+    const backendUrl =
+      process.env.BACKEND_URL || "https://zipsea-production.onrender.com";
     return [
       {
         source: "/api/v1/:path*",
-        destination:
-          process.env.BACKEND_URL ||
-          "https://zipsea-production.onrender.com/api/v1/:path*",
+        destination: `${backendUrl}/api/v1/:path*`,
       },
     ];
   },
