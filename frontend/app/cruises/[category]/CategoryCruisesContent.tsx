@@ -83,14 +83,18 @@ export default function CategoryCruisesContent({ category }: Props) {
   // Search state
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [selectedCruiseLine, setSelectedCruiseLine] = useState<string>("");
+  const [selectedRegion, setSelectedRegion] = useState<string>("");
   const [cruiseLines, setCruiseLines] = useState<FilterOption[]>([]);
+  const [regions, setRegions] = useState<FilterOption[]>([]);
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
   const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] =
     useState(false);
+  const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
 
   // Refs for dropdown click outside detection
   const dateDropdownRef = useRef<HTMLDivElement>(null);
   const cruiseLineDropdownRef = useRef<HTMLDivElement>(null);
+  const regionDropdownRef = useRef<HTMLDivElement>(null);
 
   // Track requests to prevent race conditions
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -201,10 +205,10 @@ export default function CategoryCruisesContent({ category }: Props) {
     }
   }, [category]);
 
-  // Fetch cruise lines for dropdown
-  const fetchCruiseLines = useCallback(async () => {
+  // Fetch filter options (cruise lines and regions) for dropdowns
+  const fetchFilterOptions = useCallback(async () => {
     try {
-      console.log("Fetching cruise lines from /api/v1/filter-options");
+      console.log("Fetching filter options from /api/v1/filter-options");
       const response = await fetch(`/api/v1/filter-options`);
 
       if (!response.ok) {
@@ -214,34 +218,37 @@ export default function CategoryCruisesContent({ category }: Props) {
         const errorText = await response.text();
         console.error(`Error details:`, errorText);
         setCruiseLines([]);
+        setRegions([]);
         return;
       }
 
       const data = await response.json();
-      // Extract cruiseLines from the filter options response
+      // Extract cruiseLines and regions from the filter options response
       const cruiseLinesList = data.cruiseLines || [];
+      const regionsList = data.regions || [];
       console.log(
-        `Fetched ${cruiseLinesList.length} cruise lines for dropdown`,
-        cruiseLinesList.slice(0, 5),
+        `Fetched ${cruiseLinesList.length} cruise lines and ${regionsList.length} regions`,
       );
       setCruiseLines(cruiseLinesList);
+      setRegions(regionsList);
     } catch (err) {
       console.error("Error fetching filter options:", err);
       setCruiseLines([]);
+      setRegions([]);
     }
   }, []);
 
   // Fetch data on mount
   useEffect(() => {
     fetchFeaturedCruises();
-    fetchCruiseLines();
+    fetchFilterOptions();
 
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
     };
-  }, [fetchFeaturedCruises, fetchCruiseLines]);
+  }, [fetchFeaturedCruises, fetchFilterOptions]);
 
   // Handle click outside dropdowns
   useEffect(() => {
@@ -257,6 +264,12 @@ export default function CategoryCruisesContent({ category }: Props) {
         !cruiseLineDropdownRef.current.contains(event.target as Node)
       ) {
         setIsCruiseLineDropdownOpen(false);
+      }
+      if (
+        regionDropdownRef.current &&
+        !regionDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsRegionDropdownOpen(false);
       }
     };
 
@@ -291,6 +304,15 @@ export default function CategoryCruisesContent({ category }: Props) {
       );
     }
 
+    if (category.filters.cruiseLineId) {
+      params.append(
+        "cruiseLines",
+        Array.isArray(category.filters.cruiseLineId)
+          ? category.filters.cruiseLineId.join(",")
+          : category.filters.cruiseLineId.toString(),
+      );
+    }
+
     if (category.filters.departurePortId) {
       params.append(
         "departurePorts",
@@ -317,7 +339,10 @@ export default function CategoryCruisesContent({ category }: Props) {
       params.append("months", selectedMonth);
     }
 
-    if (selectedCruiseLine) {
+    // For cruise line pages, add selected region instead of cruise line
+    if (category.categoryType === "cruise-lines" && selectedRegion) {
+      params.append("regions", selectedRegion);
+    } else if (selectedCruiseLine) {
       params.append("cruiseLines", selectedCruiseLine);
     }
 
@@ -394,10 +419,18 @@ export default function CategoryCruisesContent({ category }: Props) {
                   >
                     <span className="font-geograph text-[16px] text-[#0E1B4D]">
                       {selectedMonth
-                        ? new Date(selectedMonth + "-01").toLocaleDateString(
-                            "en-US",
-                            { month: "short", year: "numeric" },
-                          )
+                        ? (() => {
+                            const [year, month] = selectedMonth.split("-");
+                            const date = new Date(
+                              parseInt(year),
+                              parseInt(month) - 1,
+                              1,
+                            );
+                            return date.toLocaleDateString("en-US", {
+                              month: "short",
+                              year: "numeric",
+                            });
+                          })()
                         : "Select Month"}
                     </span>
                     <svg
@@ -476,71 +509,140 @@ export default function CategoryCruisesContent({ category }: Props) {
                   )}
                 </div>
 
-                {/* Cruise Line Selector */}
-                <div className="flex-1 relative" ref={cruiseLineDropdownRef}>
-                  <button
-                    onClick={() =>
-                      setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
-                    }
-                    className="w-full flex items-center justify-between px-4 py-3 border border-[#E5E5E5] rounded-[10px] hover:border-[#0E1B4D] transition-colors"
-                  >
-                    <span className="font-geograph text-[16px] text-[#0E1B4D]">
-                      {selectedCruiseLine && Array.isArray(cruiseLines)
-                        ? cruiseLines.find(
-                            (cl) => cl.id.toString() === selectedCruiseLine,
-                          )?.name || "Select Cruise Line"
-                        : "Select Cruise Line"}
-                    </span>
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+                {/* Cruise Line or Region Selector */}
+                {category.categoryType === "cruise-lines" ? (
+                  // Region Selector for Cruise Line pages
+                  <div className="flex-1 relative" ref={regionDropdownRef}>
+                    <button
+                      onClick={() =>
+                        setIsRegionDropdownOpen(!isRegionDropdownOpen)
+                      }
+                      className="w-full flex items-center justify-between px-4 py-3 border border-[#E5E5E5] rounded-[10px] hover:border-[#0E1B4D] transition-colors"
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-
-                  {isCruiseLineDropdownOpen && (
-                    <div className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg border border-[#E5E5E5] z-50 p-2 max-h-96 overflow-y-auto">
-                      <button
-                        onClick={() => {
-                          setSelectedCruiseLine("");
-                          setIsCruiseLineDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-4 py-2 font-geograph text-[16px] rounded-[8px] transition-colors ${
-                          !selectedCruiseLine
-                            ? "bg-[#F6F3ED]"
-                            : "hover:bg-[#F6F3ED]"
-                        }`}
+                      <span className="font-geograph text-[16px] text-[#0E1B4D]">
+                        {selectedRegion && Array.isArray(regions)
+                          ? regions.find(
+                              (r) => r.id.toString() === selectedRegion,
+                            )?.name || "Select Region"
+                          : "Select Region"}
+                      </span>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        All Cruise Lines
-                      </button>
-                      {Array.isArray(cruiseLines) &&
-                        cruiseLines.map((line) => (
-                          <button
-                            key={line.id}
-                            onClick={() => {
-                              setSelectedCruiseLine(line.id.toString());
-                              setIsCruiseLineDropdownOpen(false);
-                            }}
-                            className={`w-full text-left px-4 py-2 font-geograph text-[16px] rounded-[8px] transition-colors ${
-                              selectedCruiseLine === line.id.toString()
-                                ? "bg-[#F6F3ED]"
-                                : "hover:bg-[#F6F3ED]"
-                            }`}
-                          >
-                            {line.name}
-                          </button>
-                        ))}
-                    </div>
-                  )}
-                </div>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </button>
+
+                    {isRegionDropdownOpen && (
+                      <div className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg border border-[#E5E5E5] z-50 p-2 max-h-96 overflow-y-auto">
+                        <button
+                          onClick={() => {
+                            setSelectedRegion("");
+                            setIsRegionDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 font-geograph text-[16px] rounded-[8px] transition-colors ${
+                            !selectedRegion
+                              ? "bg-[#F6F3ED]"
+                              : "hover:bg-[#F6F3ED]"
+                          }`}
+                        >
+                          All Regions
+                        </button>
+                        {Array.isArray(regions) &&
+                          regions.map((region) => (
+                            <button
+                              key={region.id}
+                              onClick={() => {
+                                setSelectedRegion(region.id.toString());
+                                setIsRegionDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-4 py-2 font-geograph text-[16px] rounded-[8px] transition-colors ${
+                                selectedRegion === region.id.toString()
+                                  ? "bg-[#F6F3ED]"
+                                  : "hover:bg-[#F6F3ED]"
+                              }`}
+                            >
+                              {region.name}
+                            </button>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // Cruise Line Selector for other pages
+                  <div className="flex-1 relative" ref={cruiseLineDropdownRef}>
+                    <button
+                      onClick={() =>
+                        setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
+                      }
+                      className="w-full flex items-center justify-between px-4 py-3 border border-[#E5E5E5] rounded-[10px] hover:border-[#0E1B4D] transition-colors"
+                    >
+                      <span className="font-geograph text-[16px] text-[#0E1B4D]">
+                        {selectedCruiseLine && Array.isArray(cruiseLines)
+                          ? cruiseLines.find(
+                              (cl) => cl.id.toString() === selectedCruiseLine,
+                            )?.name || "Select Cruise Line"
+                          : "Select Cruise Line"}
+                      </span>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </button>
+
+                    {isCruiseLineDropdownOpen && (
+                      <div className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg border border-[#E5E5E5] z-50 p-2 max-h-96 overflow-y-auto">
+                        <button
+                          onClick={() => {
+                            setSelectedCruiseLine("");
+                            setIsCruiseLineDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 font-geograph text-[16px] rounded-[8px] transition-colors ${
+                            !selectedCruiseLine
+                              ? "bg-[#F6F3ED]"
+                              : "hover:bg-[#F6F3ED]"
+                          }`}
+                        >
+                          All Cruise Lines
+                        </button>
+                        {Array.isArray(cruiseLines) &&
+                          cruiseLines.map((line) => (
+                            <button
+                              key={line.id}
+                              onClick={() => {
+                                setSelectedCruiseLine(line.id.toString());
+                                setIsCruiseLineDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-4 py-2 font-geograph text-[16px] rounded-[8px] transition-colors ${
+                                selectedCruiseLine === line.id.toString()
+                                  ? "bg-[#F6F3ED]"
+                                  : "hover:bg-[#F6F3ED]"
+                              }`}
+                            >
+                              {line.name}
+                            </button>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Search Button */}
                 <button
