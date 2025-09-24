@@ -85,7 +85,8 @@ export default function CategoryCruisesContent({ category }: Props) {
   const [selectedCruiseLine, setSelectedCruiseLine] = useState<string>("");
   const [cruiseLines, setCruiseLines] = useState<FilterOption[]>([]);
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
-  const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] = useState(false);
+  const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] =
+    useState(false);
 
   // Refs for dropdown click outside detection
   const dateDropdownRef = useRef<HTMLDivElement>(null);
@@ -121,21 +122,23 @@ export default function CategoryCruisesContent({ category }: Props) {
         const regionIds = Array.isArray(category.filters.regionId)
           ? category.filters.regionId
           : [category.filters.regionId];
-        regionIds.forEach(id => params.append("regionId", id.toString()));
+        regionIds.forEach((id) => params.append("regionId", id.toString()));
       }
 
       if (category.filters.cruiseLineId) {
         const lineIds = Array.isArray(category.filters.cruiseLineId)
           ? category.filters.cruiseLineId
           : [category.filters.cruiseLineId];
-        lineIds.forEach(id => params.append("cruiseLineId", id.toString()));
+        lineIds.forEach((id) => params.append("cruiseLineId", id.toString()));
       }
 
       if (category.filters.departurePortId) {
         const portIds = Array.isArray(category.filters.departurePortId)
           ? category.filters.departurePortId
           : [category.filters.departurePortId];
-        portIds.forEach(id => params.append("departurePortId", id.toString()));
+        portIds.forEach((id) =>
+          params.append("departurePortId", id.toString()),
+        );
       }
 
       if (category.filters.minNights !== undefined) {
@@ -151,10 +154,12 @@ export default function CategoryCruisesContent({ category }: Props) {
       }
 
       // Special handling for last-minute cruises (departing within 60 days)
-      if (category.slug === 'last-minute') {
+      if (category.slug === "last-minute") {
         const today = new Date();
-        const sixtyDaysFromNow = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);
-        params.append("endDate", sixtyDaysFromNow.toISOString().split('T')[0]);
+        const sixtyDaysFromNow = new Date(
+          today.getTime() + 60 * 24 * 60 * 60 * 1000,
+        );
+        params.append("endDate", sixtyDaysFromNow.toISOString().split("T")[0]);
       }
 
       params.append("limit", "6"); // Only get 6 featured cruises
@@ -254,15 +259,21 @@ export default function CategoryCruisesContent({ category }: Props) {
 
     // Add category filters
     if (category.filters.regionId) {
-      params.append("regions", Array.isArray(category.filters.regionId)
-        ? category.filters.regionId.join(',')
-        : category.filters.regionId.toString());
+      params.append(
+        "regions",
+        Array.isArray(category.filters.regionId)
+          ? category.filters.regionId.join(",")
+          : category.filters.regionId.toString(),
+      );
     }
 
     if (category.filters.departurePortId) {
-      params.append("departurePorts", Array.isArray(category.filters.departurePortId)
-        ? category.filters.departurePortId.join(',')
-        : category.filters.departurePortId.toString());
+      params.append(
+        "departurePorts",
+        Array.isArray(category.filters.departurePortId)
+          ? category.filters.departurePortId.join(",")
+          : category.filters.departurePortId.toString(),
+      );
     }
 
     if (category.filters.minNights !== undefined) {
@@ -302,7 +313,11 @@ export default function CategoryCruisesContent({ category }: Props) {
         <div className="max-w-4xl mx-auto px-8 text-center">
           <h1
             className="font-whitney font-black uppercase text-[42px] md:text-[72px]"
-            style={{ letterSpacing: "-0.02em", lineHeight: 1, color: "#F7F170" }}
+            style={{
+              letterSpacing: "-0.02em",
+              lineHeight: 1,
+              color: "#F7F170",
+            }}
           >
             {category.title}
           </h1>
@@ -348,52 +363,85 @@ export default function CategoryCruisesContent({ category }: Props) {
                     className="w-full flex items-center justify-between px-4 py-3 border border-[#E5E5E5] rounded-[10px] hover:border-[#0E1B4D] transition-colors"
                   >
                     <span className="font-geograph text-[16px] text-[#0E1B4D]">
-                      {selectedMonth ?
-                        new Date(selectedMonth + "-01").toLocaleDateString("en-US", { month: "short", year: "numeric" }) :
-                        "Select Month"}
+                      {selectedMonth
+                        ? new Date(selectedMonth + "-01").toLocaleDateString(
+                            "en-US",
+                            { month: "short", year: "numeric" },
+                          )
+                        : "Select Month"}
                     </span>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
                     </svg>
                   </button>
 
                   {isDateDropdownOpen && (
                     <div className="absolute top-full mt-2 w-full bg-white rounded-[10px] shadow-lg border border-[#E5E5E5] z-50 p-4 max-h-96 overflow-y-auto">
-                      {[currentYear, currentYear + 1, currentYear + 2].map((year) => (
-                        <div key={year} className="mb-4">
-                          <div className="font-geograph font-bold text-[14px] text-gray-700 mb-2">
-                            {year}
-                          </div>
-                          <div className="grid grid-cols-4 gap-2">
-                            {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((month, index) => {
-                              const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
-                              const isSelected = selectedMonth === monthStr;
-                              const isPast = year < currentYear || (year === currentYear && index < currentMonth);
+                      {[currentYear, currentYear + 1, currentYear + 2].map(
+                        (year) => (
+                          <div key={year} className="mb-4">
+                            <div className="font-geograph font-bold text-[14px] text-gray-700 mb-2">
+                              {year}
+                            </div>
+                            <div className="grid grid-cols-4 gap-2">
+                              {[
+                                "Jan",
+                                "Feb",
+                                "Mar",
+                                "Apr",
+                                "May",
+                                "Jun",
+                                "Jul",
+                                "Aug",
+                                "Sep",
+                                "Oct",
+                                "Nov",
+                                "Dec",
+                              ].map((month, index) => {
+                                const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
+                                const isSelected = selectedMonth === monthStr;
+                                const isPast =
+                                  year < currentYear ||
+                                  (year === currentYear &&
+                                    index < currentMonth);
 
-                              return (
-                                <button
-                                  key={monthStr}
-                                  onClick={() => {
-                                    if (!isPast) {
-                                      setSelectedMonth(isSelected ? "" : monthStr);
-                                    }
-                                  }}
-                                  disabled={isPast}
-                                  className={`px-3 py-1 rounded-full text-[14px] font-geograph transition-colors ${
-                                    isPast
-                                      ? "bg-gray-50 text-gray-400 cursor-not-allowed"
-                                      : isSelected
-                                        ? "bg-[#0E1B4D] text-white"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                  }`}
-                                >
-                                  {month}
-                                </button>
-                              );
-                            })}
+                                return (
+                                  <button
+                                    key={monthStr}
+                                    onClick={() => {
+                                      if (!isPast) {
+                                        setSelectedMonth(
+                                          isSelected ? "" : monthStr,
+                                        );
+                                      }
+                                    }}
+                                    disabled={isPast}
+                                    className={`px-3 py-1 rounded-full text-[14px] font-geograph transition-colors ${
+                                      isPast
+                                        ? "bg-gray-50 text-gray-400 cursor-not-allowed"
+                                        : isSelected
+                                          ? "bg-[#0E1B4D] text-white"
+                                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                    }`}
+                                  >
+                                    {month}
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ),
+                      )}
                     </div>
                   )}
                 </div>
@@ -401,16 +449,30 @@ export default function CategoryCruisesContent({ category }: Props) {
                 {/* Cruise Line Selector */}
                 <div className="flex-1 relative" ref={cruiseLineDropdownRef}>
                   <button
-                    onClick={() => setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)}
+                    onClick={() =>
+                      setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
+                    }
                     className="w-full flex items-center justify-between px-4 py-3 border border-[#E5E5E5] rounded-[10px] hover:border-[#0E1B4D] transition-colors"
                   >
                     <span className="font-geograph text-[16px] text-[#0E1B4D]">
-                      {selectedCruiseLine ?
-                        cruiseLines.find(cl => cl.id.toString() === selectedCruiseLine)?.name || "Select Cruise Line" :
-                        "Select Cruise Line"}
+                      {selectedCruiseLine
+                        ? cruiseLines.find(
+                            (cl) => cl.id.toString() === selectedCruiseLine,
+                          )?.name || "Select Cruise Line"
+                        : "Select Cruise Line"}
                     </span>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
                     </svg>
                   </button>
 
@@ -422,7 +484,9 @@ export default function CategoryCruisesContent({ category }: Props) {
                           setIsCruiseLineDropdownOpen(false);
                         }}
                         className={`w-full text-left px-4 py-2 font-geograph text-[16px] rounded-[8px] transition-colors ${
-                          !selectedCruiseLine ? "bg-[#F6F3ED]" : "hover:bg-[#F6F3ED]"
+                          !selectedCruiseLine
+                            ? "bg-[#F6F3ED]"
+                            : "hover:bg-[#F6F3ED]"
                         }`}
                       >
                         All Cruise Lines
@@ -435,7 +499,9 @@ export default function CategoryCruisesContent({ category }: Props) {
                             setIsCruiseLineDropdownOpen(false);
                           }}
                           className={`w-full text-left px-4 py-2 font-geograph text-[16px] rounded-[8px] transition-colors ${
-                            selectedCruiseLine === line.id.toString() ? "bg-[#F6F3ED]" : "hover:bg-[#F6F3ED]"
+                            selectedCruiseLine === line.id.toString()
+                              ? "bg-[#F6F3ED]"
+                              : "hover:bg-[#F6F3ED]"
                           }`}
                         >
                           {line.name}
@@ -450,8 +516,18 @@ export default function CategoryCruisesContent({ category }: Props) {
                   onClick={handleSearch}
                   className="px-8 py-3 bg-[#0E1B4D] text-white font-geograph font-bold text-[16px] rounded-[10px] hover:bg-[#2238C3] transition-colors flex items-center justify-center gap-2"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
                   </svg>
                   Search Cruises
                 </button>
@@ -471,11 +547,15 @@ export default function CategoryCruisesContent({ category }: Props) {
               </div>
             ) : error ? (
               <div className="text-center py-12">
-                <p className="text-red-600 font-geograph">Failed to load cruises. Please try again.</p>
+                <p className="text-red-600 font-geograph">
+                  Failed to load cruises. Please try again.
+                </p>
               </div>
             ) : featuredCruises.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-[#666] font-geograph">No cruises found for this category.</p>
+                <p className="text-[#666] font-geograph">
+                  No cruises found for this category.
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -502,9 +582,11 @@ export default function CategoryCruisesContent({ category }: Props) {
                   })}`;
 
                   // Truncate name if too long
-                  const truncatedName = (cruise.ship?.name || cruise.name).length > 27
-                    ? (cruise.ship?.name || cruise.name).substring(0, 27) + "..."
-                    : (cruise.ship?.name || cruise.name);
+                  const truncatedName =
+                    (cruise.ship?.name || cruise.name).length > 27
+                      ? (cruise.ship?.name || cruise.name).substring(0, 27) +
+                        "..."
+                      : cruise.ship?.name || cruise.name;
 
                   // Calculate OBC (20% of cheapest price, rounded to nearest 10)
                   const obc = Math.floor((price * 0.2) / 10) * 10;
@@ -518,7 +600,9 @@ export default function CategoryCruisesContent({ category }: Props) {
                       {/* Featured Image with Date Range Badge */}
                       <div className="relative">
                         <div className="h-[180px] bg-gray-200 relative overflow-hidden rounded-[18px]">
-                          {cruise.ship?.defaultShipImage2k || cruise.ship?.defaultShipImage || cruise.shipImage ? (
+                          {cruise.ship?.defaultShipImage2k ||
+                          cruise.ship?.defaultShipImage ||
+                          cruise.shipImage ? (
                             <Image
                               src={
                                 cruise.ship?.defaultShipImage2k ||
@@ -539,6 +623,7 @@ export default function CategoryCruisesContent({ category }: Props) {
                             {dateRange}
                           </span>
                         </div>
+                      </div>
 
                       {/* Cruise Details */}
                       <div className="flex-1 flex flex-col md:flex-row md:justify-between md:items-center p-3 md:p-0">
@@ -620,9 +705,16 @@ export default function CategoryCruisesContent({ category }: Props) {
                   </h2>
                   <div className="max-w-4xl mx-auto space-y-4">
                     {category.faqItems.map((faq, index) => (
-                      <div key={index} className="bg-white p-6 rounded-[10px] border border-[#E5E5E5]">
-                        <h3 className="font-geograph font-bold text-[18px] text-[#0E1B4D] mb-2">{faq.question}</h3>
-                        <p className="font-geograph text-[16px] text-[#666] leading-relaxed">{faq.answer}</p>
+                      <div
+                        key={index}
+                        className="bg-white p-6 rounded-[10px] border border-[#E5E5E5]"
+                      >
+                        <h3 className="font-geograph font-bold text-[18px] text-[#0E1B4D] mb-2">
+                          {faq.question}
+                        </h3>
+                        <p className="font-geograph text-[16px] text-[#666] leading-relaxed">
+                          {faq.answer}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -652,7 +744,8 @@ export default function CategoryCruisesContent({ category }: Props) {
                         />
                       </svg>
                       <span className="font-geograph text-[16px] text-[#666]">
-                        Maximum onboard credit on every booking - more spending money for your vacation
+                        Maximum onboard credit on every booking - more spending
+                        money for your vacation
                       </span>
                     </li>
                     <li className="flex items-start">
@@ -668,7 +761,8 @@ export default function CategoryCruisesContent({ category }: Props) {
                         />
                       </svg>
                       <span className="font-geograph text-[16px] text-[#666]">
-                        Compare prices across all major cruise lines in one place
+                        Compare prices across all major cruise lines in one
+                        place
                       </span>
                     </li>
                     <li className="flex items-start">
@@ -684,7 +778,8 @@ export default function CategoryCruisesContent({ category }: Props) {
                         />
                       </svg>
                       <span className="font-geograph text-[16px] text-[#666]">
-                        Real-time pricing and availability direct from cruise lines
+                        Real-time pricing and availability direct from cruise
+                        lines
                       </span>
                     </li>
                     <li className="flex items-start">
