@@ -7,6 +7,10 @@ const isPublicRoute = createRouteMatcher([
   "/cruises",
   "/cruises/(.*)", // All category pages (caribbean, alaska, etc.)
   "/cruise/(.*)",
+  "/top-destinations",
+  "/cruise-lines",
+  "/departure-ports",
+  "/special-cruises",
   "/first-time-cruisers-guide",
   "/sign-in",
   "/sign-up",
