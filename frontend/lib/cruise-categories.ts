@@ -432,7 +432,7 @@ export const departurePortCategories: CategoryConfig[] = [
     terminals and easy access from Miami International Airport. Whether you're seeking a quick Bahamas getaway or an extended Caribbean
     adventure, Miami's central location makes it the perfect departure point.`,
     filters: {
-      departurePortId: [195, 5924], // Miami port IDs - need to verify
+      departurePortId: [410], // Miami, Florida
     },
     priority: 0.75,
     changeFrequency: "daily",
@@ -459,7 +459,7 @@ export const departurePortCategories: CategoryConfig[] = [
     convenient location provides easy access to Eastern and Western Caribbean itineraries, plus transatlantic and South America cruises.
     With excellent pre-cruise hotels and attractions nearby, Fort Lauderdale makes starting your cruise vacation seamless.`,
     filters: {
-      departurePortId: [95], // Fort Lauderdale port IDs - need to verify
+      departurePortId: [378], // Fort Lauderdale
     },
     priority: 0.75,
     changeFrequency: "daily",
@@ -486,7 +486,7 @@ export const departurePortCategories: CategoryConfig[] = [
     Cozumel, Jamaica, and Grand Cayman. With historic charm, nearby attractions, and less crowded terminals than Florida ports, Galveston
     provides a relaxed start to your cruise vacation.`,
     filters: {
-      departurePortId: [102], // Galveston port IDs - need to verify
+      departurePortId: [382], // Galveston
     },
     priority: 0.7,
     changeFrequency: "daily",
@@ -514,7 +514,7 @@ export const departurePortCategories: CategoryConfig[] = [
     and Brooklyn cruise terminals provide easy access via public transportation or car, making it convenient for Northeast travelers. Experience
     the excitement of sailing from one of the world's greatest cities.`,
     filters: {
-      departurePortId: [207], // New York port IDs
+      departurePortId: [207, 5171, 5170, 362], // New York, New York (Brooklyn), New York (Manhattan), Cape Liberty NJ
     },
     priority: 0.7,
     changeFrequency: "weekly",
@@ -541,7 +541,7 @@ export const departurePortCategories: CategoryConfig[] = [
     Airport and downtown attractions like Pike Place Market. Most Alaska cruises from Seattle are 7-day round trips visiting Juneau,
     Ketchikan, Skagway, and Victoria, BC. The scenic sail through the Inside Passage begins right from departure.`,
     filters: {
-      departurePortId: [280], // Seattle port IDs - need to verify
+      departurePortId: [435], // Seattle
     },
     priority: 0.7,
     changeFrequency: "weekly",
