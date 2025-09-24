@@ -587,28 +587,6 @@ export default function CategoryCruisesContent({ category }: Props) {
                               )}
                             </p>
                           </div>
-mt4
-                          20px] text-[0E1B4D
-
-                        {truncatedName}
-                                                <p className="font-geograph text-[14px] text-[#666] mb-1">
-                          {cruise.cruiseLine?.name}
-                        </p>
-                        <p className="font-geograph text-[14px] text-[#666] mb-3">
-                          {cruise.nights} Nights • {cruise.embarkPortName}
-                        </p>
-
-                        {/* Price and OBC */}
-                        <div className="flex justify-between items-end">
-                          <div>
-                            <p className="font-geograph font-bold text-[12px] text-gray-500 uppercase tracking-wider">
-                              FROM
-                            <p className="font-geograph font-bold text-[24px] text-[#0E1B4D]">
-                              ${price.toFixed(0)}
-                          <div className="text-right">
-                            <p className="font-geograph text-[12px] text-[#666]">
-                              + ${obc} Onboard Credit
-                            </p>
                         </div>
 
                         {/* Desktop Price */}
