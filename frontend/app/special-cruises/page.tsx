@@ -1,4 +1,7 @@
-import { getCategoriesByType, categoryIndexPages } from "@/lib/cruise-categories";
+import {
+  getCategoriesByType,
+  categoryIndexPages,
+} from "@/lib/cruise-categories";
 import Link from "next/link";
 import { Metadata } from "next";
 
@@ -11,7 +14,7 @@ export const metadata: Metadata = {
     title: indexConfig.metaTitle,
     description: indexConfig.metaDescription,
     type: "website",
-    url: `https://www.zipsea.com/special-cruises`,
+    url: "https://www.zipsea.com/special-cruises",
     siteName: "Zipsea",
   },
   twitter: {
@@ -20,7 +23,7 @@ export const metadata: Metadata = {
     description: indexConfig.metaDescription,
   },
   alternates: {
-    canonical: `https://www.zipsea.com/special-cruises`,
+    canonical: "https://www.zipsea.com/special-cruises",
   },
 };
 
@@ -37,7 +40,11 @@ export default function SpecialCruisesPage() {
         <div className="max-w-4xl mx-auto px-8 text-center">
           <h1
             className="font-whitney font-black uppercase text-[42px] md:text-[72px]"
-            style={{ letterSpacing: "-0.02em", lineHeight: 1, color: "#F7F170" }}
+            style={{
+              letterSpacing: "-0.02em",
+              lineHeight: 1,
+              color: "#F7F170",
+            }}
           >
             {indexConfig.h1}
           </h1>
@@ -81,8 +88,18 @@ export default function SpecialCruisesPage() {
                     <span className="font-geograph font-semibold text-[#2238C3]">
                       View {cruise.name}
                     </span>
-                    <svg className="w-5 h-5 text-[#2238C3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    <svg
+                      className="w-5 h-5 text-[#2238C3]"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M9 5l7 7-7 7"
+                      />
                     </svg>
                   </div>
                 </div>
@@ -100,33 +117,42 @@ export default function SpecialCruisesPage() {
           </h2>
           <div className="space-y-4 font-geograph text-[18px] text-[#666] leading-relaxed">
             <p>
-              Whether you're looking for a quick weekend escape or planning ahead for the best value, our special cruise
-              categories help you find exactly what you need. Each category is designed to match specific travel needs and
-              budgets.
+              Whether you&apos;re looking for a quick weekend escape or planning
+              ahead for the best value, our special cruise categories help you
+              find exactly what you need. Each category is designed to match
+              specific travel needs and budgets.
             </p>
             <p>
-              <strong>7-Night Cruises</strong> offer the ideal balance for most travelers - enough time to truly relax and
-              explore multiple destinations without requiring extended time off work. These week-long voyages are the industry's
-              most popular length for good reason.
+              <strong>7-Night Cruises</strong> offer the ideal balance for most
+              travelers - enough time to truly relax and explore multiple
+              destinations without requiring extended time off work. These
+              week-long voyages are the industry&apos;s most popular length for
+              good reason.
             </p>
             <p>
-              <strong>Short Cruises (3-5 Nights)</strong> are perfect for first-time cruisers wanting to test the waters, or
-              experienced cruisers needing a quick escape. These voyages typically visit the Bahamas or Mexico's Caribbean coast
-              and offer excellent value.
+              <strong>Short Cruises (3-5 Nights)</strong> are perfect for
+              first-time cruisers wanting to test the waters, or experienced
+              cruisers needing a quick escape. These voyages typically visit the
+              Bahamas or Mexico&apos;s Caribbean coast and offer excellent
+              value.
             </p>
             <p>
-              <strong>Cheap Cruises Under $500</strong> prove that amazing cruise vacations don't have to break the bank. These
-              budget-friendly options include all meals, entertainment, and accommodations, plus maximum onboard credit from Zipsea.
+              <strong>Cheap Cruises Under $500</strong> prove that amazing
+              cruise vacations don&apos;t have to break the bank. These
+              budget-friendly options include all meals, entertainment, and
+              accommodations, plus maximum onboard credit from Zipsea.
             </p>
             <p>
-              <strong>Last Minute Cruises</strong> departing within 60 days offer some of the best values in cruising. Cruise
-              lines discount remaining cabins significantly, perfect for spontaneous travelers with flexible schedules.
+              <strong>Last Minute Cruises</strong> departing within 60 days
+              offer some of the best values in cruising. Cruise lines discount
+              remaining cabins significantly, perfect for spontaneous travelers
+              with flexible schedules.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Quick Links */
+      {/* Quick Links */}
       <section className="py-[40px] md:py-[60px]">
         <div className="max-w-7xl mx-auto px-4">
           <h3 className="font-geograph font-bold text-[18px] text-[#0E1B4D] mb-4 text-center">
