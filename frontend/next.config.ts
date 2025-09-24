@@ -57,21 +57,21 @@ const nextConfig: NextConfig = {
         destination: "/privacy",
         permanent: true,
       },
-      // Remove trailing slashes for consistency
+      // Remove trailing slashes for consistency (except root)
       {
         source: "/:path+/",
         destination: "/:path+",
         permanent: true,
       },
-      // Handle partytown (remove if not needed)
+      // Direct 404 for partytown paths instead of redirect chains
       {
         source: "/~partytown/:path*",
-        destination: "/",
+        destination: "/404",
         permanent: false,
       },
       {
         source: "/~partytown",
-        destination: "/",
+        destination: "/404",
         permanent: false,
       },
     ];
