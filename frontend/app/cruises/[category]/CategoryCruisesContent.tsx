@@ -181,6 +181,9 @@ export default function CategoryCruisesContent({ category }: Props) {
       }
 
       const data = await response.json();
+      console.log(
+        `Fetched ${data.results?.length || 0} cruises for ${category.name}`,
+      );
       setFeaturedCruises(data.results || []);
       setLoading(false);
     } catch (err: any) {
@@ -200,6 +203,9 @@ export default function CategoryCruisesContent({ category }: Props) {
         const data = await response.json();
         // Extract cruiseLines from the filter options response
         const cruiseLinesList = data.cruiseLines || [];
+        console.log(
+          `Fetched ${cruiseLinesList.length} cruise lines for dropdown`,
+        );
         setCruiseLines(cruiseLinesList);
       } else {
         console.error("Failed to fetch filter options:", response.status);
@@ -581,7 +587,9 @@ export default function CategoryCruisesContent({ category }: Props) {
                   // Calculate return date
                   const sailingDate = new Date(cruise.sailingDate);
                   const returnDate = new Date(sailingDate);
-                  returnDate.setDate(sailingDate.getDate() + cruise.nights);
+                  returnDate.setDate(
+                    sailingDate.getDate() + (cruise.nights || 0),
+                  );
 
                   // Format date range
                   const dateRange = `${sailingDate.toLocaleDateString("en-US", {
@@ -593,11 +601,12 @@ export default function CategoryCruisesContent({ category }: Props) {
                   })}`;
 
                   // Truncate name if too long
+                  const cruiseName =
+                    cruise.ship?.name || cruise.name || "Cruise";
                   const truncatedName =
-                    (cruise.ship?.name || cruise.name).length > 27
-                      ? (cruise.ship?.name || cruise.name).substring(0, 27) +
-                        "..."
-                      : cruise.ship?.name || cruise.name;
+                    cruiseName.length > 27
+                      ? cruiseName.substring(0, 27) + "..."
+                      : cruiseName;
 
                   // Calculate OBC (20% of cheapest price, rounded to nearest 10)
                   const obc = Math.floor((price * 0.2) / 10) * 10;
@@ -611,21 +620,22 @@ export default function CategoryCruisesContent({ category }: Props) {
                       {/* Featured Image with Date Range Badge */}
                       <div className="relative">
                         <div className="h-[180px] bg-gray-200 relative overflow-hidden rounded-[18px]">
-                          {cruise.ship?.defaultShipImage2k ||
-                          cruise.ship?.defaultShipImage ||
-                          cruise.shipImage ? (
+                          {(cruise.ship?.defaultShipImage2k ||
+                            cruise.ship?.defaultShipImage ||
+                            cruise.shipImage) && (
                             <Image
                               src={
                                 cruise.ship?.defaultShipImage2k ||
                                 cruise.ship?.defaultShipImage ||
                                 cruise.shipImage ||
-                                ""
+                                "/images/default-ship.jpg"
                               }
                               alt={cruise.ship?.name || "Cruise ship"}
                               fill
                               className="object-cover"
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             />
-                          ) : null}
+                          )}
                         </div>
 
                         {/* Date Range Badge - Moved to top-right */}
