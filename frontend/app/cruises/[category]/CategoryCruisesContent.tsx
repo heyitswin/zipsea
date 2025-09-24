@@ -198,10 +198,22 @@ export default function CategoryCruisesContent({ category }: Props) {
       const response = await fetch(`/api/v1/filters/cruise-lines`);
       if (response.ok) {
         const data = await response.json();
-        setCruiseLines(data || []);
+        // Ensure data is an array - handle both direct array and wrapped responses
+        const cruiseLinesList = Array.isArray(data)
+          ? data
+          : data && Array.isArray(data.data)
+            ? data.data
+            : data && Array.isArray(data.cruiseLines)
+              ? data.cruiseLines
+              : [];
+        setCruiseLines(cruiseLinesList);
+      } else {
+        console.error("Failed to fetch cruise lines:", response.status);
+        setCruiseLines([]);
       }
     } catch (err) {
       console.error("Error fetching cruise lines:", err);
+      setCruiseLines([]);
     }
   }, []);
 
@@ -459,7 +471,7 @@ export default function CategoryCruisesContent({ category }: Props) {
                     className="w-full flex items-center justify-between px-4 py-3 border border-[#E5E5E5] rounded-[10px] hover:border-[#0E1B4D] transition-colors"
                   >
                     <span className="font-geograph text-[16px] text-[#0E1B4D]">
-                      {selectedCruiseLine
+                      {selectedCruiseLine && Array.isArray(cruiseLines)
                         ? cruiseLines.find(
                             (cl) => cl.id.toString() === selectedCruiseLine,
                           )?.name || "Select Cruise Line"
@@ -495,22 +507,23 @@ export default function CategoryCruisesContent({ category }: Props) {
                       >
                         All Cruise Lines
                       </button>
-                      {cruiseLines.map((line) => (
-                        <button
-                          key={line.id}
-                          onClick={() => {
-                            setSelectedCruiseLine(line.id.toString());
-                            setIsCruiseLineDropdownOpen(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 font-geograph text-[16px] rounded-[8px] transition-colors ${
-                            selectedCruiseLine === line.id.toString()
-                              ? "bg-[#F6F3ED]"
-                              : "hover:bg-[#F6F3ED]"
-                          }`}
-                        >
-                          {line.name}
-                        </button>
-                      ))}
+                      {Array.isArray(cruiseLines) &&
+                        cruiseLines.map((line) => (
+                          <button
+                            key={line.id}
+                            onClick={() => {
+                              setSelectedCruiseLine(line.id.toString());
+                              setIsCruiseLineDropdownOpen(false);
+                            }}
+                            className={`w-full text-left px-4 py-2 font-geograph text-[16px] rounded-[8px] transition-colors ${
+                              selectedCruiseLine === line.id.toString()
+                                ? "bg-[#F6F3ED]"
+                                : "hover:bg-[#F6F3ED]"
+                            }`}
+                          >
+                            {line.name}
+                          </button>
+                        ))}
                     </div>
                   )}
                 </div>

@@ -1,4 +1,7 @@
-import { getCategoriesByType, categoryIndexPages } from "@/lib/cruise-categories";
+import {
+  getCategoriesByType,
+  categoryIndexPages,
+} from "@/lib/cruise-categories";
 import Link from "next/link";
 import { Metadata } from "next";
 
@@ -28,7 +31,7 @@ export default function DeparturePortsPage() {
   const departurePorts = getCategoriesByType("departure-ports");
 
   return (
-    <main>
+    <main style={{ backgroundColor: "#F6F3ED" }}>
       {/* Hero Section */}
       <section
         className="py-[80px] md:py-[120px]"
@@ -37,7 +40,11 @@ export default function DeparturePortsPage() {
         <div className="max-w-4xl mx-auto px-8 text-center">
           <h1
             className="font-whitney font-black uppercase text-[42px] md:text-[72px]"
-            style={{ letterSpacing: "-0.02em", lineHeight: 1, color: "#F7F170" }}
+            style={{
+              letterSpacing: "-0.02em",
+              lineHeight: 1,
+              color: "#F7F170",
+            }}
           >
             {indexConfig.h1}
           </h1>
@@ -51,44 +58,36 @@ export default function DeparturePortsPage() {
       <div
         className="w-full h-[21px]"
         style={{
-          backgroundImage: 'url("/images/separator-5.png")',
+          backgroundImage: 'url("/images/separator-2.png")',
           backgroundRepeat: "repeat-x",
           backgroundSize: "1749px 21px",
           backgroundPosition: "left top",
         }}
       />
 
-      {/* Departure Ports Grid */}
+      {/* Departure Ports List */}
       <section className="py-[60px] md:py-[100px]">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="space-y-4">
             {departurePorts.map((port) => (
               <Link
                 key={port.slug}
                 href={`/cruises/${port.slug}`}
-                className="group"
+                className="group block"
               >
-                <div className="bg-white rounded-[18px] border-2 border-transparent hover:border-[#2238C3] transition-all duration-300 overflow-hidden">
-                  {/* Port Image Placeholder */}
-                  <div className="h-[200px] bg-gradient-to-br from-[#5A4BDB] to-[#2238C3] relative">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="font-whitney font-black text-white text-[48px] opacity-20 uppercase">
-                        {port.name.split(' ')[0].charAt(0)}
-                      </span>
+                <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-6 hover:border-[#2238C3] transition-all duration-300">
+                  <div className="flex justify-between items-center">
+                    <div className="flex-1">
+                      <h3 className="font-whitney font-black uppercase text-[20px] text-[#0E1B4D] mb-2">
+                        {port.title}
+                      </h3>
+                      <p className="font-geograph text-[14px] text-[#666] leading-relaxed">
+                        {port.shortDescription}
+                      </p>
                     </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-6">
-                    <h3 className="font-whitney font-black uppercase text-[24px] text-[#0E1B4D] mb-3">
-                      {port.title}
-                    </h3>
-                    <p className="font-geograph text-[16px] text-[#666] leading-relaxed mb-4">
-                      {port.shortDescription}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <span className="font-geograph font-semibold text-[#2238C3] group-hover:underline">
-                        View Cruises from {port.name.split(' ')[0]} →
+                    <div className="ml-4">
+                      <span className="font-geograph font-semibold text-[#2238C3] group-hover:underline whitespace-nowrap">
+                        View Cruises →
                       </span>
                     </div>
                   </div>
@@ -100,31 +99,39 @@ export default function DeparturePortsPage() {
       </section>
 
       {/* SEO Content */}
-      <section className="py-[60px] bg-[#F6F3ED]">
+      <section className="py-[60px]">
         <div className="max-w-4xl mx-auto px-4">
           <h2 className="font-whitney font-black uppercase text-[32px] text-[#0E1B4D] mb-6 text-center">
             Choosing Your Departure Port
           </h2>
           <div className="space-y-4 font-geograph text-[18px] text-[#666] leading-relaxed">
             <p>
-              Selecting the right departure port can significantly impact your cruise experience. Consider proximity to your
-              home, available flight connections, and pre-cruise accommodation options when making your choice.
+              Selecting the right departure port can significantly impact your
+              cruise experience. Consider proximity to your home, available
+              flight connections, and pre-cruise accommodation options when
+              making your choice.
             </p>
             <p>
-              Florida ports like Miami and Fort Lauderdale offer year-round Caribbean departures with excellent airport
-              connections. Galveston provides convenient access for Texas and central U.S. travelers heading to the Western
-              Caribbean. New York allows Northeast cruisers to avoid flights while accessing Bermuda, Canada, and transatlantic
-              routes.
+              Florida ports like Miami and Fort Lauderdale offer year-round
+              Caribbean departures with excellent airport connections. Galveston
+              provides convenient access for Texas and central U.S. travelers
+              heading to the Western Caribbean. New York allows Northeast
+              cruisers to avoid flights while accessing Bermuda, Canada, and
+              transatlantic routes.
             </p>
             <p>
-              Seattle serves as the primary West Coast gateway to Alaska, eliminating the need for international travel to
-              Vancouver. Each port city also offers unique pre-cruise attractions - explore South Beach in Miami, visit Pike
-              Place Market in Seattle, or see the Statue of Liberty when departing from New York.
+              Seattle serves as the primary West Coast gateway to Alaska,
+              eliminating the need for international travel to Vancouver. Each
+              port city also offers unique pre-cruise attractions - explore
+              South Beach in Miami, visit Pike Place Market in Seattle, or see
+              the Statue of Liberty when departing from New York.
             </p>
             <p>
-              Consider arriving a day early to avoid travel delays and explore the departure city. Many ports offer convenient
-              park-and-cruise packages or hotel shuttle services. With maximum onboard credit included in every Zipsea booking,
-              you'll have extra funds to enhance your cruise experience from the moment you board.
+              Consider arriving a day early to avoid travel delays and explore
+              the departure city. Many ports offer convenient park-and-cruise
+              packages or hotel shuttle services. With maximum onboard credit
+              included in every Zipsea booking, you'll have extra funds to
+              enhance your cruise experience from the moment you board.
             </p>
           </div>
         </div>
@@ -140,42 +147,82 @@ export default function DeparturePortsPage() {
             <table className="w-full bg-white rounded-[10px] overflow-hidden">
               <thead className="bg-[#0E1B4D]">
                 <tr>
-                  <th className="px-6 py-4 text-left font-geograph font-bold text-white">Port</th>
-                  <th className="px-6 py-4 text-left font-geograph font-bold text-white">Main Destinations</th>
-                  <th className="px-6 py-4 text-left font-geograph font-bold text-white">Airport</th>
-                  <th className="px-6 py-4 text-left font-geograph font-bold text-white">Distance to Port</th>
+                  <th className="px-6 py-4 text-left font-geograph font-bold text-white">
+                    Port
+                  </th>
+                  <th className="px-6 py-4 text-left font-geograph font-bold text-white">
+                    Main Destinations
+                  </th>
+                  <th className="px-6 py-4 text-left font-geograph font-bold text-white">
+                    Airport
+                  </th>
+                  <th className="px-6 py-4 text-left font-geograph font-bold text-white">
+                    Distance to Port
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b border-[#E5E5E5]">
-                  <td className="px-6 py-4 font-geograph font-semibold">Miami</td>
-                  <td className="px-6 py-4 font-geograph text-[#666]">Caribbean, Bahamas</td>
+                  <td className="px-6 py-4 font-geograph font-semibold">
+                    Miami
+                  </td>
+                  <td className="px-6 py-4 font-geograph text-[#666]">
+                    Caribbean, Bahamas
+                  </td>
                   <td className="px-6 py-4 font-geograph text-[#666]">MIA</td>
-                  <td className="px-6 py-4 font-geograph text-[#666]">8 miles</td>
+                  <td className="px-6 py-4 font-geograph text-[#666]">
+                    8 miles
+                  </td>
                 </tr>
                 <tr className="border-b border-[#E5E5E5]">
-                  <td className="px-6 py-4 font-geograph font-semibold">Fort Lauderdale</td>
-                  <td className="px-6 py-4 font-geograph text-[#666]">Caribbean, Transatlantic</td>
+                  <td className="px-6 py-4 font-geograph font-semibold">
+                    Fort Lauderdale
+                  </td>
+                  <td className="px-6 py-4 font-geograph text-[#666]">
+                    Caribbean, Transatlantic
+                  </td>
                   <td className="px-6 py-4 font-geograph text-[#666]">FLL</td>
-                  <td className="px-6 py-4 font-geograph text-[#666]">2 miles</td>
+                  <td className="px-6 py-4 font-geograph text-[#666]">
+                    2 miles
+                  </td>
                 </tr>
                 <tr className="border-b border-[#E5E5E5]">
-                  <td className="px-6 py-4 font-geograph font-semibold">Galveston</td>
-                  <td className="px-6 py-4 font-geograph text-[#666]">Western Caribbean</td>
+                  <td className="px-6 py-4 font-geograph font-semibold">
+                    Galveston
+                  </td>
+                  <td className="px-6 py-4 font-geograph text-[#666]">
+                    Western Caribbean
+                  </td>
                   <td className="px-6 py-4 font-geograph text-[#666]">IAH</td>
-                  <td className="px-6 py-4 font-geograph text-[#666]">70 miles</td>
+                  <td className="px-6 py-4 font-geograph text-[#666]">
+                    70 miles
+                  </td>
                 </tr>
                 <tr className="border-b border-[#E5E5E5]">
-                  <td className="px-6 py-4 font-geograph font-semibold">New York</td>
-                  <td className="px-6 py-4 font-geograph text-[#666]">Bermuda, Canada, Caribbean</td>
-                  <td className="px-6 py-4 font-geograph text-[#666]">JFK/LGA/EWR</td>
-                  <td className="px-6 py-4 font-geograph text-[#666]">15-35 miles</td>
+                  <td className="px-6 py-4 font-geograph font-semibold">
+                    New York
+                  </td>
+                  <td className="px-6 py-4 font-geograph text-[#666]">
+                    Bermuda, Canada, Caribbean
+                  </td>
+                  <td className="px-6 py-4 font-geograph text-[#666]">
+                    JFK/LGA/EWR
+                  </td>
+                  <td className="px-6 py-4 font-geograph text-[#666]">
+                    15-35 miles
+                  </td>
                 </tr>
                 <tr>
-                  <td className="px-6 py-4 font-geograph font-semibold">Seattle</td>
-                  <td className="px-6 py-4 font-geograph text-[#666]">Alaska Inside Passage</td>
+                  <td className="px-6 py-4 font-geograph font-semibold">
+                    Seattle
+                  </td>
+                  <td className="px-6 py-4 font-geograph text-[#666]">
+                    Alaska Inside Passage
+                  </td>
                   <td className="px-6 py-4 font-geograph text-[#666]">SEA</td>
-                  <td className="px-6 py-4 font-geograph text-[#666]">13 miles</td>
+                  <td className="px-6 py-4 font-geograph text-[#666]">
+                    13 miles
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -184,7 +231,7 @@ export default function DeparturePortsPage() {
       </section>
 
       {/* Quick Links */}
-      <section className="py-[40px] md:py-[60px] bg-[#F6F3ED]">
+      <section className="py-[40px] md:py-[60px]">
         <div className="max-w-7xl mx-auto px-4">
           <h3 className="font-geograph font-bold text-[18px] text-[#0E1B4D] mb-4 text-center">
             Find Cruises by Departure Port:

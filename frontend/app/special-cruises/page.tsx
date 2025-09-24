@@ -28,7 +28,7 @@ export default function SpecialCruisesPage() {
   const specialCruises = getCategoriesByType("special-cruises");
 
   return (
-    <main>
+    <main style={{ backgroundColor: "#F6F3ED" }}>
       {/* Hero Section */}
       <section
         className="py-[80px] md:py-[120px]"
@@ -51,56 +51,39 @@ export default function SpecialCruisesPage() {
       <div
         className="w-full h-[21px]"
         style={{
-          backgroundImage: 'url("/images/separator-5.png")',
+          backgroundImage: 'url("/images/separator-2.png")',
           backgroundRepeat: "repeat-x",
           backgroundSize: "1749px 21px",
           backgroundPosition: "left top",
         }}
       />
 
-      {/* Special Cruises Grid */}
+      {/* Special Cruises List */}
       <section className="py-[60px] md:py-[100px]">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="space-y-4">
             {specialCruises.map((cruise) => (
               <Link
                 key={cruise.slug}
                 href={`/cruises/${cruise.slug}`}
-                className="group"
+                className="block bg-white rounded-[10px] border border-[#E5E5E5] p-6 hover:shadow-lg transition-all duration-200 hover:border-[#2238C3]"
               >
-                <div className="bg-white rounded-[18px] border-2 border-transparent hover:border-[#2238C3] transition-all duration-300 overflow-hidden">
-                  {/* Special Cruise Image Placeholder */}
-                  <div className="h-[200px] bg-gradient-to-br from-[#FFE55C] to-[#F7F170] relative">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      {/* Different icons for different special cruise types */}
-                      {cruise.slug === "7-night" && (
-                        <span className="font-whitney font-black text-[#0E1B4D] text-[72px] opacity-20">7</span>
-                      )}
-                      {cruise.slug === "3-5-nights" && (
-                        <span className="font-whitney font-black text-[#0E1B4D] text-[60px] opacity-20">3-5</span>
-                      )}
-                      {cruise.slug === "cheap" && (
-                        <span className="font-whitney font-black text-[#0E1B4D] text-[60px] opacity-20">$</span>
-                      )}
-                      {cruise.slug === "last-minute" && (
-                        <span className="font-whitney font-black text-[#0E1B4D] text-[48px] opacity-20">60</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-6">
-                    <h3 className="font-whitney font-black uppercase text-[24px] text-[#0E1B4D] mb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <h3 className="font-whitney font-black uppercase text-[24px] text-[#0E1B4D] mb-2">
                       {cruise.title}
                     </h3>
-                    <p className="font-geograph text-[16px] text-[#666] leading-relaxed mb-4">
+                    <p className="font-geograph text-[16px] text-[#666] leading-relaxed">
                       {cruise.shortDescription}
                     </p>
-                    <div className="flex items-center justify-between">
-                      <span className="font-geograph font-semibold text-[#2238C3] group-hover:underline">
-                        View {cruise.name} →
-                      </span>
-                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 ml-6">
+                    <span className="font-geograph font-semibold text-[#2238C3]">
+                      View {cruise.name}
+                    </span>
+                    <svg className="w-5 h-5 text-[#2238C3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </div>
                 </div>
               </Link>
@@ -110,8 +93,8 @@ export default function SpecialCruisesPage() {
       </section>
 
       {/* SEO Content */}
-      <section className="py-[60px] bg-[#F6F3ED]">
-        <div className="max-w-4xl mx-auto px-4">
+      <section className="py-[60px]">
+        <div className="max-w-4xl mx-auto px-4 bg-white rounded-[10px] p-8">
           <h2 className="font-whitney font-black uppercase text-[32px] text-[#0E1B4D] mb-6 text-center">
             Find the Perfect Cruise Deal for You
           </h2>
@@ -143,46 +126,8 @@ export default function SpecialCruisesPage() {
         </div>
       </section>
 
-      {/* Special Deals Highlights */}
-      <section className="py-[60px]">
-        <div className="max-w-7xl mx-auto px-4">
-          <h3 className="font-whitney font-black uppercase text-[28px] text-[#0E1B4D] mb-8 text-center">
-            Why Book Special Cruise Deals with Zipsea?
-          </h3>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-[10px] p-6 text-center">
-              <div className="w-16 h-16 bg-[#F7F170] rounded-full mx-auto mb-4 flex items-center justify-center">
-                <span className="font-whitney font-black text-[#0E1B4D] text-[24px]">$</span>
-              </div>
-              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D] mb-2">Maximum Onboard Credit</h4>
-              <p className="font-geograph text-[14px] text-[#666]">
-                Every booking includes the maximum onboard credit allowed, giving you extra spending money
-              </p>
-            </div>
-            <div className="bg-white rounded-[10px] p-6 text-center">
-              <div className="w-16 h-16 bg-[#F7F170] rounded-full mx-auto mb-4 flex items-center justify-center">
-                <span className="font-whitney font-black text-[#0E1B4D] text-[24px]">✓</span>
-              </div>
-              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D] mb-2">Price Match Guarantee</h4>
-              <p className="font-geograph text-[14px] text-[#666]">
-                We match any lower price you find, ensuring you get the best deal possible
-              </p>
-            </div>
-            <div className="bg-white rounded-[10px] p-6 text-center">
-              <div className="w-16 h-16 bg-[#F7F170] rounded-full mx-auto mb-4 flex items-center justify-center">
-                <span className="font-whitney font-black text-[#0E1B4D] text-[24px]">★</span>
-              </div>
-              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D] mb-2">Expert Support</h4>
-              <p className="font-geograph text-[14px] text-[#666]">
-                Our cruise experts help you find and book the perfect cruise for your needs
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Quick Links */}
-      <section className="py-[40px] md:py-[60px] bg-[#F6F3ED]">
+      {/* Quick Links */
+      <section className="py-[40px] md:py-[60px]">
         <div className="max-w-7xl mx-auto px-4">
           <h3 className="font-geograph font-bold text-[18px] text-[#0E1B4D] mb-4 text-center">
             Browse Special Cruise Deals:
