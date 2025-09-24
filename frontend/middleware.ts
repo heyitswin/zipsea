@@ -30,6 +30,8 @@ const isPublicRoute = createRouteMatcher([
   "/api/v1/search",
   "/api/v1/search/(.*)", // Include comprehensive search endpoint
   "/api/v1/ships/(.*)",
+  "/api/v1/filter-options", // Filter options for dropdowns
+  "/api/v1/filters/(.*)", // All filter endpoints
   "/api/health",
 ]);
 
