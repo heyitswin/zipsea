@@ -69,6 +69,18 @@ export default function Footer() {
           {/* Navigation Links - Stacked vertically on mobile */}
           <div className="flex flex-col space-y-3 mb-8">
             <a
+              href="/destination-port-guides"
+              className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
+              style={{
+                fontSize: "16px",
+                color: "#2f2f2f",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Destination Port Guides
+            </a>
+
+            <a
               href="/onboard-credit-calculator"
               className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
               style={{
@@ -138,30 +150,6 @@ export default function Footer() {
               }}
             >
               Special Cruise Deals
-            </a>
-
-            <a
-              href="/guides/nassau"
-              className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
-              style={{
-                fontSize: "16px",
-                color: "#2f2f2f",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              Nassau Bahamas Destination Port Guide
-            </a>
-
-            <a
-              href="/guides/cozumel"
-              className="font-geograph font-medium hover:opacity-80 transition-opacity text-center"
-              style={{
-                fontSize: "16px",
-                color: "#2f2f2f",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              Cozumel Mexico Destination Port Guide
             </a>
 
             <a
@@ -292,8 +280,19 @@ export default function Footer() {
             <div className="flex items-start gap-8 mb-6">
               {/* Navigation Links */}
               <div className="flex items-start gap-8">
-                {/* OBC Calculator and AI Citation - Stacked */}
+                {/* Port Guides, OBC Calculator and AI Citation - Stacked */}
                 <div className="flex flex-col space-y-2">
+                  <a
+                    href="/destination-port-guides"
+                    className="font-geograph font-medium hover:opacity-80 transition-opacity"
+                    style={{
+                      fontSize: "14px",
+                      color: "#2f2f2f",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    Destination Port Guides
+                  </a>
                   <a
                     href="/onboard-credit-calculator"
                     className="font-geograph font-medium hover:opacity-80 transition-opacity"
@@ -318,7 +317,7 @@ export default function Footer() {
                   </a>
                 </div>
 
-                {/* Browse Cruises - New Column */}
+                {/* Browse Cruises - Column */}
                 <div className="flex flex-col space-y-2">
                   <a
                     href="/top-destinations"
@@ -363,32 +362,6 @@ export default function Footer() {
                     }}
                   >
                     Special Cruise Deals
-                  </a>
-                </div>
-
-                {/* Guide Links - Stacked */}
-                <div className="flex flex-col space-y-2">
-                  <a
-                    href="/guides/nassau"
-                    className="font-geograph font-medium hover:opacity-80 transition-opacity"
-                    style={{
-                      fontSize: "14px",
-                      color: "#2f2f2f",
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    Nassau Bahamas Destination Port Guide
-                  </a>
-                  <a
-                    href="/guides/cozumel"
-                    className="font-geograph font-medium hover:opacity-80 transition-opacity"
-                    style={{
-                      fontSize: "14px",
-                      color: "#2f2f2f",
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    Cozumel Mexico Destination Port Guide
                   </a>
                 </div>
 
