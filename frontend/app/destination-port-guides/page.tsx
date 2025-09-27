@@ -3,11 +3,14 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Destination Port Guides - Caribbean & Bahamas Cruise Ports | Zipsea",
-  description: "Comprehensive cruise port guides for Caribbean and Bahamas destinations. Expert tips on beaches, excursions, dining, and transportation for every major cruise port.",
-  keywords: "cruise port guides, Caribbean ports, Bahamas cruise ports, cruise destination guides, shore excursions, port tips, cruise terminal guides, beach access, port transportation",
+  description:
+    "Comprehensive cruise port guides for Caribbean and Bahamas destinations. Expert tips on beaches, excursions, dining, and transportation for every major cruise port.",
+  keywords:
+    "cruise port guides, Caribbean ports, Bahamas cruise ports, cruise destination guides, shore excursions, port tips, cruise terminal guides, beach access, port transportation",
   openGraph: {
     title: "Cruise Destination Port Guides - Expert Tips for Every Port",
-    description: "Complete guides for Caribbean and Bahamas cruise ports with insider tips on beaches, attractions, dining, and getting around.",
+    description:
+      "Complete guides for Caribbean and Bahamas cruise ports with insider tips on beaches, attractions, dining, and getting around.",
     type: "website",
     url: "https://www.zipsea.com/destination-port-guides",
     siteName: "Zipsea",
@@ -23,7 +26,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Destination Port Guides - Caribbean & Bahamas Cruise Ports",
-    description: "Expert guides for every major cruise port with tips on beaches, excursions, and local transportation.",
+    description:
+      "Expert guides for every major cruise port with tips on beaches, excursions, and local transportation.",
   },
   alternates: {
     canonical: "https://www.zipsea.com/destination-port-guides",
@@ -47,15 +51,40 @@ const portGuides = [
     slug: "nassau",
     title: "Nassau, Bahamas",
     name: "Nassau Cruise Port",
-    shortDescription: "Paradise Island beaches, Atlantis day passes, Fish Fry local cuisine, and crystal-clear snorkeling at Blue Lagoon Island. Your gateway to the Bahamas.",
-    highlights: ["Atlantis Resort", "Paradise Island", "Junkanoo Beach", "Queen's Staircase"],
+    shortDescription:
+      "Paradise Island beaches, Atlantis day passes, Fish Fry local cuisine, and crystal-clear snorkeling at Blue Lagoon Island. Your gateway to the Bahamas.",
+    highlights: [
+      "Atlantis Resort",
+      "Paradise Island",
+      "Junkanoo Beach",
+      "Queen's Staircase",
+    ],
   },
   {
     slug: "cozumel",
     title: "Cozumel, Mexico",
     name: "Cozumel Cruise Port",
-    shortDescription: "World-class reef diving, pristine beach clubs, ancient Mayan ruins, and vibrant Mexican culture. The Caribbean's premier snorkeling destination.",
-    highlights: ["Palancar Reef", "Paradise Beach", "San Gervasio Ruins", "Mr. Sancho's Beach Club"],
+    shortDescription:
+      "World-class reef diving, pristine beach clubs, ancient Mayan ruins, and vibrant Mexican culture. The Caribbean's premier snorkeling destination.",
+    highlights: [
+      "Palancar Reef",
+      "Paradise Beach",
+      "San Gervasio Ruins",
+      "Mr. Sancho's Beach Club",
+    ],
+  },
+  {
+    slug: "antarctica",
+    title: "Antarctica Expedition",
+    name: "Antarctica (Seventh Continent)",
+    shortDescription:
+      "The ultimate expedition cruise destination. Drake Passage crossing, Zodiac landings, penguin colonies, whale watching, and pristine wilderness in Earth's last frontier.",
+    highlights: [
+      "Drake Passage",
+      "Penguin Colonies",
+      "Zodiac Landings",
+      "Whale Watching",
+    ],
   },
 ];
 
@@ -79,7 +108,8 @@ export default function DestinationPortGuidesPage() {
             Destination Port Guides
           </h1>
           <h2 className="font-geograph text-white text-[18px] md:text-[22px] mt-6 leading-relaxed">
-            Expert guides for Caribbean and Bahamas cruise ports with insider tips on beaches, excursions, dining, and getting around
+            Expert guides for Caribbean and Bahamas cruise ports with insider
+            tips on beaches, excursions, dining, and getting around
           </h2>
         </div>
       </section>
@@ -146,19 +176,39 @@ export default function DestinationPortGuidesPage() {
           </h2>
           <div className="space-y-4 font-geograph text-[18px] text-[#666] leading-relaxed">
             <p>
-              Our comprehensive destination port guides provide everything you need to make the most of your time in each cruise port. Written by experienced cruisers and local experts, these guides offer insider tips that save you time and money while ensuring unforgettable experiences.
+              Our comprehensive destination port guides provide everything you
+              need to make the most of your time in each cruise port. Written by
+              experienced cruisers and local experts, these guides offer insider
+              tips that save you time and money while ensuring unforgettable
+              experiences.
             </p>
             <p>
-              Each port guide covers essential information including terminal logistics, transportation options, must-see attractions, beach recommendations, local dining spots, and shopping areas. We include current taxi rates, walking distances, and time estimates to help you plan your perfect port day.
+              Each port guide covers essential information including terminal
+              logistics, transportation options, must-see attractions, beach
+              recommendations, local dining spots, and shopping areas. We
+              include current taxi rates, walking distances, and time estimates
+              to help you plan your perfect port day.
             </p>
             <p>
-              Whether you're seeking adventure through snorkeling and diving, cultural experiences at historical sites, relaxation at beach clubs, or family-friendly activities, our guides help you choose the right excursions and activities for your travel style and budget.
+              Whether you're seeking adventure through snorkeling and diving,
+              cultural experiences at historical sites, relaxation at beach
+              clubs, or family-friendly activities, our guides help you choose
+              the right excursions and activities for your travel style and
+              budget.
             </p>
             <p>
-              We regularly update our guides with the latest information on port facilities, new attractions, and seasonal considerations. Each guide includes practical tips like where to find free WiFi, which beaches have the calmest waters, and how to avoid tourist traps while supporting local businesses.
+              We regularly update our guides with the latest information on port
+              facilities, new attractions, and seasonal considerations. Each
+              guide includes practical tips like where to find free WiFi, which
+              beaches have the calmest waters, and how to avoid tourist traps
+              while supporting local businesses.
             </p>
             <p>
-              Remember that all Zipsea cruise bookings include maximum onboard credit, giving you extra funds for shore excursions, specialty dining, and port shopping. Use our guides to make informed decisions about where to spend your time and money in each destination.
+              Remember that all Zipsea cruise bookings include maximum onboard
+              credit, giving you extra funds for shore excursions, specialty
+              dining, and port shopping. Use our guides to make informed
+              decisions about where to spend your time and money in each
+              destination.
             </p>
           </div>
         </div>
@@ -188,7 +238,10 @@ export default function DestinationPortGuidesPage() {
       <section className="py-[40px] bg-[#F7F170]">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <p className="font-geograph text-[16px] text-[#0E1B4D]">
-            <strong>More destination guides coming soon!</strong> We're constantly adding new port guides for popular cruise destinations including Grand Cayman, Jamaica, Costa Maya, Key West, and more.
+            <strong>More destination guides coming soon!</strong> We're
+            constantly adding new port guides for popular cruise destinations
+            including Grand Cayman, Jamaica, Costa Maya, Key West, St. Thomas,
+            and more expedition destinations.
           </p>
         </div>
       </section>
