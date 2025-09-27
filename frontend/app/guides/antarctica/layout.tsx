@@ -14,7 +14,7 @@ export const metadata: Metadata = {
       "Complete guide to Antarctic expeditions: Drake Passage, wildlife encounters, adventure activities, and essential tips for the journey of a lifetime.",
     images: [
       {
-        url: "https://images.unsplash.com/photo-1473116763249-2faaef81ccda?auto=format&fit=crop&w=2000&q=80",
+        url: "https://source.unsplash.com/o4SYFlupp7M/1200x630",
         width: 1200,
         height: 630,
         alt: "Antarctic expedition cruise ship among icebergs",
@@ -28,9 +28,7 @@ export const metadata: Metadata = {
     title: "Antarctica Cruise Guide - Complete Expedition Guide",
     description:
       "Plan your Antarctic expedition with our comprehensive guide covering everything from Drake Passage to penguin encounters.",
-    images: [
-      "https://images.unsplash.com/photo-1473116763249-2faaef81ccda?auto=format&fit=crop&w=2000&q=80",
-    ],
+    images: ["https://source.unsplash.com/o4SYFlupp7M/1200x630"],
   },
   alternates: {
     canonical: "https://www.zipsea.com/guides/antarctica",
