@@ -190,10 +190,9 @@ services:
     env: node
     region: oregon
     plan: starter
-    repo: https://github.com/heyitswin/zipsea.git
     branch: main
     rootDir: backend
-    buildCommand: npm ci
+    buildCommand: npm ci && npm run build
     startCommand: node scripts/sync-production-to-staging.js
     schedule: "0 6 * * *" # Daily at 6 AM UTC (11 PM PST)
     envVars:
