@@ -27,7 +27,7 @@ services:
   # Production Redis Cache
   - type: redis
     name: zipsea-redis-production
-    plan: starter
+    plan: standard
     region: oregon
     maxmemoryPolicy: noeviction
     ipAllowList: []
@@ -190,7 +190,7 @@ services:
     runtime: node
     region: oregon
     plan: starter
-    repo: https://github.com/zipsea/zipsea.git
+    repo: https://github.com/heyitswin/zipsea.git
     branch: main
     rootDir: backend
     buildCommand: npm ci
