@@ -19,7 +19,7 @@ services:
   # Staging Redis Cache
   - type: redis
     name: zipsea-redis-staging
-    plan: free
+    plan: standard
     region: oregon
     maxmemoryPolicy: noeviction
     ipAllowList: []
@@ -191,7 +191,7 @@ services:
     region: oregon
     plan: starter
     repo: https://github.com/zipsea/zipsea.git
-    branch: staging
+    branch: main
     rootDir: backend
     buildCommand: npm ci
     startCommand: npm run sync:production-to-staging
