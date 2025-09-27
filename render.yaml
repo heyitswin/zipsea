@@ -184,6 +184,30 @@ services:
   # CRON JOBS
   # ===========================================
 
+  # Production to Staging Data Sync - Daily sync of cruise data
+  - type: cron
+    name: zipsea-cruise-data-sync
+    runtime: node
+    region: oregon
+    plan: starter
+    repo: https://github.com/zipsea/zipsea.git
+    branch: staging
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm run sync:production-to-staging
+    schedule: "0 6 * * *" # Daily at 6 AM UTC (11 PM PST)
+    envVars:
+      - key: NODE_VERSION
+        value: "18.17.0"
+      - key: DATABASE_URL_STAGING
+        fromDatabase:
+          name: zipsea-db-staging
+          property: connectionString
+      - key: DATABASE_URL_PRODUCTION
+        fromDatabase:
+          name: zipsea-db-production
+          property: connectionString
+
   # DEPRECATED: Price Sync Cron Jobs - No longer needed with optimized webhook processor
   # Webhook processing is now handled automatically by webhook-processor-optimized.service
   # These cron jobs can be removed from Render dashboard
