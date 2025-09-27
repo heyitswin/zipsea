@@ -14,7 +14,7 @@ export const metadata: Metadata = {
       "Complete guide to Antarctic expeditions: Drake Passage, wildlife encounters, adventure activities, and essential tips for the journey of a lifetime.",
     images: [
       {
-        url: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?auto=format&fit=crop&w=2000&q=80",
+        url: "https://images.unsplash.com/photo-1473116763249-2faaef81ccda?auto=format&fit=crop&w=2000&q=80",
         width: 1200,
         height: 630,
         alt: "Antarctic expedition cruise ship among icebergs",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     description:
       "Plan your Antarctic expedition with our comprehensive guide covering everything from Drake Passage to penguin encounters.",
     images: [
-      "https://images.unsplash.com/photo-1559827260-dc66d52bef19?auto=format&fit=crop&w=2000&q=80",
+      "https://images.unsplash.com/photo-1473116763249-2faaef81ccda?auto=format&fit=crop&w=2000&q=80",
     ],
   },
   alternates: {
