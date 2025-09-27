@@ -194,7 +194,7 @@ services:
     branch: main
     rootDir: backend
     buildCommand: npm ci
-    startCommand: npm run sync:production-to-staging
+    startCommand: node scripts/sync-production-to-staging.js
     schedule: "0 6 * * *" # Daily at 6 AM UTC (11 PM PST)
     envVars:
       - key: NODE_VERSION
