@@ -162,83 +162,117 @@ class ProductionToStagingSync {
         return { success: true, dryRun: true, rowCount: prodCount };
       }
 
-      // Begin transaction for atomic operation
-      await this.stagingDb`BEGIN`;
+      // Use postgres library's transaction management
+      const result = await this.stagingDb
+        .begin(async sql => {
+          // Disable triggers temporarily to avoid FK constraint issues
+          await sql`SET session_replication_role = 'replica'`;
 
-      try {
-        // Disable triggers temporarily to avoid FK constraint issues
-        await this.stagingDb`SET session_replication_role = 'replica'`;
+          // Clear staging table
+          await sql`TRUNCATE TABLE ${sql(tableName)} CASCADE`;
 
-        // Clear staging table
-        await this.stagingDb`TRUNCATE TABLE ${this.stagingDb(tableName)} CASCADE`;
+          // Copy data from production to staging
+          // Using chunked approach for large tables
+          const chunkSize = 10000;
+          let offset = 0;
+          let totalCopied = 0;
 
-        // Copy data from production to staging
-        // Using chunked approach for large tables
-        const chunkSize = 10000;
-        let offset = 0;
-        let totalCopied = 0;
-
-        while (offset < prodCount) {
-          const rows = await this.prodDb`
+          while (offset < prodCount) {
+            const rows = await this.prodDb`
             SELECT * FROM ${this.prodDb(tableName)}
             ORDER BY 1  -- Order by first column for consistent pagination
             LIMIT ${chunkSize}
             OFFSET ${offset}
           `;
 
-          if (rows.length === 0) break;
+            if (rows.length === 0) break;
 
-          // Insert chunk into staging
-          if (rows.length > 0) {
-            // Get column names from first row
-            const columns = Object.keys(rows[0]);
-            const values = rows.map(row => columns.map(col => row[col]));
+            // Insert chunk into staging
+            if (rows.length > 0) {
+              // Get column names from first row
+              const columns = Object.keys(rows[0]);
+              const values = rows.map(row => columns.map(col => row[col]));
 
-            // Build insert query dynamically
-            const insertQuery = `
+              // Build insert query dynamically
+              const insertQuery = `
               INSERT INTO ${tableName} (${columns.join(', ')})
               VALUES ${values.map((_, i) => `(${columns.map((_, j) => `$${i * columns.length + j + 1}`).join(', ')})`).join(', ')}
             `;
 
-            // Flatten values array for parameterized query
-            const flatValues = values.flat();
+              // Flatten values array for parameterized query
+              const flatValues = values.flat();
 
-            await this.stagingDb.unsafe(insertQuery, flatValues);
-            totalCopied += rows.length;
+              await sql.unsafe(insertQuery, flatValues);
+              totalCopied += rows.length;
+            }
+
+            offset += chunkSize;
+
+            if (config.verbose && totalCopied % 10000 === 0) {
+              console.log(`    ... copied ${totalCopied} rows`);
+            }
           }
 
-          offset += chunkSize;
+          // Re-enable triggers
+          await sql`SET session_replication_role = 'origin'`;
 
-          if (config.verbose && totalCopied % 10000 === 0) {
-            console.log(`    ... copied ${totalCopied} rows`);
+          // Update sequences if table has serial columns - need to pass sql transaction object
+          await this.updateSequencesWithTransaction(sql, tableName);
+
+          // Get final count
+          const stagingCountAfter = await this.getRowCount(sql, tableName);
+
+          console.log(`  ✅ Successfully synced ${stagingCountAfter} rows`);
+          this.stats.rowsCopied += stagingCountAfter;
+
+          return { success: true, rowCount: stagingCountAfter };
+        })
+        .catch(async error => {
+          // Re-enable triggers on error
+          try {
+            await this.stagingDb`SET session_replication_role = 'origin'`;
+          } catch (e) {
+            // Ignore error if connection is already closed
           }
-        }
+          throw error;
+        });
 
-        // Re-enable triggers
-        await this.stagingDb`SET session_replication_role = 'origin'`;
-
-        // Update sequences if table has serial columns
-        await this.updateSequences(tableName);
-
-        // Commit transaction
-        await this.stagingDb`COMMIT`;
-
-        // Get final count
-        const stagingCountAfter = await this.getRowCount(this.stagingDb, tableName);
-
-        console.log(`  ✅ Successfully synced ${stagingCountAfter} rows`);
-        this.stats.rowsCopied += stagingCountAfter;
-
-        return { success: true, rowCount: stagingCountAfter };
-      } catch (error) {
-        // Rollback on error
-        await this.stagingDb`ROLLBACK`;
-        await this.stagingDb`SET session_replication_role = 'origin'`;
-        throw error;
-      }
+      return result;
     } catch (error) {
       console.error(`  ❌ Error syncing ${tableName}:`, error.message);
       return { success: false, error: error.message };
+    }
+  }
+
+  async updateSequencesWithTransaction(sql, tableName) {
+    try {
+      // Find all serial columns
+      const sequences = await sql`
+        SELECT
+          column_name,
+          column_default
+        FROM information_schema.columns
+        WHERE table_name = ${tableName}
+          AND column_default LIKE 'nextval%'
+      `;
+
+      for (const seq of sequences) {
+        const sequenceName = seq.column_default.match(/nextval\('(.+?)'/)?.[1];
+        if (sequenceName) {
+          // Reset sequence to max value + 1
+          await sql`
+            SELECT setval(
+              ${sequenceName}::regclass,
+              COALESCE(
+                (SELECT MAX(${sql(seq.column_name)}) FROM ${sql(tableName)}),
+                1
+              )
+            )
+          `;
+        }
+      }
+    } catch (error) {
+      // Ignore errors for tables without sequences
     }
   }
 
