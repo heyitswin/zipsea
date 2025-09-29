@@ -11,13 +11,6 @@ import logger from '../config/logger';
 import { cacheManager } from '../cache/cache-manager';
 import { CacheKeys } from '../cache/cache-keys';
 
-// Helper to get minimum sailing date (14 days from today)
-const getMinSailingDate = () => {
-  const today = new Date();
-  const twoWeeksFromNow = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
-  return twoWeeksFromNow.toISOString().split('T')[0];
-};
-
 export interface ComprehensiveSearchFilters {
   // Text search
   q?: string; // General search query
@@ -97,8 +90,9 @@ export class ComprehensiveSearchService {
       */
 
       // Build WHERE conditions
-      // Set minimum departure date to 14 days from today
-      const minDepartureDate = getMinSailingDate();
+      // Set minimum departure date to today
+      const today = new Date();
+      const minDepartureDate = today.toISOString().split('T')[0];
 
       const conditions: any[] = [
         eq(cruises.isActive, true),
@@ -440,7 +434,7 @@ export class ComprehensiveSearchService {
               and(
                 eq(cruises.cruiseLineId, cruiseLines.id),
                 eq(cruises.isActive, true),
-                gte(cruises.sailingDate, getMinSailingDate())
+                gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
               )
             )
             .where(eq(cruiseLines.isActive, true))
@@ -462,7 +456,7 @@ export class ComprehensiveSearchService {
               and(
                 eq(cruises.shipId, ships.id),
                 eq(cruises.isActive, true),
-                gte(cruises.sailingDate, getMinSailingDate())
+                gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
               )
             )
             .where(eq(ships.isActive, true))
@@ -484,7 +478,7 @@ export class ComprehensiveSearchService {
               and(
                 eq(cruises.embarkPortId, ports.id),
                 eq(cruises.isActive, true),
-                gte(cruises.sailingDate, getMinSailingDate())
+                gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
               )
             )
             .where(eq(ports.isActive, true))
@@ -511,7 +505,7 @@ export class ComprehensiveSearchService {
                 ${cruises.regionIds} LIKE '%,' || ${regions.id}::text
               )`,
                 eq(cruises.isActive, true),
-                gte(cruises.sailingDate, getMinSailingDate())
+                gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
               )
             )
             .where(eq(regions.isActive, true))
@@ -526,7 +520,12 @@ export class ComprehensiveSearchService {
               max: sql<number>`MAX(nights)`,
             })
             .from(cruises)
-            .where(and(eq(cruises.isActive, true), gte(cruises.sailingDate, getMinSailingDate()))),
+            .where(
+              and(
+                eq(cruises.isActive, true),
+                gte(cruises.sailingDate, new Date().toISOString().split('T')[0])
+              )
+            ),
 
           // Get price range
           db
@@ -548,7 +547,7 @@ export class ComprehensiveSearchService {
             .where(
               and(
                 eq(cruises.isActive, true),
-                gte(cruises.sailingDate, getMinSailingDate()),
+                gte(cruises.sailingDate, new Date().toISOString().split('T')[0]),
                 or(
                   isNotNull(cruises.interiorPrice),
                   isNotNull(cruises.oceanviewPrice),
@@ -603,7 +602,7 @@ export class ComprehensiveSearchService {
         .where(
           and(
             eq(cruises.isActive, true),
-            gte(cruises.sailingDate, getMinSailingDate()),
+            gte(cruises.sailingDate, new Date().toISOString().split('T')[0]),
             isNotNull(cruises.interiorPrice)
           )
         )
