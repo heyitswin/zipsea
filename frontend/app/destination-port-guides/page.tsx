@@ -86,6 +86,19 @@ const portGuides = [
       "Whale Watching",
     ],
   },
+  {
+    slug: "aruba",
+    title: "Aruba, Caribbean",
+    name: "Aruba Cruise Port",
+    shortDescription:
+      "One Happy Island with pristine beaches, Dutch colonial charm, and year-round sunshine. Walk to downtown Oranjestad, ride the free streetcar, or relax on Eagle Beach.",
+    highlights: [
+      "Eagle Beach",
+      "Free Streetcar",
+      "Dutch Heritage",
+      "Palm Beach",
+    ],
+  },
 ];
 
 export default function DestinationPortGuidesPage() {

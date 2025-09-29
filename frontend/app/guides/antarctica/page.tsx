@@ -47,7 +47,7 @@ export default function AntarcticaCruiseGuide() {
             {/* Hero Image */}
             <div className="relative w-full h-[400px] mb-8 rounded-lg overflow-hidden">
               <Image
-                src="https://source.unsplash.com/o4SYFlupp7M/2000x1000"
+                src="https://images.unsplash.com/photo-1516468243909-447fc0468ded?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                 alt="A stunning aerial view of a cruise ship surrounded by icebergs in the calm, turquoise waters of the Antarctic Peninsula"
                 fill
                 className="object-cover"
@@ -91,7 +91,7 @@ export default function AntarcticaCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://source.unsplash.com/ACam5NbFiwo/2000x1000"
+                  src="https://images.unsplash.com/photo-1493823704511-ef94def6a80b?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                   alt="A close-up shot of a small Zodiac boat filled with passengers in full gear"
                   fill
                   className="object-cover"
@@ -172,7 +172,7 @@ export default function AntarcticaCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://source.unsplash.com/FycMSc7sulo/2000x1000"
+                  src="https://images.unsplash.com/photo-1671362500619-4b9c06b5c5e1?q=80&w=1960&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                   alt="A group of excited passengers on a Zodiac boat observing a massive iceberg"
                   fill
                   className="object-cover"
@@ -276,7 +276,7 @@ export default function AntarcticaCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://source.unsplash.com/N_Y88TWmGwA/2000x1000"
+                  src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                   alt="A gourmet meal with a glass of wine in an elegant restaurant overlooking an icy landscape"
                   fill
                   className="object-cover"
@@ -335,7 +335,7 @@ export default function AntarcticaCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://source.unsplash.com/J6BAFvwcDo0/2000x1000"
+                  src="https://images.unsplash.com/photo-1739056656193-c864f688cde3?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                   alt="A family bundled in warm gear standing on a pristine beach with penguins"
                   fill
                   className="object-cover"
@@ -383,7 +383,7 @@ export default function AntarcticaCruiseGuide() {
 
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://source.unsplash.com/CrnALaUMSA4/2000x1000"
+                  src="https://images.unsplash.com/photo-1414408718521-f6f6198e9917?q=80&w=1408&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                   alt="Waterproof boots and an expedition parka with warm gloves ready for a day ashore"
                   fill
                   className="object-cover"
