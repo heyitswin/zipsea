@@ -240,6 +240,19 @@ const portGuides = [
       "Alaska's First City and the Salmon Capital of the World, famous for its totem poles, Creek Street boardwalk, and Misty Fjords.",
     highlights: ["Creek Street", "Totem Poles", "Misty Fjords", "Salmon Runs"],
   },
+  {
+    slug: "malta",
+    title: "Malta",
+    name: "Valletta Cruise Port",
+    shortDescription:
+      "A fortress island with 7,000 years of history. Explore UNESCO World Heritage Valletta, medieval Mdina, and St. John's Co-Cathedral's baroque splendor.",
+    highlights: [
+      "St. John's Co-Cathedral",
+      "Mdina Silent City",
+      "Grand Harbour",
+      "Three Cities",
+    ],
+  },
 ];
 
 export default function DestinationPortGuidesPage() {
