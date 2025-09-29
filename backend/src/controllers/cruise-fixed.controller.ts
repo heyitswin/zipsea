@@ -43,7 +43,7 @@ class CruiseControllerFixed {
 
       // Add base conditions
       conditions.push(`c.is_active = true`);
-      conditions.push(`c.sailing_date >= CURRENT_DATE + INTERVAL '14 days'`);
+      conditions.push(`c.sailing_date >= CURRENT_DATE`);
 
       if (shipId) {
         conditions.push(`c.ship_id = $${params.length + 1}`);

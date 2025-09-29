@@ -66,7 +66,7 @@ export class SearchOptimizedSimpleService {
           NULL as cheapest_price
         FROM cruises c
         WHERE c.is_active = true
-          AND c.sailing_date >= CURRENT_DATE + INTERVAL '14 days'`;
+          AND c.sailing_date >= CURRENT_DATE`;
 
       // Add filter conditions
       if (filters.cruiseLine) {
@@ -121,7 +121,7 @@ export class SearchOptimizedSimpleService {
         SELECT COUNT(*) as total
         FROM cruises c
         WHERE c.is_active = true
-          AND c.sailing_date >= CURRENT_DATE + INTERVAL '14 days'`;
+          AND c.sailing_date >= CURRENT_DATE`;
 
       if (filters.cruiseLine) {
         const lineIds = Array.isArray(filters.cruiseLine)
@@ -235,7 +235,7 @@ export class SearchOptimizedSimpleService {
         LEFT JOIN cruise_lines cl ON c.cruise_line_id = cl.id
         LEFT JOIN ships s ON c.ship_id = s.id
         WHERE c.is_active = true
-          AND c.sailing_date >= CURRENT_DATE + INTERVAL '14 days'
+          AND c.sailing_date >= CURRENT_DATE
         ORDER BY c.sailing_date ASC
         LIMIT ${limit}
       `;
@@ -290,7 +290,7 @@ export class SearchOptimizedSimpleService {
         SELECT DISTINCT name, 'cruise' as type
         FROM cruises
         WHERE is_active = true
-          AND sailing_date >= CURRENT_DATE + INTERVAL '14 days'
+          AND sailing_date >= CURRENT_DATE
           AND name ILIKE ${searchTerm}
         LIMIT ${limit}
       `);

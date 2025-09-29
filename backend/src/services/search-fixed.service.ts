@@ -172,7 +172,7 @@ class SearchFixedService {
         LEFT JOIN ports p1 ON c.embarkation_port_id = p1.id
         LEFT JOIN ports p2 ON c.disembarkation_port_id = p2.id
         WHERE c.is_active = true
-        AND c.sailing_date >= CURRENT_DATE + INTERVAL '14 days'
+        AND c.sailing_date >= CURRENT_DATE
         ORDER BY c.sailing_date ASC, c.nights ASC
         LIMIT ${limit}
         OFFSET ${offset}
@@ -190,7 +190,7 @@ class SearchFixedService {
         SELECT COUNT(*) as total
         FROM cruises c
         WHERE c.is_active = true
-        AND c.sailing_date >= CURRENT_DATE + INTERVAL '14 days'
+        AND c.sailing_date >= CURRENT_DATE
       `);
       const countResult = (countResultQuery as any).rows || countResultQuery || [];
       const total = parseInt(countResult[0]?.total || '0');
@@ -275,7 +275,7 @@ class SearchFixedService {
           FROM cruise_lines cl
           JOIN cruises c ON c.cruise_line_id = cl.id
           WHERE c.is_active = true
-          AND c.sailing_date >= CURRENT_DATE + INTERVAL '14 days'
+          AND c.sailing_date >= CURRENT_DATE
           ORDER BY cl.name
           LIMIT 100
         `),
@@ -284,7 +284,7 @@ class SearchFixedService {
           FROM ships s
           JOIN cruises c ON c.ship_id = s.id
           WHERE c.is_active = true
-          AND c.sailing_date >= CURRENT_DATE + INTERVAL '14 days'
+          AND c.sailing_date >= CURRENT_DATE
           ORDER BY s.name
           LIMIT 200
         `),
@@ -292,9 +292,9 @@ class SearchFixedService {
           SELECT DISTINCT p.id, p.name
           FROM ports p
           WHERE p.id IN (
-            SELECT embarkation_port_id FROM cruises WHERE is_active = true AND sailing_date >= CURRENT_DATE + INTERVAL '14 days'
+            SELECT embarkation_port_id FROM cruises WHERE is_active = true AND sailing_date >= CURRENT_DATE
             UNION
-            SELECT disembarkation_port_id FROM cruises WHERE is_active = true AND sailing_date >= CURRENT_DATE + INTERVAL '14 days'
+            SELECT disembarkation_port_id FROM cruises WHERE is_active = true AND sailing_date >= CURRENT_DATE
           )
           ORDER BY p.name
           LIMIT 100
@@ -306,7 +306,7 @@ class SearchFixedService {
           FROM cruises c
           LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
           WHERE c.is_active = true
-          AND c.sailing_date >= CURRENT_DATE + INTERVAL '14 days'
+          AND c.sailing_date >= CURRENT_DATE
         `),
         db.execute(sql`
           SELECT
@@ -314,7 +314,7 @@ class SearchFixedService {
             MAX(nights) as max_nights
           FROM cruises
           WHERE is_active = true
-          AND sailing_date >= CURRENT_DATE + INTERVAL '14 days'
+          AND sailing_date >= CURRENT_DATE
         `),
         db.execute(sql`
           SELECT
@@ -322,7 +322,7 @@ class SearchFixedService {
             MAX(sailing_date) as max_date
           FROM cruises
           WHERE is_active = true
-          AND sailing_date >= CURRENT_DATE + INTERVAL '14 days'
+          AND sailing_date >= CURRENT_DATE
         `),
       ]);
 
