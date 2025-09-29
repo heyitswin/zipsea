@@ -6,45 +6,47 @@ export default function HongKongCruiseGuide() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "TravelGuide",
-    "name": "Hong Kong Cruise Port Guide",
-    "description": "Complete guide to Hong Kong cruise ports. Discover Victoria Peak, dim sum, Star Ferry, and navigate between Ocean Terminal and Kai Tak terminals.",
-    "url": "https://www.zipsea.com/guides/hong-kong",
-    "image": [
+    name: "Hong Kong Cruise Port Guide",
+    description:
+      "Complete guide to Hong Kong cruise ports. Discover Victoria Peak, dim sum, Star Ferry, and navigate between Ocean Terminal and Kai Tak terminals.",
+    url: "https://www.zipsea.com/guides/hong-kong",
+    image: [
       "https://images.pexels.com/photos/5607794/pexels-photo-5607794.jpeg",
       "https://images.pexels.com/photos/18093534/pexels-photo-18093534.jpeg",
-      "https://images.pexels.com/photos/2725479/pexels-photo-2725479.jpeg"
+      "https://images.pexels.com/photos/2725479/pexels-photo-2725479.jpeg",
     ],
-    "author": {
+    author: {
       "@type": "Organization",
-      "name": "Zipsea",
-      "url": "https://www.zipsea.com"
+      name: "Zipsea",
+      url: "https://www.zipsea.com",
     },
-    "publisher": {
+    publisher: {
       "@type": "Organization",
-      "name": "Zipsea",
-      "url": "https://www.zipsea.com",
-      "logo": {
+      name: "Zipsea",
+      url: "https://www.zipsea.com",
+      logo: {
         "@type": "ImageObject",
-        "url": "https://www.zipsea.com/logo.png"
-      }
-    },
-    "datePublished": "2024-09-29",
-    "dateModified": new Date().toISOString(),
-    "keywords": "Hong Kong cruise port, Ocean Terminal Tsim Sha Tsui, Kai Tak Cruise Terminal, Victoria Peak, dim sum Hong Kong, Star Ferry, Avenue of Stars",
-    "mainEntity": {
-      "@type": "Place",
-      "name": "Hong Kong Cruise Ports",
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": "Hong Kong",
-        "addressCountry": "HK"
+        url: "https://www.zipsea.com/logo.png",
       },
-      "geo": {
+    },
+    datePublished: "2024-09-29",
+    dateModified: new Date().toISOString(),
+    keywords:
+      "Hong Kong cruise port, Ocean Terminal Tsim Sha Tsui, Kai Tak Cruise Terminal, Victoria Peak, dim sum Hong Kong, Star Ferry, Avenue of Stars",
+    mainEntity: {
+      "@type": "Place",
+      name: "Hong Kong Cruise Ports",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: "Hong Kong",
+        addressCountry: "HK",
+      },
+      geo: {
         "@type": "GeoCoordinates",
-        "latitude": 22.2936,
-        "longitude": 114.1699
-      }
-    }
+        latitude: 22.2936,
+        longitude: 114.1699,
+      },
+    },
   };
 
   return (
@@ -111,14 +113,15 @@ export default function HongKongCruiseGuide() {
                 className="font-geograph text-[18px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Hong Kong is a city that captures the imagination, a vibrant metropolis
-                that seamlessly blends its historic roots with modern, cosmopolitan energy.
-                For cruise passengers, a day here offers an unparalleled opportunity to
-                explore a world-class destination. However, Hong Kong operates two distinct
-                cruise terminals, each presenting a fundamentally different starting point
-                for exploration. This guide provides a strategic framework for navigating
-                your port day, empowering you to maximize every minute ashore, regardless
-                of your arrival point.
+                Hong Kong is a city that captures the imagination, a vibrant
+                metropolis that seamlessly blends its historic roots with
+                modern, cosmopolitan energy. For cruise passengers, a day here
+                offers an unparalleled opportunity to explore a world-class
+                destination. However, Hong Kong operates two distinct cruise
+                terminals, each presenting a fundamentally different starting
+                point for exploration. This guide provides a strategic framework
+                for navigating your port day, empowering you to maximize every
+                minute ashore, regardless of your arrival point.
               </p>
 
               {/* Your Arrival At The Port */}
@@ -142,11 +145,12 @@ export default function HongKongCruiseGuide() {
                 className="font-geograph text-[16px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                The first and most critical step for any cruise passenger arriving in
-                Hong Kong is to identify which of the two terminals your ship will be
-                using. This determination dictates your entire strategy for the day,
-                distinguishing between a direct, walkable exploration and one that
-                requires an initial transportation decision.
+                The first and most critical step for any cruise passenger
+                arriving in Hong Kong is to identify which of the two terminals
+                your ship will be using. This determination dictates your entire
+                strategy for the day, distinguishing between a direct, walkable
+                exploration and one that requires an initial transportation
+                decision.
               </p>
 
               <h3
@@ -161,23 +165,51 @@ export default function HongKongCruiseGuide() {
                   className="font-geograph text-[16px] mb-2"
                   style={{ color: "#0E1B4D" }}
                 >
-                  <strong>Location:</strong> Tsim Sha Tsui District, Kowloon Peninsula -
-                  the heart of Hong Kong's shopping and entertainment.
+                  <strong>Location:</strong> Tsim Sha Tsui District, Kowloon
+                  Peninsula - the heart of Hong Kong's shopping and
+                  entertainment.
                 </p>
                 <p
                   className="font-geograph text-[16px] mb-2"
                   style={{ color: "#0E1B4D" }}
                 >
-                  <strong>Advantage:</strong> Direct walkable access to Harbour City
-                  (largest shopping complex), Avenue of Stars, and major attractions.
+                  <strong>Advantage:</strong> Direct walkable access to Harbour
+                  City (largest shopping complex), Avenue of Stars, and major
+                  attractions.
                 </p>
                 <p
                   className="font-geograph text-[16px]"
                   style={{ color: "#0E1B4D" }}
                 >
-                  <strong>Best For:</strong> Larger cruise vessels; passengers wanting
-                  immediate city immersion without transfers.
+                  <strong>Best For:</strong> Larger cruise vessels; passengers
+                  wanting immediate city immersion without transfers.
                 </p>
+              </div>
+
+              {/* CTA 1 - After Ocean Terminal */}
+              <div
+                className="mt-8 p-6 rounded-lg text-center"
+                style={{ backgroundColor: "#F7F170" }}
+              >
+                <h3
+                  className="font-geograph font-bold text-[24px] mb-3"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Ready to Explore Hong Kong?
+                </h3>
+                <p
+                  className="font-geograph text-[16px] mb-4"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Experience the perfect blend of East and West on your Asia
+                  cruise.
+                </p>
+                <a
+                  href="/cruises?region=asia"
+                  className="inline-block px-6 py-3 bg-[#0E1B4D] text-white font-bold rounded-lg hover:bg-[#2238C3] transition-colors"
+                >
+                  Find Asia Cruises
+                </a>
               </div>
 
               <h3
@@ -192,22 +224,23 @@ export default function HongKongCruiseGuide() {
                   className="font-geograph text-[16px] mb-2"
                   style={{ color: "#0E1B4D" }}
                 >
-                  <strong>Location:</strong> Former Kai Tak Airport runway in Victoria
-                  Harbour - newer, larger facility but requires transportation.
+                  <strong>Location:</strong> Former Kai Tak Airport runway in
+                  Victoria Harbour - newer, larger facility but requires
+                  transportation.
                 </p>
                 <p
                   className="font-geograph text-[16px] mb-2"
                   style={{ color: "#0E1B4D" }}
                 >
-                  <strong>Transportation Required:</strong> Minibus, bus, or taxi to
-                  reach main attractions (14-30 minutes to city center).
+                  <strong>Transportation Required:</strong> Minibus, bus, or
+                  taxi to reach main attractions (14-30 minutes to city center).
                 </p>
                 <p
                   className="font-geograph text-[16px]"
                   style={{ color: "#0E1B4D" }}
                 >
-                  <strong>Best For:</strong> Newer mega-ships; passengers comfortable
-                  with Hong Kong's public transport system.
+                  <strong>Best For:</strong> Newer mega-ships; passengers
+                  comfortable with Hong Kong's public transport system.
                 </p>
               </div>
 
@@ -294,8 +327,9 @@ export default function HongKongCruiseGuide() {
                 style={{ color: "#0E1B4D" }}
               >
                 For those arriving at Ocean Terminal, the surrounding area is a
-                destination in itself. The terminal is part of Harbour City complex,
-                featuring countless shops, restaurants, and entertainment venues.
+                destination in itself. The terminal is part of Harbour City
+                complex, featuring countless shops, restaurants, and
+                entertainment venues.
               </p>
 
               <div className="grid md:grid-cols-2 gap-6 mb-6">
@@ -310,11 +344,23 @@ export default function HongKongCruiseGuide() {
                     className="font-geograph text-[14px] space-y-1"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <li>• <strong>Avenue of Stars:</strong> 5-min waterfront promenade</li>
-                    <li>• <strong>Clock Tower:</strong> Historic Kowloon Station remnant</li>
-                    <li>• <strong>Space Museum:</strong> 10-min walk</li>
-                    <li>• <strong>Cultural Centre:</strong> 8-min walk</li>
-                    <li>• <strong>Star Ferry Pier:</strong> 10-min to Central</li>
+                    <li>
+                      • <strong>Avenue of Stars:</strong> 5-min waterfront
+                      promenade
+                    </li>
+                    <li>
+                      • <strong>Clock Tower:</strong> Historic Kowloon Station
+                      remnant
+                    </li>
+                    <li>
+                      • <strong>Space Museum:</strong> 10-min walk
+                    </li>
+                    <li>
+                      • <strong>Cultural Centre:</strong> 8-min walk
+                    </li>
+                    <li>
+                      • <strong>Star Ferry Pier:</strong> 10-min to Central
+                    </li>
                   </ul>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -328,11 +374,23 @@ export default function HongKongCruiseGuide() {
                     className="font-geograph text-[14px] space-y-1"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <li>• <strong>Victoria Peak Tram:</strong> Iconic funicular railway</li>
-                    <li>• <strong>Star Ferry:</strong> Classic harbour crossing</li>
-                    <li>• <strong>Symphony of Lights:</strong> 8pm laser show</li>
-                    <li>• <strong>Temple Street Market:</strong> Night market experience</li>
-                    <li>• <strong>Ladies' Market:</strong> Shopping paradise</li>
+                    <li>
+                      • <strong>Victoria Peak Tram:</strong> Iconic funicular
+                      railway
+                    </li>
+                    <li>
+                      • <strong>Star Ferry:</strong> Classic harbour crossing
+                    </li>
+                    <li>
+                      • <strong>Symphony of Lights:</strong> 8pm laser show
+                    </li>
+                    <li>
+                      • <strong>Temple Street Market:</strong> Night market
+                      experience
+                    </li>
+                    <li>
+                      • <strong>Ladies' Market:</strong> Shopping paradise
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -350,9 +408,9 @@ export default function HongKongCruiseGuide() {
                     Victoria Peak
                   </h4>
                   <p className="font-geograph text-[14px] text-[#0E1B4D]">
-                    Take the Peak Tram for spectacular panoramic views. The journey itself
-                    is an adventure as the funicular climbs at a 27-degree angle. Sky Terrace
-                    428 offers 360-degree views.
+                    Take the Peak Tram for spectacular panoramic views. The
+                    journey itself is an adventure as the funicular climbs at a
+                    27-degree angle. Sky Terrace 428 offers 360-degree views.
                   </p>
                 </div>
                 <div className="border-l-4 border-[#F7F170] pl-4">
@@ -360,8 +418,9 @@ export default function HongKongCruiseGuide() {
                     Cultural Heritage Sites
                   </h4>
                   <p className="font-geograph text-[14px] text-[#0E1B4D]">
-                    Man Mo Temple (oldest temple), Chi Lin Nunnery (Buddhist complex with
-                    gardens), and Wong Tai Sin Temple (good fortune prayers).
+                    Man Mo Temple (oldest temple), Chi Lin Nunnery (Buddhist
+                    complex with gardens), and Wong Tai Sin Temple (good fortune
+                    prayers).
                   </p>
                 </div>
                 <div className="border-l-4 border-[#F7F170] pl-4">
@@ -369,8 +428,9 @@ export default function HongKongCruiseGuide() {
                     Street Markets
                   </h4>
                   <p className="font-geograph text-[14px] text-[#0E1B4D]">
-                    Ladies' Market (clothing/souvenirs), Temple Street Night Market
-                    (evening street food), Fa Yuen Street (authentic local shopping).
+                    Ladies' Market (clothing/souvenirs), Temple Street Night
+                    Market (evening street food), Fa Yuen Street (authentic
+                    local shopping).
                   </p>
                 </div>
               </div>
@@ -396,10 +456,11 @@ export default function HongKongCruiseGuide() {
                 className="font-geograph text-[16px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Hong Kong's culinary scene is a celebration of fresh ingredients, with
-                emphasis on Cantonese cuisine, dim sum, and international flavors. The
-                food culture is deeply ingrained in daily life, and exploring local
-                eateries is an essential part of the experience.
+                Hong Kong's culinary scene is a celebration of fresh
+                ingredients, with emphasis on Cantonese cuisine, dim sum, and
+                international flavors. The food culture is deeply ingrained in
+                daily life, and exploring local eateries is an essential part of
+                the experience.
               </p>
 
               <div className="grid md:grid-cols-2 gap-6 mb-6">
@@ -414,12 +475,25 @@ export default function HongKongCruiseGuide() {
                     className="font-geograph text-[14px] space-y-1"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <li>• <strong>Dim Sum:</strong> Small steamer basket dishes</li>
-                    <li>• <strong>Wonton Noodle Soup:</strong> Classic comfort food</li>
-                    <li>• <strong>Roast Goose:</strong> Crispy skin, tender meat</li>
-                    <li>• <strong>Fish Balls:</strong> Street snack with curry</li>
-                    <li>• <strong>Egg Tarts:</strong> Flaky pastry dessert</li>
-                    <li>• <strong>Pineapple Bun:</strong> Sweet breakfast pastry</li>
+                    <li>
+                      • <strong>Dim Sum:</strong> Small steamer basket dishes
+                    </li>
+                    <li>
+                      • <strong>Wonton Noodle Soup:</strong> Classic comfort
+                      food
+                    </li>
+                    <li>
+                      • <strong>Roast Goose:</strong> Crispy skin, tender meat
+                    </li>
+                    <li>
+                      • <strong>Fish Balls:</strong> Street snack with curry
+                    </li>
+                    <li>
+                      • <strong>Egg Tarts:</strong> Flaky pastry dessert
+                    </li>
+                    <li>
+                      • <strong>Pineapple Bun:</strong> Sweet breakfast pastry
+                    </li>
                   </ul>
                 </div>
                 <div className="bg-yellow-50 p-4 rounded-lg">
@@ -433,11 +507,22 @@ export default function HongKongCruiseGuide() {
                     className="font-geograph text-[14px] space-y-1"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <li>• <strong>Tim Ho Wan:</strong> World's cheapest Michelin star</li>
-                    <li>• <strong>Jumbo Kingdom:</strong> Floating restaurant</li>
-                    <li>• <strong>Mak's Noodle:</strong> Authentic wonton soup</li>
-                    <li>• <strong>Yung Kee:</strong> Famous roast goose</li>
-                    <li>• <strong>Australia Dairy Co:</strong> Local breakfast</li>
+                    <li>
+                      • <strong>Tim Ho Wan:</strong> World's cheapest Michelin
+                      star
+                    </li>
+                    <li>
+                      • <strong>Jumbo Kingdom:</strong> Floating restaurant
+                    </li>
+                    <li>
+                      • <strong>Mak's Noodle:</strong> Authentic wonton soup
+                    </li>
+                    <li>
+                      • <strong>Yung Kee:</strong> Famous roast goose
+                    </li>
+                    <li>
+                      • <strong>Australia Dairy Co:</strong> Local breakfast
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -463,9 +548,9 @@ export default function HongKongCruiseGuide() {
                 className="font-geograph text-[16px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Hong Kong is fantastic for families, offering activities that appeal to
-                all ages. The city's efficient public transport system makes navigating
-                with children a breeze.
+                Hong Kong is fantastic for families, offering activities that
+                appeal to all ages. The city's efficient public transport system
+                makes navigating with children a breeze.
               </p>
 
               <div className="grid md:grid-cols-3 gap-4 mb-8">
@@ -474,8 +559,8 @@ export default function HongKongCruiseGuide() {
                     Peak Tram Adventure
                   </h4>
                   <p className="font-geograph text-[14px] text-[#0E1B4D]">
-                    Journey is an adventure with Madame Tussauds and interactive exhibits
-                    at Peak Tower.
+                    Journey is an adventure with Madame Tussauds and interactive
+                    exhibits at Peak Tower.
                   </p>
                 </div>
                 <div className="border-l-4 border-[#F7F170] pl-4">
@@ -483,7 +568,8 @@ export default function HongKongCruiseGuide() {
                     Ocean Park
                   </h4>
                   <p className="font-geograph text-[14px] text-[#0E1B4D]">
-                    Marine life exhibits, animal encounters, and thrill rides for all ages.
+                    Marine life exhibits, animal encounters, and thrill rides
+                    for all ages.
                   </p>
                 </div>
                 <div className="border-l-4 border-[#F7F170] pl-4">
@@ -491,7 +577,8 @@ export default function HongKongCruiseGuide() {
                     Hong Kong Disneyland
                   </h4>
                   <p className="font-geograph text-[14px] text-[#0E1B4D]">
-                    Short MTR ride from city center with classic rides and character meets.
+                    Short MTR ride from city center with classic rides and
+                    character meets.
                   </p>
                 </div>
               </div>
@@ -526,16 +613,19 @@ export default function HongKongCruiseGuide() {
                   style={{ color: "#0E1B4D" }}
                 >
                   <li>
-                    <strong>Currency:</strong> Hong Kong Dollar (HKD) pegged to US$ at
-                    approximately HK$7.80 to US$1. Credit cards widely accepted.
+                    <strong>Currency:</strong> Hong Kong Dollar (HKD) pegged to
+                    US$ at approximately HK$7.80 to US$1. Credit cards widely
+                    accepted.
                   </li>
                   <li>
-                    <strong>Octopus Card:</strong> Essential for public transport and many
-                    shops. Buy at airport or MTR stations for HK$150 (includes HK$100 credit).
+                    <strong>Octopus Card:</strong> Essential for public
+                    transport and many shops. Buy at airport or MTR stations for
+                    HK$150 (includes HK$100 credit).
                   </li>
                   <li>
-                    <strong>Tipping:</strong> 10% service charge often added automatically.
-                    Round up taxi fares. Not expected at casual eateries.
+                    <strong>Tipping:</strong> 10% service charge often added
+                    automatically. Round up taxi fares. Not expected at casual
+                    eateries.
                   </li>
                 </ul>
               </div>
@@ -570,7 +660,9 @@ export default function HongKongCruiseGuide() {
                       <td className="py-3 px-4 font-bold">Spring (Mar-May)</td>
                       <td className="py-3 px-4">70-80</td>
                       <td className="py-3 px-4">60-75</td>
-                      <td className="py-3 px-4">Mild and pleasant, rising humidity</td>
+                      <td className="py-3 px-4">
+                        Mild and pleasant, rising humidity
+                      </td>
                     </tr>
                     <tr className="border-b border-[#E5E5E5]">
                       <td className="py-3 px-4 font-bold">Summer (Jun-Aug)</td>
@@ -582,13 +674,17 @@ export default function HongKongCruiseGuide() {
                       <td className="py-3 px-4 font-bold">Autumn (Sep-Nov)</td>
                       <td className="py-3 px-4">70-80</td>
                       <td className="py-3 px-4">60-75</td>
-                      <td className="py-3 px-4">Best season - sunny, low humidity</td>
+                      <td className="py-3 px-4">
+                        Best season - sunny, low humidity
+                      </td>
                     </tr>
                     <tr className="border-b border-[#E5E5E5]">
                       <td className="py-3 px-4 font-bold">Winter (Dec-Feb)</td>
                       <td className="py-3 px-4">65-70</td>
                       <td className="py-3 px-4">58-65</td>
-                      <td className="py-3 px-4">Cool and dry, low rain chance</td>
+                      <td className="py-3 px-4">
+                        Cool and dry, low rain chance
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -606,8 +702,8 @@ export default function HongKongCruiseGuide() {
                   className="font-geograph text-[16px] mb-3"
                   style={{ color: "#0E1B4D" }}
                 >
-                  Hong Kong is very safe for tourists with low crime rates and polite,
-                  orderly society. Be aware of:
+                  Hong Kong is very safe for tourists with low crime rates and
+                  polite, orderly society. Be aware of:
                 </p>
                 <ul
                   className="font-geograph text-[14px] space-y-1"
@@ -631,10 +727,16 @@ export default function HongKongCruiseGuide() {
                 </h3>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <h4 className="font-geograph font-bold text-[16px] mb-2" style={{ color: "#0E1B4D" }}>
+                    <h4
+                      className="font-geograph font-bold text-[16px] mb-2"
+                      style={{ color: "#0E1B4D" }}
+                    >
                       From Ocean Terminal
                     </h4>
-                    <ul className="font-geograph text-[14px] space-y-1" style={{ color: "#0E1B4D" }}>
+                    <ul
+                      className="font-geograph text-[14px] space-y-1"
+                      style={{ color: "#0E1B4D" }}
+                    >
                       <li>• Walk to Avenue of Stars (5 min)</li>
                       <li>• Star Ferry to Central (HK$3)</li>
                       <li>• Peak Tram from Central</li>
@@ -642,10 +744,16 @@ export default function HongKongCruiseGuide() {
                     </ul>
                   </div>
                   <div>
-                    <h4 className="font-geograph font-bold text-[16px] mb-2" style={{ color: "#0E1B4D" }}>
+                    <h4
+                      className="font-geograph font-bold text-[16px] mb-2"
+                      style={{ color: "#0E1B4D" }}
+                    >
                       From Kai Tak Terminal
                     </h4>
-                    <ul className="font-geograph text-[14px] space-y-1" style={{ color: "#0E1B4D" }}>
+                    <ul
+                      className="font-geograph text-[14px] space-y-1"
+                      style={{ color: "#0E1B4D" }}
+                    >
                       <li>• Green Minibus #86 to MTR (HK$7)</li>
                       <li>• Taxi to Central (HK$140-170)</li>
                       <li>• Allow 30 min extra travel time</li>
@@ -656,9 +764,7 @@ export default function HongKongCruiseGuide() {
               </div>
 
               {/* CTA Section */}
-              <div
-                className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 rounded-lg text-center mt-12"
-              >
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 rounded-lg text-center mt-12">
                 <h2
                   className="font-whitney font-black text-[32px] mb-4"
                   style={{ color: "#0E1B4D" }}
@@ -691,13 +797,15 @@ export default function HongKongCruiseGuide() {
                 className="font-geograph text-[18px] leading-relaxed italic"
                 style={{ color: "#0E1B4D" }}
               >
-                A day in Hong Kong is a journey through a vibrant, dynamic city that
-                effortlessly combines iconic man-made landmarks with spectacular natural
-                beauty. By understanding the unique logistical challenges of the city's
-                two-port system and utilizing its transparent and efficient public
-                transport network, you can craft a day that is both ambitious and
-                seamless. With a bit of pre-planning, your day in this magnificent
-                city will not just be a visit, but a cherished highlight of any cruise.
+                A day in Hong Kong is a journey through a vibrant, dynamic city
+                that effortlessly combines iconic man-made landmarks with
+                spectacular natural beauty. By understanding the unique
+                logistical challenges of the city's two-port system and
+                utilizing its transparent and efficient public transport
+                network, you can craft a day that is both ambitious and
+                seamless. With a bit of pre-planning, your day in this
+                magnificent city will not just be a visit, but a cherished
+                highlight of any cruise.
               </p>
             </div>
           </div>

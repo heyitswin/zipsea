@@ -219,6 +219,19 @@ const portGuides = [
       "Plate Lunch",
     ],
   },
+  {
+    slug: "juneau",
+    title: "Juneau, Alaska",
+    name: "Juneau Cruise Port",
+    shortDescription:
+      "Alaska's capital accessible only by air or sea. Mendenhall Glacier, Mount Roberts Tramway, whale watching, and fresh king crab await in this gold rush frontier town.",
+    highlights: [
+      "Mendenhall Glacier",
+      "Mount Roberts",
+      "Whale Watching",
+      "King Crab",
+    ],
+  },
 ];
 
 export default function DestinationPortGuidesPage() {

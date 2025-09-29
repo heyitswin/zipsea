@@ -6,45 +6,47 @@ export default function GlacierBayCruiseGuide() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "TravelGuide",
-    "name": "Glacier Bay National Park Cruise Guide",
-    "description": "Complete guide to cruising Glacier Bay National Park, Alaska. Discover glaciers, wildlife viewing, scenic cruising, and park ranger programs.",
-    "url": "https://www.zipsea.com/guides/glacier-bay",
-    "image": [
+    name: "Glacier Bay National Park Cruise Guide",
+    description:
+      "Complete guide to cruising Glacier Bay National Park, Alaska. Discover glaciers, wildlife viewing, scenic cruising, and park ranger programs.",
+    url: "https://www.zipsea.com/guides/glacier-bay",
+    image: [
       "https://images.pexels.com/photos/20582185/pexels-photo-20582185.jpeg",
       "https://images.pexels.com/photos/6248989/pexels-photo-6248989.jpeg",
-      "https://images.pexels.com/photos/4156977/pexels-photo-4156977.jpeg"
+      "https://images.pexels.com/photos/4156977/pexels-photo-4156977.jpeg",
     ],
-    "author": {
+    author: {
       "@type": "Organization",
-      "name": "Zipsea",
-      "url": "https://www.zipsea.com"
+      name: "Zipsea",
+      url: "https://www.zipsea.com",
     },
-    "publisher": {
+    publisher: {
       "@type": "Organization",
-      "name": "Zipsea",
-      "url": "https://www.zipsea.com",
-      "logo": {
+      name: "Zipsea",
+      url: "https://www.zipsea.com",
+      logo: {
         "@type": "ImageObject",
-        "url": "https://www.zipsea.com/logo.png"
-      }
-    },
-    "datePublished": "2024-09-29",
-    "dateModified": new Date().toISOString(),
-    "keywords": "Glacier Bay cruise, Alaska cruise, Glacier Bay National Park, Margerie Glacier, Grand Pacific Glacier, Alaska wildlife, cruise scenic day",
-    "mainEntity": {
-      "@type": "Place",
-      "name": "Glacier Bay National Park",
-      "address": {
-        "@type": "PostalAddress",
-        "addressRegion": "Alaska",
-        "addressCountry": "US"
+        url: "https://www.zipsea.com/logo.png",
       },
-      "geo": {
+    },
+    datePublished: "2024-09-29",
+    dateModified: new Date().toISOString(),
+    keywords:
+      "Glacier Bay cruise, Alaska cruise, Glacier Bay National Park, Margerie Glacier, Grand Pacific Glacier, Alaska wildlife, cruise scenic day",
+    mainEntity: {
+      "@type": "Place",
+      name: "Glacier Bay National Park",
+      address: {
+        "@type": "PostalAddress",
+        addressRegion: "Alaska",
+        addressCountry: "US",
+      },
+      geo: {
         "@type": "GeoCoordinates",
-        "latitude": 58.5,
-        "longitude": -136.0
-      }
-    }
+        latitude: 58.5,
+        longitude: -136.0,
+      },
+    },
   };
 
   return (
@@ -112,12 +114,13 @@ export default function GlacierBayCruiseGuide() {
                 style={{ color: "#0E1B4D" }}
               >
                 Glacier Bay National Park represents one of Alaska's most
-                spectacular natural wonders, accessible only by boat or seaplane.
-                This UNESCO World Heritage Site encompasses 3.3 million acres of
-                rugged mountains, dynamic glaciers, temperate rainforest, wild
-                coastlines, and deep sheltered fjords. For cruise passengers, it
-                offers a unique scenic cruising day where the ship itself becomes
-                your viewing platform for one of nature's most dramatic displays.
+                spectacular natural wonders, accessible only by boat or
+                seaplane. This UNESCO World Heritage Site encompasses 3.3
+                million acres of rugged mountains, dynamic glaciers, temperate
+                rainforest, wild coastlines, and deep sheltered fjords. For
+                cruise passengers, it offers a unique scenic cruising day where
+                the ship itself becomes your viewing platform for one of
+                nature's most dramatic displays.
               </p>
 
               <div className="bg-gray-50 p-4 rounded-lg mb-6">
@@ -159,13 +162,40 @@ export default function GlacierBayCruiseGuide() {
                 className="font-geograph text-[16px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Glacier Bay offers the highest concentration of tidewater glaciers
-                on the planet. The bay itself is a recent geological phenomenon -
-                just 250 years ago, it was entirely filled with ice. Today, it
-                stretches 65 miles from the ocean to the back of the deepest inlets,
-                providing cruise passengers with an unparalleled journey through
-                landscapes that have been revealed by retreating ice.
+                Glacier Bay offers the highest concentration of tidewater
+                glaciers on the planet. The bay itself is a recent geological
+                phenomenon - just 250 years ago, it was entirely filled with
+                ice. Today, it stretches 65 miles from the ocean to the back of
+                the deepest inlets, providing cruise passengers with an
+                unparalleled journey through landscapes that have been revealed
+                by retreating ice.
               </p>
+
+              {/* CTA 1 - After Introduction */}
+              <div
+                className="mt-8 p-6 rounded-lg text-center"
+                style={{ backgroundColor: "#F7F170" }}
+              >
+                <h3
+                  className="font-geograph font-bold text-[24px] mb-3"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Ready to Experience Glacier Bay?
+                </h3>
+                <p
+                  className="font-geograph text-[16px] mb-4"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Find the perfect Alaska cruise with exclusive Glacier Bay
+                  permits.
+                </p>
+                <a
+                  href="/cruises?region=alaska"
+                  className="inline-block px-6 py-3 bg-[#0E1B4D] text-white font-bold rounded-lg hover:bg-[#2238C3] transition-colors"
+                >
+                  Find Alaska Cruises
+                </a>
+              </div>
 
               {/* Glacier Viewing Highlights */}
               <h2
@@ -230,7 +260,8 @@ export default function GlacierBayCruiseGuide() {
               >
                 Weather and ice conditions permitting, some cruises venture into
                 Johns Hopkins Inlet to view this massive glacier and the
-                surrounding peaks that rise over 6,000 feet directly from sea level.
+                surrounding peaks that rise over 6,000 feet directly from sea
+                level.
               </p>
 
               <h3
@@ -325,7 +356,8 @@ export default function GlacierBayCruiseGuide() {
                 >
                   <li>
                     <strong>Forward Observation Decks:</strong> Usually decks
-                    10-12, offering panoramic views as the ship approaches glaciers
+                    10-12, offering panoramic views as the ship approaches
+                    glaciers
                   </li>
                   <li>
                     <strong>Promenade Decks:</strong> Protected from wind while
@@ -354,20 +386,49 @@ export default function GlacierBayCruiseGuide() {
                 className="font-geograph text-[16px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Park Rangers board your ship early in the morning at Bartlett Cove
-                and remain aboard throughout your Glacier Bay cruise. They provide:
+                Park Rangers board your ship early in the morning at Bartlett
+                Cove and remain aboard throughout your Glacier Bay cruise. They
+                provide:
               </p>
 
               <ul
                 className="font-geograph text-[16px] space-y-2 mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                <li>• Live narration from the bridge during glacier approaches</li>
+                <li>
+                  • Live narration from the bridge during glacier approaches
+                </li>
                 <li>• Educational presentations in the ship's theater</li>
                 <li>• Junior Ranger programs for children</li>
                 <li>• Roving interpretation on deck during scenic cruising</li>
                 <li>• Native Tlingit cultural presentations</li>
               </ul>
+
+              {/* CTA 2 - After Wildlife Section */}
+              <div
+                className="mt-12 p-6 rounded-lg text-center"
+                style={{ backgroundColor: "#F7F170" }}
+              >
+                <h3
+                  className="font-geograph font-bold text-[24px] mb-3"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Ready to See Alaska's Wildlife?
+                </h3>
+                <p
+                  className="font-geograph text-[16px] mb-4"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Book your Glacier Bay cruise and witness incredible wildlife
+                  in their natural habitat.
+                </p>
+                <a
+                  href="/cruises?region=alaska"
+                  className="inline-block px-6 py-3 bg-[#0E1B4D] text-white font-bold rounded-lg hover:bg-[#2238C3] transition-colors"
+                >
+                  Explore Alaska Cruises
+                </a>
+              </div>
 
               {/* Photography Tips */}
               <h2
@@ -392,8 +453,8 @@ export default function GlacierBayCruiseGuide() {
                   style={{ color: "#0E1B4D" }}
                 >
                   <li>
-                    <strong>Bring a telephoto lens:</strong> Wildlife and glacier
-                    details benefit from 200-400mm range
+                    <strong>Bring a telephoto lens:</strong> Wildlife and
+                    glacier details benefit from 200-400mm range
                   </li>
                   <li>
                     <strong>Protect from spray:</strong> Glacier calving creates
@@ -408,8 +469,8 @@ export default function GlacierBayCruiseGuide() {
                     kayakers, or birds help show glacier magnitude
                   </li>
                   <li>
-                    <strong>Best light:</strong> Early morning and late afternoon
-                    offer dramatic shadows on ice formations
+                    <strong>Best light:</strong> Early morning and late
+                    afternoon offer dramatic shadows on ice formations
                   </li>
                 </ul>
               </div>
@@ -461,6 +522,32 @@ export default function GlacierBayCruiseGuide() {
                 </div>
               </div>
 
+              {/* CTA 3 - After What to Bring */}
+              <div
+                className="mt-8 p-6 rounded-lg text-center"
+                style={{ backgroundColor: "#F7F170" }}
+              >
+                <h3
+                  className="font-geograph font-bold text-[24px] mb-3"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Start Planning Your Glacier Bay Adventure
+                </h3>
+                <p
+                  className="font-geograph text-[16px] mb-4"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Limited permits make Glacier Bay exclusive. Reserve your spot
+                  today.
+                </p>
+                <a
+                  href="/cruises?region=alaska"
+                  className="inline-block px-6 py-3 bg-[#0E1B4D] text-white font-bold rounded-lg hover:bg-[#2238C3] transition-colors"
+                >
+                  View Available Cruises
+                </a>
+              </div>
+
               {/* Weather Expectations */}
               <h2
                 className="font-whitney font-black uppercase text-[36px] mt-12 mb-6"
@@ -473,12 +560,12 @@ export default function GlacierBayCruiseGuide() {
                 className="font-geograph text-[16px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Glacier Bay weather is notoriously unpredictable. Even in summer,
-                temperatures on deck can range from 40-60°F (4-15°C), and it's
-                typically 10-15 degrees cooler near the glaciers due to katabatic
-                winds flowing off the ice. Rain is possible any day, with July
-                and August being the driest months. May and September cruises
-                should prepare for colder conditions.
+                Glacier Bay weather is notoriously unpredictable. Even in
+                summer, temperatures on deck can range from 40-60°F (4-15°C),
+                and it's typically 10-15 degrees cooler near the glaciers due to
+                katabatic winds flowing off the ice. Rain is possible any day,
+                with July and August being the driest months. May and September
+                cruises should prepare for colder conditions.
               </p>
 
               {/* Cruise Lines */}
@@ -493,12 +580,12 @@ export default function GlacierBayCruiseGuide() {
                 className="font-geograph text-[16px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Due to strict environmental protections, only select cruise lines
-                have permits to enter Glacier Bay. Major lines with regular access
-                include Princess, Holland America, Norwegian, and select smaller
-                expedition cruise operators. The two-ship-per-day limit means not
-                all Alaska cruises include Glacier Bay - verify this when booking
-                if it's a priority.
+                Due to strict environmental protections, only select cruise
+                lines have permits to enter Glacier Bay. Major lines with
+                regular access include Princess, Holland America, Norwegian, and
+                select smaller expedition cruise operators. The two-ship-per-day
+                limit means not all Alaska cruises include Glacier Bay - verify
+                this when booking if it's a priority.
               </p>
 
               {/* Planning Your Day */}
@@ -518,7 +605,10 @@ export default function GlacierBayCruiseGuide() {
                 </h3>
                 <div className="space-y-3">
                   <div className="flex">
-                    <span className="font-bold mr-3" style={{ color: "#0E1B4D" }}>
+                    <span
+                      className="font-bold mr-3"
+                      style={{ color: "#0E1B4D" }}
+                    >
                       6:00 AM:
                     </span>
                     <span style={{ color: "#0E1B4D" }}>
@@ -526,15 +616,22 @@ export default function GlacierBayCruiseGuide() {
                     </span>
                   </div>
                   <div className="flex">
-                    <span className="font-bold mr-3" style={{ color: "#0E1B4D" }}>
+                    <span
+                      className="font-bold mr-3"
+                      style={{ color: "#0E1B4D" }}
+                    >
                       7:00 AM:
                     </span>
                     <span style={{ color: "#0E1B4D" }}>
-                      Scenic cruising begins, South Marble Island sea lion colony
+                      Scenic cruising begins, South Marble Island sea lion
+                      colony
                     </span>
                   </div>
                   <div className="flex">
-                    <span className="font-bold mr-3" style={{ color: "#0E1B4D" }}>
+                    <span
+                      className="font-bold mr-3"
+                      style={{ color: "#0E1B4D" }}
+                    >
                       9:00 AM:
                     </span>
                     <span style={{ color: "#0E1B4D" }}>
@@ -542,7 +639,10 @@ export default function GlacierBayCruiseGuide() {
                     </span>
                   </div>
                   <div className="flex">
-                    <span className="font-bold mr-3" style={{ color: "#0E1B4D" }}>
+                    <span
+                      className="font-bold mr-3"
+                      style={{ color: "#0E1B4D" }}
+                    >
                       11:00 AM:
                     </span>
                     <span style={{ color: "#0E1B4D" }}>
@@ -550,7 +650,10 @@ export default function GlacierBayCruiseGuide() {
                     </span>
                   </div>
                   <div className="flex">
-                    <span className="font-bold mr-3" style={{ color: "#0E1B4D" }}>
+                    <span
+                      className="font-bold mr-3"
+                      style={{ color: "#0E1B4D" }}
+                    >
                       2:00 PM:
                     </span>
                     <span style={{ color: "#0E1B4D" }}>
@@ -558,7 +661,10 @@ export default function GlacierBayCruiseGuide() {
                     </span>
                   </div>
                   <div className="flex">
-                    <span className="font-bold mr-3" style={{ color: "#0E1B4D" }}>
+                    <span
+                      className="font-bold mr-3"
+                      style={{ color: "#0E1B4D" }}
+                    >
                       4:00 PM:
                     </span>
                     <span style={{ color: "#0E1B4D" }}>
@@ -566,7 +672,10 @@ export default function GlacierBayCruiseGuide() {
                     </span>
                   </div>
                   <div className="flex">
-                    <span className="font-bold mr-3" style={{ color: "#0E1B4D" }}>
+                    <span
+                      className="font-bold mr-3"
+                      style={{ color: "#0E1B4D" }}
+                    >
                       7:00 PM:
                     </span>
                     <span style={{ color: "#0E1B4D" }}>
@@ -577,9 +686,7 @@ export default function GlacierBayCruiseGuide() {
               </div>
 
               {/* CTA Section */}
-              <div
-                className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 rounded-lg text-center mt-12"
-              >
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 rounded-lg text-center mt-12">
                 <h2
                   className="font-whitney font-black text-[32px] mb-4"
                   style={{ color: "#0E1B4D" }}
@@ -590,7 +697,8 @@ export default function GlacierBayCruiseGuide() {
                   className="font-geograph text-[18px] mb-6"
                   style={{ color: "#0E1B4D" }}
                 >
-                  Find your perfect Alaska cruise with guaranteed Glacier Bay access
+                  Find your perfect Alaska cruise with guaranteed Glacier Bay
+                  access
                 </p>
                 <Link
                   href="/cruises?region=alaska"
@@ -614,8 +722,11 @@ export default function GlacierBayCruiseGuide() {
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <strong>Book starboard cabins northbound, port southbound:</strong> These
-                    typically offer the best glacier views, though ships rotate for equal viewing.
+                    <strong>
+                      Book starboard cabins northbound, port southbound:
+                    </strong>{" "}
+                    These typically offer the best glacier views, though ships
+                    rotate for equal viewing.
                   </p>
                 </div>
                 <div className="border-l-4 border-[#F7F170] pl-4">
@@ -623,8 +734,9 @@ export default function GlacierBayCruiseGuide() {
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <strong>Attend the Ranger talks:</strong> Learn about glacier formation,
-                    wildlife behavior, and Tlingit culture from experts.
+                    <strong>Attend the Ranger talks:</strong> Learn about
+                    glacier formation, wildlife behavior, and Tlingit culture
+                    from experts.
                   </p>
                 </div>
                 <div className="border-l-4 border-[#F7F170] pl-4">
@@ -632,8 +744,9 @@ export default function GlacierBayCruiseGuide() {
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <strong>Wake up early:</strong> Wildlife is most active in morning hours,
-                    and you'll beat crowds to the best viewing spots.
+                    <strong>Wake up early:</strong> Wildlife is most active in
+                    morning hours, and you'll beat crowds to the best viewing
+                    spots.
                   </p>
                 </div>
                 <div className="border-l-4 border-[#F7F170] pl-4">
@@ -641,8 +754,8 @@ export default function GlacierBayCruiseGuide() {
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <strong>Listen for calving:</strong> Turn off music and conversations -
-                    the sound of cracking ice carries for miles.
+                    <strong>Listen for calving:</strong> Turn off music and
+                    conversations - the sound of cracking ice carries for miles.
                   </p>
                 </div>
                 <div className="border-l-4 border-[#F7F170] pl-4">
@@ -650,8 +763,9 @@ export default function GlacierBayCruiseGuide() {
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <strong>Pack patience:</strong> Ships wait for optimal viewing conditions -
-                    glacier approaches depend on ice, weather, and wildlife.
+                    <strong>Pack patience:</strong> Ships wait for optimal
+                    viewing conditions - glacier approaches depend on ice,
+                    weather, and wildlife.
                   </p>
                 </div>
               </div>
@@ -661,11 +775,12 @@ export default function GlacierBayCruiseGuide() {
                 className="font-geograph text-[18px] leading-relaxed italic"
                 style={{ color: "#0E1B4D" }}
               >
-                Glacier Bay National Park offers a once-in-a-lifetime experience that
-                epitomizes the raw beauty and power of Alaska's wilderness. As your ship
-                glides through waters that were solid ice just generations ago, you'll
-                understand why this UNESCO World Heritage Site remains one of cruising's
-                most sought-after destinations.
+                Glacier Bay National Park offers a once-in-a-lifetime experience
+                that epitomizes the raw beauty and power of Alaska's wilderness.
+                As your ship glides through waters that were solid ice just
+                generations ago, you'll understand why this UNESCO World
+                Heritage Site remains one of cruising's most sought-after
+                destinations.
               </p>
             </div>
           </div>

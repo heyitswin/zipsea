@@ -6,45 +6,47 @@ export default function GrandCaymanCruiseGuide() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "TravelGuide",
-    "name": "Grand Cayman Cruise Port Guide",
-    "description": "Complete guide to Grand Cayman cruise port. Discover Seven Mile Beach, Stingray City, tender process tips, and the best shore excursions in George Town.",
-    "url": "https://www.zipsea.com/guides/grand-cayman",
-    "image": [
+    name: "Grand Cayman Cruise Port Guide",
+    description:
+      "Complete guide to Grand Cayman cruise port. Discover Seven Mile Beach, Stingray City, tender process tips, and the best shore excursions in George Town.",
+    url: "https://www.zipsea.com/guides/grand-cayman",
+    image: [
       "https://images.pexels.com/photos/1269805/pexels-photo-1269805.jpeg",
       "https://images.pexels.com/photos/144237/cruise-ship-cruiser-cruise-ship-144237.jpeg",
-      "https://images.pexels.com/photos/1142984/pexels-photo-1142984.jpeg"
+      "https://images.pexels.com/photos/1142984/pexels-photo-1142984.jpeg",
     ],
-    "author": {
+    author: {
       "@type": "Organization",
-      "name": "Zipsea",
-      "url": "https://www.zipsea.com"
+      name: "Zipsea",
+      url: "https://www.zipsea.com",
     },
-    "publisher": {
+    publisher: {
       "@type": "Organization",
-      "name": "Zipsea",
-      "url": "https://www.zipsea.com",
-      "logo": {
+      name: "Zipsea",
+      url: "https://www.zipsea.com",
+      logo: {
         "@type": "ImageObject",
-        "url": "https://www.zipsea.com/logo.png"
-      }
-    },
-    "datePublished": "2024-09-29",
-    "dateModified": new Date().toISOString(),
-    "keywords": "Grand Cayman cruise port, Seven Mile Beach, Stingray City, George Town cruise terminal, Grand Cayman tender port, Caribbean cruise excursions",
-    "mainEntity": {
-      "@type": "Place",
-      "name": "Grand Cayman Cruise Port",
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": "George Town",
-        "addressCountry": "KY"
+        url: "https://www.zipsea.com/logo.png",
       },
-      "geo": {
+    },
+    datePublished: "2024-09-29",
+    dateModified: new Date().toISOString(),
+    keywords:
+      "Grand Cayman cruise port, Seven Mile Beach, Stingray City, George Town cruise terminal, Grand Cayman tender port, Caribbean cruise excursions",
+    mainEntity: {
+      "@type": "Place",
+      name: "Grand Cayman Cruise Port",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: "George Town",
+        addressCountry: "KY",
+      },
+      geo: {
         "@type": "GeoCoordinates",
-        "latitude": 19.2866,
-        "longitude": -81.3674
-      }
-    }
+        latitude: 19.2866,
+        longitude: -81.3674,
+      },
+    },
   };
 
   return (
@@ -111,15 +113,16 @@ export default function GrandCaymanCruiseGuide() {
                 className="font-geograph text-[18px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Welcome to Grand Cayman, an island that consistently ranks as a top
-                cruise destination for its world-class beaches, unparalleled marine
-                encounters, and understated sophistication. Unlike the bustling,
-                dockside chaos of some Caribbean ports, Grand Cayman offers a serene,
-                upscale, and impeccably clean experience. However, its unique
-                logistical reality—being a tender port—requires a bit of insider
-                knowledge to navigate successfully. This guide will provide you with
-                the essential information to transform a limited port call into a
-                rich, personalized adventure.
+                Welcome to Grand Cayman, an island that consistently ranks as a
+                top cruise destination for its world-class beaches, unparalleled
+                marine encounters, and understated sophistication. Unlike the
+                bustling, dockside chaos of some Caribbean ports, Grand Cayman
+                offers a serene, upscale, and impeccably clean experience.
+                However, its unique logistical reality—being a tender
+                port—requires a bit of insider knowledge to navigate
+                successfully. This guide will provide you with the essential
+                information to transform a limited port call into a rich,
+                personalized adventure.
               </p>
 
               {/* Your Arrival At The Port */}
@@ -150,12 +153,13 @@ export default function GrandCaymanCruiseGuide() {
                 className="font-geograph text-[16px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Grand Cayman is a "tender port," which means cruise ships must anchor
-                in the harbor, and passengers are ferried to one of the three small
-                terminals in George Town on smaller boats called tenders. This process
-                can take 45 minutes to an hour from queue to shore, making pre-planning
-                essential. The tender process can also present unique challenges for
-                those with mobility devices, as transfers may require navigating steps.
+                Grand Cayman is a "tender port," which means cruise ships must
+                anchor in the harbor, and passengers are ferried to one of the
+                three small terminals in George Town on smaller boats called
+                tenders. This process can take 45 minutes to an hour from queue
+                to shore, making pre-planning essential. The tender process can
+                also present unique challenges for those with mobility devices,
+                as transfers may require navigating steps.
               </p>
 
               <div className="bg-gray-50 p-4 rounded-lg mb-6">
@@ -163,8 +167,9 @@ export default function GrandCaymanCruiseGuide() {
                   className="font-geograph text-[16px] mb-2"
                   style={{ color: "#0E1B4D" }}
                 >
-                  <strong>Royal Watler Terminal:</strong> Main tender terminal in
-                  George Town with immediate access to shops and transportation.
+                  <strong>Royal Watler Terminal:</strong> Main tender terminal
+                  in George Town with immediate access to shops and
+                  transportation.
                 </p>
                 <p
                   className="font-geograph text-[16px] mb-2"
@@ -177,9 +182,35 @@ export default function GrandCaymanCruiseGuide() {
                   className="font-geograph text-[16px]"
                   style={{ color: "#0E1B4D" }}
                 >
-                  <strong>Priority Tender:</strong> Book ship excursions or suite
-                  guests often receive priority tender tickets.
+                  <strong>Priority Tender:</strong> Book ship excursions or
+                  suite guests often receive priority tender tickets.
                 </p>
+              </div>
+
+              {/* CTA 1 - After Tender Info */}
+              <div
+                className="mt-8 p-6 rounded-lg text-center"
+                style={{ backgroundColor: "#F7F170" }}
+              >
+                <h3
+                  className="font-geograph font-bold text-[24px] mb-3"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Ready to Explore Grand Cayman?
+                </h3>
+                <p
+                  className="font-geograph text-[16px] mb-4"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Discover crystal-clear waters and world-class beaches on your
+                  Caribbean cruise.
+                </p>
+                <a
+                  href="/cruises?region=caribbean"
+                  className="inline-block px-6 py-3 bg-[#0E1B4D] text-white font-bold rounded-lg hover:bg-[#2238C3] transition-colors"
+                >
+                  Find Caribbean Cruises
+                </a>
               </div>
 
               <h3
@@ -208,17 +239,27 @@ export default function GrandCaymanCruiseGuide() {
                     <tr className="border-b border-[#E5E5E5]">
                       <td className="py-3 px-4 font-bold">Shared Shuttle</td>
                       <td className="py-3 px-4">~$6 per person, one-way</td>
-                      <td className="py-3 px-4">Common option for cruisers, can be crowded. Keep ticket for return.</td>
+                      <td className="py-3 px-4">
+                        Common option for cruisers, can be crowded. Keep ticket
+                        for return.
+                      </td>
                     </tr>
                     <tr className="border-b border-[#E5E5E5]">
-                      <td className="py-3 px-4 font-bold">Public Bus (Jitney)</td>
+                      <td className="py-3 px-4 font-bold">
+                        Public Bus (Jitney)
+                      </td>
                       <td className="py-3 px-4">~$3 per person, one-way</td>
-                      <td className="py-3 px-4">Most cost-effective, authentic experience. Look for blue plates.</td>
+                      <td className="py-3 px-4">
+                        Most cost-effective, authentic experience. Look for blue
+                        plates.
+                      </td>
                     </tr>
                     <tr className="border-b border-[#E5E5E5]">
                       <td className="py-3 px-4 font-bold">Private Taxi</td>
                       <td className="py-3 px-4">~$27-35 per car, one-way</td>
-                      <td className="py-3 px-4">Fastest and most comfortable, ideal for groups.</td>
+                      <td className="py-3 px-4">
+                        Fastest and most comfortable, ideal for groups.
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -230,7 +271,8 @@ export default function GrandCaymanCruiseGuide() {
                   style={{ color: "#0E1B4D" }}
                 >
                   <strong>Important:</strong> Uber and ride-sharing services are
-                  not available on Grand Cayman. Plan your transportation accordingly.
+                  not available on Grand Cayman. Plan your transportation
+                  accordingly.
                 </p>
               </div>
 
@@ -262,11 +304,11 @@ export default function GrandCaymanCruiseGuide() {
                 className="font-geograph text-[16px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Seven Mile Beach is not merely a destination; it's a global icon.
-                A long crescent of soft coral sand set against electric turquoise
-                waters, it's consistently ranked among the world's best beaches.
-                As with all Cayman beaches, it's public property, allowing anyone
-                to walk its full length without restriction.
+                Seven Mile Beach is not merely a destination; it's a global
+                icon. A long crescent of soft coral sand set against electric
+                turquoise waters, it's consistently ranked among the world's
+                best beaches. As with all Cayman beaches, it's public property,
+                allowing anyone to walk its full length without restriction.
               </p>
 
               <div className="grid md:grid-cols-2 gap-6 mb-6">
@@ -281,9 +323,16 @@ export default function GrandCaymanCruiseGuide() {
                     className="font-geograph text-[14px] space-y-1"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <li>• <strong>Public Beach:</strong> Central hub with facilities</li>
-                    <li>• <strong>Governor's Beach:</strong> Quieter alternative</li>
-                    <li>• <strong>Cemetery Beach:</strong> Excellent snorkeling</li>
+                    <li>
+                      • <strong>Public Beach:</strong> Central hub with
+                      facilities
+                    </li>
+                    <li>
+                      • <strong>Governor's Beach:</strong> Quieter alternative
+                    </li>
+                    <li>
+                      • <strong>Cemetery Beach:</strong> Excellent snorkeling
+                    </li>
                   </ul>
                 </div>
                 <div>
@@ -297,9 +346,17 @@ export default function GrandCaymanCruiseGuide() {
                     className="font-geograph text-[14px] space-y-1"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <li>• <strong>Hampton by Hilton:</strong> ~$40 with pool access</li>
-                    <li>• <strong>Holiday Inn:</strong> $70 adults/$45 kids + $35 credit</li>
-                    <li>• <strong>Grand Caymanian:</strong> ~$70 quieter beach</li>
+                    <li>
+                      • <strong>Hampton by Hilton:</strong> ~$40 with pool
+                      access
+                    </li>
+                    <li>
+                      • <strong>Holiday Inn:</strong> $70 adults/$45 kids + $35
+                      credit
+                    </li>
+                    <li>
+                      • <strong>Grand Caymanian:</strong> ~$70 quieter beach
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -328,19 +385,27 @@ export default function GrandCaymanCruiseGuide() {
                   </thead>
                   <tbody className="font-geograph text-[14px]">
                     <tr className="border-b border-[#E5E5E5]">
-                      <td className="py-3 px-4 font-bold">Stingray City Tour</td>
+                      <td className="py-3 px-4 font-bold">
+                        Stingray City Tour
+                      </td>
                       <td className="py-3 px-4">~$60</td>
-                      <td className="py-3 px-4">Interact with stingrays in waist-deep water</td>
+                      <td className="py-3 px-4">
+                        Interact with stingrays in waist-deep water
+                      </td>
                     </tr>
                     <tr className="border-b border-[#E5E5E5]">
                       <td className="py-3 px-4 font-bold">Turtle Centre</td>
                       <td className="py-3 px-4">~$47</td>
-                      <td className="py-3 px-4">Hold baby sea turtles, conservation focus</td>
+                      <td className="py-3 px-4">
+                        Hold baby sea turtles, conservation focus
+                      </td>
                     </tr>
                     <tr className="border-b border-[#E5E5E5]">
                       <td className="py-3 px-4 font-bold">Resort Day Pass</td>
                       <td className="py-3 px-4">$40-70</td>
-                      <td className="py-3 px-4">Pool, beach, and resort amenities</td>
+                      <td className="py-3 px-4">
+                        Pool, beach, and resort amenities
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -372,6 +437,31 @@ export default function GrandCaymanCruiseGuide() {
                 </p>
               </div>
 
+              {/* CTA 2 - After Stingray City */}
+              <div
+                className="mt-8 p-6 rounded-lg text-center"
+                style={{ backgroundColor: "#F7F170" }}
+              >
+                <h3
+                  className="font-geograph font-bold text-[24px] mb-3"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Book Your Grand Cayman Adventure
+                </h3>
+                <p
+                  className="font-geograph text-[16px] mb-4"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Swim with stingrays and relax on Seven Mile Beach.
+                </p>
+                <a
+                  href="/cruises?region=caribbean"
+                  className="inline-block px-6 py-3 bg-[#0E1B4D] text-white font-bold rounded-lg hover:bg-[#2238C3] transition-colors"
+                >
+                  Browse Caribbean Cruises
+                </a>
+              </div>
+
               {/* Sip & Savor */}
               <h2
                 className="font-whitney font-black uppercase text-[36px] mt-12 mb-6"
@@ -394,8 +484,8 @@ export default function GrandCaymanCruiseGuide() {
                 style={{ color: "#0E1B4D" }}
               >
                 Caymanian cuisine is a delightful blend of local traditions and
-                strong Jamaican influences. Engaging with the local food scene is
-                an essential part of the cultural experience.
+                strong Jamaican influences. Engaging with the local food scene
+                is an essential part of the cultural experience.
               </p>
 
               <div className="grid md:grid-cols-2 gap-6 mb-6">
@@ -410,10 +500,21 @@ export default function GrandCaymanCruiseGuide() {
                     className="font-geograph text-[14px] space-y-1"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <li>• <strong>Conch:</strong> Delicate, clam-like seafood</li>
-                    <li>• <strong>Jerk Chicken:</strong> Island's most popular street food</li>
-                    <li>• <strong>Cayman-Style Beef:</strong> Slow-cooked stewed beef</li>
-                    <li>• <strong>Heavy Cake:</strong> Dense cassava pudding dessert</li>
+                    <li>
+                      • <strong>Conch:</strong> Delicate, clam-like seafood
+                    </li>
+                    <li>
+                      • <strong>Jerk Chicken:</strong> Island's most popular
+                      street food
+                    </li>
+                    <li>
+                      • <strong>Cayman-Style Beef:</strong> Slow-cooked stewed
+                      beef
+                    </li>
+                    <li>
+                      • <strong>Heavy Cake:</strong> Dense cassava pudding
+                      dessert
+                    </li>
                   </ul>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -427,9 +528,16 @@ export default function GrandCaymanCruiseGuide() {
                     className="font-geograph text-[14px] space-y-1"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <li>• <strong>Champion House:</strong> George Town institution</li>
-                    <li>• <strong>Heritage Kitchen:</strong> Classic dishes with sea view</li>
-                    <li>• <strong>Local BBQ spots:</strong> Combo plate ~CI$25</li>
+                    <li>
+                      • <strong>Champion House:</strong> George Town institution
+                    </li>
+                    <li>
+                      • <strong>Heritage Kitchen:</strong> Classic dishes with
+                      sea view
+                    </li>
+                    <li>
+                      • <strong>Local BBQ spots:</strong> Combo plate ~CI$25
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -455,10 +563,10 @@ export default function GrandCaymanCruiseGuide() {
                 className="font-geograph text-[16px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Grand Cayman is a fantastic port for families, offering a blend of
-                cultural experiences, natural wonders, and interactive learning perfect
-                for all ages. The key to a successful family day is embracing both
-                the urban and natural sides of the island.
+                Grand Cayman is a fantastic port for families, offering a blend
+                of cultural experiences, natural wonders, and interactive
+                learning perfect for all ages. The key to a successful family
+                day is embracing both the urban and natural sides of the island.
               </p>
 
               <div className="grid md:grid-cols-3 gap-4 mb-8">
@@ -467,8 +575,8 @@ export default function GrandCaymanCruiseGuide() {
                     Stingray City
                   </h4>
                   <p className="font-geograph text-[14px] text-[#0E1B4D]">
-                    Children will be mesmerized by interacting with gentle creatures
-                    in shallow water.
+                    Children will be mesmerized by interacting with gentle
+                    creatures in shallow water.
                   </p>
                 </div>
                 <div className="border-l-4 border-[#F7F170] pl-4">
@@ -476,7 +584,8 @@ export default function GrandCaymanCruiseGuide() {
                     Turtle Centre
                   </h4>
                   <p className="font-geograph text-[14px] text-[#0E1B4D]">
-                    Educational experience with hands-on turtle encounters in touch tanks.
+                    Educational experience with hands-on turtle encounters in
+                    touch tanks.
                   </p>
                 </div>
                 <div className="border-l-4 border-[#F7F170] pl-4">
@@ -484,7 +593,8 @@ export default function GrandCaymanCruiseGuide() {
                     Seven Mile Beach
                   </h4>
                   <p className="font-geograph text-[14px] text-[#0E1B4D]">
-                    Calm waters and soft sand provide safe environment for family fun.
+                    Calm waters and soft sand provide safe environment for
+                    family fun.
                   </p>
                 </div>
               </div>
@@ -519,16 +629,17 @@ export default function GrandCaymanCruiseGuide() {
                   style={{ color: "#0E1B4D" }}
                 >
                   <li>
-                    <strong>Currency:</strong> Cayman Islands Dollar (CI$) is official,
-                    but US$ widely accepted at roughly 1:1 rate. Carry small US bills.
+                    <strong>Currency:</strong> Cayman Islands Dollar (CI$) is
+                    official, but US$ widely accepted at roughly 1:1 rate. Carry
+                    small US bills.
                   </li>
                   <li>
-                    <strong>Tipping:</strong> 10-15% is standard for good service.
-                    Check bills as service charge often included.
+                    <strong>Tipping:</strong> 10-15% is standard for good
+                    service. Check bills as service charge often included.
                   </li>
                   <li>
-                    <strong>Credit Cards:</strong> Widely accepted at major establishments,
-                    but have cash for smaller vendors.
+                    <strong>Credit Cards:</strong> Widely accepted at major
+                    establishments, but have cash for smaller vendors.
                   </li>
                 </ul>
               </div>
@@ -560,16 +671,24 @@ export default function GrandCaymanCruiseGuide() {
                   </thead>
                   <tbody className="font-geograph text-[14px]">
                     <tr className="border-b border-[#E5E5E5]">
-                      <td className="py-3 px-4 font-bold">Dry Season (Nov-Apr)</td>
+                      <td className="py-3 px-4 font-bold">
+                        Dry Season (Nov-Apr)
+                      </td>
                       <td className="py-3 px-4">84-88</td>
                       <td className="py-3 px-4">74-76</td>
-                      <td className="py-3 px-4">Near-constant sunshine, minimal rainfall</td>
+                      <td className="py-3 px-4">
+                        Near-constant sunshine, minimal rainfall
+                      </td>
                     </tr>
                     <tr className="border-b border-[#E5E5E5]">
-                      <td className="py-3 px-4 font-bold">Wet Season (May-Oct)</td>
+                      <td className="py-3 px-4 font-bold">
+                        Wet Season (May-Oct)
+                      </td>
                       <td className="py-3 px-4">85-89</td>
                       <td className="py-3 px-4">77-78</td>
-                      <td className="py-3 px-4">Warmer, humid, frequent afternoon showers</td>
+                      <td className="py-3 px-4">
+                        Warmer, humid, frequent afternoon showers
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -579,8 +698,9 @@ export default function GrandCaymanCruiseGuide() {
                 className="font-geograph text-[16px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Sea temperature remains a comfortable 79-81°F year-round. Hurricane
-                season runs from June to November, though direct hits are rare.
+                Sea temperature remains a comfortable 79-81°F year-round.
+                Hurricane season runs from June to November, though direct hits
+                are rare.
               </p>
 
               <h3
@@ -596,24 +716,22 @@ export default function GrandCaymanCruiseGuide() {
                   style={{ color: "#0E1B4D" }}
                 >
                   <strong>Critical Legal Note:</strong> Local laws are strictly
-                  enforced, especially regarding firearms and ammunition. Even an
-                  inadvertently misplaced single bullet in luggage can lead to
-                  arrest and imprisonment.
+                  enforced, especially regarding firearms and ammunition. Even
+                  an inadvertently misplaced single bullet in luggage can lead
+                  to arrest and imprisonment.
                 </p>
                 <p
                   className="font-geograph text-[14px]"
                   style={{ color: "#0E1B4D" }}
                 >
-                  Grand Cayman is very safe with low crime rates. Most common issues
-                  are petty theft - keep valuables secured on ship and be aware of
-                  surroundings.
+                  Grand Cayman is very safe with low crime rates. Most common
+                  issues are petty theft - keep valuables secured on ship and be
+                  aware of surroundings.
                 </p>
               </div>
 
               {/* CTA Section */}
-              <div
-                className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 rounded-lg text-center mt-12"
-              >
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 rounded-lg text-center mt-12">
                 <h2
                   className="font-whitney font-black text-[32px] mb-4"
                   style={{ color: "#0E1B4D" }}
@@ -646,17 +764,18 @@ export default function GrandCaymanCruiseGuide() {
                 className="font-geograph text-[18px] leading-relaxed italic"
                 style={{ color: "#0E1B4D" }}
               >
-                A day in Grand Cayman requires a bit of foresight but rewards the
-                savvy traveler with an unforgettable experience. While the tender
-                process may present an initial challenge, it's also the first step
-                of a unique adventure. By understanding the logistical realities and
-                the spectrum of experiences available—from the lively public hubs of
-                Seven Mile Beach to serene resort hideaways—you can make informed
-                choices that perfectly align with your travel style and budget.
-                Whether you choose to unwind on tranquil white sand, embark on a
-                thrilling encounter with stingrays, or simply explore the laid-back
-                charm of George Town, your day ashore can be everything you want it
-                to be.
+                A day in Grand Cayman requires a bit of foresight but rewards
+                the savvy traveler with an unforgettable experience. While the
+                tender process may present an initial challenge, it's also the
+                first step of a unique adventure. By understanding the
+                logistical realities and the spectrum of experiences
+                available—from the lively public hubs of Seven Mile Beach to
+                serene resort hideaways—you can make informed choices that
+                perfectly align with your travel style and budget. Whether you
+                choose to unwind on tranquil white sand, embark on a thrilling
+                encounter with stingrays, or simply explore the laid-back charm
+                of George Town, your day ashore can be everything you want it to
+                be.
               </p>
             </div>
           </div>

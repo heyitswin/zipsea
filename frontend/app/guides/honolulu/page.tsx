@@ -6,46 +6,48 @@ export default function HonoluluCruiseGuide() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "TravelGuide",
-    "name": "Honolulu Cruise Port Guide",
-    "description": "Complete guide to Honolulu cruise port. Discover Pearl Harbor, Waikiki Beach, Diamond Head, and authentic Hawaiian cuisine in downtown Honolulu.",
-    "url": "https://www.zipsea.com/guides/honolulu",
-    "image": [
+    name: "Honolulu Cruise Port Guide",
+    description:
+      "Complete guide to Honolulu cruise port. Discover Pearl Harbor, Waikiki Beach, Diamond Head, and authentic Hawaiian cuisine in downtown Honolulu.",
+    url: "https://www.zipsea.com/guides/honolulu",
+    image: [
       "https://images.pexels.com/photos/12464323/pexels-photo-12464323.jpeg",
       "https://images.pexels.com/photos/29447146/pexels-photo-29447146.jpeg",
-      "https://images.pexels.com/photos/11874072/pexels-photo-11874072.jpeg"
+      "https://images.pexels.com/photos/11874072/pexels-photo-11874072.jpeg",
     ],
-    "author": {
+    author: {
       "@type": "Organization",
-      "name": "Zipsea",
-      "url": "https://www.zipsea.com"
+      name: "Zipsea",
+      url: "https://www.zipsea.com",
     },
-    "publisher": {
+    publisher: {
       "@type": "Organization",
-      "name": "Zipsea",
-      "url": "https://www.zipsea.com",
-      "logo": {
+      name: "Zipsea",
+      url: "https://www.zipsea.com",
+      logo: {
         "@type": "ImageObject",
-        "url": "https://www.zipsea.com/logo.png"
-      }
-    },
-    "datePublished": "2024-09-29",
-    "dateModified": new Date().toISOString(),
-    "keywords": "Honolulu cruise port, Pearl Harbor tours, Waikiki Beach cruise, Diamond Head hike, Hawaiian plate lunch, Aloha Tower",
-    "mainEntity": {
-      "@type": "Place",
-      "name": "Port of Honolulu",
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": "Honolulu",
-        "addressRegion": "Hawaii",
-        "addressCountry": "US"
+        url: "https://www.zipsea.com/logo.png",
       },
-      "geo": {
+    },
+    datePublished: "2024-09-29",
+    dateModified: new Date().toISOString(),
+    keywords:
+      "Honolulu cruise port, Pearl Harbor tours, Waikiki Beach cruise, Diamond Head hike, Hawaiian plate lunch, Aloha Tower",
+    mainEntity: {
+      "@type": "Place",
+      name: "Port of Honolulu",
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: "Honolulu",
+        addressRegion: "Hawaii",
+        addressCountry: "US",
+      },
+      geo: {
         "@type": "GeoCoordinates",
-        "latitude": 21.3066,
-        "longitude": -157.8659
-      }
-    }
+        latitude: 21.3066,
+        longitude: -157.8659,
+      },
+    },
   };
 
   return (
@@ -112,13 +114,14 @@ export default function HonoluluCruiseGuide() {
                 className="font-geograph text-[18px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                For the discerning cruiser, a port day in Honolulu is a journey into
-                a vibrant city that serves as both a modern capital and the heart of
-                an ancient kingdom. Unlike many cruise destinations where the port is
-                geographically isolated from main attractions, the Port of Honolulu is
-                strategically situated in the city's bustling downtown core. This unique
-                positioning transforms your first steps ashore from a logistical puzzle
-                into an immediate gateway to discovery.
+                For the discerning cruiser, a port day in Honolulu is a journey
+                into a vibrant city that serves as both a modern capital and the
+                heart of an ancient kingdom. Unlike many cruise destinations
+                where the port is geographically isolated from main attractions,
+                the Port of Honolulu is strategically situated in the city's
+                bustling downtown core. This unique positioning transforms your
+                first steps ashore from a logistical puzzle into an immediate
+                gateway to discovery.
               </p>
 
               {/* Your Arrival At The Port */}
@@ -142,12 +145,14 @@ export default function HonoluluCruiseGuide() {
                 className="font-geograph text-[16px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Honolulu offers a distinctive and highly advantageous arrival experience.
-                The Port of Honolulu, officially known as Honolulu Harbor, operates two
-                primary cruise terminals - Pier 2 and Pier 11 - located in close proximity
-                in the heart of downtown. Most large cruise ships dock directly at the
-                pier with walk-off access to the downtown area. The city unfolds just a
-                short stroll from the gangway, allowing you to begin exploration immediately.
+                Honolulu offers a distinctive and highly advantageous arrival
+                experience. The Port of Honolulu, officially known as Honolulu
+                Harbor, operates two primary cruise terminals - Pier 2 and Pier
+                11 - located in close proximity in the heart of downtown. Most
+                large cruise ships dock directly at the pier with walk-off
+                access to the downtown area. The city unfolds just a short
+                stroll from the gangway, allowing you to begin exploration
+                immediately.
               </p>
 
               <div className="bg-blue-50 p-4 rounded-lg mb-6">
@@ -155,8 +160,9 @@ export default function HonoluluCruiseGuide() {
                   className="font-geograph text-[16px] mb-2"
                   style={{ color: "#0E1B4D" }}
                 >
-                  <strong>Pier 2 & Pier 11:</strong> Main cruise terminals in downtown
-                  Honolulu with direct walkable access to city attractions.
+                  <strong>Pier 2 & Pier 11:</strong> Main cruise terminals in
+                  downtown Honolulu with direct walkable access to city
+                  attractions.
                 </p>
                 <p
                   className="font-geograph text-[16px] mb-2"
@@ -169,8 +175,8 @@ export default function HonoluluCruiseGuide() {
                   className="font-geograph text-[16px]"
                   style={{ color: "#0E1B4D" }}
                 >
-                  <strong>Downtown Location:</strong> Immediate access to Chinatown,
-                  historic sites, and public transportation.
+                  <strong>Downtown Location:</strong> Immediate access to
+                  Chinatown, historic sites, and public transportation.
                 </p>
               </div>
 
@@ -201,7 +207,9 @@ export default function HonoluluCruiseGuide() {
                   </thead>
                   <tbody className="font-geograph text-[14px]">
                     <tr className="border-b border-[#E5E5E5]">
-                      <td className="py-3 px-4 font-bold" rowSpan={3}>Waikiki Beach</td>
+                      <td className="py-3 px-4 font-bold" rowSpan={3}>
+                        Waikiki Beach
+                      </td>
                       <td className="py-3 px-4">Taxi/Rideshare</td>
                       <td className="py-3 px-4">$19-25</td>
                       <td className="py-3 px-4">6-7 min</td>
@@ -217,7 +225,9 @@ export default function HonoluluCruiseGuide() {
                       <td className="py-3 px-4">15-20 min</td>
                     </tr>
                     <tr className="border-b border-[#E5E5E5]">
-                      <td className="py-3 px-4 font-bold" rowSpan={2}>Diamond Head</td>
+                      <td className="py-3 px-4 font-bold" rowSpan={2}>
+                        Diamond Head
+                      </td>
                       <td className="py-3 px-4">Taxi/Rideshare</td>
                       <td className="py-3 px-4">$27-35</td>
                       <td className="py-3 px-4">10-11 min</td>
@@ -265,11 +275,12 @@ export default function HonoluluCruiseGuide() {
                 className="font-geograph text-[16px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                For many visitors, Pearl Harbor is a non-negotiable part of their
-                Honolulu visit. This site of profound reverence and historical
-                significance offers free admission to the memorial, though boat shuttle
-                tickets are often booked far in advance. Guided tours include round-trip
-                transportation and guaranteed USS Arizona Memorial tickets.
+                For many visitors, Pearl Harbor is a non-negotiable part of
+                their Honolulu visit. This site of profound reverence and
+                historical significance offers free admission to the memorial,
+                though boat shuttle tickets are often booked far in advance.
+                Guided tours include round-trip transportation and guaranteed
+                USS Arizona Memorial tickets.
               </p>
 
               <div className="bg-yellow-50 p-6 rounded-lg mb-6">
@@ -283,12 +294,41 @@ export default function HonoluluCruiseGuide() {
                   className="font-geograph text-[14px] space-y-1"
                   style={{ color: "#0E1B4D" }}
                 >
-                  <li>• Book memorial tickets at recreation.gov weeks in advance</li>
-                  <li>• Cruise excursion: ~$114/person with guaranteed access</li>
+                  <li>
+                    • Book memorial tickets at recreation.gov weeks in advance
+                  </li>
+                  <li>
+                    • Cruise excursion: ~$114/person with guaranteed access
+                  </li>
                   <li>• Independent tour: ~$57/adult with transportation</li>
                   <li>• No bags allowed - storage available for $7</li>
                   <li>• Audio tours available in multiple languages</li>
                 </ul>
+              </div>
+
+              {/* CTA 1 - After Pearl Harbor */}
+              <div
+                className="mt-8 p-6 rounded-lg text-center"
+                style={{ backgroundColor: "#F7F170" }}
+              >
+                <h3
+                  className="font-geograph font-bold text-[24px] mb-3"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Ready for Paradise?
+                </h3>
+                <p
+                  className="font-geograph text-[16px] mb-4"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Experience Hawaii's capital on your Pacific cruise adventure.
+                </p>
+                <a
+                  href="/cruises?region=hawaii"
+                  className="inline-block px-6 py-3 bg-[#0E1B4D] text-white font-bold rounded-lg hover:bg-[#2238C3] transition-colors"
+                >
+                  Find Hawaii Cruises
+                </a>
               </div>
 
               <h3
@@ -310,11 +350,23 @@ export default function HonoluluCruiseGuide() {
                     className="font-geograph text-[14px] space-y-1"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <li>• <strong>Aloha Tower:</strong> Adjacent - free views</li>
-                    <li>• <strong>Iolani Palace:</strong> 15 min - only US royal palace</li>
-                    <li>• <strong>Chinatown:</strong> 15 min - cultural hub</li>
-                    <li>• <strong>King Kamehameha Statue:</strong> 10 min walk</li>
-                    <li>• <strong>Hawaii State Art Museum:</strong> 12 min - free admission</li>
+                    <li>
+                      • <strong>Aloha Tower:</strong> Adjacent - free views
+                    </li>
+                    <li>
+                      • <strong>Iolani Palace:</strong> 15 min - only US royal
+                      palace
+                    </li>
+                    <li>
+                      • <strong>Chinatown:</strong> 15 min - cultural hub
+                    </li>
+                    <li>
+                      • <strong>King Kamehameha Statue:</strong> 10 min walk
+                    </li>
+                    <li>
+                      • <strong>Hawaii State Art Museum:</strong> 12 min - free
+                      admission
+                    </li>
                   </ul>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -328,10 +380,20 @@ export default function HonoluluCruiseGuide() {
                     className="font-geograph text-[14px] space-y-1"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <li>• <strong>Waikiki:</strong> Famous 2-mile beach, gentle waves</li>
-                    <li>• <strong>Ala Moana:</strong> Closer, relaxed atmosphere</li>
-                    <li>• <strong>Hanauma Bay:</strong> Premier snorkeling (reserve ahead)</li>
-                    <li>• <strong>Lanikai:</strong> Pristine, less crowded</li>
+                    <li>
+                      • <strong>Waikiki:</strong> Famous 2-mile beach, gentle
+                      waves
+                    </li>
+                    <li>
+                      • <strong>Ala Moana:</strong> Closer, relaxed atmosphere
+                    </li>
+                    <li>
+                      • <strong>Hanauma Bay:</strong> Premier snorkeling
+                      (reserve ahead)
+                    </li>
+                    <li>
+                      • <strong>Lanikai:</strong> Pristine, less crowded
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -348,18 +410,32 @@ export default function HonoluluCruiseGuide() {
                   className="font-geograph text-[16px] mb-3"
                   style={{ color: "#0E1B4D" }}
                 >
-                  Diamond Head State Monument offers unparalleled panoramic views of
-                  Waikiki and the coastline from an ancient volcanic crater summit.
+                  Diamond Head State Monument offers unparalleled panoramic
+                  views of Waikiki and the coastline from an ancient volcanic
+                  crater summit.
                 </p>
                 <ul
                   className="font-geograph text-[14px] space-y-1"
                   style={{ color: "#0E1B4D" }}
                 >
-                  <li>• <strong>Reservation Required:</strong> Book online up to 30 days ahead</li>
-                  <li>• <strong>Entry Fee:</strong> $5/person plus $10 parking</li>
-                  <li>• <strong>Hike Duration:</strong> 1.5-2 hours round trip</li>
-                  <li>• <strong>Difficulty:</strong> Moderate with 560ft elevation gain</li>
-                  <li>• <strong>Best Time:</strong> Early morning to avoid heat and crowds</li>
+                  <li>
+                    • <strong>Reservation Required:</strong> Book online up to
+                    30 days ahead
+                  </li>
+                  <li>
+                    • <strong>Entry Fee:</strong> $5/person plus $10 parking
+                  </li>
+                  <li>
+                    • <strong>Hike Duration:</strong> 1.5-2 hours round trip
+                  </li>
+                  <li>
+                    • <strong>Difficulty:</strong> Moderate with 560ft elevation
+                    gain
+                  </li>
+                  <li>
+                    • <strong>Best Time:</strong> Early morning to avoid heat
+                    and crowds
+                  </li>
                 </ul>
               </div>
 
@@ -385,9 +461,9 @@ export default function HonoluluCruiseGuide() {
                 style={{ color: "#0E1B4D" }}
               >
                 Honolulu's culinary scene reflects its diverse culture, blending
-                traditional Hawaiian flavors with Asian and Pacific influences. The
-                quintessential local meal is the plate lunch - a satisfying dish with
-                meat, two scoops rice, and macaroni salad.
+                traditional Hawaiian flavors with Asian and Pacific influences.
+                The quintessential local meal is the plate lunch - a satisfying
+                dish with meat, two scoops rice, and macaroni salad.
               </p>
 
               <div className="grid md:grid-cols-2 gap-6 mb-6">
@@ -402,12 +478,24 @@ export default function HonoluluCruiseGuide() {
                     className="font-geograph text-[14px] space-y-1"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <li>• <strong>Poke:</strong> Raw ahi tuna with seasonings</li>
-                    <li>• <strong>Kalua Pig:</strong> Smoky slow-cooked pork</li>
-                    <li>• <strong>Loco Moco:</strong> Rice, burger, egg, gravy</li>
-                    <li>• <strong>Malasada:</strong> Portuguese sugar donut</li>
-                    <li>• <strong>Saimin:</strong> Hawaiian ramen noodles</li>
-                    <li>• <strong>Shave Ice:</strong> Fluffy ice with syrups</li>
+                    <li>
+                      • <strong>Poke:</strong> Raw ahi tuna with seasonings
+                    </li>
+                    <li>
+                      • <strong>Kalua Pig:</strong> Smoky slow-cooked pork
+                    </li>
+                    <li>
+                      • <strong>Loco Moco:</strong> Rice, burger, egg, gravy
+                    </li>
+                    <li>
+                      • <strong>Malasada:</strong> Portuguese sugar donut
+                    </li>
+                    <li>
+                      • <strong>Saimin:</strong> Hawaiian ramen noodles
+                    </li>
+                    <li>
+                      • <strong>Shave Ice:</strong> Fluffy ice with syrups
+                    </li>
                   </ul>
                 </div>
                 <div className="bg-yellow-50 p-4 rounded-lg">
@@ -421,11 +509,23 @@ export default function HonoluluCruiseGuide() {
                     className="font-geograph text-[14px] space-y-1"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <li>• <strong>Nico's Pier 38:</strong> Seafood near port</li>
-                    <li>• <strong>Pig & The Lady:</strong> Vietnamese-fusion in Chinatown</li>
-                    <li>• <strong>Rainbow Drive Inn:</strong> Classic plate lunch</li>
-                    <li>• <strong>Helena's Hawaiian Food:</strong> James Beard winner</li>
-                    <li>• <strong>Leonard's Bakery:</strong> Famous malasadas</li>
+                    <li>
+                      • <strong>Nico's Pier 38:</strong> Seafood near port
+                    </li>
+                    <li>
+                      • <strong>Pig & The Lady:</strong> Vietnamese-fusion in
+                      Chinatown
+                    </li>
+                    <li>
+                      • <strong>Rainbow Drive Inn:</strong> Classic plate lunch
+                    </li>
+                    <li>
+                      • <strong>Helena's Hawaiian Food:</strong> James Beard
+                      winner
+                    </li>
+                    <li>
+                      • <strong>Leonard's Bakery:</strong> Famous malasadas
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -451,9 +551,10 @@ export default function HonoluluCruiseGuide() {
                 className="font-geograph text-[16px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Honolulu is widely regarded as a family-friendly destination with a
-                welcoming attitude toward children and wealth of engaging activities.
-                The walkability of downtown is a major advantage for families.
+                Honolulu is widely regarded as a family-friendly destination
+                with a welcoming attitude toward children and wealth of engaging
+                activities. The walkability of downtown is a major advantage for
+                families.
               </p>
 
               <div className="grid md:grid-cols-3 gap-4 mb-8">
@@ -462,7 +563,8 @@ export default function HonoluluCruiseGuide() {
                     Family Beaches
                   </h4>
                   <p className="font-geograph text-[14px] text-[#0E1B4D]">
-                    Waikiki's calm waters and Ala Moana's protected lagoon perfect for kids.
+                    Waikiki's calm waters and Ala Moana's protected lagoon
+                    perfect for kids.
                   </p>
                 </div>
                 <div className="border-l-4 border-[#F7F170] pl-4">
@@ -470,7 +572,8 @@ export default function HonoluluCruiseGuide() {
                     Honolulu Zoo
                   </h4>
                   <p className="font-geograph text-[14px] text-[#0E1B4D]">
-                    42-acre zoo between Waikiki and Diamond Head. Adults $21, Kids $13.
+                    42-acre zoo between Waikiki and Diamond Head. Adults $21,
+                    Kids $13.
                   </p>
                 </div>
                 <div className="border-l-4 border-[#F7F170] pl-4">
@@ -513,17 +616,20 @@ export default function HonoluluCruiseGuide() {
                   style={{ color: "#0E1B4D" }}
                 >
                   <li>
-                    <strong>Currency:</strong> US Dollar - credit cards widely accepted,
-                    carry small bills for tips and local markets.
+                    <strong>Currency:</strong> US Dollar - credit cards widely
+                    accepted, carry small bills for tips and local markets.
                   </li>
                   <li>
-                    <strong>Restaurant Tipping:</strong> 15-20% standard for good service.
+                    <strong>Restaurant Tipping:</strong> 15-20% standard for
+                    good service.
                   </li>
                   <li>
-                    <strong>Bar Tipping:</strong> $1-2 per drink for simple orders.
+                    <strong>Bar Tipping:</strong> $1-2 per drink for simple
+                    orders.
                   </li>
                   <li>
-                    <strong>Tour Guides:</strong> 10-20% of tour cost or $5-20/person.
+                    <strong>Tour Guides:</strong> 10-20% of tour cost or
+                    $5-20/person.
                   </li>
                 </ul>
               </div>
@@ -558,13 +664,17 @@ export default function HonoluluCruiseGuide() {
                       <td className="py-3 px-4 font-bold">Summer (Jun-Aug)</td>
                       <td className="py-3 px-4">87-89</td>
                       <td className="py-3 px-4">74-76</td>
-                      <td className="py-3 px-4">Peak season, hottest and sunniest</td>
+                      <td className="py-3 px-4">
+                        Peak season, hottest and sunniest
+                      </td>
                     </tr>
                     <tr className="border-b border-[#E5E5E5]">
                       <td className="py-3 px-4 font-bold">Autumn (Sep-Nov)</td>
                       <td className="py-3 px-4">84-88</td>
                       <td className="py-3 px-4">72-75</td>
-                      <td className="py-3 px-4">Ideal exploration, fewer crowds</td>
+                      <td className="py-3 px-4">
+                        Ideal exploration, fewer crowds
+                      </td>
                     </tr>
                     <tr className="border-b border-[#E5E5E5]">
                       <td className="py-3 px-4 font-bold">Winter (Dec-Feb)</td>
@@ -594,8 +704,8 @@ export default function HonoluluCruiseGuide() {
                   className="font-geograph text-[16px] mb-3"
                   style={{ color: "#0E1B4D" }}
                 >
-                  Honolulu is one of the safest major US cities with low violent crime.
-                  Follow these common-sense precautions:
+                  Honolulu is one of the safest major US cities with low violent
+                  crime. Follow these common-sense precautions:
                 </p>
                 <ul
                   className="font-geograph text-[14px] space-y-1"
@@ -622,28 +732,26 @@ export default function HonoluluCruiseGuide() {
                   style={{ color: "#0E1B4D" }}
                 >
                   <li>
-                    <strong>Dress Code:</strong> Casual island style - Aloha shirts
-                    appropriate for any occasion.
+                    <strong>Dress Code:</strong> Casual island style - Aloha
+                    shirts appropriate for any occasion.
                   </li>
                   <li>
-                    <strong>Footwear:</strong> Comfortable walking shoes essential,
-                    especially for Diamond Head hike.
+                    <strong>Footwear:</strong> Comfortable walking shoes
+                    essential, especially for Diamond Head hike.
                   </li>
                   <li>
-                    <strong>Sun Protection:</strong> Hat, sunglasses, and reef-safe
-                    sunscreen mandatory.
+                    <strong>Sun Protection:</strong> Hat, sunglasses, and
+                    reef-safe sunscreen mandatory.
                   </li>
                   <li>
-                    <strong>Beach Gear:</strong> Most beaches have minimal shade -
-                    bring or rent an umbrella.
+                    <strong>Beach Gear:</strong> Most beaches have minimal shade
+                    - bring or rent an umbrella.
                   </li>
                 </ul>
               </div>
 
               {/* CTA Section */}
-              <div
-                className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 rounded-lg text-center mt-12"
-              >
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-8 rounded-lg text-center mt-12">
                 <h2
                   className="font-whitney font-black text-[32px] mb-4"
                   style={{ color: "#0E1B4D" }}
@@ -676,14 +784,16 @@ export default function HonoluluCruiseGuide() {
                 className="font-geograph text-[18px] leading-relaxed italic"
                 style={{ color: "#0E1B4D" }}
               >
-                A day in Honolulu seamlessly blends deep dives into Hawaiian history
-                with relaxing escapes into nature. The city's distinct advantage of a
-                centrally located cruise port provides the perfect starting point for
-                strategic and independent exploration. By understanding transportation
-                options, curating a day that aligns with your interests, and applying
-                key practical advice, you can craft an experience that is both authentic
-                and deeply memorable. With a bit of planning, your day here is not just
-                a visit; it's an adventure that captures the essence of the aloha spirit.
+                A day in Honolulu seamlessly blends deep dives into Hawaiian
+                history with relaxing escapes into nature. The city's distinct
+                advantage of a centrally located cruise port provides the
+                perfect starting point for strategic and independent
+                exploration. By understanding transportation options, curating a
+                day that aligns with your interests, and applying key practical
+                advice, you can craft an experience that is both authentic and
+                deeply memorable. With a bit of planning, your day here is not
+                just a visit; it's an adventure that captures the essence of the
+                aloha spirit.
               </p>
             </div>
           </div>
