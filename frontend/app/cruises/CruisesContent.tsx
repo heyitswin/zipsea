@@ -194,7 +194,7 @@ export default function CruisesContent() {
       try {
         // Fetch data for filters from search results to get actual values
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased to 30s for production
 
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/filter-options`,
@@ -366,7 +366,7 @@ export default function CruisesContent() {
 
       // Try to fetch from API with timeout
       // Use the abort controller we created at the beginning of fetchCruises
-      const timeoutId = setTimeout(() => abortController.abort(), 10000); // Increased timeout
+      const timeoutId = setTimeout(() => abortController.abort(), 30000); // Increased to 30s for production
 
       const url = `${process.env.NEXT_PUBLIC_API_URL}/search/comprehensive?${params.toString()}`;
 

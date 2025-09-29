@@ -232,6 +232,14 @@ const portGuides = [
       "King Crab",
     ],
   },
+  {
+    slug: "ketchikan",
+    title: "Ketchikan, Alaska",
+    name: "Ketchikan Cruise Port",
+    shortDescription:
+      "Alaska's First City and the Salmon Capital of the World, famous for its totem poles, Creek Street boardwalk, and Misty Fjords.",
+    highlights: ["Creek Street", "Totem Poles", "Misty Fjords", "Salmon Runs"],
+  },
 ];
 
 export default function DestinationPortGuidesPage() {
