@@ -159,6 +159,19 @@ const portGuides = [
       "Where Pacific meets Sea of Cortez with iconic El Arco, world-class sport fishing, Medano Beach clubs, water taxis to Lover's Beach, and vibrant nightlife.",
     highlights: ["El Arco", "Sport Fishing", "Medano Beach", "Cabo Wabo"],
   },
+  {
+    slug: "cartagena",
+    title: "Cartagena, Colombia",
+    name: "Cartagena Cruise Port",
+    shortDescription:
+      "Colonial charm meets Caribbean vibes in Colombia's UNESCO World Heritage city with colorful streets, massive fortresses, emerald shopping, and pristine beaches.",
+    highlights: [
+      "Old City Walls",
+      "Castillo San Felipe",
+      "Las Bóvedas",
+      "Rosario Islands",
+    ],
+  },
 ];
 
 export default function DestinationPortGuidesPage() {
