@@ -112,6 +112,19 @@ const portGuides = [
       "Palm Beach",
     ],
   },
+  {
+    slug: "bermuda",
+    title: "Bermuda",
+    name: "Bermuda Cruise Ports",
+    shortDescription:
+      "Pink sand beaches, crystal caves, and British colonial charm. Multi-day stays at King's Wharf, Hamilton, or St. George's with world-class golf and snorkeling.",
+    highlights: [
+      "Horseshoe Bay",
+      "Crystal Caves",
+      "Royal Naval Dockyard",
+      "Pink Sand Beaches",
+    ],
+  },
 ];
 
 export default function DestinationPortGuidesPage() {
