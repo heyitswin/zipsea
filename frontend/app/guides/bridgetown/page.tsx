@@ -1,11 +1,6 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import dynamic from "next/dynamic";
-
-const BookingForm = dynamic(() => import("@/app/components/booking-form"), {
-  ssr: false,
-});
 
 export default function BridgetownGuidePage() {
   return (
@@ -36,7 +31,8 @@ export default function BridgetownGuidePage() {
             Bridgetown Cruise Port Guide
           </h1>
           <h2 className="font-geograph text-white text-[20px] md:text-[24px] leading-relaxed mb-8 max-w-3xl mx-auto">
-            UNESCO World Heritage site with pristine beaches, rum heritage, and swimming with sea turtles in Carlisle Bay
+            UNESCO World Heritage site with pristine beaches, rum heritage, and
+            swimming with sea turtles in Carlisle Bay
           </h2>
         </div>
       </section>
@@ -59,10 +55,18 @@ export default function BridgetownGuidePage() {
           </h2>
           <div className="space-y-4 font-geograph text-[18px] text-[#666] leading-relaxed">
             <p>
-              Bridgetown serves as the quintessential gateway to the Caribbean, where UNESCO World Heritage architecture meets powder-soft beaches and crystal-clear waters. This vibrant capital of Barbados offers cruise passengers an immediate entry into both relaxation and cultural enrichment.
+              Bridgetown serves as the quintessential gateway to the Caribbean,
+              where UNESCO World Heritage architecture meets powder-soft beaches
+              and crystal-clear waters. This vibrant capital of Barbados offers
+              cruise passengers an immediate entry into both relaxation and
+              cultural enrichment.
             </p>
             <p>
-              Located just 1 mile from downtown, the Deep Water Harbour provides exceptional convenience for independent exploration. Whether you're seeking historic city walks, swimming with sea turtles, or sampling authentic Bajan cuisine, Bridgetown delivers an authentic Caribbean experience within easy reach.
+              Located just 1 mile from downtown, the Deep Water Harbour provides
+              exceptional convenience for independent exploration. Whether
+              you're seeking historic city walks, swimming with sea turtles, or
+              sampling authentic Bajan cuisine, Bridgetown delivers an authentic
+              Caribbean experience within easy reach.
             </p>
           </div>
         </div>
@@ -90,10 +94,15 @@ export default function BridgetownGuidePage() {
           </h3>
           <div className="space-y-4 font-geograph text-[18px] text-[#666] leading-relaxed mb-8">
             <p>
-              The Barbados Cruise Port sits strategically just 1-1.24 miles west of downtown Bridgetown, offering multiple hassle-free options to reach the city center. A complimentary shuttle runs between ships and the terminal.
+              The Barbados Cruise Port sits strategically just 1-1.24 miles west
+              of downtown Bridgetown, offering multiple hassle-free options to
+              reach the city center. A complimentary shuttle runs between ships
+              and the terminal.
             </p>
             <p>
-              The 20-minute walk along Trevor's Way oceanside footpath leads directly to historic shopping areas and Pelican Craft Centre, making self-guided exploration both pleasant and budget-friendly.
+              The 20-minute walk along Trevor's Way oceanside footpath leads
+              directly to historic shopping areas and Pelican Craft Centre,
+              making self-guided exploration both pleasant and budget-friendly.
             </p>
           </div>
 
@@ -105,10 +114,18 @@ export default function BridgetownGuidePage() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b-2 border-[#0E1B4D]">
-                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">Option</th>
-                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">Cost (USD)</th>
-                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">Time</th>
-                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">Best For</th>
+                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">
+                    Option
+                  </th>
+                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">
+                    Cost (USD)
+                  </th>
+                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">
+                    Time
+                  </th>
+                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">
+                    Best For
+                  </th>
                 </tr>
               </thead>
               <tbody className="font-geograph text-[16px]">
@@ -142,7 +159,9 @@ export default function BridgetownGuidePage() {
 
           <div className="bg-[#0E1B4D] text-white p-6 rounded-lg">
             <p className="font-geograph text-[16px]">
-              <strong className="text-[#F7F170]">Taxi Tip:</strong> Always agree on fare and currency (BBD or USD) before starting your journey. ZR buses require exact change in local currency.
+              <strong className="text-[#F7F170]">Taxi Tip:</strong> Always agree
+              on fare and currency (BBD or USD) before starting your journey. ZR
+              buses require exact change in local currency.
             </p>
           </div>
         </div>
@@ -160,13 +179,27 @@ export default function BridgetownGuidePage() {
           </h3>
           <div className="space-y-4 font-geograph text-[18px] text-[#666] leading-relaxed mb-8">
             <p>
-              The UNESCO-listed historic center rewards self-guided exploration with duty-free shopping on Broad Street and local crafts at Pelican Village.
+              The UNESCO-listed historic center rewards self-guided exploration
+              with duty-free shopping on Broad Street and local crafts at
+              Pelican Village.
             </p>
             <ul className="list-disc list-inside space-y-2 ml-4">
-              <li><strong>Parliament Buildings:</strong> Striking clock tower and Gothic architecture</li>
-              <li><strong>National Heroes Square:</strong> Historic heart of the city</li>
-              <li><strong>St. Michael's Cathedral:</strong> Standing since the 18th century</li>
-              <li><strong>Independence Square:</strong> Waterfront dining along the river</li>
+              <li>
+                <strong>Parliament Buildings:</strong> Striking clock tower and
+                Gothic architecture
+              </li>
+              <li>
+                <strong>National Heroes Square:</strong> Historic heart of the
+                city
+              </li>
+              <li>
+                <strong>St. Michael's Cathedral:</strong> Standing since the
+                18th century
+              </li>
+              <li>
+                <strong>Independence Square:</strong> Waterfront dining along
+                the river
+              </li>
             </ul>
           </div>
 
@@ -175,9 +208,18 @@ export default function BridgetownGuidePage() {
           </h3>
           <div className="space-y-4 font-geograph text-[18px] text-[#666] leading-relaxed mb-8">
             <ul className="list-disc list-inside space-y-2 ml-4">
-              <li><strong>Carlisle Bay:</strong> Marine park with 6 shipwrecks, sea turtle swimming ($30-50/person)</li>
-              <li><strong>Accra Beach:</strong> Family-friendly south coast with gentle waves</li>
-              <li><strong>West Coast:</strong> Calm, warm waters ideal for swimming</li>
+              <li>
+                <strong>Carlisle Bay:</strong> Marine park with 6 shipwrecks,
+                sea turtle swimming ($30-50/person)
+              </li>
+              <li>
+                <strong>Accra Beach:</strong> Family-friendly south coast with
+                gentle waves
+              </li>
+              <li>
+                <strong>West Coast:</strong> Calm, warm waters ideal for
+                swimming
+              </li>
             </ul>
           </div>
 
@@ -186,20 +228,38 @@ export default function BridgetownGuidePage() {
           </h3>
           <div className="grid gap-4">
             <div className="border-l-4 border-[#F7F170] pl-4">
-              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">Atlantis Submarine</h4>
-              <p className="font-geograph text-[#666]">Real submarine dive to see marine life • 2-2.5 hours • $120-159/person</p>
+              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                Atlantis Submarine
+              </h4>
+              <p className="font-geograph text-[#666]">
+                Real submarine dive to see marine life • 2-2.5 hours •
+                $120-159/person
+              </p>
             </div>
             <div className="border-l-4 border-[#F7F170] pl-4">
-              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">Harrison's Cave</h4>
-              <p className="font-geograph text-[#666]">Underground tram tour through stalactite caverns • $90-185/person</p>
+              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                Harrison's Cave
+              </h4>
+              <p className="font-geograph text-[#666]">
+                Underground tram tour through stalactite caverns •
+                $90-185/person
+              </p>
             </div>
             <div className="border-l-4 border-[#F7F170] pl-4">
-              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">Catamaran Cruise</h4>
-              <p className="font-geograph text-[#666]">Swim with turtles, snorkel shipwrecks, open bar • $95/person</p>
+              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                Catamaran Cruise
+              </h4>
+              <p className="font-geograph text-[#666]">
+                Swim with turtles, snorkel shipwrecks, open bar • $95/person
+              </p>
             </div>
             <div className="border-l-4 border-[#F7F170] pl-4">
-              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">Mount Gay Rum Tour</h4>
-              <p className="font-geograph text-[#666]">Birthplace of rum tasting experience • $27.50-60/person</p>
+              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                Mount Gay Rum Tour
+              </h4>
+              <p className="font-geograph text-[#666]">
+                Birthplace of rum tasting experience • $27.50-60/person
+              </p>
             </div>
           </div>
         </div>
@@ -224,7 +284,9 @@ export default function BridgetownGuidePage() {
 
           <div className="space-y-4 font-geograph text-[18px] text-[#666] leading-relaxed mb-8">
             <p>
-              Bajan cuisine fuses African, European, and West Indian influences into unforgettable flavors. Experience the island's culinary identity through its national dishes and rum heritage.
+              Bajan cuisine fuses African, European, and West Indian influences
+              into unforgettable flavors. Experience the island's culinary
+              identity through its national dishes and rum heritage.
             </p>
           </div>
 
@@ -233,20 +295,37 @@ export default function BridgetownGuidePage() {
           </h3>
           <div className="grid gap-4 mb-8">
             <div className="bg-[#FFF8E5] p-4 rounded-lg">
-              <h4 className="font-geograph font-bold text-[#0E1B4D]">Flying Fish & Cou Cou</h4>
-              <p className="font-geograph text-[#666]">National dish with steamed fish and cornmeal-okra polenta</p>
+              <h4 className="font-geograph font-bold text-[#0E1B4D]">
+                Flying Fish & Cou Cou
+              </h4>
+              <p className="font-geograph text-[#666]">
+                National dish with steamed fish and cornmeal-okra polenta
+              </p>
             </div>
             <div className="bg-[#FFF8E5] p-4 rounded-lg">
-              <h4 className="font-geograph font-bold text-[#0E1B4D]">Pudding & Souse</h4>
-              <p className="font-geograph text-[#666]">Traditional Saturday meal of pickled pork and spiced sweet potato</p>
+              <h4 className="font-geograph font-bold text-[#0E1B4D]">
+                Pudding & Souse
+              </h4>
+              <p className="font-geograph text-[#666]">
+                Traditional Saturday meal of pickled pork and spiced sweet
+                potato
+              </p>
             </div>
             <div className="bg-[#FFF8E5] p-4 rounded-lg">
-              <h4 className="font-geograph font-bold text-[#0E1B4D]">Bajan Macaroni Pie</h4>
-              <p className="font-geograph text-[#666]">Unique local take on mac and cheese</p>
+              <h4 className="font-geograph font-bold text-[#0E1B4D]">
+                Bajan Macaroni Pie
+              </h4>
+              <p className="font-geograph text-[#666]">
+                Unique local take on mac and cheese
+              </p>
             </div>
             <div className="bg-[#FFF8E5] p-4 rounded-lg">
-              <h4 className="font-geograph font-bold text-[#0E1B4D]">Fish Cakes & Cutters</h4>
-              <p className="font-geograph text-[#666]">Street food staples - fried fish cakes and local sandwiches</p>
+              <h4 className="font-geograph font-bold text-[#0E1B4D]">
+                Fish Cakes & Cutters
+              </h4>
+              <p className="font-geograph text-[#666]">
+                Street food staples - fried fish cakes and local sandwiches
+              </p>
             </div>
           </div>
 
@@ -257,28 +336,46 @@ export default function BridgetownGuidePage() {
             <div className="border-b border-[#E5E5E5] pb-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">Oistins Fish Fry</h4>
-                  <p className="font-geograph text-[#666]">Weekend market with grilled fish and local atmosphere</p>
+                  <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                    Oistins Fish Fry
+                  </h4>
+                  <p className="font-geograph text-[#666]">
+                    Weekend market with grilled fish and local atmosphere
+                  </p>
                 </div>
-                <span className="font-geograph text-[#0E1B4D] font-bold">$10-25</span>
+                <span className="font-geograph text-[#0E1B4D] font-bold">
+                  $10-25
+                </span>
               </div>
             </div>
             <div className="border-b border-[#E5E5E5] pb-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">Cuz's Fish Shack</h4>
-                  <p className="font-geograph text-[#666]">Best fish cutters on the island - Carlisle Bay</p>
+                  <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                    Cuz's Fish Shack
+                  </h4>
+                  <p className="font-geograph text-[#666]">
+                    Best fish cutters on the island - Carlisle Bay
+                  </p>
                 </div>
-                <span className="font-geograph text-[#0E1B4D] font-bold">$8-15</span>
+                <span className="font-geograph text-[#0E1B4D] font-bold">
+                  $8-15
+                </span>
               </div>
             </div>
             <div className="border-b border-[#E5E5E5] pb-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">Brown Sugar Restaurant</h4>
-                  <p className="font-geograph text-[#666]">All-you-can-eat Planters Buffet lunch</p>
+                  <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                    Brown Sugar Restaurant
+                  </h4>
+                  <p className="font-geograph text-[#666]">
+                    All-you-can-eat Planters Buffet lunch
+                  </p>
                 </div>
-                <span className="font-geograph text-[#0E1B4D] font-bold">$35-45</span>
+                <span className="font-geograph text-[#0E1B4D] font-bold">
+                  $35-45
+                </span>
               </div>
             </div>
           </div>
@@ -300,15 +397,22 @@ export default function BridgetownGuidePage() {
               <ul className="space-y-3 font-geograph text-[#666]">
                 <li className="flex items-start">
                   <span className="text-[#F7F170] mr-2">▸</span>
-                  <span><strong>Carlisle Bay:</strong> Calm waters, close to port</span>
+                  <span>
+                    <strong>Carlisle Bay:</strong> Calm waters, close to port
+                  </span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-[#F7F170] mr-2">▸</span>
-                  <span><strong>Accra Beach:</strong> Gentle waves perfect for children</span>
+                  <span>
+                    <strong>Accra Beach:</strong> Gentle waves perfect for
+                    children
+                  </span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-[#F7F170] mr-2">▸</span>
-                  <span><strong>Turtle Swimming:</strong> Safe, guided experiences</span>
+                  <span>
+                    <strong>Turtle Swimming:</strong> Safe, guided experiences
+                  </span>
                 </li>
               </ul>
             </div>
@@ -319,15 +423,22 @@ export default function BridgetownGuidePage() {
               <ul className="space-y-3 font-geograph text-[#666]">
                 <li className="flex items-start">
                   <span className="text-[#F7F170] mr-2">▸</span>
-                  <span><strong>Wildlife Reserve:</strong> Green monkeys & tortoises</span>
+                  <span>
+                    <strong>Wildlife Reserve:</strong> Green monkeys & tortoises
+                  </span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-[#F7F170] mr-2">▸</span>
-                  <span><strong>Atlantis Submarine:</strong> Safe underwater adventure</span>
+                  <span>
+                    <strong>Atlantis Submarine:</strong> Safe underwater
+                    adventure
+                  </span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-[#F7F170] mr-2">▸</span>
-                  <span><strong>Glass Bottom Boat:</strong> Marine life viewing</span>
+                  <span>
+                    <strong>Glass Bottom Boat:</strong> Marine life viewing
+                  </span>
                 </li>
               </ul>
             </div>
@@ -358,7 +469,10 @@ export default function BridgetownGuidePage() {
                 Currency & Payment
               </h3>
               <p className="font-geograph text-[#666]">
-                Barbados Dollar (BBD) is official, but USD widely accepted at 2:1 fixed rate. Credit cards accepted at major venues, but cash needed for street vendors, buses, and most taxis. 10-15% service charge often included in bills.
+                Barbados Dollar (BBD) is official, but USD widely accepted at
+                2:1 fixed rate. Credit cards accepted at major venues, but cash
+                needed for street vendors, buses, and most taxis. 10-15% service
+                charge often included in bills.
               </p>
             </div>
 
@@ -367,7 +481,10 @@ export default function BridgetownGuidePage() {
                 Weather & What to Wear
               </h3>
               <p className="font-geograph text-[#666]">
-                Year-round 84-88°F with warm sea temperatures. Dry season (Dec-May): Low humidity. Wet season (Jun-Nov): Hot, humid with showers. Bring comfortable walking shoes, sun protection, and swimwear.
+                Year-round 84-88°F with warm sea temperatures. Dry season
+                (Dec-May): Low humidity. Wet season (Jun-Nov): Hot, humid with
+                showers. Bring comfortable walking shoes, sun protection, and
+                swimwear.
               </p>
             </div>
 
@@ -376,7 +493,8 @@ export default function BridgetownGuidePage() {
                 ⚠️ Important Legal Note
               </h3>
               <p className="font-geograph text-[#0E1B4D] font-bold">
-                Wearing camouflage clothing of any kind is ILLEGAL in Barbados and can result in fines or detention.
+                Wearing camouflage clothing of any kind is ILLEGAL in Barbados
+                and can result in fines or detention.
               </p>
             </div>
 
@@ -385,7 +503,10 @@ export default function BridgetownGuidePage() {
                 Safety Tips
               </h3>
               <p className="font-geograph text-[#666]">
-                Barbados is very safe with rare violent crime. Don't leave valuables unattended on beaches. Avoid walking alone after dark. Stick to well-lit, populated areas. Use hotel safes for passports and valuables.
+                Barbados is very safe with rare violent crime. Don't leave
+                valuables unattended on beaches. Avoid walking alone after dark.
+                Stick to well-lit, populated areas. Use hotel safes for
+                passports and valuables.
               </p>
             </div>
           </div>
@@ -419,7 +540,8 @@ export default function BridgetownGuidePage() {
             Ready to Explore Barbados?
           </h2>
           <p className="font-geograph text-white text-[20px] mb-8">
-            Book your Caribbean cruise with Zipsea and receive maximum onboard credit
+            Book your Caribbean cruise with Zipsea and receive maximum onboard
+            credit
           </p>
           <Link
             href="/cruises?region=caribbean"
@@ -438,22 +560,24 @@ export default function BridgetownGuidePage() {
           </h2>
           <div className="space-y-4 font-geograph text-[18px] text-[#666] leading-relaxed">
             <p>
-              Bridgetown masterfully blends rich UNESCO heritage with vibrant island culture, offering cruise passengers exceptional value through its walkable port location. Whether you choose a self-guided historic exploration or thrilling excursions to natural wonders, the city rewards every travel style.
+              Bridgetown masterfully blends rich UNESCO heritage with vibrant
+              island culture, offering cruise passengers exceptional value
+              through its walkable port location. Whether you choose a
+              self-guided historic exploration or thrilling excursions to
+              natural wonders, the city rewards every travel style.
             </p>
             <p>
-              From swimming with sea turtles in Carlisle Bay to savoring flying fish at Oistins, experiencing rum tours at Mount Gay, or simply strolling Trevor's Way, Bridgetown transforms a port stop into a multi-faceted Caribbean adventure.
+              From swimming with sea turtles in Carlisle Bay to savoring flying
+              fish at Oistins, experiencing rum tours at Mount Gay, or simply
+              strolling Trevor's Way, Bridgetown transforms a port stop into a
+              multi-faceted Caribbean adventure.
             </p>
             <p className="font-bold text-[#0E1B4D]">
-              Remember: All Zipsea cruise bookings include maximum onboard credit for shore excursions, specialty dining, and duty-free shopping!
+              Remember: All Zipsea cruise bookings include maximum onboard
+              credit for shore excursions, specialty dining, and duty-free
+              shopping!
             </p>
           </div>
-        </div>
-      </section>
-
-      {/* Booking Form */}
-      <section className="py-[40px] md:py-[60px] bg-white">
-        <div className="max-w-4xl mx-auto px-8">
-          <BookingForm />
         </div>
       </section>
     </main>

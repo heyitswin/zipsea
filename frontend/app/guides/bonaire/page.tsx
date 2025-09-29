@@ -1,11 +1,6 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import dynamic from "next/dynamic";
-
-const BookingForm = dynamic(() => import("@/app/components/booking-form"), {
-  ssr: false,
-});
 
 export default function BonaireGuidePage() {
   return (
@@ -36,7 +31,8 @@ export default function BonaireGuidePage() {
             Bonaire Cruise Port Guide
           </h1>
           <h2 className="font-geograph text-white text-[20px] md:text-[24px] leading-relaxed mb-8 max-w-3xl mx-auto">
-            Shore-diving capital of the world with pristine marine parks, flamingo sanctuaries, and walkable Kralendijk
+            Shore-diving capital of the world with pristine marine parks,
+            flamingo sanctuaries, and walkable Kralendijk
           </h2>
         </div>
       </section>
@@ -59,10 +55,18 @@ export default function BonaireGuidePage() {
           </h2>
           <div className="space-y-4 font-geograph text-[18px] text-[#666] leading-relaxed">
             <p>
-              Bonaire defies typical cruise port expectations as a premier eco-tourism hub and the shore-diving capital of the world. This enchanting island in the southern Caribbean offers unmatched convenience with cruise ships docking right in the heart of Kralendijk, allowing immediate exploration on foot.
+              Bonaire defies typical cruise port expectations as a premier
+              eco-tourism hub and the shore-diving capital of the world. This
+              enchanting island in the southern Caribbean offers unmatched
+              convenience with cruise ships docking right in the heart of
+              Kralendijk, allowing immediate exploration on foot.
             </p>
             <p>
-              Renowned globally for pristine waters and 86 marked dive sites, Bonaire's marine park encompasses the entire coastline. Above water, Dutch-Caribbean history comes alive through colorful colonial buildings, while flamingo sanctuaries and salt flats create otherworldly landscapes.
+              Renowned globally for pristine waters and 86 marked dive sites,
+              Bonaire's marine park encompasses the entire coastline. Above
+              water, Dutch-Caribbean history comes alive through colorful
+              colonial buildings, while flamingo sanctuaries and salt flats
+              create otherworldly landscapes.
             </p>
           </div>
         </div>
@@ -90,10 +94,15 @@ export default function BonaireGuidePage() {
           </h3>
           <div className="space-y-4 font-geograph text-[18px] text-[#666] leading-relaxed mb-8">
             <p>
-              The cruise terminals (Town Pier and Customs Pier) are located directly in downtown Kralendijk, offering immediate walkable access to shops, restaurants, and historic sites. This seamless arrival eliminates typical port transportation complexities.
+              The cruise terminals (Town Pier and Customs Pier) are located
+              directly in downtown Kralendijk, offering immediate walkable
+              access to shops, restaurants, and historic sites. This seamless
+              arrival eliminates typical port transportation complexities.
             </p>
             <p>
-              A five-minute walk from the pier leads to Kaya Grandi, the main shopping street. The flat terrain and compact layout make exploration effortless from the moment you disembark.
+              A five-minute walk from the pier leads to Kaya Grandi, the main
+              shopping street. The flat terrain and compact layout make
+              exploration effortless from the moment you disembark.
             </p>
           </div>
 
@@ -105,10 +114,18 @@ export default function BonaireGuidePage() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b-2 border-[#0E1B4D]">
-                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">Option</th>
-                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">Best For</th>
-                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">Cost</th>
-                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">Notes</th>
+                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">
+                    Option
+                  </th>
+                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">
+                    Best For
+                  </th>
+                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">
+                    Cost
+                  </th>
+                  <th className="text-left py-3 px-4 font-geograph font-bold text-[#0E1B4D]">
+                    Notes
+                  </th>
                 </tr>
               </thead>
               <tbody className="font-geograph text-[16px]">
@@ -142,7 +159,10 @@ export default function BonaireGuidePage() {
 
           <div className="bg-[#0E1B4D] text-white p-6 rounded-lg">
             <p className="font-geograph text-[16px]">
-              <strong className="text-[#F7F170]">No Public Buses:</strong> Bonaire has no public bus system. Taxis are the only public transportation, making rental vehicles popular for independent exploration.
+              <strong className="text-[#F7F170]">No Public Buses:</strong>{" "}
+              Bonaire has no public bus system. Taxis are the only public
+              transportation, making rental vehicles popular for independent
+              exploration.
             </p>
           </div>
         </div>
@@ -160,13 +180,26 @@ export default function BonaireGuidePage() {
           </h3>
           <div className="space-y-4 font-geograph text-[18px] text-[#666] leading-relaxed mb-8">
             <p>
-              Bonaire's marine park encompasses all waters surrounding the island, with 86 marked dive sites accessible from shore. Yellow-painted rocks identify entry points for spontaneous underwater exploration.
+              Bonaire's marine park encompasses all waters surrounding the
+              island, with 86 marked dive sites accessible from shore.
+              Yellow-painted rocks identify entry points for spontaneous
+              underwater exploration.
             </p>
             <ul className="list-disc list-inside space-y-2 ml-4">
-              <li><strong>Klein Bonaire:</strong> Uninhabited island with pristine reefs ($25 round-trip)</li>
-              <li><strong>Tori's Reef:</strong> Perfect for beginners and families</li>
-              <li><strong>Salt Pier:</strong> Sea turtles and abundant marine life</li>
-              <li><strong>Andrea I & II:</strong> Popular sites with easy shore access</li>
+              <li>
+                <strong>Klein Bonaire:</strong> Uninhabited island with pristine
+                reefs ($25 round-trip)
+              </li>
+              <li>
+                <strong>Tori's Reef:</strong> Perfect for beginners and families
+              </li>
+              <li>
+                <strong>Salt Pier:</strong> Sea turtles and abundant marine life
+              </li>
+              <li>
+                <strong>Andrea I & II:</strong> Popular sites with easy shore
+                access
+              </li>
             </ul>
           </div>
 
@@ -175,10 +208,21 @@ export default function BonaireGuidePage() {
           </h3>
           <div className="space-y-4 font-geograph text-[18px] text-[#666] leading-relaxed mb-8">
             <ul className="list-disc list-inside space-y-2 ml-4">
-              <li><strong>Kaya Grandi:</strong> Main shopping street with Dutch colonial buildings</li>
-              <li><strong>Fort Oranje:</strong> 17th-century fortification with harbor views</li>
-              <li><strong>Wilhelmina Park:</strong> Artisan markets and local crafts</li>
-              <li><strong>Terramar Museum:</strong> Island heritage and history</li>
+              <li>
+                <strong>Kaya Grandi:</strong> Main shopping street with Dutch
+                colonial buildings
+              </li>
+              <li>
+                <strong>Fort Oranje:</strong> 17th-century fortification with
+                harbor views
+              </li>
+              <li>
+                <strong>Wilhelmina Park:</strong> Artisan markets and local
+                crafts
+              </li>
+              <li>
+                <strong>Terramar Museum:</strong> Island heritage and history
+              </li>
             </ul>
           </div>
 
@@ -187,16 +231,30 @@ export default function BonaireGuidePage() {
           </h3>
           <div className="grid gap-4">
             <div className="border-l-4 border-[#F7F170] pl-4">
-              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">Snorkel & BBQ Catamaran</h4>
-              <p className="font-geograph text-[#666]">All-inclusive with guided snorkeling, BBQ lunch, open bar • $125/person</p>
+              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                Snorkel & BBQ Catamaran
+              </h4>
+              <p className="font-geograph text-[#666]">
+                All-inclusive with guided snorkeling, BBQ lunch, open bar •
+                $125/person
+              </p>
             </div>
             <div className="border-l-4 border-[#F7F170] pl-4">
-              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">Full Island Tour</h4>
-              <p className="font-geograph text-[#666]">Salt flats, pink water, flamingo sanctuary • 2 hours • $53/person</p>
+              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                Full Island Tour
+              </h4>
+              <p className="font-geograph text-[#666]">
+                Salt flats, pink water, flamingo sanctuary • 2 hours •
+                $53/person
+              </p>
             </div>
             <div className="border-l-4 border-[#F7F170] pl-4">
-              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">Guided Cave Adventure</h4>
-              <p className="font-geograph text-[#666]">Explore 400+ magnificent caves • $129/person</p>
+              <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                Guided Cave Adventure
+              </h4>
+              <p className="font-geograph text-[#666]">
+                Explore 400+ magnificent caves • $129/person
+              </p>
             </div>
           </div>
         </div>
@@ -221,7 +279,9 @@ export default function BonaireGuidePage() {
 
           <div className="space-y-4 font-geograph text-[18px] text-[#666] leading-relaxed mb-8">
             <p>
-              Bonaire's culinary scene fuses Caribbean, Dutch, and Spanish flavors into unique dishes that reflect the island's multicultural heritage.
+              Bonaire's culinary scene fuses Caribbean, Dutch, and Spanish
+              flavors into unique dishes that reflect the island's multicultural
+              heritage.
             </p>
           </div>
 
@@ -230,16 +290,28 @@ export default function BonaireGuidePage() {
           </h3>
           <div className="grid gap-4 mb-8">
             <div className="bg-[#FFF8E5] p-4 rounded-lg">
-              <h4 className="font-geograph font-bold text-[#0E1B4D]">Kabritu Stobá</h4>
-              <p className="font-geograph text-[#666]">Slow-cooked goat stew with buttery-soft meat</p>
+              <h4 className="font-geograph font-bold text-[#0E1B4D]">
+                Kabritu Stobá
+              </h4>
+              <p className="font-geograph text-[#666]">
+                Slow-cooked goat stew with buttery-soft meat
+              </p>
             </div>
             <div className="bg-[#FFF8E5] p-4 rounded-lg">
-              <h4 className="font-geograph font-bold text-[#0E1B4D]">Fresh Fish Platters</h4>
-              <p className="font-geograph text-[#666]">Daily catch served grilled or fried with local sides</p>
+              <h4 className="font-geograph font-bold text-[#0E1B4D]">
+                Fresh Fish Platters
+              </h4>
+              <p className="font-geograph text-[#666]">
+                Daily catch served grilled or fried with local sides
+              </p>
             </div>
             <div className="bg-[#FFF8E5] p-4 rounded-lg">
-              <h4 className="font-geograph font-bold text-[#0E1B4D]">Caribbean Fusion</h4>
-              <p className="font-geograph text-[#666]">Dutch-Caribbean combinations unique to the island</p>
+              <h4 className="font-geograph font-bold text-[#0E1B4D]">
+                Caribbean Fusion
+              </h4>
+              <p className="font-geograph text-[#666]">
+                Dutch-Caribbean combinations unique to the island
+              </p>
             </div>
           </div>
 
@@ -250,28 +322,46 @@ export default function BonaireGuidePage() {
             <div className="border-b border-[#E5E5E5] pb-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">Kite City (Food Truck)</h4>
-                  <p className="font-geograph text-[#666]">Fresh local fish burgers and wraps</p>
+                  <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                    Kite City (Food Truck)
+                  </h4>
+                  <p className="font-geograph text-[#666]">
+                    Fresh local fish burgers and wraps
+                  </p>
                 </div>
-                <span className="font-geograph text-[#0E1B4D] font-bold">$17-40</span>
+                <span className="font-geograph text-[#0E1B4D] font-bold">
+                  $17-40
+                </span>
               </div>
             </div>
             <div className="border-b border-[#E5E5E5] pb-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">La Cantina Cerveceria</h4>
-                  <p className="font-geograph text-[#666]">Brewery with Caribbean dishes in courtyard setting</p>
+                  <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                    La Cantina Cerveceria
+                  </h4>
+                  <p className="font-geograph text-[#666]">
+                    Brewery with Caribbean dishes in courtyard setting
+                  </p>
                 </div>
-                <span className="font-geograph text-[#0E1B4D] font-bold">$20-30</span>
+                <span className="font-geograph text-[#0E1B4D] font-bold">
+                  $20-30
+                </span>
               </div>
             </div>
             <div className="border-b border-[#E5E5E5] pb-4">
               <div className="flex justify-between items-start">
                 <div>
-                  <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">It Rains Fishes</h4>
-                  <p className="font-geograph text-[#666]">Upscale dining with ocean views</p>
+                  <h4 className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                    It Rains Fishes
+                  </h4>
+                  <p className="font-geograph text-[#666]">
+                    Upscale dining with ocean views
+                  </p>
                 </div>
-                <span className="font-geograph text-[#0E1B4D] font-bold">$30+</span>
+                <span className="font-geograph text-[#0E1B4D] font-bold">
+                  $30+
+                </span>
               </div>
             </div>
           </div>
@@ -293,15 +383,22 @@ export default function BonaireGuidePage() {
               <ul className="space-y-3 font-geograph text-[#666]">
                 <li className="flex items-start">
                   <span className="text-[#F7F170] mr-2">▸</span>
-                  <span><strong>Sorobon Beach:</strong> Shallow, calm waters perfect for kids</span>
+                  <span>
+                    <strong>Sorobon Beach:</strong> Shallow, calm waters perfect
+                    for kids
+                  </span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-[#F7F170] mr-2">▸</span>
-                  <span><strong>Eden Beach:</strong> Family-friendly with facilities</span>
+                  <span>
+                    <strong>Eden Beach:</strong> Family-friendly with facilities
+                  </span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-[#F7F170] mr-2">▸</span>
-                  <span><strong>Lac Bay:</strong> Mangrove tours and kayaking</span>
+                  <span>
+                    <strong>Lac Bay:</strong> Mangrove tours and kayaking
+                  </span>
                 </li>
               </ul>
             </div>
@@ -312,15 +409,24 @@ export default function BonaireGuidePage() {
               <ul className="space-y-3 font-geograph text-[#666]">
                 <li className="flex items-start">
                   <span className="text-[#F7F170] mr-2">▸</span>
-                  <span><strong>Donkey Sanctuary:</strong> Drive-through experience with friendly donkeys</span>
+                  <span>
+                    <strong>Donkey Sanctuary:</strong> Drive-through experience
+                    with friendly donkeys
+                  </span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-[#F7F170] mr-2">▸</span>
-                  <span><strong>Flamingo Sanctuary:</strong> See pink flamingos in salt flats</span>
+                  <span>
+                    <strong>Flamingo Sanctuary:</strong> See pink flamingos in
+                    salt flats
+                  </span>
                 </li>
                 <li className="flex items-start">
                   <span className="text-[#F7F170] mr-2">▸</span>
-                  <span><strong>Washington-Slagbaai Park:</strong> Wildlife and nature trails</span>
+                  <span>
+                    <strong>Washington-Slagbaai Park:</strong> Wildlife and
+                    nature trails
+                  </span>
                 </li>
               </ul>
             </div>
@@ -351,7 +457,9 @@ export default function BonaireGuidePage() {
                 Bonaire Nature Fee
               </h3>
               <p className="font-geograph text-[#666]">
-                $10 one-day fee for cruise passengers using marine park (swimming, snorkeling, kayaking). Children under 12 exempt. Funds conservation efforts.
+                $10 one-day fee for cruise passengers using marine park
+                (swimming, snorkeling, kayaking). Children under 12 exempt.
+                Funds conservation efforts.
               </p>
             </div>
 
@@ -360,7 +468,9 @@ export default function BonaireGuidePage() {
                 Currency & Tipping
               </h3>
               <p className="font-geograph text-[#666]">
-                US dollars accepted everywhere. Carry small bills for markets and taxis. Tips: 10-15% at restaurants. Inform staff of tip amount before card is swiped.
+                US dollars accepted everywhere. Carry small bills for markets
+                and taxis. Tips: 10-15% at restaurants. Inform staff of tip
+                amount before card is swiped.
               </p>
             </div>
 
@@ -369,7 +479,9 @@ export default function BonaireGuidePage() {
                 Vehicle Safety
               </h3>
               <p className="font-geograph text-[#666]">
-                Leave rental cars unlocked at remote dive sites to prevent window damage. Never leave valuables visible or unattended. This is local practice due to petty theft.
+                Leave rental cars unlocked at remote dive sites to prevent
+                window damage. Never leave valuables visible or unattended. This
+                is local practice due to petty theft.
               </p>
             </div>
 
@@ -378,7 +490,9 @@ export default function BonaireGuidePage() {
                 Weather & Best Times
               </h3>
               <p className="font-geograph text-[#666]">
-                Year-round 85°F average with steady trade winds. Dry season (Dec-Apr): Low humidity, peak season. Wet season (May-Nov): Warmer with occasional showers.
+                Year-round 85°F average with steady trade winds. Dry season
+                (Dec-Apr): Low humidity, peak season. Wet season (May-Nov):
+                Warmer with occasional showers.
               </p>
             </div>
           </div>
@@ -412,7 +526,8 @@ export default function BonaireGuidePage() {
             Ready to Explore Bonaire?
           </h2>
           <p className="font-geograph text-white text-[20px] mb-8">
-            Book your Caribbean cruise with Zipsea and receive maximum onboard credit
+            Book your Caribbean cruise with Zipsea and receive maximum onboard
+            credit
           </p>
           <Link
             href="/cruises?region=caribbean"
@@ -431,22 +546,23 @@ export default function BonaireGuidePage() {
           </h2>
           <div className="space-y-4 font-geograph text-[18px] text-[#666] leading-relaxed">
             <p>
-              Bonaire offers a profound departure from typical cruise experiences, rewarding independent and environmentally conscious travelers. The unmatched port convenience provides freedom to explore Kralendijk's historic charm or venture to pristine dive sites and natural parks.
+              Bonaire offers a profound departure from typical cruise
+              experiences, rewarding independent and environmentally conscious
+              travelers. The unmatched port convenience provides freedom to
+              explore Kralendijk's historic charm or venture to pristine dive
+              sites and natural parks.
             </p>
             <p>
-              Whether you spend your day snorkeling world-class reefs, wandering colorful colonial streets, or meeting friendly donkeys at the sanctuary, Bonaire proves that the most memorable experiences come where logistics are simplest and natural wonders most abundant.
+              Whether you spend your day snorkeling world-class reefs, wandering
+              colorful colonial streets, or meeting friendly donkeys at the
+              sanctuary, Bonaire proves that the most memorable experiences come
+              where logistics are simplest and natural wonders most abundant.
             </p>
             <p className="font-bold text-[#0E1B4D]">
-              Remember: All Zipsea cruise bookings include maximum onboard credit for shore excursions, specialty dining, and port shopping!
+              Remember: All Zipsea cruise bookings include maximum onboard
+              credit for shore excursions, specialty dining, and port shopping!
             </p>
           </div>
-        </div>
-      </section>
-
-      {/* Booking Form */}
-      <section className="py-[40px] md:py-[60px] bg-white">
-        <div className="max-w-4xl mx-auto px-8">
-          <BookingForm />
         </div>
       </section>
     </main>
