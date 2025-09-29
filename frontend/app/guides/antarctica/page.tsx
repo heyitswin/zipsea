@@ -259,7 +259,7 @@ export default function AntarcticaCruiseGuide() {
                   expedition activities and gear.
                 </p>
                 <a
-                  href="/cruises"
+                  href="/cruises?region=antarctica"
                   className="inline-block px-6 py-3 bg-[#0E1B4D] text-white font-bold rounded-lg hover:bg-[#2238C3] transition-colors"
                 >
                   Explore Antarctic Expeditions
@@ -639,7 +639,7 @@ export default function AntarcticaCruiseGuide() {
                   expedition cruise with Zipsea.
                 </p>
                 <a
-                  href="/cruises"
+                  href="/cruises?region=antarctica"
                   className="inline-block px-6 py-3 bg-[#0E1B4D] text-white font-bold rounded-lg hover:bg-[#2238C3] transition-colors"
                 >
                   Find Your Expedition

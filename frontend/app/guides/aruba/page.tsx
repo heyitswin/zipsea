@@ -385,7 +385,7 @@ export default function ArubaCruiseGuide() {
                   deals on your Caribbean cruise.
                 </p>
                 <a
-                  href="/cruises"
+                  href="/cruises?region=caribbean"
                   className="inline-block px-6 py-3 bg-[#0E1B4D] text-white font-bold rounded-lg hover:bg-[#2238C3] transition-colors"
                 >
                   Find Caribbean Cruises
@@ -842,7 +842,7 @@ export default function ArubaCruiseGuide() {
                   your Caribbean cruise with Zipsea.
                 </p>
                 <a
-                  href="/cruises"
+                  href="/cruises?region=caribbean"
                   className="inline-block px-6 py-3 bg-[#0E1B4D] text-white font-bold rounded-lg hover:bg-[#2238C3] transition-colors"
                 >
                   Browse Caribbean Cruises

@@ -125,6 +125,19 @@ const portGuides = [
       "Pink Sand Beaches",
     ],
   },
+  {
+    slug: "bonaire",
+    title: "Bonaire, Caribbean",
+    name: "Bonaire Cruise Port",
+    shortDescription:
+      "Shore-diving capital of the world with 86 marked dive sites, walkable Kralendijk downtown, Klein Bonaire snorkeling, and flamingo sanctuaries in pristine marine parks.",
+    highlights: [
+      "Klein Bonaire",
+      "86 Dive Sites",
+      "Walkable Kralendijk",
+      "Donkey Sanctuary",
+    ],
+  },
 ];
 
 export default function DestinationPortGuidesPage() {

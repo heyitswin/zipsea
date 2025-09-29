@@ -307,7 +307,7 @@ export default function CozumelCruiseGuide() {
                   onboard credit with every booking!
                 </p>
                 <a
-                  href="/cruises"
+                  href="/cruises?region=caribbean"
                   className="inline-block px-6 py-3 bg-[#2238C3] text-white rounded-full text-[16px] font-medium font-geograph hover:opacity-90 transition-all duration-300"
                 >
                   Find Cozumel Cruises →
@@ -536,7 +536,7 @@ export default function CozumelCruiseGuide() {
                   onboard credit with every booking!
                 </p>
                 <a
-                  href="/cruises"
+                  href="/cruises?region=caribbean"
                   className="inline-block px-6 py-3 bg-[#2238C3] text-white rounded-full text-[16px] font-medium font-geograph hover:opacity-90 transition-all duration-300"
                 >
                   Find Cozumel Cruises →
@@ -879,7 +879,7 @@ export default function CozumelCruiseGuide() {
                   onboard credit with every booking!
                 </p>
                 <a
-                  href="/cruises"
+                  href="/cruises?region=caribbean"
                   className="inline-block px-6 py-3 bg-[#2238C3] text-white rounded-full text-[16px] font-medium font-geograph hover:opacity-90 transition-all duration-300"
                 >
                   Find Cozumel Cruises →
@@ -1144,7 +1144,7 @@ export default function CozumelCruiseGuide() {
                   onboard credit with every booking!
                 </p>
                 <a
-                  href="/cruises"
+                  href="/cruises?region=caribbean"
                   className="inline-block px-6 py-3 bg-[#2238C3] text-white rounded-full text-[16px] font-medium font-geograph hover:opacity-90 transition-all duration-300"
                 >
                   Find Cozumel Cruises →
@@ -1394,7 +1394,7 @@ export default function CozumelCruiseGuide() {
                   onboard credit with every booking!
                 </p>
                 <a
-                  href="/cruises"
+                  href="/cruises?region=caribbean"
                   className="inline-block px-6 py-3 bg-[#2238C3] text-white rounded-full text-[16px] font-medium font-geograph hover:opacity-90 transition-all duration-300"
                 >
                   Find Cozumel Cruises →
@@ -1525,7 +1525,7 @@ export default function CozumelCruiseGuide() {
                   onboard credit with every booking!
                 </p>
                 <a
-                  href="/cruises"
+                  href="/cruises?region=caribbean"
                   className="inline-block px-6 py-3 bg-[#2238C3] text-white rounded-full text-[16px] font-medium font-geograph hover:opacity-90 transition-all duration-300"
                 >
                   Find Cozumel Cruises →
