@@ -151,6 +151,14 @@ const portGuides = [
       "Mount Gay Rum",
     ],
   },
+  {
+    slug: "cabo-san-lucas",
+    title: "Cabo San Lucas, Mexico",
+    name: "Cabo San Lucas Cruise Port",
+    shortDescription:
+      "Where Pacific meets Sea of Cortez with iconic El Arco, world-class sport fishing, Medano Beach clubs, water taxis to Lover's Beach, and vibrant nightlife.",
+    highlights: ["El Arco", "Sport Fishing", "Medano Beach", "Cabo Wabo"],
+  },
 ];
 
 export default function DestinationPortGuidesPage() {
