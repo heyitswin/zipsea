@@ -138,6 +138,19 @@ const portGuides = [
       "Donkey Sanctuary",
     ],
   },
+  {
+    slug: "bridgetown",
+    title: "Bridgetown, Barbados",
+    name: "Bridgetown Cruise Port",
+    shortDescription:
+      "UNESCO World Heritage site with pristine beaches, sea turtle swimming in Carlisle Bay, Harrison's Cave, Mount Gay rum tours, and authentic Bajan cuisine.",
+    highlights: [
+      "Carlisle Bay Turtles",
+      "Harrison's Cave",
+      "UNESCO Heritage",
+      "Mount Gay Rum",
+    ],
+  },
 ];
 
 export default function DestinationPortGuidesPage() {
