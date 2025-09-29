@@ -119,7 +119,7 @@ export class SearchSimpleController {
         FROM ships s
         JOIN cruises c ON c.ship_id = s.id
         LEFT JOIN cruise_lines cl ON s.cruise_line_id = cl.id
-        WHERE c.sailing_date >= CURRENT_DATE
+        WHERE c.sailing_date >= CURRENT_DATE + INTERVAL '14 days'
         GROUP BY s.id, s.name, cl.name
         ORDER BY s.name
       `;
@@ -158,7 +158,7 @@ export class SearchSimpleController {
         LEFT JOIN ports p1 ON c.embarkation_port_id = p1.id
         LEFT JOIN ports p2 ON c.disembarkation_port_id = p2.id
         WHERE c.ship_id = ${shipId}
-        AND c.sailing_date >= CURRENT_DATE
+        AND c.sailing_date >= CURRENT_DATE + INTERVAL '14 days'
         ORDER BY c.sailing_date ASC
       `;
 

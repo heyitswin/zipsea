@@ -41,7 +41,7 @@ router.get('/available-dates', async (req: Request, res: Response) => {
       LEFT JOIN ports ep ON c.embarkation_port_id = ep.id
       LEFT JOIN ports dp ON c.disembarkation_port_id = dp.id
       WHERE c.ship_id = ${shipId}
-        AND c.sailing_date >= CURRENT_DATE
+        AND c.sailing_date >= CURRENT_DATE + INTERVAL '14 days'
         AND c.is_active = true
       GROUP BY
         c.id,
