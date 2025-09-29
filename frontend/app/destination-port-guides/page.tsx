@@ -172,6 +172,53 @@ const portGuides = [
       "Rosario Islands",
     ],
   },
+  {
+    slug: "glacier-bay",
+    title: "Glacier Bay, Alaska",
+    name: "Glacier Bay National Park",
+    shortDescription:
+      "UNESCO World Heritage Site with tidewater glaciers, wildlife viewing, and scenic cruising. Experience Margerie Glacier calving, humpback whales, and National Park Rangers aboard.",
+    highlights: [
+      "Margerie Glacier",
+      "Wildlife Viewing",
+      "Scenic Cruising",
+      "Park Rangers",
+    ],
+  },
+  {
+    slug: "grand-cayman",
+    title: "Grand Cayman, Cayman Islands",
+    name: "Grand Cayman Cruise Port",
+    shortDescription:
+      "Tender port to paradise with world-famous Seven Mile Beach, Stingray City encounters, resort day passes, and authentic Caymanian cuisine in upscale George Town.",
+    highlights: [
+      "Seven Mile Beach",
+      "Stingray City",
+      "Tender Port",
+      "Turtle Centre",
+    ],
+  },
+  {
+    slug: "hong-kong",
+    title: "Hong Kong",
+    name: "Hong Kong Cruise Ports",
+    shortDescription:
+      "Two distinct terminals in the Pearl of the Orient. Ocean Terminal offers walkable Tsim Sha Tsui exploration while Kai Tak requires transport. Victoria Peak, dim sum, and Star Ferry await.",
+    highlights: ["Victoria Peak", "Dim Sum", "Star Ferry", "Harbour City"],
+  },
+  {
+    slug: "honolulu",
+    title: "Honolulu, Hawaii",
+    name: "Port of Honolulu",
+    shortDescription:
+      "Downtown port with walkable access to historic sites. Pearl Harbor tours, Waikiki Beach, Diamond Head hike, and authentic plate lunch await in the Aloha State capital.",
+    highlights: [
+      "Pearl Harbor",
+      "Waikiki Beach",
+      "Diamond Head",
+      "Plate Lunch",
+    ],
+  },
 ];
 
 export default function DestinationPortGuidesPage() {
