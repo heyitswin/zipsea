@@ -253,6 +253,19 @@ const portGuides = [
       "Three Cities",
     ],
   },
+  {
+    slug: "marseille",
+    title: "Marseille, France",
+    name: "Marseille Cruise Port",
+    shortDescription:
+      "France's vibrant gateway to Provence. From Notre-Dame de la Garde to the Calanques, plus easy access to Aix-en-Provence and the French Riviera.",
+    highlights: [
+      "Notre-Dame de la Garde",
+      "Vieux Port",
+      "Le Panier",
+      "Calanques",
+    ],
+  },
 ];
 
 export default function DestinationPortGuidesPage() {

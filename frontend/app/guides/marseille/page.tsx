@@ -1,7 +1,8 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 
-export default function MaltaCruiseGuide() {
+export default function MarseilleCruiseGuide() {
   return (
     <>
       {/* Hero Section */}
@@ -18,10 +19,10 @@ export default function MaltaCruiseGuide() {
               lineHeight: 1,
             }}
           >
-            The Ultimate Cruise Guide to Malta
+            The Ultimate Cruise Guide to Marseille
           </h1>
           <p className="font-geograph text-white text-[18px] md:text-[22px] mt-6 leading-relaxed">
-            Your Complete Port Day Guide to the Mediterranean's Historic Gem
+            Your Complete Port Day Guide to France's Gateway to Provence
           </p>
         </div>
       </section>
@@ -47,8 +48,8 @@ export default function MaltaCruiseGuide() {
             {/* Hero Image */}
             <div className="relative w-full h-[400px] mb-8 rounded-lg overflow-hidden">
               <Image
-                src="https://images.pexels.com/photos/30150458/pexels-photo-30150458.jpeg"
-                alt="Aerial view of Valletta's historic harbor with cruise ships and traditional Maltese boats"
+                src="https://images.pexels.com/photos/11690121/pexels-photo-11690121.jpeg"
+                alt="Panoramic view of Marseille's Old Port with boats and the Notre-Dame de la Garde basilica on the hill"
                 fill
                 className="object-cover"
               />
@@ -60,31 +61,27 @@ export default function MaltaCruiseGuide() {
                 className="font-geograph text-[18px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Malta, a tiny archipelago in the heart of the Mediterranean,
-                packs 7,000 years of history into just 316 square kilometers.
-                This fortress island has been coveted by every major
-                Mediterranean power—from the Phoenicians and Romans to the
-                Knights of St. John and the British Empire. Today, cruise
-                visitors discover a destination where honey-colored limestone
-                cities rise from azure waters, where medieval streets lead to
-                baroque masterpieces, and where every stone seems to whisper
-                tales of knights, sieges, and maritime glory.
+                Marseille, France's second-largest city and Europe's oldest port, offers cruise
+                passengers a vibrant gateway to Provence and the French Riviera. Founded by Greek
+                sailors 2,600 years ago, this Mediterranean metropolis pulses with a raw energy
+                that sets it apart from France's more polished destinations. Here, North African
+                souks meet Provençal markets, ancient history collides with contemporary art, and
+                the legendary bouillabaisse is served in waterfront restaurants where fishermen
+                have gathered for centuries.
               </p>
 
               <p
                 className="font-geograph text-[18px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                For cruise passengers, Malta offers an extraordinarily
-                concentrated cultural experience. The capital Valletta, a UNESCO
-                World Heritage Site in its entirety, sits just minutes from the
-                cruise terminal. With over 320 monuments in less than half a
-                square kilometer, it's officially recognized as one of the most
-                concentrated historic areas in the world. Yet Malta is more than
-                monuments—it's a living Mediterranean culture where baroque
-                churches host village festas, where fishermen paint eyes on
-                their boats for protection, and where the local language
-                uniquely blends Arabic with Italian and English.
+                For cruise visitors, Marseille serves as both a fascinating destination and a
+                strategic launching point. The city itself rewards exploration with its dramatic
+                basilica overlooking the sea, vibrant neighborhoods like Le Panier, and world-class
+                museums. Yet it also provides easy access to Provence's lavender fields,
+                Aix-en-Provence's elegant boulevards, the medieval papal palace of Avignon, and
+                even the glittering Côte d'Azur. With excellent transport links and a port just
+                minutes from the city center, Marseille offers more possibilities per port day
+                than almost any other Mediterranean stop.
               </p>
 
               <div className="bg-gray-50 p-4 rounded-lg mb-6">
@@ -92,23 +89,43 @@ export default function MaltaCruiseGuide() {
                   className="font-geograph text-[16px] mb-2"
                   style={{ color: "#0E1B4D" }}
                 >
-                  <strong>Language:</strong> Maltese and English (both
-                  official), Italian widely spoken
+                  <strong>Language:</strong> French (English widely spoken in tourist areas)
                 </p>
                 <p
                   className="font-geograph text-[16px] mb-2"
                   style={{ color: "#0E1B4D" }}
                 >
-                  <strong>Currency:</strong> Euro (€) - Cards widely accepted,
-                  ATMs plentiful
+                  <strong>Currency:</strong> Euro (€) - Cards widely accepted, ATMs everywhere
                 </p>
                 <p
                   className="font-geograph text-[16px]"
                   style={{ color: "#0E1B4D" }}
                 >
-                  <strong>Best Months:</strong> April-June and
-                  September-November (avoid August heat)
+                  <strong>Best Months:</strong> April-June and September-October (avoid August crowds)
                 </p>
+              </div>
+
+              {/* Cruise Callout Box */}
+              <div className="bg-yellow-50 border-2 border-yellow-400 p-6 rounded-lg mb-8">
+                <h3
+                  className="font-whitney font-bold text-[24px] mb-3"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  🚢 Find Your Mediterranean Cruise
+                </h3>
+                <p
+                  className="font-geograph text-[16px] mb-4"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Explore Mediterranean cruises that visit Marseille and other stunning ports
+                  along the French Riviera and beyond.
+                </p>
+                <Link
+                  href="/cruises?destinations=mediterranean"
+                  className="inline-block bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  View Mediterranean Cruises
+                </Link>
               </div>
 
               {/* Getting Around Section */}
@@ -116,27 +133,25 @@ export default function MaltaCruiseGuide() {
                 className="font-whitney font-black uppercase text-[32px] mb-4 mt-12"
                 style={{ color: "#0E1B4D" }}
               >
-                Getting Around Malta
+                Getting Around from the Port
               </h2>
 
               <p
                 className="font-geograph text-[18px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Malta's cruise port is brilliantly positioned in the Grand
-                Harbour, one of the world's most spectacular natural harbors.
-                Ships dock at the Valletta Waterfront in Floriana, a beautifully
-                restored baroque wharf with restaurants, shops, and cafés built
-                into 250-year-old warehouses. The location couldn't be more
-                convenient— Valletta's city gates are just a 15-minute walk or a
-                quick €10 taxi ride uphill.
+                Marseille's cruise terminal (MPCT) sits at the entrance to the port, about 7 km
+                from the city center. Unlike many Mediterranean ports, you can't walk to downtown
+                from here, but multiple transport options make the journey quick and affordable.
+                The port provides a free shuttle bus to the Joliette area, from where you can
+                access the metro system or continue exploring on foot.
               </p>
 
-              {/* Grand Harbour Image */}
+              {/* Port Area Image */}
               <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.pexels.com/photos/17583396/pexels-photo-17583396.jpeg"
-                  alt="Grand Harbour Malta with traditional boats and fortifications"
+                  src="https://images.pexels.com/photos/28508990/pexels-photo-28508990.jpeg"
+                  alt="Marseille's modern cruise port and harbor area"
                   fill
                   className="object-cover"
                 />
@@ -147,43 +162,38 @@ export default function MaltaCruiseGuide() {
                   className="font-whitney font-bold text-[20px] mb-3"
                   style={{ color: "#0E1B4D" }}
                 >
-                  Transportation Options
+                  Port Transportation Options
                 </h3>
                 <ul className="space-y-2">
                   <li
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    • <strong>Barrakka Lift:</strong> €1 elevator from
-                    waterfront to Upper Barrakka Gardens (must-do!)
+                    • <strong>Free Port Shuttle:</strong> To Place de la Joliette (runs every 20 minutes)
                   </li>
                   <li
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    • <strong>Traditional Dgħajsa:</strong> €2 per person water
-                    taxi to the Three Cities
+                    • <strong>Metro:</strong> From Joliette station to Vieux Port (€1.70, 10 minutes)
                   </li>
                   <li
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    • <strong>Hop-On Hop-Off Bus:</strong> €20 for routes
-                    covering Valletta, Mdina, and more
+                    • <strong>Taxi:</strong> €20-25 to city center (15 minutes)
                   </li>
                   <li
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    • <strong>Public Bus:</strong> €2 for 2-hour ticket, reaches
-                    all major attractions
+                    • <strong>Hop-On Hop-Off Bus:</strong> €22, stops at cruise terminal
                   </li>
                   <li
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    • <strong>Taxi/Bolt:</strong> Fixed rates posted at port,
-                    Bolt app works well
+                    • <strong>Uber:</strong> Available and often cheaper than taxis
                   </li>
                 </ul>
               </div>
@@ -193,14 +203,14 @@ export default function MaltaCruiseGuide() {
                 className="font-whitney font-black uppercase text-[32px] mb-4 mt-12"
                 style={{ color: "#0E1B4D" }}
               >
-                Must-See Valletta Attractions
+                Must-See Marseille Attractions
               </h2>
 
-              {/* St. John's Co-Cathedral Image */}
+              {/* Notre-Dame Image */}
               <div className="relative w-full h-[400px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.pexels.com/photos/32091175/pexels-photo-32091175.jpeg"
-                  alt="Ornate baroque interior of St. John's Co-Cathedral"
+                  src="https://images.pexels.com/photos/12089286/pexels-photo-12089286.jpeg"
+                  alt="Notre-Dame de la Garde basilica overlooking Marseille"
                   fill
                   className="object-cover"
                 />
@@ -210,52 +220,39 @@ export default function MaltaCruiseGuide() {
                 className="font-whitney font-bold text-[24px] mb-3"
                 style={{ color: "#0E1B4D" }}
               >
-                St. John's Co-Cathedral
+                Notre-Dame de la Garde
               </h3>
 
               <p
                 className="font-geograph text-[18px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Don't let the austere exterior fool you—stepping inside St.
-                John's Co-Cathedral is like entering a golden jewelry box. Every
-                inch of this baroque masterpiece is covered in gold leaf,
-                paintings, and marble. The floor contains 400 tombs of Knights
-                of Malta, each a unique marble masterpiece. The Oratory houses
-                Caravaggio's largest painting, "The Beheading of St. John the
-                Baptist," painted during his stay in Malta. Entry: €15, includes
-                audio guide. Tip: Book online to skip lines.
+                Marseille's iconic basilica, crowned with a golden Madonna, watches over the city
+                from its 162-meter hilltop perch. Known locally as "La Bonne Mère" (The Good Mother),
+                this 19th-century Romano-Byzantine masterpiece offers 360-degree views that stretch
+                from the city to the Frioul Islands. Inside, hundreds of ex-votos—paintings of ships
+                and model boats—thank the Virgin for protecting sailors. Reach it via tourist train
+                (€8), bus 60, or a steep 30-minute climb. Free entry, open daily.
               </p>
 
               <h3
                 className="font-whitney font-bold text-[24px] mb-3"
                 style={{ color: "#0E1B4D" }}
               >
-                Upper Barrakka Gardens & Saluting Battery
+                Vieux Port (Old Port)
               </h3>
 
               <p
                 className="font-geograph text-[18px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                These gardens offer the best views in Malta—a panoramic sweep
-                across the Grand Harbour to the Three Cities. Time your visit
-                for noon to witness the firing of the ceremonial cannon, a
-                tradition dating to the Knights. The gardens themselves are a
-                peaceful oasis with statues, fountains, and shaded colonnades.
-                Free entry. The Saluting Battery below costs €3 and explains the
-                cannon tradition.
+                The heart of Marseille for over two millennia, the rectangular Old Port buzzes with
+                life from dawn fish markets to late-night aperitifs. Norman Foster's striking mirror
+                canopy provides shade for events, while the quaysides lined with seafood restaurants
+                serve the city's famous bouillabaisse (expect to pay €65+ for authentic versions).
+                Don't miss the daily fish market at Quai des Belges (8 AM - 1 PM) where fishermen
+                sell their morning catch directly from their boats.
               </p>
-
-              {/* Valletta Street Image */}
-              <div className="relative w-full h-[400px] mb-6 rounded-lg overflow-hidden">
-                <Image
-                  src="https://images.pexels.com/photos/105987/pexels-photo-105987.jpeg"
-                  alt="Traditional Maltese balconies on a narrow Valletta street"
-                  fill
-                  className="object-cover"
-                />
-              </div>
 
               <div className="grid md:grid-cols-2 gap-6 mb-8">
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -263,16 +260,15 @@ export default function MaltaCruiseGuide() {
                     className="font-whitney font-bold text-[18px] mb-2"
                     style={{ color: "#0E1B4D" }}
                   >
-                    Grandmaster's Palace
+                    Le Panier Quarter
                   </h4>
                   <p
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    Former residence of the Grand Masters of the Knights of
-                    Malta, now housing the Office of the President. The State
-                    Rooms and Armoury showcase one of the world's finest
-                    collections of arms and armor. Entry: €12.
+                    Marseille's oldest neighborhood, a maze of narrow streets filled with
+                    artisan shops, street art, and the gorgeous Vieille Charité, a 17th-century
+                    almshouse now housing museums. Perfect for wandering.
                   </p>
                 </div>
 
@@ -281,16 +277,15 @@ export default function MaltaCruiseGuide() {
                     className="font-whitney font-bold text-[18px] mb-2"
                     style={{ color: "#0E1B4D" }}
                   >
-                    Casa Rocca Piccola
+                    MuCEM Museum
                   </h4>
                   <p
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    A 16th-century palace still lived in by Maltese nobility.
-                    The Marquis himself often conducts tours through 50 rooms
-                    including WWII shelters carved into rock. Entry: €9, tours
-                    every hour.
+                    Stunning contemporary architecture housing Mediterranean civilization
+                    exhibits. The rooftop offers spectacular views. Connected to Fort Saint-Jean
+                    by a dramatic footbridge. Entry: €11.
                   </p>
                 </div>
 
@@ -299,16 +294,14 @@ export default function MaltaCruiseGuide() {
                     className="font-whitney font-bold text-[18px] mb-2"
                     style={{ color: "#0E1B4D" }}
                   >
-                    National Museum of Archaeology
+                    Château d'If
                   </h4>
                   <p
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    Houses artifacts from Malta's prehistoric temples (older
-                    than the pyramids!), including the famous "Sleeping Lady"
-                    and "Venus of Malta" figurines. Entry: €5, essential for
-                    history buffs.
+                    The island fortress made famous by "The Count of Monte Cristo." 20-minute
+                    ferry from Old Port (€11 return + €6 entry). Views alone worth the trip.
                   </p>
                 </div>
 
@@ -317,32 +310,32 @@ export default function MaltaCruiseGuide() {
                     className="font-whitney font-bold text-[18px] mb-2"
                     style={{ color: "#0E1B4D" }}
                   >
-                    Fort St. Elmo & War Museum
+                    Calanques National Park
                   </h4>
                   <p
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    Star-shaped fort that bore the brunt of the 1565 Great
-                    Siege. Now houses the National War Museum with sections on
-                    the Great Siege and Malta's WWII role. Entry: €10.
+                    Dramatic limestone cliffs and turquoise inlets. Closest is Calanque de
+                    Sugiton (bus 23 to Luminy, then 45-min hike). Boat tours available from
+                    Old Port (€25-30).
                   </p>
                 </div>
               </div>
 
-              {/* Beyond Valletta Section */}
+              {/* Beyond Marseille Section */}
               <h2
                 className="font-whitney font-black uppercase text-[32px] mb-4 mt-12"
                 style={{ color: "#0E1B4D" }}
               >
-                Beyond Valletta: Half-Day Excursions
+                Day Trips from Marseille
               </h2>
 
-              {/* Mdina Image */}
+              {/* Provence Image */}
               <div className="relative w-full h-[400px] mb-6 rounded-lg overflow-hidden">
                 <Image
-                  src="https://images.pexels.com/photos/1142984/pexels-photo-1142984.jpeg"
-                  alt="Mdina's medieval gates and silent city streets"
+                  src="https://www.pexels.com/photo/bus-interior-during-travel-16013243/"
+                  alt="Scenic Provence countryside accessible from Marseille"
                   fill
                   className="object-cover"
                 />
@@ -352,40 +345,35 @@ export default function MaltaCruiseGuide() {
                 className="font-whitney font-bold text-[24px] mb-3"
                 style={{ color: "#0E1B4D" }}
               >
-                Mdina: The Silent City
+                Aix-en-Provence (30 minutes)
               </h3>
 
               <p
                 className="font-geograph text-[18px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Malta's former capital, this medieval walled city sits atop a
-                hill in the island's center. With only 300 residents and no cars
-                allowed, Mdina maintains an otherworldly quiet that earned its
-                nickname. Walk the narrow alleys, visit St. Paul's Cathedral,
-                and don't miss Fontanella Tea Garden's cakes with views across
-                half of Malta. 30 minutes by taxi (€20-25) or bus 51/52/53 from
-                Valletta (€2).
+                This elegant university town epitomizes Provençal charm with its tree-lined Cours
+                Mirabeau, bubbling fountains, and outdoor markets. Birthplace of Cézanne, it offers
+                his studio, elegant 17th-century mansions, and some of Provence's best markets
+                (Tuesday, Thursday, Saturday). Regular buses from Marseille (€6, every 10 minutes)
+                or trains (€8) make this an easy half-day excursion.
               </p>
 
               <h3
                 className="font-whitney font-bold text-[24px] mb-3"
                 style={{ color: "#0E1B4D" }}
               >
-                The Three Cities
+                Cassis (45 minutes)
               </h3>
 
               <p
                 className="font-geograph text-[18px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Vittoriosa, Senglea, and Cospicua—collectively known as the
-                Three Cities—face Valletta across the Grand Harbour. These were
-                the Knights' first home in Malta and retain an authentic,
-                less-touristy atmosphere. Vittoriosa's Inquisitor's Palace and
-                Maritime Museum merit visits, while Senglea's Gardjola Gardens
-                offer spectacular harbor views. Take the traditional dgħajsa
-                boat from the cruise port (€2).
+                This postcard-perfect fishing village nestled between dramatic cliffs offers
+                boat trips into the Calanques, waterfront dining, and local rosé wines. The
+                Wednesday and Friday markets are excellent. Take bus M08 from Castellane metro
+                (€2, 1 hour) or train to Cassis station then bus/taxi to town center.
               </p>
 
               <div className="grid md:grid-cols-2 gap-6 mb-8">
@@ -394,16 +382,15 @@ export default function MaltaCruiseGuide() {
                     className="font-whitney font-bold text-[18px] mb-2"
                     style={{ color: "#0E1B4D" }}
                   >
-                    Blue Grotto Sea Caves
+                    Avignon (1.5 hours)
                   </h4>
                   <p
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    Weather permitting, boat trips explore these stunning sea
-                    caves where sunlight creates ethereal blue illuminations.
-                    Best visited before noon. 45 minutes by taxi (€30-35), boat
-                    trips €8.
+                    The walled city of the Popes features the massive Papal Palace, the famous
+                    broken bridge, and medieval charm. Direct TGV trains (€25-35, 35 minutes)
+                    make this feasible for motivated travelers.
                   </p>
                 </div>
 
@@ -412,18 +399,40 @@ export default function MaltaCruiseGuide() {
                     className="font-whitney font-bold text-[18px] mb-2"
                     style={{ color: "#0E1B4D" }}
                   >
-                    Marsaxlokk Fishing Village
+                    Arles (1 hour)
                   </h4>
                   <p
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    Picturesque harbor filled with colorful luzzu boats painted
-                    with protective eyes. Sunday market is excellent for local
-                    produce and seafood. Great seafood restaurants. 30 minutes
-                    by taxi (€20-25).
+                    Van Gogh's inspiration with remarkably preserved Roman monuments including
+                    an amphitheater still hosting bullfights. Trains run regularly (€15-20,
+                    1 hour). Saturday market is exceptional.
                   </p>
                 </div>
+              </div>
+
+              {/* Another Cruise Callout */}
+              <div className="bg-yellow-50 border-2 border-yellow-400 p-6 rounded-lg mb-8">
+                <h3
+                  className="font-whitney font-bold text-[24px] mb-3"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  🌊 Explore Western Mediterranean Cruises
+                </h3>
+                <p
+                  className="font-geograph text-[16px] mb-4"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Discover cruises featuring Marseille alongside Barcelona, Rome, and the
+                  glamorous ports of the French Riviera.
+                </p>
+                <Link
+                  href="/cruises?destinations=mediterranean&embarkPorts=barcelona,rome"
+                  className="inline-block bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Browse Western Mediterranean Itineraries
+                </Link>
               </div>
 
               {/* Food Section */}
@@ -431,58 +440,64 @@ export default function MaltaCruiseGuide() {
                 className="font-whitney font-black uppercase text-[32px] mb-4 mt-12"
                 style={{ color: "#0E1B4D" }}
               >
-                Malta's Food Scene
+                Marseille's Food Scene
               </h2>
 
               <p
                 className="font-geograph text-[18px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Maltese cuisine reflects the island's position at the
-                Mediterranean crossroads, blending Sicilian, Arabic, and British
-                influences into something uniquely delicious. Don't leave
-                without trying pastizzi (flaky pastries filled with ricotta or
-                peas), ftira (Maltese sandwich), and rabbit stew (the national
-                dish).
+                Marseille's cuisine reflects its position as a Mediterranean crossroads. While
+                bouillabaisse remains the signature dish, the city's North African population has
+                enriched the food scene with exceptional couscous, tagines, and street food. The
+                local pastis (anise-flavored aperitif) flows freely in waterfront cafés.
               </p>
+
+              {/* Food Image */}
+              <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
+                <Image
+                  src="https://images.pexels.com/photos/5098043/pexels-photo-5098043.jpeg"
+                  alt="Traditional bouillabaisse and seafood in Marseille"
+                  fill
+                  className="object-cover"
+                />
+              </div>
 
               <div className="bg-yellow-50 p-4 rounded-lg mb-6">
                 <h3
                   className="font-whitney font-bold text-[20px] mb-3"
                   style={{ color: "#0E1B4D" }}
                 >
-                  Where to Eat in Valletta
+                  Where to Eat
                 </h3>
                 <ul className="space-y-3">
                   <li
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <strong>Nenu the Artisan Baker:</strong> Traditional Maltese
-                    ftira and local dishes in a restored bakery. Try the platter
-                    for two (€25).
+                    <strong>Chez Fonfon:</strong> Authentic bouillabaisse in a fishing village
+                    setting at Vallon des Auffes. Reserve ahead (€75 per person).
                   </li>
                   <li
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <strong>Café Cordina:</strong> Historic café on Republic
-                    Street since 1837. Perfect for pastizzi and coffee (€8-12).
+                    <strong>Le Panier des Halles:</strong> Fresh market cuisine near the Old Port.
+                    Excellent lunch menus (€20-25).
                   </li>
                   <li
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <strong>Rubino:</strong> Family-run since 1906, serving
-                    authentic Maltese cuisine. Rabbit stew is legendary
-                    (€15-20).
+                    <strong>Chez Yassine:</strong> Best Tunisian food in Noailles market area.
+                    Huge portions (€8-12).
                   </li>
                   <li
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <strong>Harbour Club:</strong> Waterfront dining with harbor
-                    views. Fresh seafood and local fish (€20-30).
+                    <strong>Bar de la Marine:</strong> Waterfront institution for pastis and
+                    simple seafood (€15-20).
                   </li>
                 </ul>
               </div>
@@ -492,17 +507,16 @@ export default function MaltaCruiseGuide() {
                 className="font-whitney font-black uppercase text-[32px] mb-4 mt-12"
                 style={{ color: "#0E1B4D" }}
               >
-                Shopping in Malta
+                Shopping & Markets
               </h2>
 
               <p
                 className="font-geograph text-[18px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                Malta offers unique shopping opportunities, from traditional
-                crafts to designer boutiques. Republic Street and Merchant
-                Street in Valletta are the main shopping arteries, while Ta'
-                Qali Crafts Village showcases local artisans.
+                Marseille's markets are among France's most vibrant, reflecting the city's
+                multicultural character. From traditional Provençal products to North African
+                spices, the shopping here offers authentic local flavor rather than tourist trinkets.
               </p>
 
               <div className="grid md:grid-cols-2 gap-6 mb-8">
@@ -511,38 +525,32 @@ export default function MaltaCruiseGuide() {
                     className="font-whitney font-bold text-[18px] mb-2"
                     style={{ color: "#0E1B4D" }}
                   >
-                    Authentic Maltese Products
+                    Best Markets
                   </h4>
                   <ul className="space-y-2">
                     <li
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      • Filigree jewelry (silver and gold)
+                      • Noailles Market (daily, exotic foods)
                     </li>
                     <li
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      • Mdina glass (handblown art pieces)
+                      • Cours Julien (Wed & Sat, organic)
                     </li>
                     <li
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      • Gozo lace (handmade)
+                      • Fish Market at Old Port (daily 8-1)
                     </li>
                     <li
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      • Limestone sculptures
-                    </li>
-                    <li
-                      className="font-geograph text-[16px]"
-                      style={{ color: "#0E1B4D" }}
-                    >
-                      • Local honey and olive oil
+                      • Prado Market (Friday, largest)
                     </li>
                   </ul>
                 </div>
@@ -552,60 +560,63 @@ export default function MaltaCruiseGuide() {
                     className="font-whitney font-bold text-[18px] mb-2"
                     style={{ color: "#0E1B4D" }}
                   >
-                    Best Shopping Spots
+                    Local Specialties
                   </h4>
                   <ul className="space-y-2">
                     <li
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      • <strong>Republic Street:</strong> Main shopping street
+                      • Savon de Marseille (olive oil soap)
                     </li>
                     <li
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      • <strong>Merchant Street:</strong> Local market (Mon-Sat
-                      AM)
+                      • Pastis (Ricard or Pastis 51)
                     </li>
                     <li
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      • <strong>Is-Suq tal-Belt:</strong> Food market hall
+                      • Navettes (boat-shaped cookies)
                     </li>
                     <li
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      • <strong>Ta' Qali:</strong> Crafts village (taxi needed)
-                    </li>
-                    <li
-                      className="font-geograph text-[16px]"
-                      style={{ color: "#0E1B4D" }}
-                    >
-                      • <strong>Valletta Waterfront:</strong> Duty-free at port
+                      • Herbes de Provence
                     </li>
                   </ul>
                 </div>
               </div>
 
-              {/* Beach Time Section */}
+              {/* Beach Section */}
               <h2
                 className="font-whitney font-black uppercase text-[32px] mb-4 mt-12"
                 style={{ color: "#0E1B4D" }}
               >
-                Beach Options from Port
+                Beach Options
               </h2>
+
+              {/* Beach Image */}
+              <div className="relative w-full h-[300px] mb-6 rounded-lg overflow-hidden">
+                <Image
+                  src="https://images.pexels.com/photos/30702965/pexels-photo-30702965.jpeg"
+                  alt="Marseille's Prado beaches with clear Mediterranean waters"
+                  fill
+                  className="object-cover"
+                />
+              </div>
 
               <p
                 className="font-geograph text-[18px] leading-relaxed mb-6"
                 style={{ color: "#0E1B4D" }}
               >
-                While Malta's beaches require some travel from the cruise port,
-                several beautiful options are reachable within 30-45 minutes.
-                Note that many Maltese beaches are rocky rather than sandy—bring
-                water shoes.
+                While not known primarily as a beach destination, Marseille offers several
+                accessible beaches perfect for a Mediterranean dip. The Prado beaches, created
+                from excavation materials when building the metro, stretch for several kilometers
+                along the Corniche Kennedy.
               </p>
 
               <div className="bg-green-50 p-4 rounded-lg mb-6">
@@ -613,38 +624,36 @@ export default function MaltaCruiseGuide() {
                   className="font-whitney font-bold text-[20px] mb-3"
                   style={{ color: "#0E1B4D" }}
                 >
-                  Nearest Beach Options
+                  Beach Options
                 </h3>
                 <ul className="space-y-3">
                   <li
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <strong>St. George's Bay:</strong> Sandy beach with
-                    facilities, restaurants, and water sports. 20 minutes by
-                    taxi (€15-20).
+                    <strong>Plage des Catalans:</strong> Closest to Old Port, small sandy beach,
+                    locals' favorite. 15-minute walk from Vieux Port.
                   </li>
                   <li
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <strong>Balluta Bay:</strong> Small beach in upscale Sliema,
-                    good swimming, nearby cafés. 15 minutes by taxi (€12-15).
+                    <strong>Prado Beaches:</strong> Large complex with grass areas, restaurants,
+                    water sports. Bus 83 from Old Port (20 minutes).
                   </li>
                   <li
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <strong>Pretty Bay:</strong> Sandy beach near Marsaxlokk,
-                    less crowded, local atmosphere. 30 minutes by taxi (€20-25).
+                    <strong>Plage du Prophète:</strong> Small, scenic beach popular with families.
+                    Bus 83, less crowded than Prado.
                   </li>
                   <li
                     className="font-geograph text-[16px]"
                     style={{ color: "#0E1B4D" }}
                   >
-                    <strong>Blue Lagoon (Comino):</strong> Stunning but requires
-                    full day— ferry from Sliema (€20-30 return) plus 90 minutes
-                    each way.
+                    <strong>Calanque de Sormiou:</strong> Stunning natural beach requiring effort
+                    (bus then 45-minute hike) but worth it.
                   </li>
                 </ul>
               </div>
@@ -654,7 +663,7 @@ export default function MaltaCruiseGuide() {
                 className="font-whitney font-black uppercase text-[32px] mb-4 mt-12"
                 style={{ color: "#0E1B4D" }}
               >
-                Essential Tips for Your Malta Port Day
+                Essential Tips for Your Marseille Port Day
               </h2>
 
               <div className="grid md:grid-cols-2 gap-6 mb-8">
@@ -670,31 +679,31 @@ export default function MaltaCruiseGuide() {
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      • Free WiFi throughout Valletta
+                      • Buy metro tickets in packs of 10 (€14.50)
                     </li>
                     <li
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      • EU roaming charges apply
+                      • Shops close 12:30-2:30 PM
                     </li>
                     <li
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      • Tap water is safe but tastes salty
+                      • Free WiFi in most cafés
                     </li>
                     <li
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      • Pharmacies close 12-4 PM
+                      • Tourist office at La Canebière
                     </li>
                     <li
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      • Tipping: Round up or 5-10%
+                      • Sunday: limited transport/shops
                     </li>
                   </ul>
                 </div>
@@ -704,9 +713,21 @@ export default function MaltaCruiseGuide() {
                     className="font-whitney font-bold text-[18px] mb-2"
                     style={{ color: "#0E1B4D" }}
                   >
-                    What to Wear
+                    Safety & Comfort
                   </h4>
                   <ul className="space-y-2">
+                    <li
+                      className="font-geograph text-[16px]"
+                      style={{ color: "#0E1B4D" }}
+                    >
+                      • Keep valuables secure in crowds
+                    </li>
+                    <li
+                      className="font-geograph text-[16px]"
+                      style={{ color: "#0E1B4D" }}
+                    >
+                      • Avoid Belsunce area at night
+                    </li>
                     <li
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
@@ -717,25 +738,13 @@ export default function MaltaCruiseGuide() {
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      • Sun protection crucial year-round
+                      • Sun protection year-round
                     </li>
                     <li
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      • Modest dress for churches
-                    </li>
-                    <li
-                      className="font-geograph text-[16px]"
-                      style={{ color: "#0E1B4D" }}
-                    >
-                      • Light layers for wind
-                    </li>
-                    <li
-                      className="font-geograph text-[16px]"
-                      style={{ color: "#0E1B4D" }}
-                    >
-                      • Small bag for narrow streets
+                      • Mistral wind can be strong
                     </li>
                   </ul>
                 </div>
@@ -747,7 +756,7 @@ export default function MaltaCruiseGuide() {
                   className="font-whitney font-bold text-[20px] mb-3"
                   style={{ color: "#0E1B4D" }}
                 >
-                  ⏰ Sample Port Day Itineraries
+                  ⏰ Sample Itineraries
                 </h3>
                 <div className="space-y-4">
                   <div>
@@ -755,15 +764,14 @@ export default function MaltaCruiseGuide() {
                       className="font-geograph text-[16px] font-bold mb-1"
                       style={{ color: "#0E1B4D" }}
                     >
-                      Culture Focus (6-7 hours):
+                      City Explorer (6-7 hours):
                     </p>
                     <p
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      Barrakka Lift → Upper Barrakka Gardens → St. John's
-                      Co-Cathedral → Grandmaster's Palace → Lunch on Republic
-                      Street → Stroll Valletta → Return via waterfront shops
+                      Port shuttle → Metro to Vieux Port → Walk Le Panier → Lunch at Old Port →
+                      Tourist train to Notre-Dame → MuCEM Museum → Return via Joliette
                     </p>
                   </div>
                   <div>
@@ -771,17 +779,47 @@ export default function MaltaCruiseGuide() {
                       className="font-geograph text-[16px] font-bold mb-1"
                       style={{ color: "#0E1B4D" }}
                     >
-                      Island Explorer (7-8 hours):
+                      Provence Sampler (8 hours):
                     </p>
                     <p
                       className="font-geograph text-[16px]"
                       style={{ color: "#0E1B4D" }}
                     >
-                      Taxi to Mdina → Explore Silent City → Fontanella tea stop
-                      → Continue to Marsaxlokk → Seafood lunch → Return via Blue
-                      Grotto (weather permitting)
+                      Early taxi to St-Charles Station → Train to Aix-en-Provence → Market &
+                      Cours Mirabeau → Lunch in Aix → Return train → Quick Old Port visit
                     </p>
                   </div>
+                </div>
+              </div>
+
+              {/* Final Cruise Callout */}
+              <div className="bg-yellow-50 border-2 border-yellow-400 p-6 rounded-lg mb-8">
+                <h3
+                  className="font-whitney font-bold text-[24px] mb-3"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  🛳️ Ready to Cruise the Mediterranean?
+                </h3>
+                <p
+                  className="font-geograph text-[16px] mb-4"
+                  style={{ color: "#0E1B4D" }}
+                >
+                  Find your perfect Mediterranean cruise departing from convenient ports
+                  like Barcelona, Rome, or even Marseille itself.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Link
+                    href="/cruises?destinations=mediterranean"
+                    className="inline-block bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors text-center"
+                  >
+                    All Mediterranean Cruises
+                  </Link>
+                  <Link
+                    href="/cruises?embarkPorts=barcelona,rome,marseille"
+                    className="inline-block bg-blue-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-600 transition-colors text-center"
+                  >
+                    Departures from Major Ports
+                  </Link>
                 </div>
               </div>
 
@@ -797,13 +835,11 @@ export default function MaltaCruiseGuide() {
                   className="font-geograph text-[16px]"
                   style={{ color: "#0E1B4D" }}
                 >
-                  Skip the crowded Upper Barrakka Gardens at noon (cannon firing
-                  time) and instead head there early morning or late afternoon
-                  for photos without crowds. For the noon cannon, watch from the
-                  less-crowded Lower Barrakka Gardens—you'll hear it perfectly
-                  and have equally stunning views. Also, download the Bolt app
-                  before leaving the ship— it's much cheaper than port taxis and
-                  widely available.
+                  Skip the tourist restaurants around the Old Port and head to Cours Julien or
+                  the Noailles area for authentic, affordable meals. For the best city views without
+                  the Notre-Dame crowds, take the free ferry across the Old Port at sunset—the
+                  golden hour light on the city is magical. Also, download the RTM app for real-time
+                  public transport updates; it's far more reliable than printed schedules.
                 </p>
               </div>
 
@@ -813,19 +849,17 @@ export default function MaltaCruiseGuide() {
                   className="font-whitney font-bold text-[20px] mb-3"
                   style={{ color: "#0E1B4D" }}
                 >
-                  Weather Considerations
+                  Weather & Best Times
                 </h3>
                 <p
                   className="font-geograph text-[16px]"
                   style={{ color: "#0E1B4D" }}
                 >
-                  Malta enjoys 300+ days of sunshine annually, but summer
-                  (July-August) can be uncomfortably hot with temperatures
-                  exceeding 35°C/95°F. Spring (April-June) and autumn
-                  (September-November) offer perfect weather with warm days and
-                  cool evenings. Winter is mild but can be windy and rainy. The
-                  island's limestone amplifies heat, so summer visitors should
-                  plan indoor activities during midday.
+                  Marseille enjoys 300 days of sunshine annually, but the famous Mistral wind can
+                  blow fiercely, especially in winter and spring. Summer (July-August) brings heat
+                  and crowds; spring (April-May) and fall (September-October) offer perfect weather.
+                  Winter is mild but can be windy. The city is less touristy than other French
+                  Riviera ports, making it enjoyable year-round.
                 </p>
               </div>
 
@@ -834,15 +868,13 @@ export default function MaltaCruiseGuide() {
                 className="font-geograph text-[18px] leading-relaxed mt-8"
                 style={{ color: "#0E1B4D" }}
               >
-                Malta rewards curious travelers with layers of history, stunning
-                architecture, and warm hospitality packed into one of Europe's
-                smallest nations. Whether you spend your day exploring
-                Valletta's baroque splendor, venturing to medieval Mdina, or
-                simply soaking up the Mediterranean atmosphere at a harborside
-                café, you'll understand why this tiny archipelago has captivated
-                visitors for millennia. The island's compact size means you can
-                sample multiple experiences in a single port day, yet Malta's
-                depth ensures you'll leave planning a return visit.
+                Marseille rewards visitors who look beyond first impressions. This gritty, vibrant
+                city offers authentic Mediterranean life rather than polished tourist facades.
+                Whether you spend your day exploring ancient quarters, venturing into Provence,
+                or simply savoring bouillabaisse by the sea, Marseille provides a genuine taste
+                of southern French culture. Its position as a gateway to both Provence and the
+                Côte d'Azur makes it one of the Mediterranean's most versatile cruise ports,
+                offering urban exploration and regional discovery in equal measure.
               </p>
             </div>
           </div>
