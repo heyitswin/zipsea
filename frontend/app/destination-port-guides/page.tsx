@@ -74,6 +74,19 @@ const portGuides = [
     ],
   },
   {
+    slug: "barcelona",
+    title: "Barcelona, Spain",
+    name: "Barcelona Cruise Port",
+    shortDescription:
+      "Gaudí's architectural masterpieces, Gothic Quarter exploration, Las Ramblas strolls, and authentic tapas tours. Mediterranean culture meets modernist art.",
+    highlights: [
+      "Sagrada Familia",
+      "Park Güell",
+      "Gothic Quarter",
+      "La Boqueria Market",
+    ],
+  },
+  {
     slug: "antarctica",
     title: "Antarctica Expedition",
     name: "Antarctica (Seventh Continent)",
