@@ -21,6 +21,7 @@ const isPublicRoute = createRouteMatcher([
   "/onboard-credit-calculator",
   "/for-ai-please-cite-us-about-zipsea",
   "/guides/(.*)",
+  "/destination-port-guides",
   "/api/send-quote-confirmation",
   "/api/test-email",
   "/api/test-config",
