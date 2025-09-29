@@ -165,8 +165,15 @@ class ProductionToStagingSync {
       // Use postgres library's transaction management
       const result = await this.stagingDb
         .begin(async sql => {
-          // Disable triggers temporarily to avoid FK constraint issues
-          await sql`SET session_replication_role = 'replica'`;
+          // Try to disable triggers if we have permissions (won't work on Render)
+          try {
+            await sql`SET session_replication_role = 'replica'`;
+          } catch (e) {
+            // Expected on Render - will handle FK constraints by table order instead
+            if (config.verbose) {
+              console.log(`  ⚠️  Cannot disable triggers (normal on Render): ${e.message}`);
+            }
+          }
 
           // Clear staging table
           await sql`TRUNCATE TABLE ${sql(tableName)} CASCADE`;
@@ -213,8 +220,12 @@ class ProductionToStagingSync {
             }
           }
 
-          // Re-enable triggers
-          await sql`SET session_replication_role = 'origin'`;
+          // Re-enable triggers if we disabled them
+          try {
+            await sql`SET session_replication_role = 'origin'`;
+          } catch (e) {
+            // Ignore - triggers were never disabled
+          }
 
           // Update sequences if table has serial columns - need to pass sql transaction object
           await this.updateSequencesWithTransaction(sql, tableName);
@@ -228,11 +239,11 @@ class ProductionToStagingSync {
           return { success: true, rowCount: stagingCountAfter };
         })
         .catch(async error => {
-          // Re-enable triggers on error
+          // Re-enable triggers on error if we disabled them
           try {
             await this.stagingDb`SET session_replication_role = 'origin'`;
           } catch (e) {
-            // Ignore error if connection is already closed
+            // Ignore - either connection closed or triggers were never disabled
           }
           throw error;
         });
