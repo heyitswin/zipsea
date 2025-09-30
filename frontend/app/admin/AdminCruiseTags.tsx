@@ -34,11 +34,17 @@ interface PaginationMeta {
   totalPages: number;
 }
 
+interface CruiseLine {
+  id: number;
+  name: string;
+}
+
 export default function AdminCruiseTags() {
   const { showAlert } = useAlert();
 
   const [cruises, setCruises] = useState<CruiseWithTags[]>([]);
   const [availableTags, setAvailableTags] = useState<CruiseTag[]>([]);
+  const [cruiseLines, setCruiseLines] = useState<CruiseLine[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<
     "count" | "price" | "cruiseLine" | "nights"
@@ -56,13 +62,32 @@ export default function AdminCruiseTags() {
   );
   const [showTagModal, setShowTagModal] = useState(false);
 
+  // Filters
+  const [filterCruiseLine, setFilterCruiseLine] = useState<string>("");
+  const [filterMinNights, setFilterMinNights] = useState<string>("");
+  const [filterMaxNights, setFilterMaxNights] = useState<string>("");
+  const [filterMinPrice, setFilterMinPrice] = useState<string>("");
+  const [filterMaxPrice, setFilterMaxPrice] = useState<string>("");
+  const [filterRegion, setFilterRegion] = useState<string>("");
+
   useEffect(() => {
     fetchTags();
+    fetchCruiseLines();
   }, []);
 
   useEffect(() => {
     fetchCruises();
-  }, [sortBy, sortOrder, currentPage]);
+  }, [
+    sortBy,
+    sortOrder,
+    currentPage,
+    filterCruiseLine,
+    filterMinNights,
+    filterMaxNights,
+    filterMinPrice,
+    filterMaxPrice,
+    filterRegion,
+  ]);
 
   const fetchTags = async () => {
     try {
@@ -86,6 +111,24 @@ export default function AdminCruiseTags() {
     }
   };
 
+  const fetchCruiseLines = async () => {
+    try {
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        "https://zipsea-production.onrender.com";
+      const response = await fetch(
+        `${backendUrl}/api/v1/admin/cruise-tags/cruise-lines`,
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setCruiseLines(data.cruiseLines || []);
+      }
+    } catch (error) {
+      console.error("Error fetching cruise lines:", error);
+    }
+  };
+
   const fetchCruises = async () => {
     setLoading(true);
     try {
@@ -98,6 +141,14 @@ export default function AdminCruiseTags() {
         page: currentPage.toString(),
         limit: "50",
       });
+
+      // Add filters if set
+      if (filterCruiseLine) params.append("cruiseLineId", filterCruiseLine);
+      if (filterMinNights) params.append("minNights", filterMinNights);
+      if (filterMaxNights) params.append("maxNights", filterMaxNights);
+      if (filterMinPrice) params.append("minPrice", filterMinPrice);
+      if (filterMaxPrice) params.append("maxPrice", filterMaxPrice);
+      if (filterRegion) params.append("region", filterRegion);
 
       const response = await fetch(
         `${backendUrl}/api/v1/admin/cruise-tags/cruises?${params}`,
@@ -237,9 +288,114 @@ export default function AdminCruiseTags() {
 
   return (
     <>
-      {/* Controls */}
+      {/* Filters and Controls */}
       <div className="bg-white rounded-lg shadow mb-6 p-4">
-        <div className="flex justify-between items-center">
+        {/* Filters Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Cruise Line
+            </label>
+            <select
+              value={filterCruiseLine}
+              onChange={(e) => {
+                setFilterCruiseLine(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Lines</option>
+              {cruiseLines.map((line) => (
+                <option key={line.id} value={line.id}>
+                  {line.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Min Nights
+            </label>
+            <input
+              type="number"
+              value={filterMinNights}
+              onChange={(e) => {
+                setFilterMinNights(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="e.g., 7"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Max Nights
+            </label>
+            <input
+              type="number"
+              value={filterMaxNights}
+              onChange={(e) => {
+                setFilterMaxNights(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="e.g., 14"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Min Price
+            </label>
+            <input
+              type="number"
+              value={filterMinPrice}
+              onChange={(e) => {
+                setFilterMinPrice(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="e.g., 500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Max Price
+            </label>
+            <input
+              type="number"
+              value={filterMaxPrice}
+              onChange={(e) => {
+                setFilterMaxPrice(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="e.g., 5000"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Region
+            </label>
+            <input
+              type="text"
+              value={filterRegion}
+              onChange={(e) => {
+                setFilterRegion(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="e.g., Caribbean"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Sort and Actions Row */}
+        <div className="flex justify-between items-center pt-4 border-t border-gray-200">
           <div className="flex items-center space-x-4">
             <div>
               <label className="text-sm font-medium text-gray-700 mr-2">
@@ -275,6 +431,27 @@ export default function AdminCruiseTags() {
                 <option value="asc">Ascending</option>
               </select>
             </div>
+            {(filterCruiseLine ||
+              filterMinNights ||
+              filterMaxNights ||
+              filterMinPrice ||
+              filterMaxPrice ||
+              filterRegion) && (
+              <button
+                onClick={() => {
+                  setFilterCruiseLine("");
+                  setFilterMinNights("");
+                  setFilterMaxNights("");
+                  setFilterMinPrice("");
+                  setFilterMaxPrice("");
+                  setFilterRegion("");
+                  setCurrentPage(1);
+                }}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 underline"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
 
           <button

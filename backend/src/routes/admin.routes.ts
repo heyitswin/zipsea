@@ -230,13 +230,71 @@ router.get('/cruise-tags/tags', async (req, res) => {
   }
 });
 
+// Get all cruise lines for filter dropdown
+router.get('/cruise-tags/cruise-lines', async (req, res) => {
+  try {
+    const lines = await db.execute(sql`
+      SELECT DISTINCT cl.id, cl.name
+      FROM cruise_lines cl
+      INNER JOIN cruises c ON c.cruise_line_id = cl.id
+      WHERE c.sailing_date >= CURRENT_DATE
+        AND c.name IS NOT NULL
+        AND c.name != ''
+      ORDER BY cl.name
+    `);
+    res.json({ success: true, cruiseLines: lines });
+  } catch (error: any) {
+    console.error('[ADMIN] Error fetching cruise lines:', error);
+    res.status(500).json({ error: 'Failed to fetch cruise lines', message: error.message });
+  }
+});
+
 // Get unique cruise names with stats and their tags
 router.get('/cruise-tags/cruises', async (req, res) => {
   try {
-    const { sortBy = 'count', order = 'desc', page = '1', limit = '50' } = req.query;
+    const {
+      sortBy = 'count',
+      order = 'desc',
+      page = '1',
+      limit = '50',
+      cruiseLineId,
+      minNights,
+      maxNights,
+      minPrice,
+      maxPrice,
+      region,
+    } = req.query;
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
     const offset = (pageNum - 1) * limitNum;
+
+    // Build filter conditions
+    const filters: string[] = [
+      'c.sailing_date >= CURRENT_DATE',
+      'c.name IS NOT NULL',
+      "c.name != ''",
+    ];
+
+    if (cruiseLineId) {
+      filters.push(`c.cruise_line_id = ${parseInt(cruiseLineId as string)}`);
+    }
+    if (minNights) {
+      filters.push(`c.nights >= ${parseInt(minNights as string)}`);
+    }
+    if (maxNights) {
+      filters.push(`c.nights <= ${parseInt(maxNights as string)}`);
+    }
+    if (minPrice) {
+      filters.push(`c.cheapest_price >= ${parseFloat(minPrice as string)}`);
+    }
+    if (maxPrice) {
+      filters.push(`c.cheapest_price <= ${parseFloat(maxPrice as string)}`);
+    }
+    if (region) {
+      filters.push(`c.region_ids LIKE '%${region}%'`);
+    }
+
+    const whereClause = filters.join(' AND ');
 
     // Get unique cruise names grouped by cruise_line_id, name, and ship_id
     const cruisesData = await db.execute(sql`
@@ -258,9 +316,7 @@ router.get('/cruise-tags/cruises', async (req, res) => {
         FROM cruises c
         LEFT JOIN cruise_lines cl ON cl.id = c.cruise_line_id
         LEFT JOIN ships s ON s.id = c.ship_id
-        WHERE c.sailing_date >= CURRENT_DATE
-          AND c.name IS NOT NULL
-          AND c.name != ''
+        WHERE ${sql.raw(whereClause)}
         GROUP BY c.cruise_line_id, cl.name, c.ship_id, s.name, c.name, c.nights
       ),
       cruise_with_tags AS (
@@ -303,13 +359,11 @@ router.get('/cruise-tags/cruises', async (req, res) => {
       LIMIT ${limitNum} OFFSET ${offset}
     `);
 
-    // Get total count
+    // Get total count with same filters
     const countResult = await db.execute(sql`
       SELECT COUNT(DISTINCT (cruise_line_id, name, ship_id)) as total
-      FROM cruises
-      WHERE sailing_date >= CURRENT_DATE
-        AND name IS NOT NULL
-        AND name != ''
+      FROM cruises c
+      WHERE ${sql.raw(whereClause)}
     `);
 
     const total = parseInt((countResult as any)[0]?.total || '0');
