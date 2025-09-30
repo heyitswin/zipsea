@@ -1,7 +1,14 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { sql, desc, eq } from 'drizzle-orm';
-import { quoteRequests, cruises, ships, cruiseLines } from '../db/schema';
+import { sql, desc, eq, and, inArray } from 'drizzle-orm';
+import {
+  quoteRequests,
+  cruises,
+  ships,
+  cruiseLines,
+  cruiseTags,
+  cruiseNameTags,
+} from '../db/schema';
 import { emailService } from '../services/email.service';
 import { logger } from '../config/logger';
 import { quoteController } from '../controllers/quote.controller';
@@ -205,6 +212,198 @@ router.get('/health', async (req, res) => {
       status: 'unhealthy',
       database: 'disconnected',
     });
+  }
+});
+
+// ============================================================================
+// CRUISE TAGS ENDPOINTS
+// ============================================================================
+
+// Get all available tags
+router.get('/cruise-tags/tags', async (req, res) => {
+  try {
+    const tags = await db.select().from(cruiseTags);
+    res.json({ success: true, tags });
+  } catch (error: any) {
+    console.error('[ADMIN] Error fetching tags:', error);
+    res.status(500).json({ error: 'Failed to fetch tags', message: error.message });
+  }
+});
+
+// Get unique cruise names with stats and their tags
+router.get('/cruise-tags/cruises', async (req, res) => {
+  try {
+    const { sortBy = 'count', order = 'desc', page = '1', limit = '50' } = req.query;
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const offset = (pageNum - 1) * limitNum;
+
+    // Get unique cruise names grouped by cruise_line_id, name, and ship_id
+    const cruisesData = await db.execute(sql`
+      WITH cruise_groups AS (
+        SELECT
+          c.cruise_line_id,
+          cl.name as cruise_line_name,
+          c.ship_id,
+          s.name as ship_name,
+          c.name as cruise_name,
+          c.nights,
+          COUNT(*) as sailing_count,
+          MIN(c.cheapest_price) as min_price,
+          MAX(c.cheapest_price) as max_price,
+          AVG(c.cheapest_price)::numeric(10,2) as avg_price,
+          MIN(c.sailing_date) as earliest_sailing,
+          MAX(c.sailing_date) as latest_sailing,
+          ARRAY_AGG(DISTINCT COALESCE(c.region_ids, '')) FILTER (WHERE c.region_ids IS NOT NULL AND c.region_ids != '') as regions
+        FROM cruises c
+        LEFT JOIN cruise_lines cl ON cl.id = c.cruise_line_id
+        LEFT JOIN ships s ON s.id = c.ship_id
+        WHERE c.sailing_date >= CURRENT_DATE
+          AND c.name IS NOT NULL
+          AND c.name != ''
+        GROUP BY c.cruise_line_id, cl.name, c.ship_id, s.name, c.name, c.nights
+      ),
+      cruise_with_tags AS (
+        SELECT
+          cg.*,
+          COALESCE(
+            json_agg(
+              json_build_object('id', ct.id, 'name', ct.name, 'displayName', ct.display_name)
+              ORDER BY ct.display_name
+            ) FILTER (WHERE ct.id IS NOT NULL),
+            '[]'::json
+          ) as tags
+        FROM cruise_groups cg
+        LEFT JOIN cruise_name_tags cnt ON
+          cnt.cruise_line_id = cg.cruise_line_id
+          AND cnt.cruise_name = cg.cruise_name
+          AND cnt.ship_id = cg.ship_id
+        LEFT JOIN cruise_tags ct ON ct.id = cnt.tag_id
+        GROUP BY cg.cruise_line_id, cg.cruise_line_name, cg.ship_id, cg.ship_name,
+                 cg.cruise_name, cg.nights, cg.sailing_count, cg.min_price,
+                 cg.max_price, cg.avg_price, cg.earliest_sailing, cg.latest_sailing, cg.regions
+      )
+      SELECT * FROM cruise_with_tags
+      ORDER BY
+        CASE
+          WHEN ${sql.raw(`'${sortBy}'`)} = 'count' AND ${sql.raw(`'${order}'`)} = 'desc' THEN sailing_count END DESC,
+        CASE
+          WHEN ${sql.raw(`'${sortBy}'`)} = 'count' AND ${sql.raw(`'${order}'`)} = 'asc' THEN sailing_count END ASC,
+        CASE
+          WHEN ${sql.raw(`'${sortBy}'`)} = 'price' AND ${sql.raw(`'${order}'`)} = 'desc' THEN avg_price END DESC,
+        CASE
+          WHEN ${sql.raw(`'${sortBy}'`)} = 'price' AND ${sql.raw(`'${order}'`)} = 'asc' THEN avg_price END ASC,
+        CASE
+          WHEN ${sql.raw(`'${sortBy}'`)} = 'cruiseLine' THEN cruise_line_name END ${sql.raw(order === 'desc' ? 'DESC' : 'ASC')},
+        CASE
+          WHEN ${sql.raw(`'${sortBy}'`)} = 'nights' AND ${sql.raw(`'${order}'`)} = 'desc' THEN nights END DESC,
+        CASE
+          WHEN ${sql.raw(`'${sortBy}'`)} = 'nights' AND ${sql.raw(`'${order}'`)} = 'asc' THEN nights END ASC,
+        cruise_name
+      LIMIT ${limitNum} OFFSET ${offset}
+    `);
+
+    // Get total count
+    const countResult = await db.execute(sql`
+      SELECT COUNT(DISTINCT (cruise_line_id, name, ship_id)) as total
+      FROM cruises
+      WHERE sailing_date >= CURRENT_DATE
+        AND name IS NOT NULL
+        AND name != ''
+    `);
+
+    const total = parseInt((countResult as any)[0]?.total || '0');
+    const totalPages = Math.ceil(total / limitNum);
+
+    res.json({
+      success: true,
+      data: {
+        cruises: (cruisesData as any).map((row: any) => ({
+          cruiseLineId: row.cruise_line_id,
+          cruiseLineName: row.cruise_line_name,
+          shipId: row.ship_id,
+          shipName: row.ship_name,
+          cruiseName: row.cruise_name,
+          nights: row.nights,
+          sailingCount: parseInt(row.sailing_count),
+          minPrice: parseFloat(row.min_price) || null,
+          maxPrice: parseFloat(row.max_price) || null,
+          avgPrice: parseFloat(row.avg_price) || null,
+          earliestSailing: row.earliest_sailing,
+          latestSailing: row.latest_sailing,
+          regions: row.regions || [],
+          tags: row.tags || [],
+        })),
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          totalPages,
+        },
+      },
+    });
+  } catch (error: any) {
+    console.error('[ADMIN] Error fetching cruise names:', error);
+    res.status(500).json({ error: 'Failed to fetch cruise names', message: error.message });
+  }
+});
+
+// Add tag to a cruise name
+router.post('/cruise-tags/assign', async (req, res) => {
+  try {
+    const { cruiseLineId, cruiseName, shipId, tagId } = req.body;
+
+    if (!cruiseLineId || !cruiseName || !shipId || !tagId) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Check if tag already exists for this cruise
+    const existing = await db.execute(sql`
+      SELECT id FROM cruise_name_tags
+      WHERE cruise_line_id = ${cruiseLineId}
+        AND cruise_name = ${cruiseName}
+        AND ship_id = ${shipId}
+        AND tag_id = ${tagId}
+    `);
+
+    if ((existing as any).length > 0) {
+      return res.status(400).json({ error: 'Tag already assigned to this cruise' });
+    }
+
+    // Insert the tag assignment
+    await db.execute(sql`
+      INSERT INTO cruise_name_tags (cruise_line_id, cruise_name, ship_id, tag_id)
+      VALUES (${cruiseLineId}, ${cruiseName}, ${shipId}, ${tagId})
+    `);
+
+    res.json({ success: true, message: 'Tag assigned successfully' });
+  } catch (error: any) {
+    console.error('[ADMIN] Error assigning tag:', error);
+    res.status(500).json({ error: 'Failed to assign tag', message: error.message });
+  }
+});
+
+// Remove tag from a cruise name
+router.delete('/cruise-tags/remove', async (req, res) => {
+  try {
+    const { cruiseLineId, cruiseName, shipId, tagId } = req.body;
+
+    if (!cruiseLineId || !cruiseName || !shipId || !tagId) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    await db.execute(sql`
+      DELETE FROM cruise_name_tags
+      WHERE cruise_line_id = ${cruiseLineId}
+        AND cruise_name = ${cruiseName}
+        AND ship_id = ${shipId}
+        AND tag_id = ${tagId}
+    `);
+
+    res.json({ success: true, message: 'Tag removed successfully' });
+  } catch (error: any) {
+    console.error('[ADMIN] Error removing tag:', error);
+    res.status(500).json({ error: 'Failed to remove tag', message: error.message });
   }
 });
 

@@ -6,6 +6,7 @@ import { useAdmin } from "../hooks/useAdmin";
 import { useAlert } from "../../components/GlobalAlertProvider";
 import AdminQuotes from "./AdminQuotes";
 import AdminCruiseLines from "./AdminCruiseLines";
+import AdminCruiseTags from "./AdminCruiseTags";
 
 // Force dynamic rendering for this page
 export const dynamic = "force-dynamic";
@@ -75,6 +76,16 @@ export default function AdminDashboard() {
             >
               Cruise Lines
             </button>
+            <button
+              onClick={() => setActiveTab("cruise-tags")}
+              className={`py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors ${
+                activeTab === "cruise-tags"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Cruise Tags
+            </button>
           </div>
         </div>
       </div>
@@ -83,6 +94,7 @@ export default function AdminDashboard() {
       <div className="max-w-10xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === "quotes" && <AdminQuotes />}
         {activeTab === "cruise-lines" && <AdminCruiseLines />}
+        {activeTab === "cruise-tags" && <AdminCruiseTags />}
       </div>
     </div>
   );
