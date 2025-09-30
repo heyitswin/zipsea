@@ -1,16 +1,9 @@
-import {
-  pgTable,
-  varchar,
-  timestamp,
-  integer,
-  primaryKey,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { pgTable, varchar, timestamp, integer, serial, uuid } from 'drizzle-orm/pg-core';
 import { cruises } from './cruises';
 
 // Cruise tags/categories table
 export const cruiseTags = pgTable('cruise_tags', {
-  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  id: serial('id').primaryKey(),
   name: varchar('name', { length: 100 }).notNull().unique(),
   displayName: varchar('display_name', { length: 100 }).notNull(),
   description: varchar('description', { length: 255 }),
