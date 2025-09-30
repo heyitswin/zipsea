@@ -331,8 +331,8 @@ router.get('/cruise-tags/cruises', async (req, res) => {
           avgPrice: parseFloat(row.avg_price) || null,
           earliestSailing: row.earliest_sailing,
           latestSailing: row.latest_sailing,
-          regions: row.regions || [],
-          tags: row.tags || [],
+          regions: Array.isArray(row.regions) ? row.regions : [],
+          tags: Array.isArray(row.tags) ? row.tags : [],
         })),
         pagination: {
           page: pageNum,

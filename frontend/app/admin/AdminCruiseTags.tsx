@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useAlert } from '../../components/GlobalAlertProvider';
+import { useEffect, useState } from "react";
+import { useAlert } from "../../components/GlobalAlertProvider";
 
 interface CruiseTag {
   id: number;
@@ -40,8 +40,10 @@ export default function AdminCruiseTags() {
   const [cruises, setCruises] = useState<CruiseWithTags[]>([]);
   const [availableTags, setAvailableTags] = useState<CruiseTag[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState<'count' | 'price' | 'cruiseLine' | 'nights'>('count');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortBy, setSortBy] = useState<
+    "count" | "price" | "cruiseLine" | "nights"
+  >("count");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState<PaginationMeta>({
     page: 1,
@@ -49,7 +51,9 @@ export default function AdminCruiseTags() {
     total: 0,
     totalPages: 1,
   });
-  const [selectedCruise, setSelectedCruise] = useState<CruiseWithTags | null>(null);
+  const [selectedCruise, setSelectedCruise] = useState<CruiseWithTags | null>(
+    null,
+  );
   const [showTagModal, setShowTagModal] = useState(false);
 
   useEffect(() => {
@@ -62,53 +66,63 @@ export default function AdminCruiseTags() {
 
   const fetchTags = async () => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://zipsea-production.onrender.com';
-      const response = await fetch(`${backendUrl}/api/v1/admin/cruise-tags/tags`);
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        "https://zipsea-production.onrender.com";
+      const response = await fetch(
+        `${backendUrl}/api/v1/admin/cruise-tags/tags`,
+      );
 
       if (response.ok) {
         const data = await response.json();
         setAvailableTags(data.tags || []);
       } else {
-        console.error('Failed to fetch tags:', response.status);
-        showAlert('Failed to load cruise tags');
+        console.error("Failed to fetch tags:", response.status);
+        showAlert("Failed to load cruise tags");
       }
     } catch (error) {
-      console.error('Error fetching tags:', error);
-      showAlert('Error loading cruise tags');
+      console.error("Error fetching tags:", error);
+      showAlert("Error loading cruise tags");
     }
   };
 
   const fetchCruises = async () => {
     setLoading(true);
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://zipsea-production.onrender.com';
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        "https://zipsea-production.onrender.com";
       const params = new URLSearchParams({
         sortBy,
         order: sortOrder,
         page: currentPage.toString(),
-        limit: '50',
+        limit: "50",
       });
 
-      const response = await fetch(`${backendUrl}/api/v1/admin/cruise-tags/cruises?${params}`);
+      const response = await fetch(
+        `${backendUrl}/api/v1/admin/cruise-tags/cruises?${params}`,
+      );
 
       if (response.ok) {
         const result = await response.json();
         if (result.success && result.data) {
           setCruises(result.data.cruises || []);
-          setPagination(result.data.pagination || {
-            page: 1,
-            limit: 50,
-            total: 0,
-            totalPages: 1,
-          });
+          setPagination(
+            result.data.pagination || {
+              page: 1,
+              limit: 50,
+              total: 0,
+              totalPages: 1,
+            },
+          );
         }
       } else {
-        console.error('Failed to fetch cruises:', response.status);
-        showAlert('Failed to load cruises');
+        console.error("Failed to fetch cruises:", response.status);
+        showAlert("Failed to load cruises");
       }
     } catch (error) {
-      console.error('Error fetching cruises:', error);
-      showAlert('Error loading cruises');
+      console.error("Error fetching cruises:", error);
+      showAlert("Error loading cruises");
     } finally {
       setLoading(false);
     }
@@ -116,56 +130,66 @@ export default function AdminCruiseTags() {
 
   const handleAddTag = async (cruise: CruiseWithTags, tagId: number) => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://zipsea-production.onrender.com';
-      const response = await fetch(`${backendUrl}/api/v1/admin/cruise-tags/assign`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cruiseLineId: cruise.cruiseLineId,
-          cruiseName: cruise.cruiseName,
-          shipId: cruise.shipId,
-          tagId,
-        }),
-      });
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        "https://zipsea-production.onrender.com";
+      const response = await fetch(
+        `${backendUrl}/api/v1/admin/cruise-tags/assign`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cruiseLineId: cruise.cruiseLineId,
+            cruiseName: cruise.cruiseName,
+            shipId: cruise.shipId,
+            tagId,
+          }),
+        },
+      );
 
       if (response.ok) {
-        showAlert('Tag added successfully');
+        showAlert("Tag added successfully");
         fetchCruises();
         setShowTagModal(false);
         setSelectedCruise(null);
       } else {
         const errorData = await response.json();
-        showAlert(errorData.error || 'Failed to add tag');
+        showAlert(errorData.error || "Failed to add tag");
       }
     } catch (error) {
-      console.error('Error adding tag:', error);
-      showAlert('Error adding tag');
+      console.error("Error adding tag:", error);
+      showAlert("Error adding tag");
     }
   };
 
   const handleRemoveTag = async (cruise: CruiseWithTags, tagId: number) => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://zipsea-production.onrender.com';
-      const response = await fetch(`${backendUrl}/api/v1/admin/cruise-tags/remove`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cruiseLineId: cruise.cruiseLineId,
-          cruiseName: cruise.cruiseName,
-          shipId: cruise.shipId,
-          tagId,
-        }),
-      });
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        "https://zipsea-production.onrender.com";
+      const response = await fetch(
+        `${backendUrl}/api/v1/admin/cruise-tags/remove`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cruiseLineId: cruise.cruiseLineId,
+            cruiseName: cruise.cruiseName,
+            shipId: cruise.shipId,
+            tagId,
+          }),
+        },
+      );
 
       if (response.ok) {
-        showAlert('Tag removed successfully');
+        showAlert("Tag removed successfully");
         fetchCruises();
       } else {
-        showAlert('Failed to remove tag');
+        showAlert("Failed to remove tag");
       }
     } catch (error) {
-      console.error('Error removing tag:', error);
-      showAlert('Error removing tag');
+      console.error("Error removing tag:", error);
+      showAlert("Error removing tag");
     }
   };
 
@@ -175,24 +199,32 @@ export default function AdminCruiseTags() {
   };
 
   const formatPrice = (price: number | null) => {
-    if (!price) return 'N/A';
+    if (!price) return "N/A";
     return `$${price.toLocaleString()}`;
   };
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
-  const getRegionDisplay = (regions: string[]) => {
-    if (!regions || regions.length === 0) return 'Various';
-    const filtered = regions.filter(r => r && r.trim() !== '');
-    if (filtered.length === 0) return 'Various';
-    return filtered.slice(0, 2).join(', ') + (filtered.length > 2 ? '...' : '');
+  const getRegionDisplay = (regions: string[] | string | null | undefined) => {
+    // Handle non-array cases
+    if (!regions) return "Various";
+    if (typeof regions === "string") {
+      return regions || "Various";
+    }
+    if (!Array.isArray(regions)) return "Various";
+
+    const filtered = regions.filter(
+      (r) => r && typeof r === "string" && r.trim() !== "",
+    );
+    if (filtered.length === 0) return "Various";
+    return filtered.slice(0, 2).join(", ") + (filtered.length > 2 ? "..." : "");
   };
 
   if (loading && cruises.length === 0) {
@@ -210,7 +242,9 @@ export default function AdminCruiseTags() {
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <div>
-              <label className="text-sm font-medium text-gray-700 mr-2">Sort by:</label>
+              <label className="text-sm font-medium text-gray-700 mr-2">
+                Sort by:
+              </label>
               <select
                 value={sortBy}
                 onChange={(e) => {
@@ -226,11 +260,13 @@ export default function AdminCruiseTags() {
               </select>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-700 mr-2">Order:</label>
+              <label className="text-sm font-medium text-gray-700 mr-2">
+                Order:
+              </label>
               <select
                 value={sortOrder}
                 onChange={(e) => {
-                  setSortOrder(e.target.value as 'asc' | 'desc');
+                  setSortOrder(e.target.value as "asc" | "desc");
                   setCurrentPage(1);
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -252,7 +288,8 @@ export default function AdminCruiseTags() {
         {/* Stats */}
         <div className="mt-4 pt-4 border-t border-gray-200">
           <p className="text-sm text-gray-600">
-            Showing {cruises.length} of {pagination.total.toLocaleString()} unique cruises
+            Showing {cruises.length} of {pagination.total.toLocaleString()}{" "}
+            unique cruises
           </p>
         </div>
       </div>
@@ -260,9 +297,12 @@ export default function AdminCruiseTags() {
       {/* Cruises Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Cruise Tags Management</h2>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Cruise Tags Management
+          </h2>
           <p className="text-sm text-gray-500 mt-1">
-            Manage tags for cruise categories. Tags can be assigned to multiple cruises and cruises can have multiple tags.
+            Manage tags for cruise categories. Tags can be assigned to multiple
+            cruises and cruises can have multiple tags.
           </p>
         </div>
 
@@ -301,32 +341,50 @@ export default function AdminCruiseTags() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {cruises.map((cruise, idx) => (
-                <tr key={`${cruise.cruiseLineId}-${cruise.cruiseName}-${cruise.shipId}-${idx}`} className="hover:bg-gray-50">
+                <tr
+                  key={`${cruise.cruiseLineId}-${cruise.cruiseName}-${cruise.shipId}-${idx}`}
+                  className="hover:bg-gray-50"
+                >
                   <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900">{cruise.cruiseName}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{cruise.cruiseLineName}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">{cruise.shipName}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{cruise.nights} nights</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{cruise.sailingCount} sailings</div>
+                    <div className="text-sm font-medium text-gray-900">
+                      {cruise.cruiseName}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
-                      {formatPrice(cruise.minPrice)} - {formatPrice(cruise.maxPrice)}
+                      {cruise.cruiseLineName}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900">
+                      {cruise.shipName}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {cruise.nights} nights
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {cruise.sailingCount} sailings
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {formatPrice(cruise.minPrice)} -{" "}
+                      {formatPrice(cruise.maxPrice)}
                     </div>
                     {cruise.avgPrice && (
-                      <div className="text-xs text-gray-500">Avg: {formatPrice(cruise.avgPrice)}</div>
+                      <div className="text-xs text-gray-500">
+                        Avg: {formatPrice(cruise.avgPrice)}
+                      </div>
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">{getRegionDisplay(cruise.regions)}</div>
+                    <div className="text-sm text-gray-900">
+                      {getRegionDisplay(cruise.regions)}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-1">
@@ -378,7 +436,9 @@ export default function AdminCruiseTags() {
               Page {currentPage} of {pagination.totalPages}
             </span>
             <button
-              onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
+              onClick={() =>
+                setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))
+              }
               disabled={currentPage === pagination.totalPages}
               className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -395,8 +455,12 @@ export default function AdminCruiseTags() {
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-start">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Add Tag</h3>
-                  <p className="text-sm text-gray-500 mt-1">{selectedCruise.cruiseName}</p>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Add Tag
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {selectedCruise.cruiseName}
+                  </p>
                 </div>
                 <button
                   onClick={() => {
@@ -405,32 +469,54 @@ export default function AdminCruiseTags() {
                   }}
                   className="text-gray-400 hover:text-gray-500"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
             </div>
 
             <div className="p-6">
-              <p className="text-sm text-gray-600 mb-4">Select a tag to add to this cruise:</p>
+              <p className="text-sm text-gray-600 mb-4">
+                Select a tag to add to this cruise:
+              </p>
               <div className="space-y-2">
                 {availableTags
-                  .filter(tag => !selectedCruise.tags.find(t => t.id === tag.id))
+                  .filter(
+                    (tag) => !selectedCruise.tags.find((t) => t.id === tag.id),
+                  )
                   .map((tag) => (
                     <button
                       key={tag.id}
                       onClick={() => handleAddTag(selectedCruise, tag.id)}
                       className="w-full text-left px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                     >
-                      <div className="font-medium text-gray-900">{tag.displayName}</div>
+                      <div className="font-medium text-gray-900">
+                        {tag.displayName}
+                      </div>
                       {tag.description && (
-                        <div className="text-sm text-gray-500 mt-1">{tag.description}</div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          {tag.description}
+                        </div>
                       )}
                     </button>
                   ))}
-                {availableTags.filter(tag => !selectedCruise.tags.find(t => t.id === tag.id)).length === 0 && (
-                  <p className="text-sm text-gray-500 text-center py-4">All available tags have been added</p>
+                {availableTags.filter(
+                  (tag) => !selectedCruise.tags.find((t) => t.id === tag.id),
+                ).length === 0 && (
+                  <p className="text-sm text-gray-500 text-center py-4">
+                    All available tags have been added
+                  </p>
                 )}
               </div>
             </div>
