@@ -175,10 +175,10 @@ async function deduplicateGroup(group: any) {
     console.log(`    - Cheapest pricing: ${refs.cheapestPricing}`);
     console.log(`    - Price snapshots: ${refs.priceSnapshots}`);
 
-    // Update foreign key references to point to keeper
+    // Delete cheapest_pricing for duplicate since keeper already has one
+    // (Attempting to UPDATE would violate unique constraint if keeper has a record)
     await db.execute(sql`
-      UPDATE cheapest_pricing
-      SET cruise_id = ${keeperId}
+      DELETE FROM cheapest_pricing
       WHERE cruise_id = ${duplicateId}
     `);
 
