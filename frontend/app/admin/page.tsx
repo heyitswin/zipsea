@@ -7,6 +7,7 @@ import { useAlert } from "../../components/GlobalAlertProvider";
 import AdminQuotes from "./AdminQuotes";
 import AdminCruiseLines from "./AdminCruiseLines";
 import AdminCruiseTags from "./AdminCruiseTags";
+import AdminCruiseLookup from "./AdminCruiseLookup";
 
 // Force dynamic rendering for this page
 export const dynamic = "force-dynamic";
@@ -86,6 +87,16 @@ export default function AdminDashboard() {
             >
               Cruise Tags
             </button>
+            <button
+              onClick={() => setActiveTab("cruise-lookup")}
+              className={`py-4 px-1 border-b-2 font-medium text-sm capitalize transition-colors ${
+                activeTab === "cruise-lookup"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              Cruise Lookup
+            </button>
           </div>
         </div>
       </div>
@@ -95,6 +106,7 @@ export default function AdminDashboard() {
         {activeTab === "quotes" && <AdminQuotes />}
         {activeTab === "cruise-lines" && <AdminCruiseLines />}
         {activeTab === "cruise-tags" && <AdminCruiseTags />}
+        {activeTab === "cruise-lookup" && <AdminCruiseLookup />}
       </div>
     </div>
   );
