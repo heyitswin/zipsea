@@ -1836,7 +1836,6 @@ export class WebhookProcessorOptimizedV2 {
           const recentSnapshots = await priceHistoryService.getHistoricalPrices({
             cruiseId: cruiseId,
             limit: 1,
-            changeReason: 'webhook_update',
           });
 
           if (recentSnapshots.length > 0 && recentSnapshots[0].batchId) {
