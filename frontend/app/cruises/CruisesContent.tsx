@@ -2189,7 +2189,7 @@ export default function CruisesContent() {
 
       {/* Mobile Filter Modal */}
       {isFilterModalOpen && (
-        <div className="fixed inset-0 z-50 bg-white md:hidden">
+        <div className="fixed inset-0 z-50 bg-white md:hidden pt-[50px]">
           <div className="flex flex-col h-full">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
