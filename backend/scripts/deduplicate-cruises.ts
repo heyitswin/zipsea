@@ -137,11 +137,15 @@ async function checkForeignKeyReferences(cruiseId: string) {
     db.execute(
       sql.raw(`SELECT COUNT(*) as count FROM price_snapshots WHERE cruise_id::text = '${cruiseId}'`)
     ),
+    db.execute(
+      sql.raw(`SELECT COUNT(*) as count FROM quote_requests WHERE cruise_id::text = '${cruiseId}'`)
+    ),
   ]);
 
   return {
     cheapestPricing: parseInt(checks[0][0].count),
     priceSnapshots: parseInt(checks[1][0].count),
+    quoteRequests: parseInt(checks[2][0].count),
   };
 }
 
@@ -181,6 +185,7 @@ async function deduplicateGroup(group: any) {
     console.log(`  Migrating references from ${duplicateId}:`);
     console.log(`    - Cheapest pricing: ${refs.cheapestPricing}`);
     console.log(`    - Price snapshots: ${refs.priceSnapshots}`);
+    console.log(`    - Quote requests: ${refs.quoteRequests}`);
 
     // Delete cheapest_pricing for duplicate since keeper already has one
     // (Attempting to UPDATE would violate unique constraint if keeper has a record)
@@ -189,8 +194,7 @@ async function deduplicateGroup(group: any) {
     );
 
     // Migrate price_snapshots - update duplicate's snapshots to point to keeper
-    // Only update if keeper doesn't already have a snapshot for that timestamp
-    const updateResult = await db.execute(
+    await db.execute(
       sql.raw(`
         UPDATE price_snapshots
         SET cruise_id = '${keeperId}'
@@ -198,10 +202,16 @@ async function deduplicateGroup(group: any) {
       `)
     );
 
-    // Note: We don't update price_snapshots to avoid conflicts, just delete the duplicate cruise
-    // The snapshots will remain pointing to the old ID (acceptable for historical data)
+    // Migrate quote_requests - update duplicate's quotes to point to keeper
+    await db.execute(
+      sql.raw(`
+        UPDATE quote_requests
+        SET cruise_id = '${keeperId}'
+        WHERE cruise_id::text = '${duplicateId}'
+      `)
+    );
 
-    totalUpdated += refs.cheapestPricing;
+    totalUpdated += refs.cheapestPricing + refs.quoteRequests;
   }
 
   // Delete the duplicate cruise records
