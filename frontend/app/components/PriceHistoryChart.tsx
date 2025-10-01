@@ -67,7 +67,7 @@ export default function PriceHistoryChart({
         }
 
         const result = await response.json();
-        const snapshots: PriceSnapshot[] = result.data || [];
+        const snapshots: PriceSnapshot[] = result.data?.prices || [];
 
         // Group by day and cabin category, finding cheapest price for each
         const dailyData: Record<string, DailyPrices> = {};
