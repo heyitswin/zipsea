@@ -2296,10 +2296,14 @@ export class WebhookProcessorOptimizedV2 {
       console.log('[OPTIMIZED-V2] Running post-batch cleanup for memory optimization...');
 
       // 1. Clean up old departed cruises (more aggressive)
+      // Only delete cruises that don't have any references from quote_requests
       const departedCleanup = await db.execute(sql`
         DELETE FROM cruises
         WHERE sailing_date < NOW() - INTERVAL '7 days'
         AND updated_at < NOW() - INTERVAL '3 days'
+        AND NOT EXISTS (
+          SELECT 1 FROM quote_requests WHERE quote_requests.cruise_id = cruises.id
+        )
         RETURNING id;
       `);
 
@@ -2308,10 +2312,14 @@ export class WebhookProcessorOptimizedV2 {
       }
 
       // 2. Clean up stale cruises that haven't been updated (likely removed from inventory)
+      // Only delete cruises that don't have any references from quote_requests
       const staleCleanup = await db.execute(sql`
         DELETE FROM cruises
         WHERE updated_at < NOW() - INTERVAL '7 days'
         AND (sailing_date IS NULL OR sailing_date > NOW() + INTERVAL '365 days')
+        AND NOT EXISTS (
+          SELECT 1 FROM quote_requests WHERE quote_requests.cruise_id = cruises.id
+        )
         RETURNING id;
       `);
 
