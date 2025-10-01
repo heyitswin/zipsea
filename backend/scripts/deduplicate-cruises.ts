@@ -55,12 +55,16 @@ async function findDuplicates() {
   if (duplicates.length > 0) {
     console.log('Top 10 duplicate groups:');
     console.log('─'.repeat(100));
-    duplicates.slice(0, 10).forEach(dup => {
+    duplicates.slice(0, 10).forEach((dup: any) => {
+      // Convert PostgreSQL arrays to JavaScript arrays if needed
+      const cruiseIds = Array.isArray(dup.cruise_ids) ? dup.cruise_ids : JSON.parse(dup.cruise_ids);
+      const prices = Array.isArray(dup.prices) ? dup.prices : JSON.parse(dup.prices);
+
       console.log(
         `Line: ${dup.cruise_line_id} | Ship: ${dup.ship_id} | Date: ${dup.sailing_date} | Voyage: ${dup.voyage_code_group}`
       );
-      console.log(`  → ${dup.duplicate_count} duplicates: ${dup.cruise_ids.join(', ')}`);
-      console.log(`  → Prices: ${dup.prices.map(p => (p ? `$${p}` : 'null')).join(', ')}`);
+      console.log(`  → ${dup.duplicate_count} duplicates: ${cruiseIds.join(', ')}`);
+      console.log(`  → Prices: ${prices.map((p: any) => (p ? `$${p}` : 'null')).join(', ')}`);
       console.log('');
     });
   }
@@ -123,8 +127,11 @@ async function checkForeignKeyReferences(cruiseId) {
   };
 }
 
-async function deduplicateGroup(group) {
-  const cruiseIds = group.cruise_ids;
+async function deduplicateGroup(group: any) {
+  // Convert PostgreSQL arrays to JavaScript arrays if needed
+  const cruiseIds = Array.isArray(group.cruise_ids)
+    ? group.cruise_ids
+    : JSON.parse(group.cruise_ids);
   const keeperId = cruiseIds[0]; // Most recently updated
   const toDelete = cruiseIds.slice(1); // All others
 
