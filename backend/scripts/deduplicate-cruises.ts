@@ -127,12 +127,17 @@ async function getDuplicateStats() {
 
 async function checkForeignKeyReferences(cruiseId: string) {
   // Check all tables that reference cruises
+  // Using CAST to ensure proper type comparison
   const checks = await Promise.all([
     db.execute(
-      sql`SELECT COUNT(*) as count FROM cheapest_pricing WHERE cruise_id = ${cruiseId}::varchar`
+      sql.raw(
+        `SELECT COUNT(*) as count FROM cheapest_pricing WHERE cruise_id = CAST('${cruiseId}' AS varchar)`
+      )
     ),
     db.execute(
-      sql`SELECT COUNT(*) as count FROM price_snapshots WHERE cruise_id = ${cruiseId}::varchar`
+      sql.raw(
+        `SELECT COUNT(*) as count FROM price_snapshots WHERE cruise_id = CAST('${cruiseId}' AS varchar)`
+      )
     ),
   ]);
 
@@ -181,21 +186,22 @@ async function deduplicateGroup(group: any) {
 
     // Delete cheapest_pricing for duplicate since keeper already has one
     // (Attempting to UPDATE would violate unique constraint if keeper has a record)
-    await db.execute(sql`
-      DELETE FROM cheapest_pricing
-      WHERE cruise_id = ${duplicateId}::varchar
-    `);
+    await db.execute(
+      sql.raw(`DELETE FROM cheapest_pricing WHERE cruise_id = CAST('${duplicateId}' AS varchar)`)
+    );
 
-    await db.execute(sql`
-      UPDATE price_snapshots
-      SET cruise_id = ${keeperId}::varchar
-      WHERE cruise_id = ${duplicateId}::varchar
-      AND NOT EXISTS (
-        SELECT 1 FROM price_snapshots
-        WHERE cruise_id = ${keeperId}::varchar
-        AND created_at = price_snapshots.created_at
-      )
-    `);
+    await db.execute(
+      sql.raw(`
+        UPDATE price_snapshots
+        SET cruise_id = CAST('${keeperId}' AS varchar)
+        WHERE cruise_id = CAST('${duplicateId}' AS varchar)
+        AND NOT EXISTS (
+          SELECT 1 FROM price_snapshots
+          WHERE cruise_id = CAST('${keeperId}' AS varchar)
+          AND created_at = price_snapshots.created_at
+        )
+      `)
+    );
 
     // Note: We don't update price_snapshots to avoid conflicts, just delete the duplicate cruise
     // The snapshots will remain pointing to the old ID (acceptable for historical data)
