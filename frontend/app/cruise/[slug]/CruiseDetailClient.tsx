@@ -18,6 +18,15 @@ import {
   trackTimeOnPage,
   trackQuoteStart,
 } from "../../../lib/analytics";
+import { useAdmin } from "../../hooks/useAdmin";
+import dynamic from "next/dynamic";
+
+const PriceHistoryChart = dynamic(
+  () => import("../../components/PriceHistoryChart"),
+  {
+    ssr: false,
+  },
+);
 
 interface CruiseDetailPageProps {}
 
@@ -26,6 +35,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const router = useRouter();
   const slug = params.slug as string;
   const { showAlert } = useAlert();
+  const { isAdmin, isLoading: adminLoading } = useAdmin();
 
   const [cruiseData, setCruiseData] = useState<ComprehensiveCruiseData | null>(
     null,
@@ -1346,6 +1356,15 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 );
               })}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin-Only Price History Chart */}
+      {!adminLoading && isAdmin && cruise?.id && (
+        <div className="bg-sand py-8 md:py-16">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <PriceHistoryChart cruiseId={cruise.id.toString()} />
           </div>
         </div>
       )}
