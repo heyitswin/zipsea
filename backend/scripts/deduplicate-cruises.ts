@@ -179,12 +179,12 @@ async function deduplicateGroup(group: any) {
     // (Attempting to UPDATE would violate unique constraint if keeper has a record)
     await db.execute(sql`
       DELETE FROM cheapest_pricing
-      WHERE cruise_id = ${duplicateId}
+      WHERE cruise_id = ${duplicateId}::varchar
     `);
 
     await db.execute(sql`
       UPDATE price_snapshots
-      SET cruise_id = ${duplicateId}::varchar
+      SET cruise_id = ${keeperId}::varchar
       WHERE cruise_id = ${duplicateId}::varchar
       AND NOT EXISTS (
         SELECT 1 FROM price_snapshots
