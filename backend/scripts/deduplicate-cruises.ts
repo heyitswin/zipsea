@@ -196,13 +196,7 @@ async function deduplicateGroup(group: any) {
     // Note: We don't update price_snapshots to avoid conflicts, just delete the duplicate cruise
     // The snapshots will remain pointing to the old ID (acceptable for historical data)
 
-    await db.execute(sql`
-      UPDATE itinerary
-      SET cruise_id = ${duplicateId}::varchar
-      WHERE cruise_id = ${duplicateId}::varchar
-    `);
-
-    totalUpdated += refs.cheapestPricing + refs.itinerary;
+    totalUpdated += refs.cheapestPricing;
   }
 
   // Delete the duplicate cruise records
