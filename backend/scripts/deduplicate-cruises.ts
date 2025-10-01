@@ -13,10 +13,10 @@
  * 3. Update all foreign key references to point to the keeper
  * 4. Delete the duplicate records
  *
- * Usage: node scripts/deduplicate-cruises.js [--dry-run]
+ * Usage: npx tsx scripts/deduplicate-cruises.ts [--dry-run]
  */
 
-import { db } from '../src/db/connection.js';
+import { db } from '../src/db/connection';
 import { sql } from 'drizzle-orm';
 
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -56,9 +56,11 @@ async function findDuplicates() {
     console.log('Top 10 duplicate groups:');
     console.log('─'.repeat(100));
     duplicates.slice(0, 10).forEach(dup => {
-      console.log(`Line: ${dup.cruise_line_id} | Ship: ${dup.ship_id} | Date: ${dup.sailing_date} | Voyage: ${dup.voyage_code_group}`);
+      console.log(
+        `Line: ${dup.cruise_line_id} | Ship: ${dup.ship_id} | Date: ${dup.sailing_date} | Voyage: ${dup.voyage_code_group}`
+      );
       console.log(`  → ${dup.duplicate_count} duplicates: ${dup.cruise_ids.join(', ')}`);
-      console.log(`  → Prices: ${dup.prices.map(p => p ? `$${p}` : 'null').join(', ')}`);
+      console.log(`  → Prices: ${dup.prices.map(p => (p ? `$${p}` : 'null')).join(', ')}`);
       console.log('');
     });
   }
@@ -98,7 +100,9 @@ async function getDuplicateStats() {
   console.log(`Total duplicate records: ${stat.total_duplicate_records}`);
   console.log(`Records to be deleted: ${stat.records_to_delete}`);
   console.log(`Max duplicates in a group: ${stat.max_duplicates_in_group}`);
-  console.log(`Average duplicates per group: ${parseFloat(stat.avg_duplicates_per_group).toFixed(2)}`);
+  console.log(
+    `Average duplicates per group: ${parseFloat(stat.avg_duplicates_per_group).toFixed(2)}`
+  );
   console.log('');
 
   return stat;
@@ -124,7 +128,9 @@ async function deduplicateGroup(group) {
   const keeperId = cruiseIds[0]; // Most recently updated
   const toDelete = cruiseIds.slice(1); // All others
 
-  console.log(`\nProcessing: Line ${group.cruise_line_id}, Ship ${group.ship_id}, Date ${group.sailing_date}`);
+  console.log(
+    `\nProcessing: Line ${group.cruise_line_id}, Ship ${group.ship_id}, Date ${group.sailing_date}`
+  );
   console.log(`  Keeping: ${keeperId} (most recent)`);
   console.log(`  Deleting: ${toDelete.join(', ')}`);
 
@@ -237,7 +243,6 @@ async function main() {
 
     console.log(`Completed: ${new Date().toISOString()}`);
     console.log('===================================\n');
-
   } catch (error) {
     console.error('\n❌ Error during deduplication:', error);
     process.exit(1);
