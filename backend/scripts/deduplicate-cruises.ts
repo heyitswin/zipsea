@@ -125,18 +125,16 @@ async function getDuplicateStats() {
   return stat;
 }
 
-async function checkForeignKeyReferences(cruiseId) {
+async function checkForeignKeyReferences(cruiseId: string) {
   // Check all tables that reference cruises
   const checks = await Promise.all([
     db.execute(sql`SELECT COUNT(*) as count FROM cheapest_pricing WHERE cruise_id = ${cruiseId}`),
     db.execute(sql`SELECT COUNT(*) as count FROM price_snapshots WHERE cruise_id = ${cruiseId}`),
-    db.execute(sql`SELECT COUNT(*) as count FROM itinerary WHERE cruise_id = ${cruiseId}`),
   ]);
 
   return {
     cheapestPricing: parseInt(checks[0][0].count),
     priceSnapshots: parseInt(checks[1][0].count),
-    itinerary: parseInt(checks[2][0].count),
   };
 }
 
@@ -176,7 +174,6 @@ async function deduplicateGroup(group: any) {
     console.log(`  Migrating references from ${duplicateId}:`);
     console.log(`    - Cheapest pricing: ${refs.cheapestPricing}`);
     console.log(`    - Price snapshots: ${refs.priceSnapshots}`);
-    console.log(`    - Itinerary: ${refs.itinerary}`);
 
     // Update foreign key references to point to keeper
     await db.execute(sql`
