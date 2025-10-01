@@ -1049,7 +1049,6 @@ export class WebhookProcessorOptimizedV2 {
     }
   }
 
-  
   /**
    * Ensure raw_data is a proper object, not a string or character array
    * This prevents the corruption where JSON strings get stored as character arrays
@@ -1069,8 +1068,12 @@ export class WebhookProcessorOptimizedV2 {
     // If data looks like a character array (has numeric string keys)
     if (data && typeof data === 'object' && !Array.isArray(data)) {
       // Check for character array pattern
-      if (data['0'] !== undefined && data['1'] !== undefined &&
-          typeof data['0'] === 'string' && data['0'].length === 1) {
+      if (
+        data['0'] !== undefined &&
+        data['1'] !== undefined &&
+        typeof data['0'] === 'string' &&
+        data['0'].length === 1
+      ) {
         console.warn('[OPTIMIZED-V2] WARNING: Detected character array in rawData, reconstructing');
 
         // Reconstruct the JSON string
@@ -1095,7 +1098,6 @@ export class WebhookProcessorOptimizedV2 {
     // Data is already a proper object
     return data;
   }
-
 
   private async processFile(file: any, runId?: string): Promise<boolean> {
     let conn;
@@ -1394,7 +1396,30 @@ export class WebhookProcessorOptimizedV2 {
       }
 
       // Upsert cruise (insert if new, update if exists)
+      // First try to find existing cruise by composite key to prevent duplicates
+      // This matches the unique constraint: idx_cruises_unique_sailing
       try {
+        // Check if a cruise already exists with this line/ship/date/voyage combination
+        const existingCruise = await db.execute(sql`
+          SELECT id FROM cruises
+          WHERE cruise_line_id = ${cruiseData.cruiseLineId}
+            AND ship_id = ${cruiseData.shipId}
+            AND sailing_date = ${cruiseData.sailingDate}
+            AND COALESCE(voyage_code, '') = COALESCE(${cruiseData.voyageCode}, '')
+          LIMIT 1
+        `);
+
+        let upsertId = cruiseData.id;
+
+        // If a different cruise exists for this sailing, use that ID instead to update it
+        if (existingCruise.length > 0 && existingCruise[0].id !== cruiseData.id) {
+          console.log(
+            `[OPTIMIZED-V2] Found existing cruise ${existingCruise[0].id} for sailing, updating instead of creating duplicate ${cruiseData.id}`
+          );
+          upsertId = existingCruise[0].id;
+          cruiseData.id = upsertId; // Update the ID to match existing record
+        }
+
         await db
           .insert(cruises)
           .values(cruiseData)
