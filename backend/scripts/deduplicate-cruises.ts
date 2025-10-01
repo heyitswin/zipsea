@@ -156,8 +156,8 @@ async function deduplicateGroup(group: any) {
   };
 
   const cruiseIds = parsePgArray(group.cruise_ids);
-  const keeperId = cruiseIds[0]; // Most recently updated
-  const toDelete = cruiseIds.slice(1); // All others
+  const keeperId = String(cruiseIds[0]); // Most recently updated (ensure string)
+  const toDelete = cruiseIds.slice(1).map(id => String(id)); // All others (ensure strings)
 
   console.log(
     `\nProcessing: Line ${group.cruise_line_id}, Ship ${group.ship_id}, Date ${group.sailing_date}`
