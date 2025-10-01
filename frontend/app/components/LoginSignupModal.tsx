@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useSignIn, useSignUp } from '../hooks/useClerkHooks';
-import { trackAuthEvent } from '../../lib/analytics';
+import { useState } from "react";
+import { useSignIn, useSignUp } from "../hooks/useClerkHooks";
+import { trackAuthEvent } from "../../lib/analytics";
 
 interface LoginSignupModalProps {
   isOpen: boolean;
@@ -10,10 +10,14 @@ interface LoginSignupModalProps {
   onSuccess: () => void;
 }
 
-export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSignupModalProps) {
-  const [email, setEmail] = useState('');
+export default function LoginSignupModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: LoginSignupModalProps) {
+  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const { signIn } = useSignIn();
   const { signUp } = useSignUp();
 
@@ -27,20 +31,22 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
 
   const handleEmailAuth = async () => {
     if (!email) {
-      setMessage('Please enter your email address');
+      setMessage("Please enter your email address");
       return;
     }
 
     setIsLoading(true);
-    setMessage('');
-    
+    setMessage("");
+
     // Track auth start
-    trackAuthEvent('signup_started', 'email');
+    trackAuthEvent("signup_started", "email");
 
     try {
       // Check if signIn and signUp are available
       if (!signIn || !signUp) {
-        setMessage('Authentication service is not available. Please try refreshing the page.');
+        setMessage(
+          "Authentication service is not available. Please try refreshing the page.",
+        );
         setIsLoading(false);
         return;
       }
@@ -50,55 +56,61 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
         emailAddress: email,
       });
 
-      if (signUpResult?.status === 'missing_requirements') {
+      if (signUpResult?.status === "missing_requirements") {
         // Send magic link
         const magicLinkResult = await signUp.prepareEmailAddressVerification({
-          strategy: 'email_link',
-          redirectUrl: window.location.href
+          strategy: "email_link",
+          redirectUrl: window.location.href,
         });
-        
+
         if (magicLinkResult) {
-          setMessage('Check your email for a magic link to continue!');
+          setMessage("Check your email for a magic link to continue!");
           // Don't close modal yet - user needs to click the email link
         }
-      } else if (signUpResult?.status === 'complete') {
-        setMessage('Sign up successful!');
-        trackAuthEvent('signup_completed', 'email');
+      } else if (signUpResult?.status === "complete") {
+        setMessage("Sign up successful!");
+        trackAuthEvent("signup_completed", "email");
         setTimeout(() => onSuccess(), 1000);
       }
     } catch (error: any) {
-      console.error('Email auth error:', error);
-      
+      console.error("Email auth error:", error);
+
       // If email already exists, try sign in instead
-      if (error?.errors?.[0]?.code === 'form_identifier_exists') {
+      if (error?.errors?.[0]?.code === "form_identifier_exists") {
         try {
           const signInResult = await signIn?.create({
             identifier: email,
           });
-          
-          if (signInResult?.status === 'needs_identifier' && signInResult.supportedFirstFactors?.[0]) {
+
+          if (
+            signInResult?.status === "needs_identifier" &&
+            signInResult.supportedFirstFactors?.[0]
+          ) {
             // Send magic link for sign in
             const firstFactor = signInResult.supportedFirstFactors[0] as any;
             const magicLinkResult = await signIn?.prepareFirstFactor({
-              strategy: 'email_link',
+              strategy: "email_link",
               emailAddressId: firstFactor.emailAddressId,
-              redirectUrl: window.location.href
+              redirectUrl: window.location.href,
             });
-            
+
             if (magicLinkResult) {
-              setMessage('Check your email for a magic link to sign in!');
+              setMessage("Check your email for a magic link to sign in!");
             }
-          } else if (signInResult?.status === 'complete') {
-            setMessage('Sign in successful!');
-            trackAuthEvent('login', 'email');
+          } else if (signInResult?.status === "complete") {
+            setMessage("Sign in successful!");
+            trackAuthEvent("login", "email");
             setTimeout(() => onSuccess(), 1000);
           }
         } catch (signInError: any) {
-          console.error('Sign in error:', signInError);
-          setMessage('Error: ' + (signInError.message || 'Something went wrong with sign in'));
+          console.error("Sign in error:", signInError);
+          setMessage(
+            "Error: " +
+              (signInError.message || "Something went wrong with sign in"),
+          );
         }
       } else {
-        setMessage('Error: ' + (error.message || 'Something went wrong'));
+        setMessage("Error: " + (error.message || "Something went wrong"));
       }
     } finally {
       setIsLoading(false);
@@ -107,71 +119,87 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
 
   const handleGoogleAuth = async () => {
     if (!signIn) {
-      setMessage('Authentication service is not available. Please try refreshing the page.');
+      setMessage(
+        "Authentication service is not available. Please try refreshing the page.",
+      );
       return;
     }
-    
+
     setIsLoading(true);
-    trackAuthEvent('signup_started', 'google');
+    trackAuthEvent("signup_started", "google");
     try {
       // Save the current URL to redirect back after auth
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('returnUrl', window.location.href);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("returnUrl", window.location.href);
       }
       await signIn.authenticateWithRedirect({
-        strategy: 'oauth_google',
-        redirectUrl: '/auth/callback',
-        redirectUrlComplete: '/',
+        strategy: "oauth_google",
+        redirectUrl: "/auth/callback",
+        redirectUrlComplete: "/",
       });
     } catch (error: any) {
-      console.error('Google auth error:', error);
-      setMessage('Error with Google sign in: ' + (error.message || 'Something went wrong'));
+      console.error("Google auth error:", error);
+      setMessage(
+        "Error with Google sign in: " +
+          (error.message || "Something went wrong"),
+      );
       setIsLoading(false);
     }
   };
 
   const handleFacebookAuth = async () => {
     if (!signIn) {
-      setMessage('Authentication service is not available. Please try refreshing the page.');
+      setMessage(
+        "Authentication service is not available. Please try refreshing the page.",
+      );
       return;
     }
-    
+
     setIsLoading(true);
-    trackAuthEvent('signup_started', 'facebook');
+    trackAuthEvent("signup_started", "facebook");
     try {
       // Save the current URL to redirect back after auth
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('returnUrl', window.location.href);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("returnUrl", window.location.href);
       }
       await signIn.authenticateWithRedirect({
-        strategy: 'oauth_facebook',
-        redirectUrl: '/auth/callback',
-        redirectUrlComplete: '/',
+        strategy: "oauth_facebook",
+        redirectUrl: "/auth/callback",
+        redirectUrlComplete: "/",
       });
     } catch (error: any) {
-      console.error('Facebook auth error:', error);
-      setMessage('Error with Facebook sign in: ' + (error.message || 'Something went wrong'));
+      console.error("Facebook auth error:", error);
+      setMessage(
+        "Error with Facebook sign in: " +
+          (error.message || "Something went wrong"),
+      );
       setIsLoading(false);
     }
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }}
+      style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
       onClick={handleBackgroundClick}
     >
-      <div 
+      <div
         className="bg-white w-full max-w-[530px] rounded-[10px] max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-8 text-center">
           {/* Header */}
           <div className="mb-6">
-            <h2 className="font-whitney font-black text-[32px] text-dark-blue uppercase" style={{ letterSpacing: '-0.02em' }}>
+            <h2
+              className="font-whitney font-black text-[32px] text-dark-blue uppercase"
+              style={{ letterSpacing: "-0.02em" }}
+            >
               SIGN UP / LOG IN
             </h2>
-            <p className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5] mt-2" style={{ letterSpacing: '-0.02em' }}>
+            <p
+              className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5] mt-2"
+              style={{ letterSpacing: "-0.02em" }}
+            >
               We'll email you as soon as your quote is ready
             </p>
           </div>
@@ -190,11 +218,13 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
 
           {/* Message Display */}
           {message && (
-            <div className={`mb-6 p-3 rounded-lg text-sm ${
-              message.includes('Error') || message.includes('error')
-                ? 'bg-red-50 text-red-600'
-                : 'bg-green-50 text-green-600'
-            }`}>
+            <div
+              className={`mb-6 p-3 rounded-lg text-sm ${
+                message.includes("Error") || message.includes("error")
+                  ? "bg-red-50 text-red-600"
+                  : "bg-green-50 text-green-600"
+              }`}
+            >
               {message}
             </div>
           )}
@@ -205,7 +235,7 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
             disabled={isLoading}
             className="w-full bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-6 py-4 rounded-full hover:bg-[#2f7ddd]/90 transition-colors mb-6 disabled:opacity-50"
           >
-            {isLoading ? 'Processing...' : 'Sign up / Log in'}
+            {isLoading ? "Processing..." : "Sign up / Log in"}
           </button>
 
           {/* Separator */}
@@ -214,7 +244,9 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
               <div className="w-full border-t border-gray-300"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500 font-geograph">or</span>
+              <span className="px-4 bg-white text-gray-500 font-geograph">
+                or
+              </span>
             </div>
           </div>
 
@@ -226,25 +258,16 @@ export default function LoginSignupModal({ isOpen, onClose, onSuccess }: LoginSi
               disabled={isLoading}
               className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-full py-4 px-6 hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
-              <img src="/images/google-icon.svg" alt="Google" className="w-5 h-5" />
+              <img
+                src="/images/google-icon.svg"
+                alt="Google"
+                className="w-5 h-5"
+              />
               <span className="font-geograph font-medium text-[16px] text-gray-700">
                 Continue with Google
               </span>
             </button>
-
-            {/* Facebook Button */}
-            <button
-              onClick={handleFacebookAuth}
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-full py-4 px-6 hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              <img src="/images/facebook-icon.svg" alt="Facebook" className="w-5 h-5" />
-              <span className="font-geograph font-medium text-[16px] text-gray-700">
-                Continue with Facebook
-              </span>
-            </button>
           </div>
-
         </div>
       </div>
     </div>
