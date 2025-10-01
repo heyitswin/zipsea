@@ -56,9 +56,22 @@ async function findDuplicates() {
     console.log('Top 10 duplicate groups:');
     console.log('─'.repeat(100));
     duplicates.slice(0, 10).forEach((dup: any) => {
-      // Convert PostgreSQL arrays to JavaScript arrays if needed
-      const cruiseIds = Array.isArray(dup.cruise_ids) ? dup.cruise_ids : JSON.parse(dup.cruise_ids);
-      const prices = Array.isArray(dup.prices) ? dup.prices : JSON.parse(dup.prices);
+      // Convert PostgreSQL arrays to JavaScript arrays
+      // PostgreSQL returns arrays as "{val1,val2}" string format
+      const parsePgArray = (val: any): any[] => {
+        if (Array.isArray(val)) return val;
+        if (!val) return [];
+        if (typeof val === 'string') {
+          // Remove outer braces and split by comma
+          const cleaned = val.replace(/^\{|\}$/g, '');
+          if (!cleaned) return [];
+          return cleaned.split(',');
+        }
+        return [];
+      };
+
+      const cruiseIds = parsePgArray(dup.cruise_ids);
+      const prices = parsePgArray(dup.prices);
 
       console.log(
         `Line: ${dup.cruise_line_id} | Ship: ${dup.ship_id} | Date: ${dup.sailing_date} | Voyage: ${dup.voyage_code_group}`
