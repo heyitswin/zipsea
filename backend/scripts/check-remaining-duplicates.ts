@@ -9,7 +9,7 @@ async function checkDuplicates() {
         cruise_line_id,
         ship_id,
         sailing_date,
-        voyage_code,
+        COALESCE(voyage_code, '') as voyage_code_group,
         COUNT(*) as duplicate_count,
         ARRAY_AGG(id ORDER BY updated_at DESC) as cruise_ids
       FROM cruises
@@ -24,7 +24,9 @@ async function checkDuplicates() {
     if (duplicates.length > 0) {
       console.log('Duplicate groups:');
       duplicates.forEach((dup: any) => {
-        console.log(`Line: ${dup.cruise_line_id}, Ship: ${dup.ship_id}, Date: ${dup.sailing_date}, Voyage: ${dup.voyage_code || 'NULL'}`);
+        console.log(
+          `Line: ${dup.cruise_line_id}, Ship: ${dup.ship_id}, Date: ${dup.sailing_date}, Voyage: ${dup.voyage_code_group || 'EMPTY'}`
+        );
         console.log(`  → ${dup.duplicate_count} duplicates: ${dup.cruise_ids}`);
         console.log('');
       });
