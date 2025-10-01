@@ -204,10 +204,11 @@ async function deduplicateGroup(group: any) {
   }
 
   // Delete the duplicate cruise records
-  const deleteResult = await db.execute(sql`
-    DELETE FROM cruises
-    WHERE id = ANY(ARRAY[${toDelete.map(id => `'${id}'`).join(',')}]::varchar[])
-  `);
+  // Build the IN clause manually since we need varchar casting
+  const idsToDelete = toDelete.map(id => `'${id}'::varchar`).join(',');
+  const deleteResult = await db.execute(
+    sql.raw(`DELETE FROM cruises WHERE id IN (${idsToDelete})`)
+  );
 
   console.log(`  ✓ Deleted ${toDelete.length} duplicates, updated ${totalUpdated} references`);
 
