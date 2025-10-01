@@ -2217,9 +2217,9 @@ export default function CruisesContent() {
             </div>
 
             {/* Filter Options */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            <div className="flex-1 overflow-y-auto p-4">
               {/* Cruise Lines */}
-              <div>
+              <div className="pb-6 border-b border-gray-200">
                 <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
                   Cruise Lines
                 </h3>
@@ -2278,7 +2278,7 @@ export default function CruisesContent() {
               </div>
 
               {/* Dates */}
-              <div>
+              <div className="py-6 border-b border-gray-200">
                 <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
                   Cruise Dates
                 </h3>
@@ -2331,7 +2331,7 @@ export default function CruisesContent() {
               </div>
 
               {/* Number of Nights */}
-              <div>
+              <div className="py-6 border-b border-gray-200">
                 <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
                   Number of Nights
                 </h3>
@@ -2360,7 +2360,7 @@ export default function CruisesContent() {
               </div>
 
               {/* Departure Ports */}
-              <div>
+              <div className="py-6 border-b border-gray-200">
                 <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
                   Departure Ports
                 </h3>
@@ -2418,7 +2418,7 @@ export default function CruisesContent() {
               </div>
 
               {/* Ships */}
-              <div>
+              <div className="py-6 border-b border-gray-200">
                 <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
                   Ships
                 </h3>
@@ -2471,7 +2471,7 @@ export default function CruisesContent() {
               </div>
 
               {/* Regions */}
-              <div>
+              <div className="pt-6">
                 <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
                   Regions
                 </h3>
