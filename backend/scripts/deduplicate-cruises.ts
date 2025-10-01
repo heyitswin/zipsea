@@ -38,14 +38,14 @@ async function findDuplicates() {
       cruise_line_id,
       ship_id,
       sailing_date,
-      COALESCE(voyage_code, 'NULL') as voyage_code_group,
+      COALESCE(voyage_code, '') as voyage_code_group,
       COUNT(*) as duplicate_count,
       ARRAY_AGG(id ORDER BY updated_at DESC) as cruise_ids,
       ARRAY_AGG(updated_at ORDER BY updated_at DESC) as update_times,
       ARRAY_AGG(cheapest_price ORDER BY updated_at DESC) as prices
     FROM cruises
     WHERE sailing_date >= CURRENT_DATE - INTERVAL '1 year'
-    GROUP BY cruise_line_id, ship_id, sailing_date, COALESCE(voyage_code, 'NULL')
+    GROUP BY cruise_line_id, ship_id, sailing_date, COALESCE(voyage_code, '')
     HAVING COUNT(*) > 1
     ORDER BY COUNT(*) DESC, sailing_date
   `);
