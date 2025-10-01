@@ -905,6 +905,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           )}
 
           {/* Additional cruise details can be added here */}
+
+          {/* Admin-Only Price History Chart */}
+          {!adminLoading && isAdmin && cruise?.id && (
+            <div className="mt-8">
+              <PriceHistoryChart cruiseId={cruise.id.toString()} />
+            </div>
+          )}
         </div>
       </div>
 
@@ -1356,15 +1363,6 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 );
               })}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Admin-Only Price History Chart */}
-      {!adminLoading && isAdmin && cruise?.id && (
-        <div className="bg-sand py-8 md:py-16">
-          <div className="max-w-7xl mx-auto px-4 md:px-6">
-            <PriceHistoryChart cruiseId={cruise.id.toString()} />
           </div>
         </div>
       )}
