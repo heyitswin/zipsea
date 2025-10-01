@@ -1,17 +1,17 @@
 import { eq, and, gte, lte, desc, asc, sql, inArray } from 'drizzle-orm';
 import { db } from '../db/connection';
 import { logger } from '../config/logger';
-import { 
-  pricing, 
-  cheapestPricing, 
-  priceHistory, 
+import {
+  pricing,
+  cheapestPricing,
+  priceHistory,
   priceTrends,
   type Pricing,
   type CheapestPricing,
   type NewPriceHistory,
   type NewPriceTrends,
   type PriceHistory,
-  type PriceTrends
+  type PriceTrends,
 } from '../db/schema';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -56,12 +56,11 @@ export interface HistoricalPriceQuery {
 }
 
 export class PriceHistoryService {
-  
   /**
    * Capture price snapshots before updating pricing data
    */
   async captureSnapshot(
-    cruiseId: number | string, 
+    cruiseId: number | string,
     changeReason: string = 'data_sync',
     batchId?: string
   ): Promise<string> {
@@ -69,63 +68,111 @@ export class PriceHistoryService {
       const snapshots: NewPriceHistory[] = [];
       const currentBatchId = batchId || uuidv4();
 
-      // Get current pricing data for the cruise
-      const currentPricing = await db
-        .select()
-        .from(pricing)
-        .where(eq(pricing.cruiseId, String(cruiseId)));
-
-      // Get current cheapest pricing
+      // Get current cheapest pricing data (this is where actual pricing exists)
       const currentCheapest = await db
         .select()
         .from(cheapestPricing)
         .where(eq(cheapestPricing.cruiseId, String(cruiseId)))
         .limit(1);
 
-      logger.info(`Capturing price snapshot for cruise ${cruiseId}, found ${currentPricing.length} pricing records`);
+      if (currentCheapest.length === 0) {
+        logger.info(`No cheapest pricing found for cruise ${cruiseId}, skipping snapshot`);
+        return currentBatchId;
+      }
 
-      // Create snapshots for all current pricing records
-      for (const priceRecord of currentPricing) {
-        const snapshot: NewPriceHistory = {
-          cruiseId: String(cruiseId),
-          rateCode: priceRecord.rateCode,
-          cabinCode: priceRecord.cabinCode,
-          occupancyCode: priceRecord.occupancyCode,
-          cabinType: priceRecord.cabinType,
-          basePrice: priceRecord.basePrice,
-          adultPrice: priceRecord.adultPrice,
-          childPrice: priceRecord.childPrice,
-          infantPrice: priceRecord.infantPrice,
-          singlePrice: priceRecord.singlePrice,
-          thirdAdultPrice: priceRecord.thirdAdultPrice,
-          fourthAdultPrice: priceRecord.fourthAdultPrice,
-          taxes: priceRecord.taxes,
-          ncf: priceRecord.ncf,
-          gratuity: priceRecord.gratuity,
-          fuel: priceRecord.fuel,
-          nonComm: priceRecord.nonComm,
-          portCharges: priceRecord.portCharges,
-          governmentFees: priceRecord.governmentFees,
-          totalPrice: priceRecord.totalPrice,
-          commission: priceRecord.commission,
-          isAvailable: priceRecord.isAvailable,
-          inventory: priceRecord.inventory,
-          waitlist: priceRecord.waitlist,
-          guarantee: priceRecord.guarantee,
-          priceType: priceRecord.priceType,
-          currency: priceRecord.currency,
-          changeType: 'update', // Will be updated after comparison
-          changeReason,
-          originalPricingId: priceRecord.id,
-          batchId: currentBatchId,
-        };
+      const cheapest = currentCheapest[0];
+      logger.info(`Capturing price snapshot for cruise ${cruiseId} from cheapest_pricing table`);
 
-        snapshots.push(snapshot);
+      // Create snapshots for each cabin category (interior, oceanview, balcony, suite)
+      const cabinCategories = [
+        {
+          cabinType: 'interior',
+          basePrice: cheapest.interiorPrice,
+          taxes: cheapest.interiorTaxes,
+          ncf: cheapest.interiorNcf,
+          gratuity: cheapest.interiorGratuity,
+          fuel: cheapest.interiorFuel,
+          nonComm: cheapest.interiorNonComm,
+          rateCode: cheapest.interiorPriceCode || 'INTERIOR',
+        },
+        {
+          cabinType: 'oceanview',
+          basePrice: cheapest.oceanviewPrice,
+          taxes: cheapest.oceanviewTaxes,
+          ncf: cheapest.oceanviewNcf,
+          gratuity: cheapest.oceanviewGratuity,
+          fuel: cheapest.oceanviewFuel,
+          nonComm: cheapest.oceanviewNonComm,
+          rateCode: cheapest.oceanviewPriceCode || 'OCEANVIEW',
+        },
+        {
+          cabinType: 'balcony',
+          basePrice: cheapest.balconyPrice,
+          taxes: cheapest.balconyTaxes,
+          ncf: cheapest.balconyNcf,
+          gratuity: cheapest.balconyGratuity,
+          fuel: cheapest.balconyFuel,
+          nonComm: cheapest.balconyNonComm,
+          rateCode: cheapest.balconyPriceCode || 'BALCONY',
+        },
+        {
+          cabinType: 'suite',
+          basePrice: cheapest.suitePrice,
+          taxes: cheapest.suiteTaxes,
+          ncf: cheapest.suiteNcf,
+          gratuity: cheapest.suiteGratuity,
+          fuel: cheapest.suiteFuel,
+          nonComm: cheapest.suiteNonComm,
+          rateCode: cheapest.suitePriceCode || 'SUITE',
+        },
+      ];
+
+      // Create snapshot for each cabin category that has pricing
+      for (const category of cabinCategories) {
+        if (category.basePrice) {
+          const snapshot: NewPriceHistory = {
+            cruiseId: String(cruiseId),
+            rateCode: category.rateCode,
+            cabinCode: category.cabinType.toUpperCase(),
+            occupancyCode: '2', // Cheapest pricing is typically based on double occupancy
+            cabinType: category.cabinType,
+            basePrice: category.basePrice,
+            adultPrice: category.basePrice, // For cheapest pricing, adult price = base price
+            childPrice: null,
+            infantPrice: null,
+            singlePrice: null,
+            thirdAdultPrice: null,
+            fourthAdultPrice: null,
+            taxes: category.taxes,
+            ncf: category.ncf,
+            gratuity: category.gratuity,
+            fuel: category.fuel,
+            nonComm: category.nonComm,
+            portCharges: null,
+            governmentFees: null,
+            totalPrice: null, // Can calculate if needed: basePrice + taxes + ncf + gratuity + fuel
+            commission: null,
+            isAvailable: true,
+            inventory: null,
+            waitlist: false,
+            guarantee: false,
+            priceType: 'static',
+            currency: cheapest.currency || 'USD',
+            changeType: 'update',
+            changeReason,
+            originalPricingId: cheapest.id,
+            batchId: currentBatchId,
+          };
+
+          snapshots.push(snapshot);
+        }
       }
 
       if (snapshots.length > 0) {
         await db.insert(priceHistory).values(snapshots);
         logger.info(`Created ${snapshots.length} price history snapshots for cruise ${cruiseId}`);
+      } else {
+        logger.info(`No cabin categories with pricing found for cruise ${cruiseId}`);
       }
 
       return currentBatchId;
@@ -139,18 +186,18 @@ export class PriceHistoryService {
    * Capture snapshots for multiple cruises in batch
    */
   async batchCaptureSnapshots(
-    cruiseIds: number[], 
+    cruiseIds: number[],
     changeReason: string = 'batch_sync'
   ): Promise<string> {
     const batchId = uuidv4();
-    
+
     try {
       logger.info(`Starting batch price snapshot capture for ${cruiseIds.length} cruises`);
-      
+
       for (const cruiseId of cruiseIds) {
         await this.captureSnapshot(cruiseId, changeReason, batchId);
       }
-      
+
       logger.info(`Completed batch price snapshot capture with batch ID: ${batchId}`);
       return batchId;
     } catch (error) {
@@ -192,12 +239,11 @@ export class PriceHistoryService {
           const prev = previousPrice[0];
           const currentPrice = parseFloat(snapshot.basePrice || '0');
           const prevPriceValue = parseFloat(prev.basePrice || '0');
-          
+
           if (currentPrice !== prevPriceValue) {
             const priceChange = currentPrice - prevPriceValue;
-            const priceChangePercent = prevPriceValue !== 0 
-              ? (priceChange / prevPriceValue) * 100 
-              : 0;
+            const priceChangePercent =
+              prevPriceValue !== 0 ? (priceChange / prevPriceValue) * 100 : 0;
 
             // Update the snapshot with change information
             await db
@@ -205,7 +251,7 @@ export class PriceHistoryService {
               .set({
                 priceChange: priceChange.toString(),
                 priceChangePercent: priceChangePercent.toString(),
-                changeType: priceChange === 0 ? 'update' : 'update'
+                changeType: priceChange === 0 ? 'update' : 'update',
               })
               .where(eq(priceHistory.id, snapshot.id));
           }
@@ -214,7 +260,7 @@ export class PriceHistoryService {
           await db
             .update(priceHistory)
             .set({
-              changeType: 'insert'
+              changeType: 'insert',
             })
             .where(eq(priceHistory.id, snapshot.id));
         }
@@ -311,7 +357,7 @@ export class PriceHistoryService {
         cabinCode,
         rateCode,
         startDate,
-        endDate
+        endDate,
       });
 
       if (priceHistoryData.length === 0) {
@@ -319,11 +365,11 @@ export class PriceHistoryService {
       }
 
       // Sort by date ascending
-      priceHistoryData.sort((a, b) => new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime());
+      priceHistoryData.sort(
+        (a, b) => new Date(a.snapshotDate).getTime() - new Date(b.snapshotDate).getTime()
+      );
 
-      const prices = priceHistoryData
-        .map(p => parseFloat(p.basePrice || '0'))
-        .filter(p => p > 0);
+      const prices = priceHistoryData.map(p => parseFloat(p.basePrice || '0')).filter(p => p > 0);
 
       if (prices.length === 0) {
         return null;
@@ -339,7 +385,8 @@ export class PriceHistoryService {
       const totalChangePercent = startPrice !== 0 ? (totalChange / startPrice) * 100 : 0;
 
       // Calculate volatility (standard deviation)
-      const variance = prices.reduce((sum, p) => sum + Math.pow(p - avgPrice, 2), 0) / prices.length;
+      const variance =
+        prices.reduce((sum, p) => sum + Math.pow(p - avgPrice, 2), 0) / prices.length;
       const volatility = Math.sqrt(variance);
 
       // Determine trend direction
@@ -365,7 +412,7 @@ export class PriceHistoryService {
         trendDirection,
         totalChange,
         totalChangePercent,
-        volatility
+        volatility,
       };
     } catch (error) {
       logger.error('Failed to generate trend analysis:', error);
@@ -387,9 +434,16 @@ export class PriceHistoryService {
         periodEnd: analysis.endDate,
         startPrice: analysis.priceHistory[0]?.basePrice || null,
         endPrice: analysis.priceHistory[analysis.priceHistory.length - 1]?.basePrice || null,
-        minPrice: Math.min(...analysis.priceHistory.map(p => parseFloat(p.basePrice || '0'))).toString(),
-        maxPrice: Math.max(...analysis.priceHistory.map(p => parseFloat(p.basePrice || '0'))).toString(),
-        avgPrice: (analysis.priceHistory.reduce((sum, p) => sum + parseFloat(p.basePrice || '0'), 0) / analysis.priceHistory.length).toString(),
+        minPrice: Math.min(
+          ...analysis.priceHistory.map(p => parseFloat(p.basePrice || '0'))
+        ).toString(),
+        maxPrice: Math.max(
+          ...analysis.priceHistory.map(p => parseFloat(p.basePrice || '0'))
+        ).toString(),
+        avgPrice: (
+          analysis.priceHistory.reduce((sum, p) => sum + parseFloat(p.basePrice || '0'), 0) /
+          analysis.priceHistory.length
+        ).toString(),
         totalChange: analysis.totalChange.toString(),
         totalChangePercent: analysis.totalChangePercent.toString(),
         priceVolatility: analysis.volatility.toString(),
@@ -398,7 +452,9 @@ export class PriceHistoryService {
       };
 
       await db.insert(priceTrends).values(trendRecord);
-      logger.info(`Stored price trend for cruise ${analysis.cruiseId}, cabin ${analysis.cabinCode}`);
+      logger.info(
+        `Stored price trend for cruise ${analysis.cruiseId}, cabin ${analysis.cabinCode}`
+      );
     } catch (error) {
       logger.error('Failed to store price trends:', error);
       throw error;
@@ -418,8 +474,10 @@ export class PriceHistoryService {
         .where(lte(priceHistory.snapshotDate, cutoffDate));
 
       const deletedCount = result.rowCount || 0;
-      logger.info(`Cleaned up ${deletedCount} old price history records older than ${retentionDays} days`);
-      
+      logger.info(
+        `Cleaned up ${deletedCount} old price history records older than ${retentionDays} days`
+      );
+
       return deletedCount;
     } catch (error) {
       logger.error('Failed to cleanup old price history:', error);
@@ -455,8 +513,10 @@ export class PriceHistoryService {
         decreasing: trends.filter(t => t.trendDirection === 'decreasing').length,
         stable: trends.filter(t => t.trendDirection === 'stable').length,
         volatile: trends.filter(t => t.trendDirection === 'volatile').length,
-        averageChange: trends.reduce((sum, t) => sum + parseFloat(t.totalChangePercent || '0'), 0) / trends.length,
-        recentTrends: trends.slice(0, 10)
+        averageChange:
+          trends.reduce((sum, t) => sum + parseFloat(t.totalChangePercent || '0'), 0) /
+          trends.length,
+        recentTrends: trends.slice(0, 10),
       };
 
       return summary;
