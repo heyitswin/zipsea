@@ -1680,20 +1680,6 @@ export class WebhookProcessorOptimizedV2 {
         cheapestData.balconyPrice ||
         cheapestData.suitePrice
       ) {
-        // Capture price snapshot BEFORE updating (for historical tracking)
-        try {
-          const batchId = await priceHistoryService.captureSnapshot(cruiseId, 'webhook_update');
-          console.log(
-            `[OPTIMIZED-V2] Captured price snapshot for cruise ${cruiseId}, batch: ${batchId}`
-          );
-        } catch (snapshotError) {
-          console.error(
-            `[OPTIMIZED-V2] Failed to capture price snapshot for cruise ${cruiseId}:`,
-            snapshotError
-          );
-          // Don't fail the entire update if snapshot fails
-        }
-
         // Get existing raw_json first
         const existingCruise = await db
           .select({ rawData: cruises.rawData })
@@ -1829,25 +1815,23 @@ export class WebhookProcessorOptimizedV2 {
 
         console.log(`[OPTIMIZED-V2] Updated cheapest_pricing for cruise ${cruiseId}`);
 
-        // Calculate price changes AFTER updating (for historical tracking)
+        // Capture price snapshot AFTER updating (for historical tracking)
+        // This ensures the cruise exists in the database before creating the snapshot
         try {
-          // Get the batch ID from the earlier snapshot capture
-          // We'll use the most recent batch for this cruise
-          const recentSnapshots = await priceHistoryService.getHistoricalPrices({
-            cruiseId: cruiseId,
-            limit: 1,
-          });
-
-          if (recentSnapshots.length > 0 && recentSnapshots[0].batchId) {
-            await priceHistoryService.calculatePriceChanges(recentSnapshots[0].batchId);
-            console.log(`[OPTIMIZED-V2] Calculated price changes for cruise ${cruiseId}`);
-          }
-        } catch (changeError) {
-          console.error(
-            `[OPTIMIZED-V2] Failed to calculate price changes for cruise ${cruiseId}:`,
-            changeError
+          const batchId = await priceHistoryService.captureSnapshot(cruiseId, 'webhook_update');
+          console.log(
+            `[OPTIMIZED-V2] Captured price snapshot for cruise ${cruiseId}, batch: ${batchId}`
           );
-          // Don't fail the entire update if price change calculation fails
+
+          // Calculate price changes for this batch
+          await priceHistoryService.calculatePriceChanges(batchId);
+          console.log(`[OPTIMIZED-V2] Calculated price changes for cruise ${cruiseId}`);
+        } catch (snapshotError) {
+          console.error(
+            `[OPTIMIZED-V2] Failed to capture price snapshot for cruise ${cruiseId}:`,
+            snapshotError
+          );
+          // Don't fail the entire update if snapshot fails
         }
       }
     } catch (error) {
