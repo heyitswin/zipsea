@@ -11,11 +11,11 @@ async function runMigration() {
     `;
     console.log('✅ Unique index created');
 
-    // Create performance indexes
+    // Create performance index for sailing dates
+    // Note: Can't use CURRENT_DATE in partial index, so create a regular index instead
     await sql`
-      CREATE INDEX IF NOT EXISTS idx_cruises_sailing_date_future
+      CREATE INDEX IF NOT EXISTS idx_cruises_sailing_date
       ON cruises (sailing_date)
-      WHERE sailing_date >= CURRENT_DATE
     `;
     console.log('✅ Sailing date index created');
 
