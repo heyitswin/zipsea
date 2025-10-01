@@ -2283,50 +2283,71 @@ export default function CruisesContent() {
                   Cruise Dates
                 </h3>
                 <div className="space-y-4">
-                  {["2025", "2026", "2027"].map((year) => (
-                    <div key={year}>
-                      <div className="font-geograph font-bold text-[12px] text-gray-600 mb-2">
-                        {year}
+                  {["2025", "2026", "2027"].map((year) => {
+                    const currentDate = new Date();
+                    const currentYear = currentDate.getFullYear();
+                    const currentMonth = currentDate.getMonth();
+
+                    return (
+                      <div key={year}>
+                        <div className="font-geograph font-bold text-[12px] text-gray-600 mb-2">
+                          {year}
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            "Jan",
+                            "Feb",
+                            "Mar",
+                            "Apr",
+                            "May",
+                            "Jun",
+                            "Jul",
+                            "Aug",
+                            "Sep",
+                            "Oct",
+                            "Nov",
+                            "Dec",
+                          ].map((month, idx) => {
+                            const monthKey = `${year}-${String(idx + 1).padStart(2, "0")}`;
+                            const isSelected =
+                              selectedMonths.includes(monthKey);
+
+                            // Check if month is in the past
+                            const isPast =
+                              parseInt(year) < currentYear ||
+                              (parseInt(year) === currentYear &&
+                                idx < currentMonth);
+
+                            return (
+                              <button
+                                key={monthKey}
+                                onClick={() => {
+                                  if (!isPast) {
+                                    const newSelection = isSelected
+                                      ? selectedMonths.filter(
+                                          (m) => m !== monthKey,
+                                        )
+                                      : [...selectedMonths, monthKey];
+                                    setSelectedMonths(newSelection);
+                                  }
+                                }}
+                                disabled={isPast}
+                                className={`py-2 px-3 rounded-lg text-[14px] font-geograph ${
+                                  isPast
+                                    ? "bg-gray-50 text-gray-300 cursor-not-allowed"
+                                    : isSelected
+                                      ? "bg-[#0E1B4D] text-white"
+                                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                }`}
+                              >
+                                {month}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          "Jan",
-                          "Feb",
-                          "Mar",
-                          "Apr",
-                          "May",
-                          "Jun",
-                          "Jul",
-                          "Aug",
-                          "Sep",
-                          "Oct",
-                          "Nov",
-                          "Dec",
-                        ].map((month, idx) => {
-                          const monthKey = `${year}-${String(idx + 1).padStart(2, "0")}`;
-                          const isSelected = selectedMonths.includes(monthKey);
-                          return (
-                            <button
-                              key={monthKey}
-                              onClick={() => {
-                                const newSelection = isSelected
-                                  ? selectedMonths.filter((m) => m !== monthKey)
-                                  : [...selectedMonths, monthKey];
-                                setSelectedMonths(newSelection);
-                              }}
-                              className={`py-2 px-3 rounded-lg text-[14px] font-geograph ${
-                                isSelected
-                                  ? "bg-[#0E1B4D] text-white"
-                                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                              }`}
-                            >
-                              {month}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
