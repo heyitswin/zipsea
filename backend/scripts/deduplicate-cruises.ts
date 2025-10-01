@@ -141,10 +141,19 @@ async function checkForeignKeyReferences(cruiseId) {
 }
 
 async function deduplicateGroup(group: any) {
-  // Convert PostgreSQL arrays to JavaScript arrays if needed
-  const cruiseIds = Array.isArray(group.cruise_ids)
-    ? group.cruise_ids
-    : JSON.parse(group.cruise_ids);
+  // Convert PostgreSQL arrays to JavaScript arrays
+  const parsePgArray = (val: any): any[] => {
+    if (Array.isArray(val)) return val;
+    if (!val) return [];
+    if (typeof val === 'string') {
+      const cleaned = val.replace(/^\{|\}$/g, '');
+      if (!cleaned) return [];
+      return cleaned.split(',');
+    }
+    return [];
+  };
+
+  const cruiseIds = parsePgArray(group.cruise_ids);
   const keeperId = cruiseIds[0]; // Most recently updated
   const toDelete = cruiseIds.slice(1); // All others
 
