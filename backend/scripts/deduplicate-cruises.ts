@@ -127,17 +127,15 @@ async function getDuplicateStats() {
 
 async function checkForeignKeyReferences(cruiseId: string) {
   // Check all tables that reference cruises
-  // Using CAST to ensure proper type comparison
+  // Using explicit string literal in WHERE clause
   const checks = await Promise.all([
     db.execute(
       sql.raw(
-        `SELECT COUNT(*) as count FROM cheapest_pricing WHERE cruise_id = CAST('${cruiseId}' AS varchar)`
+        `SELECT COUNT(*) as count FROM cheapest_pricing WHERE cruise_id::text = '${cruiseId}'`
       )
     ),
     db.execute(
-      sql.raw(
-        `SELECT COUNT(*) as count FROM price_snapshots WHERE cruise_id = CAST('${cruiseId}' AS varchar)`
-      )
+      sql.raw(`SELECT COUNT(*) as count FROM price_snapshots WHERE cruise_id::text = '${cruiseId}'`)
     ),
   ]);
 
@@ -187,17 +185,17 @@ async function deduplicateGroup(group: any) {
     // Delete cheapest_pricing for duplicate since keeper already has one
     // (Attempting to UPDATE would violate unique constraint if keeper has a record)
     await db.execute(
-      sql.raw(`DELETE FROM cheapest_pricing WHERE cruise_id = CAST('${duplicateId}' AS varchar)`)
+      sql.raw(`DELETE FROM cheapest_pricing WHERE cruise_id::text = '${duplicateId}'`)
     );
 
     await db.execute(
       sql.raw(`
         UPDATE price_snapshots
-        SET cruise_id = CAST('${keeperId}' AS varchar)
-        WHERE cruise_id = CAST('${duplicateId}' AS varchar)
+        SET cruise_id = '${keeperId}'
+        WHERE cruise_id::text = '${duplicateId}'
         AND NOT EXISTS (
           SELECT 1 FROM price_snapshots
-          WHERE cruise_id = CAST('${keeperId}' AS varchar)
+          WHERE cruise_id::text = '${keeperId}'
           AND created_at = price_snapshots.created_at
         )
       `)
@@ -210,10 +208,10 @@ async function deduplicateGroup(group: any) {
   }
 
   // Delete the duplicate cruise records
-  // Build the IN clause manually since we need varchar casting
-  const idsToDelete = toDelete.map(id => `'${id}'::varchar`).join(',');
+  // Build the IN clause manually
+  const idsToDelete = toDelete.map(id => `'${id}'`).join(',');
   const deleteResult = await db.execute(
-    sql.raw(`DELETE FROM cruises WHERE id IN (${idsToDelete})`)
+    sql.raw(`DELETE FROM cruises WHERE id::text IN (${idsToDelete})`)
   );
 
   console.log(`  ✓ Deleted ${toDelete.length} duplicates, updated ${totalUpdated} references`);
