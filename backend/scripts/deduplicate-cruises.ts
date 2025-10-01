@@ -128,8 +128,12 @@ async function getDuplicateStats() {
 async function checkForeignKeyReferences(cruiseId: string) {
   // Check all tables that reference cruises
   const checks = await Promise.all([
-    db.execute(sql`SELECT COUNT(*) as count FROM cheapest_pricing WHERE cruise_id = ${cruiseId}`),
-    db.execute(sql`SELECT COUNT(*) as count FROM price_snapshots WHERE cruise_id = ${cruiseId}`),
+    db.execute(
+      sql`SELECT COUNT(*) as count FROM cheapest_pricing WHERE cruise_id = ${cruiseId}::varchar`
+    ),
+    db.execute(
+      sql`SELECT COUNT(*) as count FROM price_snapshots WHERE cruise_id = ${cruiseId}::varchar`
+    ),
   ]);
 
   return {
