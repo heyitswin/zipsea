@@ -138,6 +138,12 @@ export default function CruisesContent() {
   const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
 
+  // Search states for filter dropdowns
+  const [cruiseLineSearch, setCruiseLineSearch] = useState("");
+  const [shipSearch, setShipSearch] = useState("");
+  const [departurePortSearch, setDeparturePortSearch] = useState("");
+  const [regionSearch, setRegionSearch] = useState("");
+
   // Filter options from API
   const [cruiseLines, setCruiseLines] = useState<FilterOption[]>([]);
   const [departurePorts, setDeparturePorts] = useState<FilterOption[]>([]);
@@ -833,61 +839,91 @@ export default function CruisesContent() {
             </button>
 
             {isCruiseLineDropdownOpen && (
-              <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-[#d9d9d9] z-50">
-                {cruiseLines.map((line) => (
-                  <button
-                    key={line.id}
-                    onClick={() => {
-                      const lineId = line.id as number;
-                      // Read current selection from actual URL to avoid stale closures
-                      const urlParams = new URLSearchParams(
-                        window.location.search,
-                      );
-                      const currentParam = urlParams.get("cruiseLines");
-                      const currentLines = currentParam
-                        ? currentParam
-                            .split(",")
-                            .map(Number)
-                            .filter((n) => !isNaN(n))
-                        : [];
-                      const newSelection = currentLines.includes(lineId)
-                        ? currentLines.filter((id) => id !== lineId)
-                        : [...currentLines, lineId];
-                      // Only update URL, let useEffect sync state
-                      updateURLParams({
-                        cruiseLines:
-                          newSelection.length > 0 ? newSelection : null,
-                        page: 1,
-                      });
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
-                  >
-                    <div
-                      className={`w-4 h-4 border rounded ${
-                        selectedCruiseLines.includes(line.id as number)
-                          ? "bg-[#0E1B4D] border-[#0E1B4D]"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      {selectedCruiseLines.includes(line.id as number) && (
-                        <svg
-                          className="w-full h-full text-white"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
+              <div className="absolute top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-[#d9d9d9] z-50 flex flex-col max-h-96">
+                {/* Search Input - Sticky */}
+                <div className="sticky top-0 bg-white p-3 border-b border-gray-200 z-10">
+                  <div className="relative">
+                    <Image
+                      src="/images/search.svg"
+                      alt="Search"
+                      width={16}
+                      height={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40"
+                    />
+                    <input
+                      type="text"
+                      value={cruiseLineSearch}
+                      onChange={(e) => setCruiseLineSearch(e.target.value)}
+                      placeholder="Search cruise lines..."
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                </div>
+
+                {/* Scrollable Options */}
+                <div className="overflow-y-auto flex-1">
+                  {cruiseLines
+                    .filter((line) =>
+                      line.name
+                        .toLowerCase()
+                        .includes(cruiseLineSearch.toLowerCase()),
+                    )
+                    .map((line) => (
+                      <button
+                        key={line.id}
+                        onClick={() => {
+                          const lineId = line.id as number;
+                          // Read current selection from actual URL to avoid stale closures
+                          const urlParams = new URLSearchParams(
+                            window.location.search,
+                          );
+                          const currentParam = urlParams.get("cruiseLines");
+                          const currentLines = currentParam
+                            ? currentParam
+                                .split(",")
+                                .map(Number)
+                                .filter((n) => !isNaN(n))
+                            : [];
+                          const newSelection = currentLines.includes(lineId)
+                            ? currentLines.filter((id) => id !== lineId)
+                            : [...currentLines, lineId];
+                          // Only update URL, let useEffect sync state
+                          updateURLParams({
+                            cruiseLines:
+                              newSelection.length > 0 ? newSelection : null,
+                            page: 1,
+                          });
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                      >
+                        <div
+                          className={`w-4 h-4 border rounded ${
+                            selectedCruiseLines.includes(line.id as number)
+                              ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                              : "border-gray-300"
+                          }`}
                         >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="font-geograph text-[16px] text-dark-blue">
-                      {line.name}
-                    </div>
-                  </button>
-                ))}
+                          {selectedCruiseLines.includes(line.id as number) && (
+                            <svg
+                              className="w-full h-full text-white"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="font-geograph text-[16px] text-dark-blue">
+                          {line.name}
+                        </div>
+                      </button>
+                    ))}
+                </div>
               </div>
             )}
           </div>
@@ -1093,60 +1129,93 @@ export default function CruisesContent() {
             </button>
 
             {isDeparturePortDropdownOpen && (
-              <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-[#d9d9d9] z-50">
-                {departurePorts.map((port) => (
-                  <button
-                    key={port.id}
-                    onClick={() => {
-                      const portId = port.id as number;
-                      // Read current selection from actual URL to avoid stale closures
-                      const urlParams = new URLSearchParams(
-                        window.location.search,
-                      );
-                      const currentParam = urlParams.get("ports");
-                      const currentPorts = currentParam
-                        ? currentParam
-                            .split(",")
-                            .map(Number)
-                            .filter((n) => !isNaN(n))
-                        : [];
-                      const newSelection = currentPorts.includes(portId)
-                        ? currentPorts.filter((id) => id !== portId)
-                        : [...currentPorts, portId];
-                      // Only update URL, let useEffect sync state
-                      updateURLParams({
-                        ports: newSelection.length > 0 ? newSelection : null,
-                        page: 1,
-                      });
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
-                  >
-                    <div
-                      className={`w-4 h-4 border rounded ${
-                        selectedDeparturePorts.includes(port.id as number)
-                          ? "bg-[#0E1B4D] border-[#0E1B4D]"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      {selectedDeparturePorts.includes(port.id as number) && (
-                        <svg
-                          className="w-full h-full text-white"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
+              <div className="absolute top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-[#d9d9d9] z-50 flex flex-col max-h-96">
+                {/* Search Input - Sticky */}
+                <div className="sticky top-0 bg-white p-3 border-b border-gray-200 z-10">
+                  <div className="relative">
+                    <Image
+                      src="/images/search.svg"
+                      alt="Search"
+                      width={16}
+                      height={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40"
+                    />
+                    <input
+                      type="text"
+                      value={departurePortSearch}
+                      onChange={(e) => setDeparturePortSearch(e.target.value)}
+                      placeholder="Search ports..."
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                </div>
+
+                {/* Scrollable Options */}
+                <div className="overflow-y-auto flex-1">
+                  {departurePorts
+                    .filter((port) =>
+                      port.name
+                        .toLowerCase()
+                        .includes(departurePortSearch.toLowerCase()),
+                    )
+                    .map((port) => (
+                      <button
+                        key={port.id}
+                        onClick={() => {
+                          const portId = port.id as number;
+                          // Read current selection from actual URL to avoid stale closures
+                          const urlParams = new URLSearchParams(
+                            window.location.search,
+                          );
+                          const currentParam = urlParams.get("ports");
+                          const currentPorts = currentParam
+                            ? currentParam
+                                .split(",")
+                                .map(Number)
+                                .filter((n) => !isNaN(n))
+                            : [];
+                          const newSelection = currentPorts.includes(portId)
+                            ? currentPorts.filter((id) => id !== portId)
+                            : [...currentPorts, portId];
+                          // Only update URL, let useEffect sync state
+                          updateURLParams({
+                            ports:
+                              newSelection.length > 0 ? newSelection : null,
+                            page: 1,
+                          });
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                      >
+                        <div
+                          className={`w-4 h-4 border rounded ${
+                            selectedDeparturePorts.includes(port.id as number)
+                              ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                              : "border-gray-300"
+                          }`}
                         >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="font-geograph text-[16px] text-dark-blue">
-                      {port.name}
-                    </div>
-                  </button>
-                ))}
+                          {selectedDeparturePorts.includes(
+                            port.id as number,
+                          ) && (
+                            <svg
+                              className="w-full h-full text-white"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="font-geograph text-[16px] text-dark-blue">
+                          {port.name}
+                        </div>
+                      </button>
+                    ))}
+                </div>
               </div>
             )}
           </div>
@@ -1169,60 +1238,91 @@ export default function CruisesContent() {
             </button>
 
             {isShipDropdownOpen && (
-              <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-[#d9d9d9] z-50">
-                {ships.map((ship) => (
-                  <button
-                    key={ship.id}
-                    onClick={() => {
-                      const shipId = ship.id as number;
-                      // Read current selection from actual URL to avoid stale closures
-                      const urlParams = new URLSearchParams(
-                        window.location.search,
-                      );
-                      const currentParam = urlParams.get("ships");
-                      const currentShips = currentParam
-                        ? currentParam
-                            .split(",")
-                            .map(Number)
-                            .filter((n) => !isNaN(n))
-                        : [];
-                      const newSelection = currentShips.includes(shipId)
-                        ? currentShips.filter((id) => id !== shipId)
-                        : [...currentShips, shipId];
-                      // Only update URL, let useEffect sync state
-                      updateURLParams({
-                        ships: newSelection.length > 0 ? newSelection : null,
-                        page: 1,
-                      });
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
-                  >
-                    <div
-                      className={`w-4 h-4 border rounded ${
-                        selectedShips.includes(ship.id as number)
-                          ? "bg-[#0E1B4D] border-[#0E1B4D]"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      {selectedShips.includes(ship.id as number) && (
-                        <svg
-                          className="w-full h-full text-white"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
+              <div className="absolute top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-[#d9d9d9] z-50 flex flex-col max-h-96">
+                {/* Search Input - Sticky */}
+                <div className="sticky top-0 bg-white p-3 border-b border-gray-200 z-10">
+                  <div className="relative">
+                    <Image
+                      src="/images/search.svg"
+                      alt="Search"
+                      width={16}
+                      height={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40"
+                    />
+                    <input
+                      type="text"
+                      value={shipSearch}
+                      onChange={(e) => setShipSearch(e.target.value)}
+                      placeholder="Search ships..."
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                </div>
+
+                {/* Scrollable Options */}
+                <div className="overflow-y-auto flex-1">
+                  {ships
+                    .filter((ship) =>
+                      ship.name
+                        .toLowerCase()
+                        .includes(shipSearch.toLowerCase()),
+                    )
+                    .map((ship) => (
+                      <button
+                        key={ship.id}
+                        onClick={() => {
+                          const shipId = ship.id as number;
+                          // Read current selection from actual URL to avoid stale closures
+                          const urlParams = new URLSearchParams(
+                            window.location.search,
+                          );
+                          const currentParam = urlParams.get("ships");
+                          const currentShips = currentParam
+                            ? currentParam
+                                .split(",")
+                                .map(Number)
+                                .filter((n) => !isNaN(n))
+                            : [];
+                          const newSelection = currentShips.includes(shipId)
+                            ? currentShips.filter((id) => id !== shipId)
+                            : [...currentShips, shipId];
+                          // Only update URL, let useEffect sync state
+                          updateURLParams({
+                            ships:
+                              newSelection.length > 0 ? newSelection : null,
+                            page: 1,
+                          });
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                      >
+                        <div
+                          className={`w-4 h-4 border rounded ${
+                            selectedShips.includes(ship.id as number)
+                              ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                              : "border-gray-300"
+                          }`}
                         >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="font-geograph text-[16px] text-dark-blue">
-                      {ship.name}
-                    </div>
-                  </button>
-                ))}
+                          {selectedShips.includes(ship.id as number) && (
+                            <svg
+                              className="w-full h-full text-white"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="font-geograph text-[16px] text-dark-blue">
+                          {ship.name}
+                        </div>
+                      </button>
+                    ))}
+                </div>
               </div>
             )}
           </div>
@@ -1245,60 +1345,91 @@ export default function CruisesContent() {
             </button>
 
             {isRegionDropdownOpen && (
-              <div className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-[#d9d9d9] z-50">
-                {regions.map((region) => (
-                  <button
-                    key={region.id}
-                    onClick={() => {
-                      const regionId = region.id as number;
-                      // Read current selection from actual URL to avoid stale closures
-                      const urlParams = new URLSearchParams(
-                        window.location.search,
-                      );
-                      const currentParam = urlParams.get("regions");
-                      const currentRegions = currentParam
-                        ? currentParam
-                            .split(",")
-                            .map(Number)
-                            .filter((n) => !isNaN(n))
-                        : [];
-                      const newSelection = currentRegions.includes(regionId)
-                        ? currentRegions.filter((id) => id !== regionId)
-                        : [...currentRegions, regionId];
-                      // Only update URL, let useEffect sync state
-                      updateURLParams({
-                        regions: newSelection.length > 0 ? newSelection : null,
-                        page: 1,
-                      });
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
-                  >
-                    <div
-                      className={`w-4 h-4 border rounded ${
-                        selectedRegions.includes(region.id as number)
-                          ? "bg-[#0E1B4D] border-[#0E1B4D]"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      {selectedRegions.includes(region.id as number) && (
-                        <svg
-                          className="w-full h-full text-white"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
+              <div className="absolute top-full mt-2 w-64 bg-white rounded-lg shadow-lg border border-[#d9d9d9] z-50 flex flex-col max-h-96">
+                {/* Search Input - Sticky */}
+                <div className="sticky top-0 bg-white p-3 border-b border-gray-200 z-10">
+                  <div className="relative">
+                    <Image
+                      src="/images/search.svg"
+                      alt="Search"
+                      width={16}
+                      height={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40"
+                    />
+                    <input
+                      type="text"
+                      value={regionSearch}
+                      onChange={(e) => setRegionSearch(e.target.value)}
+                      placeholder="Search regions..."
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                </div>
+
+                {/* Scrollable Options */}
+                <div className="overflow-y-auto flex-1">
+                  {regions
+                    .filter((region) =>
+                      region.name
+                        .toLowerCase()
+                        .includes(regionSearch.toLowerCase()),
+                    )
+                    .map((region) => (
+                      <button
+                        key={region.id}
+                        onClick={() => {
+                          const regionId = region.id as number;
+                          // Read current selection from actual URL to avoid stale closures
+                          const urlParams = new URLSearchParams(
+                            window.location.search,
+                          );
+                          const currentParam = urlParams.get("regions");
+                          const currentRegions = currentParam
+                            ? currentParam
+                                .split(",")
+                                .map(Number)
+                                .filter((n) => !isNaN(n))
+                            : [];
+                          const newSelection = currentRegions.includes(regionId)
+                            ? currentRegions.filter((id) => id !== regionId)
+                            : [...currentRegions, regionId];
+                          // Only update URL, let useEffect sync state
+                          updateURLParams({
+                            regions:
+                              newSelection.length > 0 ? newSelection : null,
+                            page: 1,
+                          });
+                        }}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                      >
+                        <div
+                          className={`w-4 h-4 border rounded ${
+                            selectedRegions.includes(region.id as number)
+                              ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                              : "border-gray-300"
+                          }`}
                         >
-                          <path
-                            fillRule="evenodd"
-                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      )}
-                    </div>
-                    <div className="font-geograph text-[16px] text-dark-blue">
-                      {region.name}
-                    </div>
-                  </button>
-                ))}
+                          {selectedRegions.includes(region.id as number) && (
+                            <svg
+                              className="w-full h-full text-white"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <div className="font-geograph text-[16px] text-dark-blue">
+                          {region.name}
+                        </div>
+                      </button>
+                    ))}
+                </div>
               </div>
             )}
           </div>
@@ -2092,30 +2223,57 @@ export default function CruisesContent() {
                 <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
                   Cruise Lines
                 </h3>
+                {/* Search Input */}
+                <div className="mb-3">
+                  <div className="relative">
+                    <Image
+                      src="/images/search.svg"
+                      alt="Search"
+                      width={16}
+                      height={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40"
+                    />
+                    <input
+                      type="text"
+                      value={cruiseLineSearch}
+                      onChange={(e) => setCruiseLineSearch(e.target.value)}
+                      placeholder="Search cruise lines..."
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
-                  {cruiseLines.map((line) => (
-                    <label key={line.id} className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedCruiseLines.includes(
-                          line.id as number,
-                        )}
-                        onChange={() => {
-                          const lineId = line.id as number;
-                          const newSelection = selectedCruiseLines.includes(
-                            lineId,
-                          )
-                            ? selectedCruiseLines.filter((id) => id !== lineId)
-                            : [...selectedCruiseLines, lineId];
-                          setSelectedCruiseLines(newSelection);
-                        }}
-                        className="w-4 h-4"
-                      />
-                      <span className="font-geograph text-[16px]">
-                        {line.name}
-                      </span>
-                    </label>
-                  ))}
+                  {cruiseLines
+                    .filter((line) =>
+                      line.name
+                        .toLowerCase()
+                        .includes(cruiseLineSearch.toLowerCase()),
+                    )
+                    .map((line) => (
+                      <label key={line.id} className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedCruiseLines.includes(
+                            line.id as number,
+                          )}
+                          onChange={() => {
+                            const lineId = line.id as number;
+                            const newSelection = selectedCruiseLines.includes(
+                              lineId,
+                            )
+                              ? selectedCruiseLines.filter(
+                                  (id) => id !== lineId,
+                                )
+                              : [...selectedCruiseLines, lineId];
+                            setSelectedCruiseLines(newSelection);
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="font-geograph text-[16px]">
+                          {line.name}
+                        </span>
+                      </label>
+                    ))}
                 </div>
               </div>
 
@@ -2206,32 +2364,56 @@ export default function CruisesContent() {
                 <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
                   Departure Ports
                 </h3>
+                {/* Search Input */}
+                <div className="mb-3">
+                  <div className="relative">
+                    <Image
+                      src="/images/search.svg"
+                      alt="Search"
+                      width={16}
+                      height={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40"
+                    />
+                    <input
+                      type="text"
+                      value={departurePortSearch}
+                      onChange={(e) => setDeparturePortSearch(e.target.value)}
+                      placeholder="Search ports..."
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
-                  {departurePorts.map((port) => (
-                    <label key={port.id} className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedDeparturePorts.includes(
-                          port.id as number,
-                        )}
-                        onChange={() => {
-                          const portId = port.id as number;
-                          const newSelection = selectedDeparturePorts.includes(
-                            portId,
-                          )
-                            ? selectedDeparturePorts.filter(
-                                (id) => id !== portId,
-                              )
-                            : [...selectedDeparturePorts, portId];
-                          setSelectedDeparturePorts(newSelection);
-                        }}
-                        className="w-4 h-4"
-                      />
-                      <span className="font-geograph text-[16px]">
-                        {port.name}
-                      </span>
-                    </label>
-                  ))}
+                  {departurePorts
+                    .filter((port) =>
+                      port.name
+                        .toLowerCase()
+                        .includes(departurePortSearch.toLowerCase()),
+                    )
+                    .map((port) => (
+                      <label key={port.id} className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedDeparturePorts.includes(
+                            port.id as number,
+                          )}
+                          onChange={() => {
+                            const portId = port.id as number;
+                            const newSelection =
+                              selectedDeparturePorts.includes(portId)
+                                ? selectedDeparturePorts.filter(
+                                    (id) => id !== portId,
+                                  )
+                                : [...selectedDeparturePorts, portId];
+                            setSelectedDeparturePorts(newSelection);
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="font-geograph text-[16px]">
+                          {port.name}
+                        </span>
+                      </label>
+                    ))}
                 </div>
               </div>
 
@@ -2240,26 +2422,51 @@ export default function CruisesContent() {
                 <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
                   Ships
                 </h3>
+                {/* Search Input */}
+                <div className="mb-3">
+                  <div className="relative">
+                    <Image
+                      src="/images/search.svg"
+                      alt="Search"
+                      width={16}
+                      height={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40"
+                    />
+                    <input
+                      type="text"
+                      value={shipSearch}
+                      onChange={(e) => setShipSearch(e.target.value)}
+                      placeholder="Search ships..."
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
-                  {ships.map((ship) => (
-                    <label key={ship.id} className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedShips.includes(ship.id as number)}
-                        onChange={() => {
-                          const shipId = ship.id as number;
-                          const newSelection = selectedShips.includes(shipId)
-                            ? selectedShips.filter((id) => id !== shipId)
-                            : [...selectedShips, shipId];
-                          setSelectedShips(newSelection);
-                        }}
-                        className="w-4 h-4"
-                      />
-                      <span className="font-geograph text-[16px]">
-                        {ship.name}
-                      </span>
-                    </label>
-                  ))}
+                  {ships
+                    .filter((ship) =>
+                      ship.name
+                        .toLowerCase()
+                        .includes(shipSearch.toLowerCase()),
+                    )
+                    .map((ship) => (
+                      <label key={ship.id} className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedShips.includes(ship.id as number)}
+                          onChange={() => {
+                            const shipId = ship.id as number;
+                            const newSelection = selectedShips.includes(shipId)
+                              ? selectedShips.filter((id) => id !== shipId)
+                              : [...selectedShips, shipId];
+                            setSelectedShips(newSelection);
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="font-geograph text-[16px]">
+                          {ship.name}
+                        </span>
+                      </label>
+                    ))}
                 </div>
               </div>
 
@@ -2268,28 +2475,58 @@ export default function CruisesContent() {
                 <h3 className="font-geograph font-bold text-[14px] text-gray-700 uppercase mb-3">
                   Regions
                 </h3>
+                {/* Search Input */}
+                <div className="mb-3">
+                  <div className="relative">
+                    <Image
+                      src="/images/search.svg"
+                      alt="Search"
+                      width={16}
+                      height={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 opacity-40"
+                    />
+                    <input
+                      type="text"
+                      value={regionSearch}
+                      onChange={(e) => setRegionSearch(e.target.value)}
+                      placeholder="Search regions..."
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
-                  {regions.map((region) => (
-                    <label key={region.id} className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedRegions.includes(region.id as number)}
-                        onChange={() => {
-                          const regionId = region.id as number;
-                          const newSelection = selectedRegions.includes(
-                            regionId,
-                          )
-                            ? selectedRegions.filter((id) => id !== regionId)
-                            : [...selectedRegions, regionId];
-                          setSelectedRegions(newSelection);
-                        }}
-                        className="w-4 h-4"
-                      />
-                      <span className="font-geograph text-[16px]">
-                        {region.name}
-                      </span>
-                    </label>
-                  ))}
+                  {regions
+                    .filter((region) =>
+                      region.name
+                        .toLowerCase()
+                        .includes(regionSearch.toLowerCase()),
+                    )
+                    .map((region) => (
+                      <label
+                        key={region.id}
+                        className="flex items-center gap-3"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedRegions.includes(
+                            region.id as number,
+                          )}
+                          onChange={() => {
+                            const regionId = region.id as number;
+                            const newSelection = selectedRegions.includes(
+                              regionId,
+                            )
+                              ? selectedRegions.filter((id) => id !== regionId)
+                              : [...selectedRegions, regionId];
+                            setSelectedRegions(newSelection);
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="font-geograph text-[16px]">
+                          {region.name}
+                        </span>
+                      </label>
+                    ))}
                 </div>
               </div>
             </div>
