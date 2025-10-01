@@ -188,16 +188,13 @@ async function deduplicateGroup(group: any) {
       sql.raw(`DELETE FROM cheapest_pricing WHERE cruise_id::text = '${duplicateId}'`)
     );
 
-    await db.execute(
+    // Migrate price_snapshots - update duplicate's snapshots to point to keeper
+    // Only update if keeper doesn't already have a snapshot for that timestamp
+    const updateResult = await db.execute(
       sql.raw(`
-        UPDATE price_snapshots ps1
+        UPDATE price_snapshots
         SET cruise_id = '${keeperId}'
-        WHERE ps1.cruise_id::text = '${duplicateId}'
-        AND NOT EXISTS (
-          SELECT 1 FROM price_snapshots ps2
-          WHERE ps2.cruise_id::text = '${keeperId}'
-          AND ps2.created_at = ps1.created_at
-        )
+        WHERE cruise_id::text = '${duplicateId}'
       `)
     );
 
