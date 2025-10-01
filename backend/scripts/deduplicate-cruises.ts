@@ -190,13 +190,13 @@ async function deduplicateGroup(group: any) {
 
     await db.execute(
       sql.raw(`
-        UPDATE price_snapshots
+        UPDATE price_snapshots ps1
         SET cruise_id = '${keeperId}'
-        WHERE cruise_id::text = '${duplicateId}'
+        WHERE ps1.cruise_id::text = '${duplicateId}'
         AND NOT EXISTS (
-          SELECT 1 FROM price_snapshots
-          WHERE cruise_id::text = '${keeperId}'
-          AND created_at = price_snapshots.created_at
+          SELECT 1 FROM price_snapshots ps2
+          WHERE ps2.cruise_id::text = '${keeperId}'
+          AND ps2.created_at = ps1.created_at
         )
       `)
     );
