@@ -110,11 +110,13 @@ export async function GET(request: NextRequest) {
     const contentType = response.headers.get("content-type") || "image/jpeg";
     const contentLength = response.headers.get("content-length");
 
-    // Check if image is too large (limit to 10MB)
-    if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
+    // Check if image is too large (limit to 20MB)
+    // Note: This proxy streams images without resizing them, so we need to allow
+    // larger source images. Streaming prevents memory issues even with large files.
+    if (contentLength && parseInt(contentLength) > 20 * 1024 * 1024) {
       console.warn(`Image too large: ${imageUrl} (${contentLength} bytes)`);
       return NextResponse.json(
-        { error: "Image too large (max 10MB)" },
+        { error: "Image too large (max 20MB)" },
         { status: 413 },
       );
     }
