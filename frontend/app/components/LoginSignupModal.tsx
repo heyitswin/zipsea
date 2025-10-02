@@ -86,14 +86,27 @@ export default function LoginSignupModal({
         // If email already exists, try sign in instead
         if (signUpError?.errors?.[0]?.code === "form_identifier_exists") {
           try {
-            await signIn.create({ identifier: email });
-            await signIn.prepareFirstFactor({
-              strategy: "email_code",
-            });
-            setMessage("Check your email for a sign-in code!");
-            setShowCodeInput(true);
-            setVerificationMode("signin");
-            setIsLoading(false);
+            const signInAttempt = await signIn.create({ identifier: email });
+
+            // Get the email_address_id from supportedFirstFactors
+            const emailFactor = signInAttempt.supportedFirstFactors?.find(
+              (factor: any) => factor.strategy === "email_code",
+            );
+
+            if (emailFactor && emailFactor.emailAddressId) {
+              await signIn.prepareFirstFactor({
+                strategy: "email_code",
+                emailAddressId: emailFactor.emailAddressId,
+              });
+              setMessage("Check your email for a sign-in code!");
+              setShowCodeInput(true);
+              setVerificationMode("signin");
+              setIsLoading(false);
+            } else {
+              throw new Error(
+                "Email verification not available for this account",
+              );
+            }
           } catch (signInError: any) {
             console.error("Sign in error:", signInError);
             setMessage(
