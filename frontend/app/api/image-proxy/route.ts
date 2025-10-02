@@ -35,6 +35,8 @@ setInterval(() => {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const imageUrl = searchParams.get("url");
+  const width = searchParams.get("w");
+  const quality = searchParams.get("q");
 
   // Rate limiting
   const clientIp =

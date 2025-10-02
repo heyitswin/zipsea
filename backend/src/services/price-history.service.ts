@@ -2,6 +2,7 @@ import { eq, and, gte, lte, desc, asc, sql, inArray } from 'drizzle-orm';
 import { db } from '../db/connection';
 import { logger } from '../config/logger';
 import {
+  cruises,
   pricing,
   cheapestPricing,
   priceHistory,
@@ -169,6 +170,18 @@ export class PriceHistoryService {
       }
 
       if (snapshots.length > 0) {
+        // Verify cruise still exists before inserting (prevents foreign key constraint errors)
+        const cruiseExists = await db
+          .select({ id: cruises.id })
+          .from(cruises)
+          .where(eq(cruises.id, String(cruiseId)))
+          .limit(1);
+
+        if (cruiseExists.length === 0) {
+          logger.warn(`Cruise ${cruiseId} no longer exists, skipping price snapshot`);
+          return currentBatchId;
+        }
+
         await db.insert(priceHistory).values(snapshots);
         logger.info(`Created ${snapshots.length} price history snapshots for cruise ${cruiseId}`);
       } else {
