@@ -119,6 +119,31 @@ export default function QuoteModalNative({
 
   // Old localStorage code removed - now handled by auth/callback with sessionStorage
 
+  // Prevent body scroll when modal is open (mobile fix)
+  useEffect(() => {
+    if (isOpen) {
+      // Save current scroll position
+      const scrollY = window.scrollY;
+
+      // Lock body scroll on mobile
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
+      document.body.style.overflow = "hidden";
+
+      return () => {
+        // Restore body scroll
+        document.body.style.position = "";
+        document.body.style.top = "";
+        document.body.style.width = "";
+        document.body.style.overflow = "";
+
+        // Restore scroll position
+        window.scrollTo(0, scrollY);
+      };
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -311,12 +336,12 @@ export default function QuoteModalNative({
       {/* Main Quote Modal */}
       {!showLoginPrompt && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center md:p-4 overflow-y-auto"
+          className="fixed inset-0 z-50 md:flex md:items-center md:justify-center md:p-4 overflow-y-auto"
           style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
           onClick={handleBackgroundClick}
         >
           <div
-            className="bg-white w-full max-w-[760px] md:rounded-[10px] min-h-full md:min-h-0 md:h-auto md:max-h-[90vh] md:my-4 overflow-y-auto"
+            className="bg-white w-full max-w-[760px] md:rounded-[10px] min-h-full md:min-h-0 md:h-auto md:max-h-[90vh] md:my-4 overflow-y-auto overscroll-contain"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-3 md:p-8">
