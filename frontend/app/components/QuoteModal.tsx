@@ -181,6 +181,10 @@ export default function QuoteModal({
 
   const handleChildAgeChange = (index: number, value: string) => {
     // Allow empty string so users can delete and type new value
+    // Only allow numeric input between 0-17
+    if (value !== "" && (!/^\d+$/.test(value) || parseInt(value) > 17)) {
+      return; // Ignore invalid input
+    }
     // Store as number or null (null will display as empty in input)
     const age = value === "" ? null : parseInt(value);
     setPassengers((prev) => ({
@@ -429,9 +433,9 @@ export default function QuoteModal({
                         </label>
                         <div className="border border-[#d9d9d9] rounded-[10px] p-3">
                           <input
-                            type="number"
-                            min="0"
-                            max="17"
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             value={passengers.childAges[index] ?? ""}
                             onChange={(e) =>
                               handleChildAgeChange(index, e.target.value)

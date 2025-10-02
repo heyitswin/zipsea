@@ -1336,7 +1336,7 @@ export class WebhookProcessorOptimizedV2 {
               highlights: data.shipcontent?.highlights || null,
               shipClass: data.shipcontent?.shipclass || null,
               defaultShipImage: data.shipcontent?.defaultshipimage || null,
-              defaultShipImageHd: data.shipcontent?.defaultshiptopimage || null,
+              defaultShipImageHd: data.shipcontent?.defaultshipimagehd || null,
               defaultShipImage2k: data.shipcontent?.defaultshipimage2k || null,
               niceUrl: data.shipcontent?.niceurl || null,
               rawShipContent: data.shipcontent || null,
