@@ -205,7 +205,25 @@ export default function QuoteModal({
 
   const handleGetFinalQuotes = async () => {
     if (!isSignedIn) {
-      // Don't close the quote modal - just show the login modal over it
+      // Save quote data to sessionStorage for post-login submission
+      const quoteData = {
+        userEmail: null, // Will be filled after login
+        cruiseData,
+        passengers,
+        discounts,
+        cabinType,
+        cabinPrice,
+        travelInsurance: discounts.travelInsurance,
+        customMessage: discounts.customMessage,
+      };
+      sessionStorage.setItem("pendingQuote", JSON.stringify(quoteData));
+
+      // Save current URL with search params to return to after success
+      sessionStorage.setItem(
+        "quoteReturnUrl",
+        window.location.pathname + window.location.search,
+      );
+
       setShowLoginModal(true);
       return;
     }
@@ -668,19 +686,18 @@ export default function QuoteModal({
       {showLoginModal && (
         <LoginSignupModal
           isOpen={showLoginModal}
-          onClose={() => setShowLoginModal(false)}
-          onSuccess={() => {
+          onClose={() => {
             setShowLoginModal(false);
-            // Show success message and handle quote submission after login
-            showAlert(
-              "Successfully logged in! Now submitting your quote request...",
-            );
-            // Use setTimeout to ensure login modal closes and user state updates
-            setTimeout(() => {
-              // Directly call handleGetFinalQuotes - the user state should be updated by now
-              handleGetFinalQuotes();
-            }, 500);
+            // Clear pending quote if user cancels
+            sessionStorage.removeItem("pendingQuote");
+            sessionStorage.removeItem("quoteReturnUrl");
           }}
+          onSuccess={() => {
+            // Don't submit here - let auth callback handle it
+            setShowLoginModal(false);
+            onClose(); // Close quote modal
+          }}
+          hasPendingQuote={true}
         />
       )}
     </>

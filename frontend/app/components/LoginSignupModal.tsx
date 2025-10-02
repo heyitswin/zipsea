@@ -8,12 +8,14 @@ interface LoginSignupModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  hasPendingQuote?: boolean;
 }
 
 export default function LoginSignupModal({
   isOpen,
   onClose,
   onSuccess,
+  hasPendingQuote = false,
 }: LoginSignupModalProps) {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +62,9 @@ export default function LoginSignupModal({
         // Send magic link
         const magicLinkResult = await signUp.prepareEmailAddressVerification({
           strategy: "email_link",
-          redirectUrl: window.location.href,
+          redirectUrl: hasPendingQuote
+            ? `${window.location.origin}/auth/callback?pendingQuote=true`
+            : window.location.href,
         });
 
         if (magicLinkResult) {
@@ -91,7 +95,9 @@ export default function LoginSignupModal({
             const magicLinkResult = await signIn?.prepareFirstFactor({
               strategy: "email_link",
               emailAddressId: firstFactor.emailAddressId,
-              redirectUrl: window.location.href,
+              redirectUrl: hasPendingQuote
+                ? `${window.location.origin}/auth/callback?pendingQuote=true`
+                : window.location.href,
             });
 
             if (magicLinkResult) {
@@ -132,10 +138,16 @@ export default function LoginSignupModal({
       if (typeof window !== "undefined") {
         sessionStorage.setItem("returnUrl", window.location.href);
       }
+
+      // Save pending quote flag for OAuth callback
+      if (hasPendingQuote) {
+        sessionStorage.setItem("hasPendingQuote", "true");
+      }
+
       await signIn.authenticateWithRedirect({
         strategy: "oauth_google",
         redirectUrl: "/auth/callback",
-        redirectUrlComplete: "/",
+        redirectUrlComplete: "/auth/callback",
       });
     } catch (error: any) {
       console.error("Google auth error:", error);
