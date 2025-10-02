@@ -121,8 +121,12 @@ export default function LoginSignupModal({
       return;
     }
 
+    if (isLoading) {
+      return; // Prevent double submission
+    }
+
     setIsLoading(true);
-    setMessage("");
+    setMessage("Verifying code...");
 
     try {
       if (verificationMode === "signup") {
@@ -133,15 +137,20 @@ export default function LoginSignupModal({
         if (signUpAttempt?.status === "complete") {
           await setActiveSignUp?.({ session: signUpAttempt.createdSessionId });
           trackAuthEvent("signup_completed", "email");
-          setMessage("Sign up successful!");
+          setMessage("✓ Sign up successful! Redirecting...");
 
           // Handle pending quote flow
           if (hasPendingQuote) {
-            // The auth callback will handle quote submission
-            router.push("/auth/callback?pendingQuote=true");
+            // Small delay to show success message
+            setTimeout(() => {
+              router.push("/auth/callback?pendingQuote=true");
+            }, 800);
           } else {
-            setTimeout(() => onSuccess(), 500);
+            setTimeout(() => onSuccess(), 800);
           }
+        } else {
+          setMessage("Verification incomplete. Please try again.");
+          setIsLoading(false);
         }
       } else if (verificationMode === "signin") {
         const signInAttempt = await signIn?.attemptFirstFactor({
@@ -152,26 +161,43 @@ export default function LoginSignupModal({
         if (signInAttempt?.status === "complete") {
           await setActiveSignIn?.({ session: signInAttempt.createdSessionId });
           trackAuthEvent("login", "email");
-          setMessage("Sign in successful!");
+          setMessage("✓ Sign in successful! Redirecting...");
 
           // Handle pending quote flow
           if (hasPendingQuote) {
-            // The auth callback will handle quote submission
-            router.push("/auth/callback?pendingQuote=true");
+            // Small delay to show success message
+            setTimeout(() => {
+              router.push("/auth/callback?pendingQuote=true");
+            }, 800);
           } else {
-            setTimeout(() => onSuccess(), 500);
+            setTimeout(() => onSuccess(), 800);
           }
+        } else {
+          setMessage("Verification incomplete. Please try again.");
+          setIsLoading(false);
         }
       }
     } catch (error: any) {
       console.error("Verification error:", error);
-      setMessage(
-        "Invalid code. Please try again or request a new code. (" +
-          (error.message || "Unknown error") +
-          ")",
-      );
-    } finally {
-      setIsLoading(false);
+
+      // Handle specific error cases
+      if (error.message?.includes("already been verified")) {
+        setMessage("✓ Already verified! Redirecting...");
+        // Still redirect even if already verified
+        if (hasPendingQuote) {
+          setTimeout(() => {
+            router.push("/auth/callback?pendingQuote=true");
+          }, 800);
+        } else {
+          setTimeout(() => onSuccess(), 800);
+        }
+      } else if (error.message?.includes("incorrect")) {
+        setMessage("Incorrect code. Please check and try again.");
+        setIsLoading(false);
+      } else {
+        setMessage("Invalid code. Please try again or request a new code.");
+        setIsLoading(false);
+      }
     }
   };
 
