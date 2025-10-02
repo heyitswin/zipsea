@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useUser, SignInButton } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 import { useAlert } from "../../components/GlobalAlertProvider";
+import LoginSignupModal from "./LoginSignupModal";
 import { trackQuoteProgress, trackQuoteSubmit } from "../../lib/analytics";
 
 interface QuoteModalProps {
@@ -235,8 +236,9 @@ export default function QuoteModalNative({
 
   const handleGetFinalQuotes = async () => {
     if (!isSignedIn) {
-      // Save quote data to localStorage for after login
+      // Save quote data to sessionStorage for post-login submission
       const quoteData = {
+        userEmail: null, // Will be filled after login
         cruiseData,
         passengers,
         discounts,
@@ -245,10 +247,15 @@ export default function QuoteModalNative({
         travelInsurance: discounts.travelInsurance,
         additionalNotes: discounts.additionalNotes,
       };
+      sessionStorage.setItem("pendingQuote", JSON.stringify(quoteData));
 
-      localStorage.setItem("pendingQuoteSubmission", JSON.stringify(quoteData));
+      // Save current URL with search params to return to after success
+      sessionStorage.setItem(
+        "quoteReturnUrl",
+        window.location.pathname + window.location.search,
+      );
 
-      // Show login prompt
+      // Show login modal
       setShowLoginPrompt(true);
       return;
     }
@@ -684,42 +691,23 @@ export default function QuoteModalNative({
         </div>
       )}
 
-      {/* Login Prompt Modal */}
+      {/* Login/Signup Modal */}
       {showLoginPrompt && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
-          onClick={() => setShowLoginPrompt(false)}
-        >
-          <div
-            className="bg-white w-full max-w-md rounded-[10px] p-8"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2
-              className="font-whitney font-black text-[28px] text-dark-blue uppercase mb-4 text-center"
-              style={{ letterSpacing: "-0.02em" }}
-            >
-              SIGN IN TO CONTINUE
-            </h2>
-            <p className="font-geograph text-[16px] text-[#2f2f2f] mb-6 text-center">
-              Please sign in to submit your quote request. Your quote details
-              have been saved.
-            </p>
-            <div className="flex flex-col gap-4">
-              <SignInButton mode="modal">
-                <button className="w-full bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-6 py-3 rounded-full hover:bg-[#2f7ddd]/90 transition-colors">
-                  Sign In to Submit Quote
-                </button>
-              </SignInButton>
-              <button
-                onClick={() => setShowLoginPrompt(false)}
-                className="w-full border border-gray-300 text-gray-700 font-geograph font-medium text-[16px] px-6 py-3 rounded-full hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+        <LoginSignupModal
+          isOpen={showLoginPrompt}
+          onClose={() => {
+            setShowLoginPrompt(false);
+            // Clear pending quote if user cancels
+            sessionStorage.removeItem("pendingQuote");
+            sessionStorage.removeItem("quoteReturnUrl");
+          }}
+          onSuccess={() => {
+            // Don't submit here - let auth callback handle it
+            setShowLoginPrompt(false);
+            onClose(); // Close quote modal
+          }}
+          hasPendingQuote={true}
+        />
       )}
     </>
   );
