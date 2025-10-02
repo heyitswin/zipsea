@@ -181,9 +181,14 @@ export default function QuoteModal({
 
   const handleChildAgeChange = (index: number, value: string) => {
     // Allow empty string so users can delete and type new value
-    // Only allow numeric input between 0-17
-    if (value !== "" && (!/^\d+$/.test(value) || parseInt(value) > 17)) {
-      return; // Ignore invalid input
+    // Only allow numeric input, and only reject if complete value is over 17
+    if (value !== "" && !/^\d*$/.test(value)) {
+      return; // Ignore non-numeric input
+    }
+    // Allow partial input (e.g., "1" while typing "17")
+    // Only validate complete values
+    if (value !== "" && parseInt(value) > 17) {
+      return; // Ignore values over 17
     }
     // Store as number or null (null will display as empty in input)
     const age = value === "" ? null : parseInt(value);
@@ -320,12 +325,12 @@ export default function QuoteModal({
       {/* Main Quote Modal - Only render if login modal is not shown */}
       {!showLoginModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center md:p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center md:p-4 overflow-y-auto"
           style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
           onClick={handleBackgroundClick}
         >
           <div
-            className="bg-white w-full max-w-[760px] md:rounded-[10px] h-full md:h-auto md:max-h-[90vh] overflow-y-auto"
+            className="bg-white w-full max-w-[760px] md:rounded-[10px] min-h-full md:min-h-0 md:h-auto md:max-h-[90vh] md:my-4 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 md:p-8">
