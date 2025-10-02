@@ -2336,7 +2336,7 @@ export class WebhookProcessorOptimizedV2 {
       const staleCleanup = await db.execute(sql`
         DELETE FROM cruises
         WHERE updated_at < NOW() - INTERVAL '7 days'
-        AND (sailing_date IS NULL OR sailing_date > NOW() + INTERVAL '365 days')
+        AND (sailing_date IS NULL OR sailing_date > NOW() + INTERVAL '1095 days')
         AND NOT EXISTS (
           SELECT 1 FROM quote_requests WHERE quote_requests.cruise_id = cruises.id
         )
