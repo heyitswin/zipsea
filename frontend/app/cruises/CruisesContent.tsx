@@ -1574,40 +1574,38 @@ export default function CruisesContent() {
                   >
                     <div className="flex md:gap-6">
                       {/* Featured Image */}
-                      <div
-                        className="w-[70px] md:w-48 h-auto min-h-[100px] md:h-32 bg-gray-200 md:rounded-lg overflow-hidden flex-shrink-0 bg-cover bg-center"
-                        style={{
-                          backgroundImage:
-                            cruise.ship?.defaultShipImageHd ||
-                            cruise.ship?.defaultShipImage2k ||
-                            cruise.ship?.defaultShipImage ||
-                            cruise.shipImageHd ||
-                            cruise.shipImage2k ||
-                            cruise.shipImage ||
-                            cruise.featuredImageUrl
-                              ? `url(${
-                                  cruise.ship?.defaultShipImageHd ||
-                                  cruise.ship?.defaultShipImage2k ||
-                                  cruise.ship?.defaultShipImage ||
-                                  cruise.shipImageHd ||
-                                  cruise.shipImage2k ||
-                                  cruise.shipImage ||
-                                  cruise.featuredImageUrl
-                                })`
-                              : undefined,
-                        }}
-                      >
-                        {!cruise.ship?.defaultShipImageHd &&
-                          !cruise.ship?.defaultShipImage2k &&
-                          !cruise.ship?.defaultShipImage &&
-                          !cruise.shipImageHd &&
-                          !cruise.shipImage2k &&
-                          !cruise.shipImage &&
-                          !cruise.featuredImageUrl && (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                              No image
-                            </div>
-                          )}
+                      <div className="w-[70px] md:w-48 h-auto min-h-[100px] md:h-32 bg-gray-200 md:rounded-lg overflow-hidden flex-shrink-0 relative">
+                        {cruise.ship?.defaultShipImage ||
+                        cruise.ship?.defaultShipImageHd ||
+                        cruise.ship?.defaultShipImage2k ||
+                        cruise.shipImage ||
+                        cruise.shipImageHd ||
+                        cruise.shipImage2k ||
+                        cruise.featuredImageUrl ? (
+                          <Image
+                            src={
+                              cruise.ship?.defaultShipImage ||
+                              cruise.ship?.defaultShipImageHd ||
+                              cruise.ship?.defaultShipImage2k ||
+                              cruise.shipImage ||
+                              cruise.shipImageHd ||
+                              cruise.shipImage2k ||
+                              cruise.featuredImageUrl ||
+                              ""
+                            }
+                            alt={
+                              cruise.ship?.name || cruise.name || "Cruise ship"
+                            }
+                            fill
+                            sizes="(max-width: 768px) 70px, 192px"
+                            className="object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            No image
+                          </div>
+                        )}
                       </div>
 
                       {/* Cruise Details */}

@@ -11,6 +11,9 @@ export interface Ship {
   id: number;
   name: string;
   cruiseLineName: string;
+  defaultShipImage?: string;
+  defaultShipImageHd?: string;
+  defaultShipImage2k?: string;
 }
 
 export interface ApiResponse<T> {
@@ -304,6 +307,7 @@ export interface ComprehensiveCruiseData {
     decks?: number;
     shortDescription?: string;
     defaultShipImage?: string;
+    defaultShipImageHd?: string;
     defaultShipImage2k?: string;
     starRating?: number;
     raw?: {

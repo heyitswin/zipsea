@@ -825,13 +825,19 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             <div className="flex justify-center">
               {ship?.defaultShipImage ? (
                 <img
-                  src={ship.defaultShipImage2k || ship.defaultShipImage}
+                  src={
+                    ship.defaultShipImage ||
+                    ship.defaultShipImageHd ||
+                    ship.defaultShipImage2k
+                  }
                   alt={`${ship.name} - Ship`}
                   className="w-full rounded-[10px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
                   style={{ height: "400px", aspectRatio: "3/2" }}
                   onClick={() => {
                     const imageUrl =
-                      ship.defaultShipImage2k || ship.defaultShipImage;
+                      ship.defaultShipImage ||
+                      ship.defaultShipImageHd ||
+                      ship.defaultShipImage2k;
                     if (imageUrl) handleImageClick(imageUrl);
                   }}
                 />
