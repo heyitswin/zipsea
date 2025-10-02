@@ -274,10 +274,7 @@ export default function QuoteModal({
               : cabinPrice,
         });
 
-        // Use global alert system instead of browser alert
-        showAlert(
-          "Quote request submitted! We'll email you as soon as your quote is ready.",
-        );
+        // Alert removed - success page shows message instead
         onClose();
       } else {
         showAlert(

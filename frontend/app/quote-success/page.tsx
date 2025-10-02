@@ -17,9 +17,9 @@ export default function QuoteSuccessPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-        <div className="bg-white rounded-lg shadow-lg p-12">
+    <div className="min-h-screen bg-[#2f7ddd] flex items-center justify-center">
+      <div className="max-w-4xl mx-auto px-4 text-center">
+        <div className="bg-white rounded-lg p-12">
           {/* Success Icon */}
           <div className="mb-6">
             <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">

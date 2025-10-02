@@ -117,49 +117,7 @@ export default function QuoteModalNative({
 
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-  // Check for pending quote submission when user signs in
-  const checkAndSubmitPendingQuote = useCallback(async () => {
-    if (!isSignedIn || !user) return;
-
-    const pendingQuote = localStorage.getItem("pendingQuoteSubmission");
-    if (pendingQuote) {
-      try {
-        const quoteData = JSON.parse(pendingQuote);
-
-        // Submit the quote now that user is authenticated
-        const response = await fetch("/api/send-quote-confirmation", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ...quoteData,
-            userEmail: user.emailAddresses[0]?.emailAddress,
-          }),
-        });
-
-        if (response.ok) {
-          // Clear pending quote
-          localStorage.removeItem("pendingQuoteSubmission");
-
-          showAlert(
-            "Quote request submitted! We'll email you as soon as your quote is ready.",
-          );
-          onClose();
-        }
-      } catch (error) {
-        console.error("Error submitting pending quote:", error);
-        localStorage.removeItem("pendingQuoteSubmission");
-      }
-    }
-  }, [isSignedIn, user, onClose, showAlert]);
-
-  // Check for pending quote on mount and when auth state changes
-  useEffect(() => {
-    if (isLoaded && isSignedIn) {
-      checkAndSubmitPendingQuote();
-    }
-  }, [isLoaded, isSignedIn, checkAndSubmitPendingQuote]);
+  // Old localStorage code removed - now handled by auth/callback with sessionStorage
 
   if (!isOpen) return null;
 
@@ -306,9 +264,7 @@ export default function QuoteModalNative({
               : cabinPrice,
         });
 
-        showAlert(
-          "Quote request submitted! We'll email you as soon as your quote is ready.",
-        );
+        // Alert removed - success page shows message instead
         onClose();
       } else {
         showAlert(

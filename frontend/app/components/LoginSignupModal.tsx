@@ -164,18 +164,11 @@ export default function LoginSignupModal({
           trackAuthEvent("signup_completed", "email");
           setMessage("✓ Sign up successful! Redirecting...");
 
-          // Handle pending quote flow
+          // Handle pending quote flow - go directly to callback
           if (hasPendingQuote) {
-            // Small delay to show success message
-            setTimeout(() => {
-              router.push("/auth/callback?pendingQuote=true");
-            }, 800);
+            router.push("/auth/callback?pendingQuote=true");
           } else {
-            setTimeout(() => {
-              onSuccess();
-              // Force page reload to ensure Clerk session is loaded
-              window.location.reload();
-            }, 800);
+            onSuccess();
           }
         } else if (signUpAttempt?.status === "missing_requirements") {
           console.log(
