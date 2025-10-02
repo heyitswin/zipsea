@@ -136,10 +136,20 @@ export default function LoginSignupModal({
         });
 
         console.log("SignUp attempt result:", signUpAttempt?.status);
+        console.log(
+          "SignUp createdSessionId:",
+          signUpAttempt?.createdSessionId,
+        );
+        console.log("SignUp missingFields:", signUpAttempt?.missingFields);
+        console.log(
+          "SignUp unverifiedFields:",
+          signUpAttempt?.unverifiedFields,
+        );
 
-        if (signUpAttempt?.status === "complete") {
+        // Check if we have a session ID - that means verification succeeded
+        if (signUpAttempt?.createdSessionId) {
           console.log(
-            "SignUp complete, setting active session:",
+            "Email verified, attempting to activate session:",
             signUpAttempt.createdSessionId,
           );
 
@@ -167,6 +177,15 @@ export default function LoginSignupModal({
               window.location.reload();
             }, 800);
           }
+        } else if (signUpAttempt?.status === "missing_requirements") {
+          console.log(
+            "SignUp missing requirements:",
+            signUpAttempt?.missingFields,
+          );
+          setMessage(
+            "Additional information required. Please check the console.",
+          );
+          setIsLoading(false);
         } else {
           console.log("SignUp not complete, status:", signUpAttempt?.status);
           setMessage("Verification incomplete. Please try again.");
