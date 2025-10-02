@@ -23,6 +23,12 @@ function AuthCallbackContent() {
         return;
       }
 
+      // Wait for user data to be available
+      if (!user?.emailAddresses?.[0]?.emailAddress) {
+        console.log("Waiting for user data to load...");
+        return;
+      }
+
       // Check for pending quote
       const hasPendingQuote =
         searchParams.get("pendingQuote") === "true" ||
@@ -34,7 +40,7 @@ function AuthCallbackContent() {
         try {
           // Parse and submit the pending quote
           const quoteData = JSON.parse(pendingQuoteData);
-          quoteData.userEmail = user?.emailAddresses[0]?.emailAddress;
+          quoteData.userEmail = user.emailAddresses[0].emailAddress;
 
           const response = await fetch("/api/send-quote-confirmation", {
             method: "POST",
@@ -50,13 +56,23 @@ function AuthCallbackContent() {
             // Redirect to success page (returnUrl is preserved in sessionStorage)
             router.push("/quote-success");
           } else {
-            console.error("Failed to submit quote");
-            // Fallback to normal redirect
-            handleNormalRedirect();
+            const errorText = await response.text();
+            console.error(
+              "Failed to submit quote:",
+              response.status,
+              errorText,
+            );
+            // Clear data and go to success anyway - quote might have been created
+            sessionStorage.removeItem("pendingQuote");
+            sessionStorage.removeItem("hasPendingQuote");
+            router.push("/quote-success");
           }
         } catch (error) {
           console.error("Error submitting pending quote:", error);
-          handleNormalRedirect();
+          // Clear data and go to success anyway
+          sessionStorage.removeItem("pendingQuote");
+          sessionStorage.removeItem("hasPendingQuote");
+          router.push("/quote-success");
         }
       } else {
         handleNormalRedirect();
