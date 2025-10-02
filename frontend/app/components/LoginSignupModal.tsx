@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSignIn, useSignUp } from "../hooks/useClerkHooks";
+import { useRouter } from "next/navigation";
 import { trackAuthEvent } from "../../lib/analytics";
 
 interface LoginSignupModalProps {
@@ -18,10 +19,16 @@ export default function LoginSignupModal({
   hasPendingQuote = false,
 }: LoginSignupModalProps) {
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const { signIn } = useSignIn();
-  const { signUp } = useSignUp();
+  const [showCodeInput, setShowCodeInput] = useState(false);
+  const [verificationMode, setVerificationMode] = useState<
+    "signup" | "signin" | null
+  >(null);
+  const { signIn, setActive: setActiveSignIn } = useSignIn();
+  const { signUp, setActive: setActiveSignUp } = useSignUp();
+  const router = useRouter();
 
   if (!isOpen) return null;
 
@@ -31,7 +38,9 @@ export default function LoginSignupModal({
     }
   };
 
-  const handleEmailAuth = async () => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
     if (!email) {
       setMessage("Please enter your email address");
       return;
@@ -53,71 +62,104 @@ export default function LoginSignupModal({
         return;
       }
 
-      // Try to sign up first with email link strategy
-      const signUpResult = await signUp.create({
-        emailAddress: email,
-      });
-
-      if (signUpResult?.status === "missing_requirements") {
-        // Send magic link
-        const magicLinkResult = await signUp.prepareEmailAddressVerification({
-          strategy: "email_link",
-          redirectUrl: hasPendingQuote
-            ? `${window.location.origin}/auth/callback?pendingQuote=true`
-            : window.location.href,
+      // Try to sign up first
+      try {
+        await signUp.create({ emailAddress: email });
+        await signUp.prepareEmailAddressVerification({
+          strategy: "email_code",
         });
-
-        if (magicLinkResult) {
-          setMessage("Check your email for a magic link to continue!");
-          // Don't close modal yet - user needs to click the email link
+        setMessage("Check your email for a verification code!");
+        setShowCodeInput(true);
+        setVerificationMode("signup");
+        setIsLoading(false);
+      } catch (signUpError: any) {
+        // If email already exists, try sign in instead
+        if (signUpError?.errors?.[0]?.code === "form_identifier_exists") {
+          try {
+            await signIn.create({ identifier: email });
+            await signIn.prepareFirstFactor({
+              strategy: "email_code",
+            });
+            setMessage("Check your email for a sign-in code!");
+            setShowCodeInput(true);
+            setVerificationMode("signin");
+            setIsLoading(false);
+          } catch (signInError: any) {
+            console.error("Sign in error:", signInError);
+            setMessage(
+              "Error: " +
+                (signInError.message || "Something went wrong with sign in"),
+            );
+            setIsLoading(false);
+          }
+        } else {
+          throw signUpError;
         }
-      } else if (signUpResult?.status === "complete") {
-        setMessage("Sign up successful!");
-        trackAuthEvent("signup_completed", "email");
-        setTimeout(() => onSuccess(), 1000);
       }
     } catch (error: any) {
       console.error("Email auth error:", error);
+      setMessage("Error: " + (error.message || "Something went wrong"));
+      setIsLoading(false);
+    }
+  };
 
-      // If email already exists, try sign in instead
-      if (error?.errors?.[0]?.code === "form_identifier_exists") {
-        try {
-          const signInResult = await signIn?.create({
-            identifier: email,
-          });
+  const handleCodeVerification = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-          if (
-            signInResult?.status === "needs_identifier" &&
-            signInResult.supportedFirstFactors?.[0]
-          ) {
-            // Send magic link for sign in
-            const firstFactor = signInResult.supportedFirstFactors[0] as any;
-            const magicLinkResult = await signIn?.prepareFirstFactor({
-              strategy: "email_link",
-              emailAddressId: firstFactor.emailAddressId,
-              redirectUrl: hasPendingQuote
-                ? `${window.location.origin}/auth/callback?pendingQuote=true`
-                : window.location.href,
-            });
+    if (!code) {
+      setMessage("Please enter the verification code");
+      return;
+    }
 
-            if (magicLinkResult) {
-              setMessage("Check your email for a magic link to sign in!");
-            }
-          } else if (signInResult?.status === "complete") {
-            setMessage("Sign in successful!");
-            trackAuthEvent("login", "email");
-            setTimeout(() => onSuccess(), 1000);
+    setIsLoading(true);
+    setMessage("");
+
+    try {
+      if (verificationMode === "signup") {
+        const signUpAttempt = await signUp?.attemptEmailAddressVerification({
+          code,
+        });
+
+        if (signUpAttempt?.status === "complete") {
+          await setActiveSignUp?.({ session: signUpAttempt.createdSessionId });
+          trackAuthEvent("signup_completed", "email");
+          setMessage("Sign up successful!");
+
+          // Handle pending quote flow
+          if (hasPendingQuote) {
+            // The auth callback will handle quote submission
+            router.push("/auth/callback?pendingQuote=true");
+          } else {
+            setTimeout(() => onSuccess(), 500);
           }
-        } catch (signInError: any) {
-          console.error("Sign in error:", signInError);
-          setMessage(
-            "Error: " +
-              (signInError.message || "Something went wrong with sign in"),
-          );
         }
-      } else {
-        setMessage("Error: " + (error.message || "Something went wrong"));
+      } else if (verificationMode === "signin") {
+        const signInAttempt = await signIn?.attemptFirstFactor({
+          strategy: "email_code",
+          code,
+        });
+
+        if (signInAttempt?.status === "complete") {
+          await setActiveSignIn?.({ session: signInAttempt.createdSessionId });
+          trackAuthEvent("login", "email");
+          setMessage("Sign in successful!");
+
+          // Handle pending quote flow
+          if (hasPendingQuote) {
+            // The auth callback will handle quote submission
+            router.push("/auth/callback?pendingQuote=true");
+          } else {
+            setTimeout(() => onSuccess(), 500);
+          }
+        }
       }
+    } catch (error: any) {
+      console.error("Verification error:", error);
+      setMessage(
+        "Invalid code. Please try again or request a new code. (" +
+          (error.message || "Unknown error") +
+          ")",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -159,36 +201,6 @@ export default function LoginSignupModal({
     }
   };
 
-  const handleFacebookAuth = async () => {
-    if (!signIn) {
-      setMessage(
-        "Authentication service is not available. Please try refreshing the page.",
-      );
-      return;
-    }
-
-    setIsLoading(true);
-    trackAuthEvent("signup_started", "facebook");
-    try {
-      // Save the current URL to redirect back after auth
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("returnUrl", window.location.href);
-      }
-      await signIn.authenticateWithRedirect({
-        strategy: "oauth_facebook",
-        redirectUrl: "/auth/callback",
-        redirectUrlComplete: "/",
-      });
-    } catch (error: any) {
-      console.error("Facebook auth error:", error);
-      setMessage(
-        "Error with Facebook sign in: " +
-          (error.message || "Something went wrong"),
-      );
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -206,33 +218,25 @@ export default function LoginSignupModal({
               className="font-whitney font-black text-[32px] text-dark-blue uppercase"
               style={{ letterSpacing: "-0.02em" }}
             >
-              SIGN UP / LOG IN
+              {showCodeInput ? "VERIFY EMAIL" : "SIGN UP / LOG IN"}
             </h2>
             <p
               className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5] mt-2"
               style={{ letterSpacing: "-0.02em" }}
             >
-              We'll email you as soon as your quote is ready
+              {showCodeInput
+                ? "Enter the code we sent to your email"
+                : "We'll email you as soon as your quote is ready"}
             </p>
-          </div>
-
-          {/* Email Input */}
-          <div className="mb-6">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email address"
-              className="w-full border border-[#d9d9d9] rounded-[10px] p-4 font-geograph text-[16px] text-center"
-              disabled={isLoading}
-            />
           </div>
 
           {/* Message Display */}
           {message && (
             <div
               className={`mb-6 p-3 rounded-lg text-sm ${
-                message.includes("Error") || message.includes("error")
+                message.includes("Error") ||
+                message.includes("error") ||
+                message.includes("Invalid")
                   ? "bg-red-50 text-red-600"
                   : "bg-green-50 text-green-600"
               }`}
@@ -241,45 +245,97 @@ export default function LoginSignupModal({
             </div>
           )}
 
-          {/* Email Submit Button */}
-          <button
-            onClick={handleEmailAuth}
-            disabled={isLoading}
-            className="w-full bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-6 py-4 rounded-full hover:bg-[#2f7ddd]/90 transition-colors mb-6 disabled:opacity-50"
-          >
-            {isLoading ? "Processing..." : "Sign up / Log in"}
-          </button>
+          {!showCodeInput ? (
+            /* Email Input Form */
+            <form onSubmit={handleEmailSubmit}>
+              <div className="mb-6">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  className="w-full border border-[#d9d9d9] rounded-[10px] p-4 font-geograph text-[16px] text-center"
+                  disabled={isLoading}
+                  required
+                />
+              </div>
 
-          {/* Separator */}
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500 font-geograph">
-                or
-              </span>
-            </div>
-          </div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-6 py-4 rounded-full hover:bg-[#2f7ddd]/90 transition-colors mb-6 disabled:opacity-50"
+              >
+                {isLoading ? "Processing..." : "Continue with Email"}
+              </button>
 
-          {/* Social Login Buttons */}
-          <div className="space-y-4">
-            {/* Google Button */}
-            <button
-              onClick={handleGoogleAuth}
-              disabled={isLoading}
-              className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-full py-4 px-6 hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              <img
-                src="/images/google-icon.svg"
-                alt="Google"
-                className="w-5 h-5"
-              />
-              <span className="font-geograph font-medium text-[16px] text-gray-700">
-                Continue with Google
-              </span>
-            </button>
-          </div>
+              {/* Separator */}
+              <div className="relative mb-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-white text-gray-500 font-geograph">
+                    or
+                  </span>
+                </div>
+              </div>
+
+              {/* Google Button */}
+              <button
+                type="button"
+                onClick={handleGoogleAuth}
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-3 border border-gray-300 rounded-full py-4 px-6 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                <img
+                  src="/images/google-icon.svg"
+                  alt="Google"
+                  className="w-5 h-5"
+                />
+                <span className="font-geograph font-medium text-[16px] text-gray-700">
+                  Continue with Google
+                </span>
+              </button>
+            </form>
+          ) : (
+            /* Code Verification Form */
+            <form onSubmit={handleCodeVerification}>
+              <div className="mb-6">
+                <input
+                  type="text"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="Enter 6-digit code"
+                  className="w-full border border-[#d9d9d9] rounded-[10px] p-4 font-geograph text-[24px] text-center tracking-widest"
+                  disabled={isLoading}
+                  maxLength={6}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-6 py-4 rounded-full hover:bg-[#2f7ddd]/90 transition-colors mb-4 disabled:opacity-50"
+              >
+                {isLoading ? "Verifying..." : "Verify Code"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCodeInput(false);
+                  setCode("");
+                  setMessage("");
+                  setVerificationMode(null);
+                }}
+                className="w-full border border-gray-300 text-gray-700 font-geograph font-medium text-[16px] px-6 py-3 rounded-full hover:bg-gray-50 transition-colors"
+              >
+                Back to Email
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </div>
