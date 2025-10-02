@@ -130,12 +130,27 @@ export default function LoginSignupModal({
 
     try {
       if (verificationMode === "signup") {
+        console.log("Attempting email verification for signup...");
         const signUpAttempt = await signUp?.attemptEmailAddressVerification({
           code,
         });
 
+        console.log("SignUp attempt result:", signUpAttempt?.status);
+
         if (signUpAttempt?.status === "complete") {
-          await setActiveSignUp?.({ session: signUpAttempt.createdSessionId });
+          console.log(
+            "SignUp complete, setting active session:",
+            signUpAttempt.createdSessionId,
+          );
+
+          // Set the active session
+          if (setActiveSignUp) {
+            await setActiveSignUp({ session: signUpAttempt.createdSessionId });
+            console.log("Session activated successfully");
+          } else {
+            console.error("setActiveSignUp is not available");
+          }
+
           trackAuthEvent("signup_completed", "email");
           setMessage("✓ Sign up successful! Redirecting...");
 
@@ -146,20 +161,40 @@ export default function LoginSignupModal({
               router.push("/auth/callback?pendingQuote=true");
             }, 800);
           } else {
-            setTimeout(() => onSuccess(), 800);
+            setTimeout(() => {
+              onSuccess();
+              // Force page reload to ensure Clerk session is loaded
+              window.location.reload();
+            }, 800);
           }
         } else {
+          console.log("SignUp not complete, status:", signUpAttempt?.status);
           setMessage("Verification incomplete. Please try again.");
           setIsLoading(false);
         }
       } else if (verificationMode === "signin") {
+        console.log("Attempting email verification for signin...");
         const signInAttempt = await signIn?.attemptFirstFactor({
           strategy: "email_code",
           code,
         });
 
+        console.log("SignIn attempt result:", signInAttempt?.status);
+
         if (signInAttempt?.status === "complete") {
-          await setActiveSignIn?.({ session: signInAttempt.createdSessionId });
+          console.log(
+            "SignIn complete, setting active session:",
+            signInAttempt.createdSessionId,
+          );
+
+          // Set the active session
+          if (setActiveSignIn) {
+            await setActiveSignIn({ session: signInAttempt.createdSessionId });
+            console.log("Session activated successfully");
+          } else {
+            console.error("setActiveSignIn is not available");
+          }
+
           trackAuthEvent("login", "email");
           setMessage("✓ Sign in successful! Redirecting...");
 
@@ -170,9 +205,14 @@ export default function LoginSignupModal({
               router.push("/auth/callback?pendingQuote=true");
             }, 800);
           } else {
-            setTimeout(() => onSuccess(), 800);
+            setTimeout(() => {
+              onSuccess();
+              // Force page reload to ensure Clerk session is loaded
+              window.location.reload();
+            }, 800);
           }
         } else {
+          console.log("SignIn not complete, status:", signInAttempt?.status);
           setMessage("Verification incomplete. Please try again.");
           setIsLoading(false);
         }
