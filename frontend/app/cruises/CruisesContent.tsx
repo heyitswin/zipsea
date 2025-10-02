@@ -1574,10 +1574,10 @@ export default function CruisesContent() {
                   >
                     {/* Mobile Layout */}
                     <div className="md:hidden">
-                      {/* Cruise Name - increased by 2px (18px → 20px), line-height 0.9 */}
+                      {/* Cruise Name - increased to 22px, line-height 1.0 */}
                       <h3
-                        className="font-whitney font-black uppercase text-[#2F2F2F] text-[20px] mb-2"
-                        style={{ letterSpacing: "-0.02em", lineHeight: "0.9" }}
+                        className="font-whitney font-black uppercase text-[#2F2F2F] text-[22px] mb-2"
+                        style={{ letterSpacing: "-0.02em", lineHeight: "1.0" }}
                       >
                         {cruise.name}
                       </h3>

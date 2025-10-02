@@ -319,11 +319,11 @@ export default function QuoteModalNative({
             className="bg-white w-full max-w-[760px] md:rounded-[10px] min-h-full md:min-h-0 md:h-auto md:max-h-[90vh] md:my-4 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 md:p-8">
+            <div className="p-3 md:p-8">
               {/* Header */}
-              <div className="mb-8 flex items-center justify-between">
+              <div className="mb-6 md:mb-8 flex items-center justify-between">
                 <h2
-                  className="font-whitney font-black text-[24px] md:text-[32px] text-dark-blue uppercase"
+                  className="font-whitney font-black text-[22px] md:text-[32px] text-dark-blue uppercase"
                   style={{ letterSpacing: "-0.02em" }}
                 >
                   PASSENGERS
@@ -347,13 +347,13 @@ export default function QuoteModalNative({
               </div>
 
               {/* Passenger Input Section */}
-              <div className="grid grid-cols-2 gap-6 mb-8">
+              <div className="grid grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
                 {/* Adults */}
                 <div>
-                  <label className="font-geograph font-bold text-[14px] text-[#474747] tracking-[0.1em] uppercase mb-3 block">
+                  <label className="font-geograph font-bold text-[12px] md:text-[14px] text-[#474747] tracking-[0.1em] uppercase mb-2 md:mb-3 block">
                     ADULTS
                   </label>
-                  <div className="flex items-center border border-[#d9d9d9] rounded-[10px] p-3">
+                  <div className="flex items-center border border-[#d9d9d9] rounded-[10px] p-2 md:p-3">
                     <button
                       onClick={() => handlePassengerChange("adults", false)}
                       className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded"
@@ -364,7 +364,7 @@ export default function QuoteModalNative({
                         className="w-4 h-4"
                       />
                     </button>
-                    <span className="flex-1 text-center font-geograph text-[32px]">
+                    <span className="flex-1 text-center font-geograph text-[30px] md:text-[32px]">
                       {passengers.adults}
                     </span>
                     <button
@@ -382,10 +382,10 @@ export default function QuoteModalNative({
 
                 {/* Children */}
                 <div>
-                  <label className="font-geograph font-bold text-[14px] text-[#474747] tracking-[0.1em] uppercase mb-3 block">
+                  <label className="font-geograph font-bold text-[12px] md:text-[14px] text-[#474747] tracking-[0.1em] uppercase mb-2 md:mb-3 block">
                     CHILDREN
                   </label>
-                  <div className="flex items-center border border-[#d9d9d9] rounded-[10px] p-3">
+                  <div className="flex items-center border border-[#d9d9d9] rounded-[10px] p-2 md:p-3">
                     <button
                       onClick={() => handlePassengerChange("children", false)}
                       className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded"
@@ -396,7 +396,7 @@ export default function QuoteModalNative({
                         className="w-4 h-4"
                       />
                     </button>
-                    <span className="flex-1 text-center font-geograph text-[32px]">
+                    <span className="flex-1 text-center font-geograph text-[30px] md:text-[32px]">
                       {passengers.children}
                     </span>
                     <button
@@ -415,14 +415,14 @@ export default function QuoteModalNative({
 
               {/* Child Age Inputs - Only show if children are selected */}
               {passengers.children > 0 && (
-                <div className="grid grid-cols-2 gap-6 mb-8">
+                <div className="grid grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
                   {[...Array(Math.min(passengers.children, 2))].map(
                     (_, index) => (
                       <div key={index}>
-                        <label className="font-geograph font-bold text-[14px] text-[#474747] tracking-[0.1em] uppercase mb-3 block">
+                        <label className="font-geograph font-bold text-[12px] md:text-[14px] text-[#474747] tracking-[0.1em] uppercase mb-2 md:mb-3 block">
                           CHILD {index + 1} AGE
                         </label>
-                        <div className="border border-[#d9d9d9] rounded-[10px] p-3">
+                        <div className="border border-[#d9d9d9] rounded-[10px] p-2 md:p-3">
                           <input
                             type="text"
                             inputMode="numeric"
@@ -432,7 +432,7 @@ export default function QuoteModalNative({
                               handleChildAgeChange(index, e.target.value)
                             }
                             placeholder={`Child ${index + 1} age`}
-                            className="w-full font-geograph text-[20px] text-center outline-none"
+                            className="w-full font-geograph text-[18px] md:text-[20px] text-center outline-none"
                           />
                         </div>
                       </div>
@@ -444,8 +444,8 @@ export default function QuoteModalNative({
               )}
 
               {/* Travel Insurance Checkbox */}
-              <div className="mb-8">
-                <div className="border border-[#d9d9d9] rounded-[10px] p-4">
+              <div className="mb-6 md:mb-8">
+                <div className="border border-[#d9d9d9] rounded-[10px] p-3 md:p-4">
                   <label className="flex items-center cursor-pointer">
                     <div className="relative mr-3">
                       <input
@@ -476,7 +476,7 @@ export default function QuoteModalNative({
                       </div>
                     </div>
                     <span
-                      className="font-geograph text-[18px] text-[#2f2f2f]"
+                      className="font-geograph text-[16px] md:text-[18px] text-[#2f2f2f]"
                       style={{ letterSpacing: "0px" }}
                     >
                       I'm interested in travel insurance for this cruise
@@ -485,7 +485,7 @@ export default function QuoteModalNative({
                 </div>
 
                 {/* Additional Notes Input */}
-                <div className="border border-[#d9d9d9] rounded-[10px] p-4 mt-4">
+                <div className="border border-[#d9d9d9] rounded-[10px] p-3 md:p-4 mt-3 md:mt-4">
                   <input
                     type="text"
                     value={discounts.additionalNotes}
@@ -493,22 +493,22 @@ export default function QuoteModalNative({
                       handleDiscountChange("additionalNotes", e.target.value)
                     }
                     placeholder="Additional comments"
-                    className="w-full border-none outline-none font-geograph text-[18px] text-[#2f2f2f] bg-transparent"
+                    className="w-full border-none outline-none font-geograph text-[16px] md:text-[18px] text-[#2f2f2f] bg-transparent"
                     style={{ letterSpacing: "0px" }}
                   />
                 </div>
               </div>
 
               {/* Discount Qualifiers Section */}
-              <div className="mb-8">
+              <div className="mb-6 md:mb-8">
                 <h3
-                  className="font-whitney font-black text-[24px] md:text-[32px] text-dark-blue uppercase mb-1"
+                  className="font-whitney font-black text-[22px] md:text-[32px] text-dark-blue uppercase mb-1"
                   style={{ letterSpacing: "-0.02em" }}
                 >
                   DISCOUNT QUALIFIERS
                 </h3>
                 <p
-                  className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5] mb-6"
+                  className="font-geograph text-[16px] md:text-[18px] text-[#2f2f2f] leading-[1.5] mb-4 md:mb-6"
                   style={{ letterSpacing: "-0.02em" }}
                 >
                   All optional, but might help you get more discounts off your
@@ -517,7 +517,7 @@ export default function QuoteModalNative({
 
                 <div className="space-y-4">
                   {/* Pay in Full Checkbox */}
-                  <div className="border border-[#d9d9d9] rounded-[10px] p-4">
+                  <div className="border border-[#d9d9d9] rounded-[10px] p-3 md:p-4">
                     <label className="flex items-center cursor-pointer">
                       <div className="relative mr-3">
                         <input
@@ -545,7 +545,7 @@ export default function QuoteModalNative({
                         </div>
                       </div>
                       <span
-                        className="font-geograph text-[18px] text-[#2f2f2f]"
+                        className="font-geograph text-[16px] md:text-[18px] text-[#2f2f2f]"
                         style={{ letterSpacing: "0px" }}
                       >
                         I want to pay in full/non-refundable
@@ -554,7 +554,7 @@ export default function QuoteModalNative({
                   </div>
 
                   {/* 55+ Checkbox */}
-                  <div className="border border-[#d9d9d9] rounded-[10px] p-4">
+                  <div className="border border-[#d9d9d9] rounded-[10px] p-3 md:p-4">
                     <label className="flex items-center cursor-pointer">
                       <div className="relative mr-3">
                         <input
@@ -582,7 +582,7 @@ export default function QuoteModalNative({
                         </div>
                       </div>
                       <span
-                        className="font-geograph text-[18px] text-[#2f2f2f]"
+                        className="font-geograph text-[16px] md:text-[18px] text-[#2f2f2f]"
                         style={{ letterSpacing: "0px" }}
                       >
                         I am 55 or older
@@ -591,7 +591,7 @@ export default function QuoteModalNative({
                   </div>
 
                   {/* Military Checkbox */}
-                  <div className="border border-[#d9d9d9] rounded-[10px] p-4">
+                  <div className="border border-[#d9d9d9] rounded-[10px] p-3 md:p-4">
                     <label className="flex items-center cursor-pointer">
                       <div className="relative mr-3">
                         <input
@@ -619,7 +619,7 @@ export default function QuoteModalNative({
                         </div>
                       </div>
                       <span
-                        className="font-geograph text-[18px] text-[#2f2f2f]"
+                        className="font-geograph text-[16px] md:text-[18px] text-[#2f2f2f]"
                         style={{ letterSpacing: "0px" }}
                       >
                         I am an active/retired military member or veteran
@@ -628,13 +628,13 @@ export default function QuoteModalNative({
                   </div>
 
                   {/* State of Residence Dropdown */}
-                  <div className="border border-[#d9d9d9] rounded-[10px] p-4">
+                  <div className="border border-[#d9d9d9] rounded-[10px] p-3 md:p-4">
                     <select
                       value={discounts.stateOfResidence}
                       onChange={(e) =>
                         handleDiscountChange("stateOfResidence", e.target.value)
                       }
-                      className="w-full border-none outline-none font-geograph text-[18px] text-[#2f2f2f] bg-transparent"
+                      className="w-full border-none outline-none font-geograph text-[16px] md:text-[18px] text-[#2f2f2f] bg-transparent"
                       style={{ letterSpacing: "0px" }}
                     >
                       <option value="">State of Residence</option>
@@ -647,7 +647,7 @@ export default function QuoteModalNative({
                   </div>
 
                   {/* Loyalty Number Input */}
-                  <div className="border border-[#d9d9d9] rounded-[10px] p-4">
+                  <div className="border border-[#d9d9d9] rounded-[10px] p-3 md:p-4">
                     <input
                       type="text"
                       value={discounts.loyaltyNumber}
@@ -655,7 +655,7 @@ export default function QuoteModalNative({
                         handleDiscountChange("loyaltyNumber", e.target.value)
                       }
                       placeholder="Loyalty Number"
-                      className="w-full border-none outline-none font-geograph text-[18px] text-[#2f2f2f] bg-transparent"
+                      className="w-full border-none outline-none font-geograph text-[16px] md:text-[18px] text-[#2f2f2f] bg-transparent"
                       style={{ letterSpacing: "0px" }}
                     />
                   </div>
@@ -665,7 +665,7 @@ export default function QuoteModalNative({
               {/* Submit Button */}
               <button
                 onClick={handleGetFinalQuotes}
-                className="w-full bg-[#2f7ddd] text-white font-geograph font-medium text-[16px] px-6 py-4 rounded-full hover:bg-[#2f7ddd]/90 transition-colors"
+                className="w-full bg-[#2f7ddd] text-white font-geograph font-medium text-[14px] md:text-[16px] px-5 md:px-6 py-3 md:py-4 rounded-full hover:bg-[#2f7ddd]/90 transition-colors"
               >
                 Get final quotes
               </button>
