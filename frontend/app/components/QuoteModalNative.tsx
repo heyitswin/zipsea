@@ -24,7 +24,7 @@ interface QuoteModalProps {
 interface PassengerData {
   adults: number;
   children: number;
-  childAges: number[];
+  childAges: (number | null)[];
 }
 
 interface DiscountData {
@@ -145,8 +145,8 @@ export default function QuoteModalNative({
       let newChildAges = [...prev.childAges];
       if (type === "children") {
         if (newValue > prev.children) {
-          // Adding a child - add default age
-          newChildAges.push(10);
+          // Adding a child - add default age of 5
+          newChildAges.push(5);
         } else if (newValue < prev.children) {
           // Removing a child - remove last age
           newChildAges.pop();
@@ -169,7 +169,18 @@ export default function QuoteModalNative({
   };
 
   const handleChildAgeChange = (index: number, value: string) => {
-    const age = parseInt(value) || 0;
+    // Allow empty string so users can delete and type new value
+    // Only allow numeric input, and only reject if complete value is over 17
+    if (value !== "" && !/^\d*$/.test(value)) {
+      return; // Ignore non-numeric input
+    }
+    // Allow partial input (e.g., "1" while typing "17")
+    // Only validate complete values
+    if (value !== "" && parseInt(value) > 17) {
+      return; // Ignore values over 17
+    }
+    // Store as number or null (null will display as empty in input)
+    const age = value === "" ? null : parseInt(value);
     setPassengers((prev) => ({
       ...prev,
       childAges: prev.childAges.map((a, i) => (i === index ? age : a)),
@@ -194,11 +205,19 @@ export default function QuoteModalNative({
 
   const handleGetFinalQuotes = async () => {
     if (!isSignedIn) {
+      // Filter out null child ages before saving
+      const validPassengers = {
+        ...passengers,
+        childAges: passengers.childAges.filter(
+          (age): age is number => age !== null,
+        ),
+      };
+
       // Save quote data to sessionStorage for post-login submission
       const quoteData = {
         userEmail: null, // Will be filled after login
         cruiseData,
-        passengers,
+        passengers: validPassengers,
         discounts,
         cabinType,
         cabinPrice,
@@ -220,6 +239,14 @@ export default function QuoteModalNative({
 
     // User is logged in, send confirmation email
     try {
+      // Filter out null child ages before submission
+      const validPassengers = {
+        ...passengers,
+        childAges: passengers.childAges.filter(
+          (age): age is number => age !== null,
+        ),
+      };
+
       const response = await fetch("/api/send-quote-confirmation", {
         method: "POST",
         headers: {
@@ -228,7 +255,7 @@ export default function QuoteModalNative({
         body: JSON.stringify({
           userEmail: user?.emailAddresses[0]?.emailAddress,
           cruiseData,
-          passengers,
+          passengers: validPassengers,
           discounts,
           cabinType,
           cabinPrice,
@@ -284,12 +311,12 @@ export default function QuoteModalNative({
       {/* Main Quote Modal */}
       {!showLoginPrompt && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center md:p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center md:p-4 overflow-y-auto"
           style={{ backgroundColor: "rgba(0, 0, 0, 0.8)" }}
           onClick={handleBackgroundClick}
         >
           <div
-            className="bg-white w-full max-w-[760px] md:rounded-[10px] h-full md:h-auto md:max-h-[90vh] overflow-y-auto"
+            className="bg-white w-full max-w-[760px] md:rounded-[10px] min-h-full md:min-h-0 md:h-auto md:max-h-[90vh] md:my-4 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 md:p-8">
@@ -397,10 +424,10 @@ export default function QuoteModalNative({
                         </label>
                         <div className="border border-[#d9d9d9] rounded-[10px] p-3">
                           <input
-                            type="number"
-                            min="0"
-                            max="17"
-                            value={passengers.childAges[index] || 10}
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={passengers.childAges[index] ?? ""}
                             onChange={(e) =>
                               handleChildAgeChange(index, e.target.value)
                             }
