@@ -24,7 +24,7 @@ interface QuoteModalProps {
 interface PassengerData {
   adults: number;
   children: number;
-  childAges: number[];
+  childAges: (number | null)[];
 }
 
 interface DiscountData {
@@ -181,8 +181,8 @@ export default function QuoteModal({
 
   const handleChildAgeChange = (index: number, value: string) => {
     // Allow empty string so users can delete and type new value
-    // Only set to 0 if value is truly invalid (not just empty)
-    const age = value === "" ? 0 : parseInt(value) || 0;
+    // Store as number or null (null will display as empty in input)
+    const age = value === "" ? null : parseInt(value);
     setPassengers((prev) => ({
       ...prev,
       childAges: prev.childAges.map((a, i) => (i === index ? age : a)),
@@ -206,12 +206,20 @@ export default function QuoteModal({
   };
 
   const handleGetFinalQuotes = async () => {
+    // Filter out null child ages before submission (keep only valid numbers)
+    const validPassengers = {
+      ...passengers,
+      childAges: passengers.childAges.filter(
+        (age): age is number => age !== null,
+      ),
+    };
+
     if (!isSignedIn) {
       // Save quote data to sessionStorage for post-login submission
       const quoteData = {
         userEmail: null, // Will be filled after login
         cruiseData,
-        passengers,
+        passengers: validPassengers,
         discounts,
         cabinType,
         cabinPrice,
@@ -240,7 +248,7 @@ export default function QuoteModal({
         body: JSON.stringify({
           userEmail: user?.emailAddresses[0]?.emailAddress,
           cruiseData,
-          passengers,
+          passengers: validPassengers,
           discounts,
           cabinType,
           cabinPrice,
