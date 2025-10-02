@@ -26,9 +26,14 @@ export default function LoginSignupModal({
   const [verificationMode, setVerificationMode] = useState<
     "signup" | "signin" | null
   >(null);
-  const { signIn, setActive: setActiveSignIn } = useSignIn();
-  const { signUp, setActive: setActiveSignUp } = useSignUp();
+  const signInContext = useSignIn();
+  const signUpContext = useSignUp();
   const router = useRouter();
+
+  const signIn = signInContext?.signIn;
+  const setActiveSignIn = signInContext?.setActive;
+  const signUp = signUpContext?.signUp;
+  const setActiveSignUp = signUpContext?.setActive;
 
   if (!isOpen) return null;
 
