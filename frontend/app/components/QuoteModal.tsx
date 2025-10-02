@@ -156,8 +156,8 @@ export default function QuoteModal({
       let newChildAges = [...prev.childAges];
       if (type === "children") {
         if (newValue > prev.children) {
-          // Adding a child - add default age
-          newChildAges.push(10);
+          // Adding a child - add default age of 5
+          newChildAges.push(5);
         } else if (newValue < prev.children) {
           // Removing a child - remove last age
           newChildAges.pop();
@@ -180,7 +180,9 @@ export default function QuoteModal({
   };
 
   const handleChildAgeChange = (index: number, value: string) => {
-    const age = parseInt(value) || 0;
+    // Allow empty string so users can delete and type new value
+    // Only set to 0 if value is truly invalid (not just empty)
+    const age = value === "" ? 0 : parseInt(value) || 0;
     setPassengers((prev) => ({
       ...prev,
       childAges: prev.childAges.map((a, i) => (i === index ? age : a)),
@@ -422,7 +424,7 @@ export default function QuoteModal({
                             type="number"
                             min="0"
                             max="17"
-                            value={passengers.childAges[index] || 10}
+                            value={passengers.childAges[index] ?? ""}
                             onChange={(e) =>
                               handleChildAgeChange(index, e.target.value)
                             }
