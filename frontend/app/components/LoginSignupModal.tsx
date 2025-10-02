@@ -425,15 +425,10 @@ export default function LoginSignupModal({
 
               <button
                 type="button"
-                onClick={() => {
-                  setShowCodeInput(false);
-                  setCode("");
-                  setMessage("");
-                  setVerificationMode(null);
-                }}
+                onClick={onClose}
                 className="w-full border border-gray-300 text-gray-700 font-geograph font-medium text-[16px] px-6 py-3 rounded-full hover:bg-gray-50 transition-colors"
               >
-                Back to Email
+                Cancel
               </button>
             </form>
           )}
