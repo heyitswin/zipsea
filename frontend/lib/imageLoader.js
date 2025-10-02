@@ -12,8 +12,12 @@ export default function imageLoader({ src, width, quality }) {
     if (isExternal) {
       // For external images from known slow/problematic domains, use image proxy
       if (src.includes("static.traveltek.net")) {
+        // Cap width at 1920px to prevent large images from exceeding proxy size limit
+        // This avoids 413 errors when srcset requests very large sizes (e.g., 3840w)
+        const maxWidth = 1920;
+        const cappedWidth = Math.min(width, maxWidth);
         // Pass width parameter to proxy for resizing
-        return `/api/image-proxy?url=${encodeURIComponent(src)}&w=${width}&q=${quality || 75}`;
+        return `/api/image-proxy?url=${encodeURIComponent(src)}&w=${cappedWidth}&q=${quality || 75}`;
       }
       // For other external images, return original URL
       return src;
