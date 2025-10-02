@@ -29,7 +29,7 @@ interface FtpConnection {
 export class WebhookProcessorOptimizedV2 {
   private static ftpPool: FtpConnection[] = [];
   private static poolInitialized = false;
-  private static MAX_CONNECTIONS = 3; // Reduced to prevent FTP server connection limits
+  private static MAX_CONNECTIONS = 5; // Conservative increase for better throughput
   private static KEEP_ALIVE_INTERVAL = 30000;
   private static processorInstance: WebhookProcessorOptimizedV2 | null = null;
 
@@ -135,7 +135,7 @@ export class WebhookProcessorOptimizedV2 {
         );
 
         // Process files in batches
-        const BATCH_SIZE = 10; // Increased batch size with upgraded Redis
+        const BATCH_SIZE = 15; // Conservative 50% increase for better throughput
         const results = { processed: 0, failed: 0, updated: 0 };
         const startTime = Date.now();
 
@@ -163,7 +163,7 @@ export class WebhookProcessorOptimizedV2 {
           // Add a small delay between batches to prevent PostgreSQL page cache exhaustion
           // This allows the database to clear its cache and prevents memory spikes
           if (i + BATCH_SIZE < files.length) {
-            await new Promise(resolve => setTimeout(resolve, 500)); // Reduced delay with better Redis
+            await new Promise(resolve => setTimeout(resolve, 250)); // Conservative 50% reduction with Pro-4gb DB
           }
 
           batchResults.forEach(result => {
@@ -197,7 +197,7 @@ export class WebhookProcessorOptimizedV2 {
       },
       {
         connection: WebhookProcessorOptimizedV2.redisConnection!,
-        concurrency: 2, // Reduced concurrency to manage memory usage
+        concurrency: 3, // Conservative 50% increase with Pro-4gb DB
         stalledInterval: 30000,
       }
     );
@@ -766,7 +766,7 @@ export class WebhookProcessorOptimizedV2 {
       }
 
       // Create batches of files for queue processing
-      const MAX_FILES_PER_JOB = 100; // Increased job size with upgraded Redis
+      const MAX_FILES_PER_JOB = 150; // Conservative 50% increase for better throughput
       const batches = [];
 
       for (let i = 0; i < files.length; i += MAX_FILES_PER_JOB) {
