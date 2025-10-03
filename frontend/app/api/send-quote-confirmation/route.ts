@@ -4,6 +4,109 @@ import { sendSlackQuoteNotification } from "../../../lib/slack";
 
 const resendApiKey = process.env.RESEND_API_KEY;
 
+// PostHog API integration
+interface PostHogSessionData {
+  referrer: string | null;
+  sessionDuration: number | null;
+  device: string | null;
+  location: string | null;
+  pageviews: number;
+  lastActiveAt: string | null;
+}
+
+async function fetchPostHogSessionData(
+  email: string,
+): Promise<PostHogSessionData | null> {
+  const projectId = process.env.POSTHOG_PROJECT_ID;
+  const apiKey = process.env.POSTHOG_API_KEY;
+
+  if (!projectId || !apiKey) {
+    console.log("PostHog not configured, skipping session data fetch");
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      `https://us.i.posthog.com/api/projects/${projectId}/events?distinct_id=${encodeURIComponent(email)}&limit=50`,
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      console.error("PostHog API error:", response.status, response.statusText);
+      return null;
+    }
+
+    const data: any = await response.json();
+    const events = data.results || [];
+
+    if (events.length === 0) {
+      return null;
+    }
+
+    // Get the most recent event
+    const latestEvent = events[0];
+    const properties = latestEvent.properties || {};
+
+    // Filter for pageview events in the same session
+    const sessionEvents = events.filter((e: any) => e.event === "$pageview");
+
+    if (sessionEvents.length === 0) {
+      return null;
+    }
+
+    // Get session ID from latest pageview
+    const sessionId = properties.$session_id;
+    const sessionPageviews = sessionEvents.filter(
+      (e: any) => e.properties?.$session_id === sessionId,
+    );
+
+    // Calculate session duration
+    let sessionDuration = null;
+    if (sessionPageviews.length > 1) {
+      const firstEvent = sessionPageviews[sessionPageviews.length - 1];
+      const lastEvent = sessionPageviews[0];
+      const firstTime = new Date(firstEvent.timestamp).getTime();
+      const lastTime = new Date(lastEvent.timestamp).getTime();
+      sessionDuration = Math.floor((lastTime - firstTime) / 1000);
+    }
+
+    // Format device info
+    const formatDevice = (props: any): string => {
+      const parts = [];
+      if (props.$device_type) parts.push(props.$device_type);
+      if (props.$browser) parts.push(props.$browser);
+      if (props.$os) parts.push(props.$os);
+      return parts.join(" • ");
+    };
+
+    // Format location
+    const formatLocation = (props: any): string => {
+      const parts = [];
+      if (props.$geoip_city_name) parts.push(props.$geoip_city_name);
+      if (props.$geoip_subdivision_1_name)
+        parts.push(props.$geoip_subdivision_1_name);
+      if (props.$geoip_country_name) parts.push(props.$geoip_country_name);
+      return parts.join(", ");
+    };
+
+    return {
+      referrer: properties.$referrer || properties.$referring_domain || null,
+      sessionDuration,
+      device: formatDevice(properties),
+      location: formatLocation(properties),
+      pageviews: sessionPageviews.length,
+      lastActiveAt: latestEvent.timestamp || null,
+    };
+  } catch (error) {
+    console.error("Error fetching PostHog session data:", error);
+    return null;
+  }
+}
+
 // Enhanced debugging for API key
 console.log("Resend API Key Debug:", {
   exists: !!resendApiKey,
@@ -126,6 +229,21 @@ export async function POST(request: NextRequest) {
       // Continue - backend save is optional
     }
 
+    // Fetch PostHog session data
+    let posthogData = null;
+    try {
+      console.log("Fetching PostHog session data for:", userEmail);
+      posthogData = await fetchPostHogSessionData(userEmail);
+      if (posthogData) {
+        console.log("PostHog session data fetched successfully");
+      } else {
+        console.log("No PostHog session data available");
+      }
+    } catch (error) {
+      console.error("Error fetching PostHog session data:", error);
+      // Continue - PostHog data is optional
+    }
+
     // Send Slack notification (optional - don't fail if Slack is down)
     try {
       const slackWebhookUrl = process.env.SLACK_WEBHOOK_URL;
@@ -146,6 +264,7 @@ export async function POST(request: NextRequest) {
           },
           cabinType,
           cabinPrice,
+          posthogData, // Include PostHog session data
         });
 
         if (slackResult?.success) {

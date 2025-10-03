@@ -1,5 +1,14 @@
 // Slack webhook integration utility
 
+interface PostHogSessionData {
+  referrer: string | null;
+  sessionDuration: number | null;
+  device: string | null;
+  location: string | null;
+  pageviews: number;
+  lastActiveAt: string | null;
+}
+
 interface QuoteData {
   userEmail: string;
   cruiseData: {
@@ -27,6 +36,7 @@ interface QuoteData {
   };
   cabinType: string;
   cabinPrice: string | number;
+  posthogData?: PostHogSessionData | null;
 }
 
 export async function sendSlackQuoteNotification(quoteData: QuoteData) {
@@ -229,6 +239,54 @@ export async function sendSlackQuoteNotification(quoteData: QuoteData) {
                   type: "mrkdwn" as const,
                   text: `*Customer Comments:*\n${quoteData.discounts.additionalNotes}`,
                 },
+              },
+            ]
+          : []),
+        ...(quoteData.posthogData
+          ? [
+              {
+                type: "divider" as const,
+              },
+              {
+                type: "section" as const,
+                text: {
+                  type: "mrkdwn" as const,
+                  text: "*📊 Session Analytics*",
+                },
+              },
+              {
+                type: "section" as const,
+                fields: [
+                  {
+                    type: "mrkdwn" as const,
+                    text: `*Referring Domain:*\n${quoteData.posthogData.referrer || "Direct / Unknown"}`,
+                  },
+                  {
+                    type: "mrkdwn" as const,
+                    text: `*Time on Site:*\n${
+                      quoteData.posthogData.sessionDuration
+                        ? Math.floor(
+                            quoteData.posthogData.sessionDuration / 60,
+                          ) +
+                          "m " +
+                          (quoteData.posthogData.sessionDuration % 60) +
+                          "s"
+                        : "Less than 1 minute"
+                    }`,
+                  },
+                  {
+                    type: "mrkdwn" as const,
+                    text: `*Device:*\n${quoteData.posthogData.device || "Unknown"}`,
+                  },
+                  {
+                    type: "mrkdwn" as const,
+                    text: `*Location:*\n${quoteData.posthogData.location || "Unknown"}`,
+                  },
+                  {
+                    type: "mrkdwn" as const,
+                    text: `*Pages Viewed:*\n${quoteData.posthogData.pageviews}`,
+                  },
+                ],
               },
             ]
           : []),
