@@ -353,8 +353,44 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       };
     }
 
-    // Parse the price code (format: RATECODE|CABINCODE|OCCUPANCY)
-    const [rateCode, cabinCode, occupancy] = priceCode.split("|");
+    // Parse the price code - handle both pipe-delimited and rate-code-only formats
+    let rateCode: string;
+    let cabinCode: string | undefined;
+
+    if (priceCode.includes("|")) {
+      // Format: "RATECODE|CABINCODE|OCCUPANCY" (future-proof)
+      [rateCode, cabinCode] = priceCode.split("|");
+    } else {
+      // Format: "RATECODE" only (current reality from Traveltek)
+      rateCode = priceCode;
+
+      // Map frontend cabin type to Traveltek's cabin type naming
+      const cabinTypeMap: Record<string, string> = {
+        interior: "inside",
+        oceanview: "outside",
+        balcony: "balcony",
+        suite: "suite",
+      };
+
+      const targetCabinType = cabinTypeMap[cabinType];
+
+      // Find cheapest cabin of the correct type in this rate code
+      const cabinsInRate = (rawData as any).prices?.[rateCode];
+      if (cabinsInRate && typeof cabinsInRate === "object") {
+        const matchingCabins = Object.entries(cabinsInRate)
+          .filter(
+            ([_, priceData]: any) => priceData?.cabintype === targetCabinType,
+          )
+          .map(([cabinId, priceData]: any) => ({
+            cabinId,
+            price: parseFloat(priceData.price || "0"),
+          }))
+          .sort((a, b) => a.price - b.price);
+
+        // Use the cheapest cabin
+        cabinCode = matchingCabins[0]?.cabinId;
+      }
+    }
 
     if (!cabinCode) {
       return {
