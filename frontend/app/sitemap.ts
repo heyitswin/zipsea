@@ -1,7 +1,7 @@
 import { MetadataRoute } from "next";
 import { getCategorySitemapEntries } from "../lib/cruise-categories";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = "https://www.zipsea.com";
 
   // Static pages
@@ -97,8 +97,34 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${baseUrl}${entry.url}`,
   }));
 
-  // TODO: Add dynamic cruise pages here by fetching from API
-  // const cruisePages = await fetchCruisePages();
+  // Fetch cruise pages from API
+  let cruisePages: MetadataRoute.Sitemap = [];
+  try {
+    // Fetch cruises departing in next 90 days for sitemap
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://api.zipsea.com";
+    const response = await fetch(
+      `${apiUrl}/api/v1/search?limit=5000&minDate=${new Date().toISOString().split("T")[0]}`,
+      { next: { revalidate: 3600 } }, // Cache for 1 hour
+    );
 
-  return [...staticPages, ...guidePages, ...categoryPages];
+    if (response.ok) {
+      const data = await response.json();
+      const cruises = data.cruises || [];
+
+      cruisePages = cruises.map((cruise: any) => ({
+        url: `${baseUrl}/cruise/${cruise.slug}`,
+        lastModified: cruise.updatedAt
+          ? new Date(cruise.updatedAt)
+          : new Date(),
+        changeFrequency: "daily" as const,
+        priority: 0.7,
+      }));
+
+      console.log(`[Sitemap] Added ${cruisePages.length} cruise pages`);
+    }
+  } catch (error) {
+    console.error("[Sitemap] Failed to fetch cruise pages:", error);
+  }
+
+  return [...staticPages, ...guidePages, ...categoryPages, ...cruisePages];
 }
