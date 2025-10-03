@@ -168,9 +168,8 @@ class ProductionToStagingSync {
           // Clear staging table with CASCADE to handle foreign key constraints
           await sql`TRUNCATE TABLE ${sql(tableName)} CASCADE`;
 
-          // Copy data from production to staging
-          // Using chunked approach for large tables
-          const chunkSize = 10000;
+          // Copy data from production to staging using smaller chunks for memory efficiency
+          const chunkSize = 1000; // Reduced from 10000 to 1000 for 512MB RAM limit
           let offset = 0;
           let totalCopied = 0;
 
@@ -184,28 +183,34 @@ class ProductionToStagingSync {
 
             if (rows.length === 0) break;
 
-            // Insert chunk into staging
+            // Insert chunk into staging - process in smaller batches
             if (rows.length > 0) {
               // Get column names from first row
               const columns = Object.keys(rows[0]);
-              const values = rows.map(row => columns.map(col => row[col]));
 
-              // Build insert query dynamically
-              const insertQuery = `
-              INSERT INTO ${tableName} (${columns.join(', ')})
-              VALUES ${values.map((_, i) => `(${columns.map((_, j) => `$${i * columns.length + j + 1}`).join(', ')})`).join(', ')}
-            `;
+              // Insert rows in batches of 100 to avoid building huge query strings
+              const insertBatchSize = 100;
+              for (let i = 0; i < rows.length; i += insertBatchSize) {
+                const batch = rows.slice(i, i + insertBatchSize);
+                const values = batch.map(row => columns.map(col => row[col]));
 
-              // Flatten values array for parameterized query
-              const flatValues = values.flat();
+                // Build insert query dynamically
+                const insertQuery = `
+                INSERT INTO ${tableName} (${columns.join(', ')})
+                VALUES ${values.map((_, idx) => `(${columns.map((_, j) => `$${idx * columns.length + j + 1}`).join(', ')})`).join(', ')}
+              `;
 
-              await sql.unsafe(insertQuery, flatValues);
-              totalCopied += rows.length;
+                // Flatten values array for parameterized query
+                const flatValues = values.flat();
+
+                await sql.unsafe(insertQuery, flatValues);
+                totalCopied += batch.length;
+              }
             }
 
             offset += chunkSize;
 
-            if (config.verbose && totalCopied % 10000 === 0) {
+            if (config.verbose && totalCopied % 5000 === 0) {
               console.log(`    ... copied ${totalCopied} rows`);
             }
           }
