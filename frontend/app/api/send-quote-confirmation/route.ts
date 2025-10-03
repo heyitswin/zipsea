@@ -12,6 +12,8 @@ interface PostHogSessionData {
   location: string | null;
   pageviews: number;
   lastActiveAt: string | null;
+  sessionId: string | null;
+  replayUrl: string | null;
 }
 
 async function fetchPostHogSessionData(
@@ -93,6 +95,11 @@ async function fetchPostHogSessionData(
       return parts.join(", ");
     };
 
+    // Construct session replay URL
+    const replayUrl = sessionId
+      ? `https://us.posthog.com/project/${projectId}/replay/${sessionId}`
+      : null;
+
     return {
       referrer: properties.$referrer || properties.$referring_domain || null,
       sessionDuration,
@@ -100,6 +107,8 @@ async function fetchPostHogSessionData(
       location: formatLocation(properties),
       pageviews: sessionPageviews.length,
       lastActiveAt: latestEvent.timestamp || null,
+      sessionId,
+      replayUrl,
     };
   } catch (error) {
     console.error("Error fetching PostHog session data:", error);

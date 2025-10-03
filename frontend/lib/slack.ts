@@ -7,6 +7,8 @@ interface PostHogSessionData {
   location: string | null;
   pageviews: number;
   lastActiveAt: string | null;
+  sessionId: string | null;
+  replayUrl: string | null;
 }
 
 interface QuoteData {
@@ -288,6 +290,17 @@ export async function sendSlackQuoteNotification(quoteData: QuoteData) {
                   },
                 ],
               },
+              ...(quoteData.posthogData.replayUrl
+                ? [
+                    {
+                      type: "section" as const,
+                      text: {
+                        type: "mrkdwn" as const,
+                        text: `🎥 *<${quoteData.posthogData.replayUrl}|Watch Session Replay>*`,
+                      },
+                    },
+                  ]
+                : []),
             ]
           : []),
         {
