@@ -29,7 +29,7 @@ interface FtpConnection {
 export class WebhookProcessorOptimizedV2 {
   private static ftpPool: FtpConnection[] = [];
   private static poolInitialized = false;
-  private static MAX_CONNECTIONS = 8; // Increased for Pro-8GB database
+  private static MAX_CONNECTIONS = 10; // Increased for Pro-8GB database (200 connection capacity)
   private static KEEP_ALIVE_INTERVAL = 30000;
   private static processorInstance: WebhookProcessorOptimizedV2 | null = null;
 
@@ -766,7 +766,7 @@ export class WebhookProcessorOptimizedV2 {
       }
 
       // Create batches of files for queue processing
-      const MAX_FILES_PER_JOB = 150; // Conservative 50% increase for better throughput
+      const MAX_FILES_PER_JOB = 200; // Increased for Pro-8GB database (200 connection capacity)
       const batches = [];
 
       for (let i = 0; i < files.length; i += MAX_FILES_PER_JOB) {
