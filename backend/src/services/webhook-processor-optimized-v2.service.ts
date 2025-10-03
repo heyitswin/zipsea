@@ -40,7 +40,7 @@ export class WebhookProcessorOptimizedV2 {
   private static statsTracker: WebhookStatsTracker | null = null;
 
   // Performance optimization caches
-  private static shipCache: Map<number, boolean> = new Map();
+  private static shipCache: Map<number, { processed: boolean; imageUrl?: string }> = new Map();
   private static checksumCache: Map<string, string> = new Map(); // cruiseId -> checksum
 
   private stats = {
@@ -135,7 +135,7 @@ export class WebhookProcessorOptimizedV2 {
         );
 
         // Process files in batches
-        const BATCH_SIZE = 25; // Increased for Pro-8GB database
+        const BATCH_SIZE = 35; // Increased for Pro-8GB database (200 connection capacity)
         const results = { processed: 0, failed: 0, updated: 0 };
         const startTime = Date.now();
 
@@ -197,7 +197,7 @@ export class WebhookProcessorOptimizedV2 {
       },
       {
         connection: WebhookProcessorOptimizedV2.redisConnection!,
-        concurrency: 5, // Increased for Pro-8GB database
+        concurrency: 8, // Increased for Pro-8GB database (200 connection capacity)
         stalledInterval: 30000,
       }
     );
@@ -1310,12 +1310,14 @@ export class WebhookProcessorOptimizedV2 {
       const shipId = cruiseData.shipId;
       if (shipId && shipId > 0) {
         // Check if we've already processed this ship in this run
-        const alreadyProcessed = WebhookProcessorOptimizedV2.shipCache.has(shipId);
+        const cachedShip = WebhookProcessorOptimizedV2.shipCache.get(shipId);
+        const alreadyProcessed = cachedShip?.processed || false;
 
-        // Always update ship images if present, even if ship was already processed
-        // This ensures we get the latest ship images from Traveltek
-        const hasShipImages = data.shipcontent?.defaultshipimage;
-        const shouldUpdateShip = !alreadyProcessed || hasShipImages;
+        // Only update ship images if they've changed to avoid redundant DB writes
+        // (same ship appears in many cruise files with identical images)
+        const newImageUrl = data.shipcontent?.defaultshipimage;
+        const imagesChanged = newImageUrl && (!cachedShip || cachedShip.imageUrl !== newImageUrl);
+        const shouldUpdateShip = !alreadyProcessed || imagesChanged;
 
         if (shouldUpdateShip) {
           try {
@@ -1387,14 +1389,17 @@ export class WebhookProcessorOptimizedV2 {
                 },
               });
 
-            if (alreadyProcessed && hasShipImages) {
+            if (alreadyProcessed && imagesChanged) {
               console.log(`[OPTIMIZED-V2] Updated ship ${shipId} images: ${shipData.name}`);
-            } else {
+            } else if (!alreadyProcessed) {
               console.log(`[OPTIMIZED-V2] Ensured ship ${shipId} exists: ${shipData.name}`);
             }
 
-            // Mark ship as processed in cache (but we may update it again if new images found)
-            WebhookProcessorOptimizedV2.shipCache.set(shipId, true);
+            // Cache ship with image URL to detect changes in subsequent files
+            WebhookProcessorOptimizedV2.shipCache.set(shipId, {
+              processed: true,
+              imageUrl: newImageUrl,
+            });
           } catch (shipError: any) {
             console.error(
               `[OPTIMIZED-V2] Error creating/updating ship ${shipId}:`,
