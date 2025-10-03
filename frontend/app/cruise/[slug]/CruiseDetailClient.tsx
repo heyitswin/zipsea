@@ -343,7 +343,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       cheapestPricingData[fields.priceCodeKey] ||
       (rawData as any)[fields.priceCodeField];
 
-    if (!priceCode || !(rawData as any).prices || !(rawData as any).cabins) {
+    // If no prices or cabins data, bail early
+    if (!(rawData as any).prices || !(rawData as any).cabins) {
       return {
         price,
         image: null,
@@ -357,38 +358,68 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     let rateCode: string;
     let cabinCode: string | undefined;
 
-    if (priceCode.includes("|")) {
-      // Format: "RATECODE|CABINCODE|OCCUPANCY" (future-proof)
-      [rateCode, cabinCode] = priceCode.split("|");
+    // Map frontend cabin type to Traveltek's cabin type naming
+    const cabinTypeMap: Record<string, string> = {
+      interior: "inside",
+      oceanview: "outside",
+      balcony: "balcony",
+      suite: "suite",
+    };
+
+    const targetCabinType = cabinTypeMap[cabinType];
+
+    if (priceCode) {
+      // We have a price code - use it
+      if (priceCode.includes("|")) {
+        // Format: "RATECODE|CABINCODE|OCCUPANCY" (future-proof)
+        [rateCode, cabinCode] = priceCode.split("|");
+      } else {
+        // Format: "RATECODE" only (current reality from Traveltek)
+        rateCode = priceCode;
+
+        // Find cheapest cabin of the correct type in this rate code
+        const cabinsInRate = (rawData as any).prices?.[rateCode];
+        if (cabinsInRate && typeof cabinsInRate === "object") {
+          const matchingCabins = Object.entries(cabinsInRate)
+            .filter(
+              ([_, priceData]: any) => priceData?.cabintype === targetCabinType,
+            )
+            .map(([cabinId, priceData]: any) => ({
+              cabinId,
+              price: parseFloat(priceData.price || "0"),
+            }))
+            .sort((a, b) => a.price - b.price);
+
+          // Use the cheapest cabin
+          cabinCode = matchingCabins[0]?.cabinId;
+        }
+      }
     } else {
-      // Format: "RATECODE" only (current reality from Traveltek)
-      rateCode = priceCode;
+      // No price code - derive it from prices object
+      // Search all rate codes (usually just "" empty string) for cheapest cabin of this type
+      const allPrices = (rawData as any).prices;
+      const allMatchingCabins: Array<{ cabinId: string; price: number }> = [];
 
-      // Map frontend cabin type to Traveltek's cabin type naming
-      const cabinTypeMap: Record<string, string> = {
-        interior: "inside",
-        oceanview: "outside",
-        balcony: "balcony",
-        suite: "suite",
-      };
+      for (const rateCodeKey of Object.keys(allPrices)) {
+        const cabinsInRate = allPrices[rateCodeKey];
+        if (cabinsInRate && typeof cabinsInRate === "object") {
+          const matchingCabins = Object.entries(cabinsInRate)
+            .filter(
+              ([_, priceData]: any) => priceData?.cabintype === targetCabinType,
+            )
+            .map(([cabinId, priceData]: any) => ({
+              cabinId,
+              price: parseFloat(priceData.price || "0"),
+            }));
 
-      const targetCabinType = cabinTypeMap[cabinType];
+          allMatchingCabins.push(...matchingCabins);
+        }
+      }
 
-      // Find cheapest cabin of the correct type in this rate code
-      const cabinsInRate = (rawData as any).prices?.[rateCode];
-      if (cabinsInRate && typeof cabinsInRate === "object") {
-        const matchingCabins = Object.entries(cabinsInRate)
-          .filter(
-            ([_, priceData]: any) => priceData?.cabintype === targetCabinType,
-          )
-          .map(([cabinId, priceData]: any) => ({
-            cabinId,
-            price: parseFloat(priceData.price || "0"),
-          }))
-          .sort((a, b) => a.price - b.price);
-
-        // Use the cheapest cabin
-        cabinCode = matchingCabins[0]?.cabinId;
+      // Sort by price and use the cheapest
+      if (allMatchingCabins.length > 0) {
+        allMatchingCabins.sort((a, b) => a.price - b.price);
+        cabinCode = allMatchingCabins[0].cabinId;
       }
     }
 
