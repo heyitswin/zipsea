@@ -76,6 +76,9 @@ export class SearchHotfixService {
           },
           ship: {
             name: row.ship_name || 'Unknown',
+            defaultShipImage: row.default_ship_image,
+            defaultShipImageHd: row.default_ship_image_hd,
+            defaultShipImage2k: row.default_ship_image_2k,
           },
           embarkPort: {
             name: row.embark_port || 'Unknown',
