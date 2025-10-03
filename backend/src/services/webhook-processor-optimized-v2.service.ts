@@ -1310,7 +1310,14 @@ export class WebhookProcessorOptimizedV2 {
       const shipId = cruiseData.shipId;
       if (shipId && shipId > 0) {
         // Check if we've already processed this ship in this run
-        if (!WebhookProcessorOptimizedV2.shipCache.has(shipId)) {
+        const alreadyProcessed = WebhookProcessorOptimizedV2.shipCache.has(shipId);
+
+        // Always update ship images if present, even if ship was already processed
+        // This ensures we get the latest ship images from Traveltek
+        const hasShipImages = data.shipcontent?.defaultshipimage;
+        const shouldUpdateShip = !alreadyProcessed || hasShipImages;
+
+        if (shouldUpdateShip) {
           try {
             const shipData = {
               id: shipId,
@@ -1380,9 +1387,13 @@ export class WebhookProcessorOptimizedV2 {
                 },
               });
 
-            console.log(`[OPTIMIZED-V2] Ensured ship ${shipId} exists: ${shipData.name}`);
+            if (alreadyProcessed && hasShipImages) {
+              console.log(`[OPTIMIZED-V2] Updated ship ${shipId} images: ${shipData.name}`);
+            } else {
+              console.log(`[OPTIMIZED-V2] Ensured ship ${shipId} exists: ${shipData.name}`);
+            }
 
-            // Mark ship as processed in cache
+            // Mark ship as processed in cache (but we may update it again if new images found)
             WebhookProcessorOptimizedV2.shipCache.set(shipId, true);
           } catch (shipError: any) {
             console.error(
