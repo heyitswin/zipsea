@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // Simple in-memory rate limiter
 const requestCounts = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT = 10; // requests per minute per IP
+const RATE_LIMIT = 100; // requests per minute per IP (increased for cruise pages with many images)
 const RATE_WINDOW = 60000; // 1 minute in ms
 
 function checkRateLimit(ip: string): boolean {
