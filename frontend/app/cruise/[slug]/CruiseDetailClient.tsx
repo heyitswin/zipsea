@@ -274,6 +274,17 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     return !isNaN(numPrice) && numPrice > 0;
   };
 
+  // Helper function to check if this is a suite-only cruise line
+  const isSuiteOnlyCruiseLine = () => {
+    const cruiseLineName = cruiseLine?.name || "";
+    const suiteOnlyLines = [
+      "Explora Journeys",
+      "Silversea",
+      "Regent Seven Seas Cruises",
+    ];
+    return suiteOnlyLines.includes(cruiseLineName);
+  };
+
   // Helper function to calculate onboard credit based on price
   const calculateOnboardCredit = (price: string | number | undefined) => {
     if (!isPriceAvailable(price)) return 0;
@@ -1025,235 +1036,241 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
             <div className="space-y-4">
               {/* Interior Cabin Card */}
-              <div
-                className="bg-white rounded-lg border border-gray-200 overflow-hidden mx-4 md:mx-0 px-4 md:px-4"
-                style={{ paddingTop: "16px", paddingBottom: "16px" }}
-              >
-                <div className="flex flex-col md:flex-row md:items-center">
-                  {/* Cabin Image */}
-                  <div className="md:w-48 h-32 md:h-24 flex-shrink-0">
-                    {(() => {
-                      const interiorImage = getCabinImage("interior");
-                      return interiorImage ? (
-                        <img
-                          src={interiorImage}
-                          alt="Interior Cabin"
-                          className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => handleImageClick(interiorImage)}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
-                          <span className="text-sm">Interior Cabin</span>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Title and Description */}
-                  <div className="px-0 md:px-5 py-4 md:py-3 flex-1 min-w-0 md:min-w-[400px] max-w-full md:max-w-[480px]">
-                    <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
-                      {getCabinName("interior") || "Inside Cabin"}
-                    </h3>
-                    <p className="font-geograph text-[14px] text-gray-600 leading-relaxed break-words">
-                      {getCabinDescription("interior") ||
-                        "Comfortable interior stateroom with twin beds that can convert to queen"}
-                    </p>
-                  </div>
-
-                  {/* Pricing Block and Button - Mobile optimized */}
-                  <div className="flex flex-row items-end justify-between flex-1 px-0 md:px-8">
-                    <div className="text-left">
-                      <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                        STARTING FROM
-                      </div>
-                      <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
-                        {formatPrice(getCabinPrice("interior"))}
-                      </div>
-                      {isPriceAvailable(getCabinPrice("interior")) && (
-                        <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                          +$
-                          {calculateOnboardCredit(
-                            getCabinPrice("interior"),
-                          )}{" "}
-                          onboard credit
-                        </div>
-                      )}
+              {!isSuiteOnlyCruiseLine() && (
+                <div
+                  className="bg-white rounded-lg border border-gray-200 overflow-hidden mx-4 md:mx-0 px-4 md:px-4"
+                  style={{ paddingTop: "16px", paddingBottom: "16px" }}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center">
+                    {/* Cabin Image */}
+                    <div className="md:w-48 h-32 md:h-24 flex-shrink-0">
+                      {(() => {
+                        const interiorImage = getCabinImage("interior");
+                        return interiorImage ? (
+                          <img
+                            src={interiorImage}
+                            alt="Interior Cabin"
+                            className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => handleImageClick(interiorImage)}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
+                            <span className="text-sm">Interior Cabin</span>
+                          </div>
+                        );
+                      })()}
                     </div>
 
-                    {/* Quote CTA Button - Inline on mobile */}
-                    <button
-                      onClick={() =>
-                        handleGetQuote(
-                          getCabinName("interior") || "Interior Cabin",
-                          getCabinPrice("interior"),
-                        )
-                      }
-                      disabled={!isPriceAvailable(getCabinPrice("interior"))}
-                      className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors self-end ${
-                        isPriceAvailable(getCabinPrice("interior"))
-                          ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
-                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      }`}
-                    >
-                      Get quote
-                    </button>
+                    {/* Title and Description */}
+                    <div className="px-0 md:px-5 py-4 md:py-3 flex-1 min-w-0 md:min-w-[400px] max-w-full md:max-w-[480px]">
+                      <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
+                        {getCabinName("interior") || "Inside Cabin"}
+                      </h3>
+                      <p className="font-geograph text-[14px] text-gray-600 leading-relaxed break-words">
+                        {getCabinDescription("interior") ||
+                          "Comfortable interior stateroom with twin beds that can convert to queen"}
+                      </p>
+                    </div>
+
+                    {/* Pricing Block and Button - Mobile optimized */}
+                    <div className="flex flex-row items-end justify-between flex-1 px-0 md:px-8">
+                      <div className="text-left">
+                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
+                          STARTING FROM
+                        </div>
+                        <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
+                          {formatPrice(getCabinPrice("interior"))}
+                        </div>
+                        {isPriceAvailable(getCabinPrice("interior")) && (
+                          <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                            +$
+                            {calculateOnboardCredit(
+                              getCabinPrice("interior"),
+                            )}{" "}
+                            onboard credit
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Quote CTA Button - Inline on mobile */}
+                      <button
+                        onClick={() =>
+                          handleGetQuote(
+                            getCabinName("interior") || "Interior Cabin",
+                            getCabinPrice("interior"),
+                          )
+                        }
+                        disabled={!isPriceAvailable(getCabinPrice("interior"))}
+                        className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors self-end ${
+                          isPriceAvailable(getCabinPrice("interior"))
+                            ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
+                            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        }`}
+                      >
+                        Get quote
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Outside Cabin Card */}
-              <div
-                className="bg-white rounded-lg border border-gray-200 overflow-hidden mx-4 md:mx-0 px-4 md:px-4"
-                style={{ paddingTop: "16px", paddingBottom: "16px" }}
-              >
-                <div className="flex flex-col md:flex-row md:items-center">
-                  {/* Cabin Image */}
-                  <div className="md:w-48 h-32 md:h-24 flex-shrink-0">
-                    {(() => {
-                      const oceanviewImage = getCabinImage("oceanview");
-                      return oceanviewImage ? (
-                        <img
-                          src={oceanviewImage}
-                          alt="Outside Cabin"
-                          className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => handleImageClick(oceanviewImage)}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
-                          <span className="text-sm">Outside Cabin</span>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Title and Description */}
-                  <div className="px-0 md:px-5 py-4 md:py-3 flex-1 min-w-0 md:min-w-[400px] max-w-full md:max-w-[480px]">
-                    <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
-                      {getCabinName("oceanview") || "Outside Cabin"}
-                    </h3>
-                    <p className="font-geograph text-[14px] text-gray-600 leading-relaxed break-words">
-                      {getCabinDescription("oceanview") ||
-                        "Ocean view stateroom with window and twin beds that can convert to queen"}
-                    </p>
-                  </div>
-
-                  {/* Pricing Block and Button - Mobile optimized */}
-                  <div className="flex flex-row items-end justify-between flex-1 px-0 md:px-8">
-                    <div className="text-left">
-                      <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                        STARTING FROM
-                      </div>
-                      <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
-                        {formatPrice(getCabinPrice("oceanview"))}
-                      </div>
-                      {isPriceAvailable(getCabinPrice("oceanview")) && (
-                        <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                          +$
-                          {calculateOnboardCredit(
-                            getCabinPrice("oceanview"),
-                          )}{" "}
-                          onboard credit
-                        </div>
-                      )}
+              {!isSuiteOnlyCruiseLine() && (
+                <div
+                  className="bg-white rounded-lg border border-gray-200 overflow-hidden mx-4 md:mx-0 px-4 md:px-4"
+                  style={{ paddingTop: "16px", paddingBottom: "16px" }}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center">
+                    {/* Cabin Image */}
+                    <div className="md:w-48 h-32 md:h-24 flex-shrink-0">
+                      {(() => {
+                        const oceanviewImage = getCabinImage("oceanview");
+                        return oceanviewImage ? (
+                          <img
+                            src={oceanviewImage}
+                            alt="Outside Cabin"
+                            className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => handleImageClick(oceanviewImage)}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
+                            <span className="text-sm">Outside Cabin</span>
+                          </div>
+                        );
+                      })()}
                     </div>
 
-                    {/* Quote CTA Button - Inline on mobile */}
-                    <button
-                      onClick={() =>
-                        handleGetQuote(
-                          getCabinName("oceanview") || "Outside Cabin",
-                          getCabinPrice("oceanview"),
-                        )
-                      }
-                      disabled={!isPriceAvailable(getCabinPrice("oceanview"))}
-                      className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors self-end ${
-                        isPriceAvailable(getCabinPrice("oceanview"))
-                          ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
-                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      }`}
-                    >
-                      Get quote
-                    </button>
+                    {/* Title and Description */}
+                    <div className="px-0 md:px-5 py-4 md:py-3 flex-1 min-w-0 md:min-w-[400px] max-w-full md:max-w-[480px]">
+                      <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
+                        {getCabinName("oceanview") || "Outside Cabin"}
+                      </h3>
+                      <p className="font-geograph text-[14px] text-gray-600 leading-relaxed break-words">
+                        {getCabinDescription("oceanview") ||
+                          "Ocean view stateroom with window and twin beds that can convert to queen"}
+                      </p>
+                    </div>
+
+                    {/* Pricing Block and Button - Mobile optimized */}
+                    <div className="flex flex-row items-end justify-between flex-1 px-0 md:px-8">
+                      <div className="text-left">
+                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
+                          STARTING FROM
+                        </div>
+                        <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
+                          {formatPrice(getCabinPrice("oceanview"))}
+                        </div>
+                        {isPriceAvailable(getCabinPrice("oceanview")) && (
+                          <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                            +$
+                            {calculateOnboardCredit(
+                              getCabinPrice("oceanview"),
+                            )}{" "}
+                            onboard credit
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Quote CTA Button - Inline on mobile */}
+                      <button
+                        onClick={() =>
+                          handleGetQuote(
+                            getCabinName("oceanview") || "Outside Cabin",
+                            getCabinPrice("oceanview"),
+                          )
+                        }
+                        disabled={!isPriceAvailable(getCabinPrice("oceanview"))}
+                        className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors self-end ${
+                          isPriceAvailable(getCabinPrice("oceanview"))
+                            ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
+                            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        }`}
+                      >
+                        Get quote
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Balcony Cabin Card */}
-              <div
-                className="bg-white rounded-lg border border-gray-200 overflow-hidden mx-4 md:mx-0 px-4 md:px-4"
-                style={{ paddingTop: "16px", paddingBottom: "16px" }}
-              >
-                <div className="flex flex-col md:flex-row md:items-center">
-                  {/* Cabin Image */}
-                  <div className="md:w-48 h-32 md:h-24 flex-shrink-0">
-                    {(() => {
-                      const balconyImage = getCabinImage("balcony");
-                      return balconyImage ? (
-                        <img
-                          src={balconyImage}
-                          alt="Balcony Cabin"
-                          className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => handleImageClick(balconyImage)}
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
-                          <span className="text-sm">Balcony Cabin</span>
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Title and Description */}
-                  <div className="px-0 md:px-5 py-4 md:py-3 flex-1 min-w-0 md:min-w-[400px] max-w-full md:max-w-[480px]">
-                    <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
-                      {getCabinName("balcony") || "Balcony Cabin"}
-                    </h3>
-                    <p className="font-geograph text-[14px] text-gray-600 leading-relaxed break-words">
-                      {getCabinDescription("balcony") ||
-                        "Private balcony stateroom with sliding glass door and ocean views"}
-                    </p>
-                  </div>
-
-                  {/* Pricing Block and Button - Mobile optimized */}
-                  <div className="flex flex-row items-end justify-between flex-1 px-0 md:px-8">
-                    <div className="text-left">
-                      <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                        STARTING FROM
-                      </div>
-                      <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
-                        {formatPrice(getCabinPrice("balcony"))}
-                      </div>
-                      {isPriceAvailable(getCabinPrice("balcony")) && (
-                        <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                          +$
-                          {calculateOnboardCredit(
-                            getCabinPrice("balcony"),
-                          )}{" "}
-                          onboard credit
-                        </div>
-                      )}
+              {!isSuiteOnlyCruiseLine() && (
+                <div
+                  className="bg-white rounded-lg border border-gray-200 overflow-hidden mx-4 md:mx-0 px-4 md:px-4"
+                  style={{ paddingTop: "16px", paddingBottom: "16px" }}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center">
+                    {/* Cabin Image */}
+                    <div className="md:w-48 h-32 md:h-24 flex-shrink-0">
+                      {(() => {
+                        const balconyImage = getCabinImage("balcony");
+                        return balconyImage ? (
+                          <img
+                            src={balconyImage}
+                            alt="Balcony Cabin"
+                            className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => handleImageClick(balconyImage)}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
+                            <span className="text-sm">Balcony Cabin</span>
+                          </div>
+                        );
+                      })()}
                     </div>
 
-                    {/* Quote CTA Button - Inline on mobile */}
-                    <button
-                      onClick={() =>
-                        handleGetQuote(
-                          getCabinName("balcony") || "Balcony Cabin",
-                          getCabinPrice("balcony"),
-                        )
-                      }
-                      disabled={!isPriceAvailable(getCabinPrice("balcony"))}
-                      className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors self-end ${
-                        isPriceAvailable(getCabinPrice("balcony"))
-                          ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
-                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      }`}
-                    >
-                      Get quote
-                    </button>
+                    {/* Title and Description */}
+                    <div className="px-0 md:px-5 py-4 md:py-3 flex-1 min-w-0 md:min-w-[400px] max-w-full md:max-w-[480px]">
+                      <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
+                        {getCabinName("balcony") || "Balcony Cabin"}
+                      </h3>
+                      <p className="font-geograph text-[14px] text-gray-600 leading-relaxed break-words">
+                        {getCabinDescription("balcony") ||
+                          "Private balcony stateroom with sliding glass door and ocean views"}
+                      </p>
+                    </div>
+
+                    {/* Pricing Block and Button - Mobile optimized */}
+                    <div className="flex flex-row items-end justify-between flex-1 px-0 md:px-8">
+                      <div className="text-left">
+                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
+                          STARTING FROM
+                        </div>
+                        <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
+                          {formatPrice(getCabinPrice("balcony"))}
+                        </div>
+                        {isPriceAvailable(getCabinPrice("balcony")) && (
+                          <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                            +$
+                            {calculateOnboardCredit(
+                              getCabinPrice("balcony"),
+                            )}{" "}
+                            onboard credit
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Quote CTA Button - Inline on mobile */}
+                      <button
+                        onClick={() =>
+                          handleGetQuote(
+                            getCabinName("balcony") || "Balcony Cabin",
+                            getCabinPrice("balcony"),
+                          )
+                        }
+                        disabled={!isPriceAvailable(getCabinPrice("balcony"))}
+                        className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors self-end ${
+                          isPriceAvailable(getCabinPrice("balcony"))
+                            ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
+                            : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        }`}
+                      >
+                        Get quote
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Suite Cabin Card */}
               <div
