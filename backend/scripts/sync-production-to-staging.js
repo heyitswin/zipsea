@@ -130,6 +130,47 @@ class ProductionToStagingSync {
     return backed.length;
   }
 
+  async getCommonColumns(tableName) {
+    // Get columns that exist in BOTH production and staging databases
+    const prodColumns = await this.prodDb`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+      AND table_name = ${tableName}
+      ORDER BY ordinal_position
+    `;
+
+    const stagingColumns = await this.stagingDb`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+      AND table_name = ${tableName}
+      ORDER BY ordinal_position
+    `;
+
+    const prodColNames = new Set(prodColumns.map(c => c.column_name));
+    const stagingColNames = new Set(stagingColumns.map(c => c.column_name));
+
+    // Return only columns that exist in both databases
+    const commonColumns = prodColumns
+      .map(c => c.column_name)
+      .filter(col => stagingColNames.has(col));
+
+    if (config.verbose) {
+      const prodOnly = [...prodColNames].filter(c => !stagingColNames.has(c));
+      const stagingOnly = [...stagingColNames].filter(c => !prodColNames.has(c));
+
+      if (prodOnly.length > 0) {
+        console.log(`  ℹ️  Columns only in production: ${prodOnly.join(', ')}`);
+      }
+      if (stagingOnly.length > 0) {
+        console.log(`  ℹ️  Columns only in staging: ${stagingOnly.join(', ')}`);
+      }
+    }
+
+    return commonColumns;
+  }
+
   async syncTable(tableName) {
     try {
       console.log(`\n🔄 Syncing table: ${tableName}`);
@@ -147,6 +188,18 @@ class ProductionToStagingSync {
         console.log(`  ⚠️  Table ${tableName} does not exist in staging, skipping`);
         return { success: true, skipped: true };
       }
+
+      // Get columns that exist in BOTH databases
+      const columns = await this.getCommonColumns(tableName);
+
+      if (columns.length === 0) {
+        console.log(
+          `  ⚠️  No common columns found between production and staging for ${tableName}, skipping`
+        );
+        return { success: true, skipped: true };
+      }
+
+      console.log(`  📋 Syncing ${columns.length} common columns`);
 
       // Get row counts before
       const prodCount = await this.getRowCount(this.prodDb, tableName);
@@ -170,23 +223,14 @@ class ProductionToStagingSync {
       const insertBatchSize = 50; // Insert even smaller batches
       let offset = 0;
       let totalCopied = 0;
-      let columns = null;
 
       while (offset < prodCount) {
-        // Fetch small chunk from production
-        const rows = await this.prodDb`
-          SELECT * FROM ${this.prodDb(tableName)}
-          ORDER BY 1
-          LIMIT ${chunkSize}
-          OFFSET ${offset}
-        `;
+        // Fetch small chunk from production - SELECT only common columns
+        const columnList = columns.map(col => `"${col}"`).join(', ');
+        const selectQuery = `SELECT ${columnList} FROM ${tableName} ORDER BY 1 LIMIT ${chunkSize} OFFSET ${offset}`;
+        const rows = await this.prodDb.unsafe(selectQuery);
 
         if (rows.length === 0) break;
-
-        // Get column names from first row (only once)
-        if (!columns && rows.length > 0) {
-          columns = Object.keys(rows[0]);
-        }
 
         // Insert in tiny batches to avoid large query strings
         for (let i = 0; i < rows.length; i += insertBatchSize) {
@@ -202,7 +246,7 @@ class ProductionToStagingSync {
             .join(', ');
 
           const insertQuery = `
-            INSERT INTO ${tableName} (${columns.join(', ')})
+            INSERT INTO ${tableName} (${columns.map(c => `"${c}"`).join(', ')})
             VALUES ${placeholders}
           `;
 
