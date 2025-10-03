@@ -162,75 +162,82 @@ class ProductionToStagingSync {
         return { success: true, dryRun: true, rowCount: prodCount };
       }
 
-      // Use postgres library's transaction management
-      const result = await this.stagingDb
-        .begin(async sql => {
-          // Clear staging table with CASCADE to handle foreign key constraints
-          await sql`TRUNCATE TABLE ${sql(tableName)} CASCADE`;
+      // Clear staging table first (outside transaction to avoid holding locks)
+      await this.stagingDb`TRUNCATE TABLE ${this.stagingDb(tableName)} CASCADE`;
 
-          // Copy data from production to staging using smaller chunks for memory efficiency
-          const chunkSize = 1000; // Reduced from 10000 to 1000 for 512MB RAM limit
-          let offset = 0;
-          let totalCopied = 0;
+      // Stream data in very small chunks to minimize memory usage
+      const chunkSize = 500; // Smaller chunks for 2GB memory limit
+      const insertBatchSize = 50; // Insert even smaller batches
+      let offset = 0;
+      let totalCopied = 0;
+      let columns = null;
 
-          while (offset < prodCount) {
-            const rows = await this.prodDb`
-            SELECT * FROM ${this.prodDb(tableName)}
-            ORDER BY 1  -- Order by first column for consistent pagination
-            LIMIT ${chunkSize}
-            OFFSET ${offset}
+      while (offset < prodCount) {
+        // Fetch small chunk from production
+        const rows = await this.prodDb`
+          SELECT * FROM ${this.prodDb(tableName)}
+          ORDER BY 1
+          LIMIT ${chunkSize}
+          OFFSET ${offset}
+        `;
+
+        if (rows.length === 0) break;
+
+        // Get column names from first row (only once)
+        if (!columns && rows.length > 0) {
+          columns = Object.keys(rows[0]);
+        }
+
+        // Insert in tiny batches to avoid large query strings
+        for (let i = 0; i < rows.length; i += insertBatchSize) {
+          const batch = rows.slice(i, i + insertBatchSize);
+          const values = batch.map(row => columns.map(col => row[col]));
+
+          // Build parameterized insert query
+          const placeholders = batch
+            .map(
+              (_, batchIdx) =>
+                `(${columns.map((_, colIdx) => `$${batchIdx * columns.length + colIdx + 1}`).join(', ')})`
+            )
+            .join(', ');
+
+          const insertQuery = `
+            INSERT INTO ${tableName} (${columns.join(', ')})
+            VALUES ${placeholders}
           `;
 
-            if (rows.length === 0) break;
+          const flatValues = values.flat();
+          await this.stagingDb.unsafe(insertQuery, flatValues);
+          totalCopied += batch.length;
 
-            // Insert chunk into staging - process in smaller batches
-            if (rows.length > 0) {
-              // Get column names from first row
-              const columns = Object.keys(rows[0]);
+          // Clear batch from memory immediately
+          batch.length = 0;
+        }
 
-              // Insert rows in batches of 100 to avoid building huge query strings
-              const insertBatchSize = 100;
-              for (let i = 0; i < rows.length; i += insertBatchSize) {
-                const batch = rows.slice(i, i + insertBatchSize);
-                const values = batch.map(row => columns.map(col => row[col]));
+        // Clear rows from memory before fetching next chunk
+        rows.length = 0;
+        offset += chunkSize;
 
-                // Build insert query dynamically
-                const insertQuery = `
-                INSERT INTO ${tableName} (${columns.join(', ')})
-                VALUES ${values.map((_, idx) => `(${columns.map((_, j) => `$${idx * columns.length + j + 1}`).join(', ')})`).join(', ')}
-              `;
+        if (config.verbose && totalCopied % 2000 === 0) {
+          console.log(`    ... copied ${totalCopied} rows`);
+        }
 
-                // Flatten values array for parameterized query
-                const flatValues = values.flat();
+        // Force garbage collection hint
+        if (global.gc && totalCopied % 5000 === 0) {
+          global.gc();
+        }
+      }
 
-                await sql.unsafe(insertQuery, flatValues);
-                totalCopied += batch.length;
-              }
-            }
+      // Update sequences after all inserts
+      await this.updateSequences(tableName);
 
-            offset += chunkSize;
+      // Get final count
+      const stagingCountAfter = await this.getRowCount(this.stagingDb, tableName);
 
-            if (config.verbose && totalCopied % 5000 === 0) {
-              console.log(`    ... copied ${totalCopied} rows`);
-            }
-          }
+      console.log(`  ✅ Successfully synced ${stagingCountAfter} rows`);
+      this.stats.rowsCopied += stagingCountAfter;
 
-          // Update sequences if table has serial columns - need to pass sql transaction object
-          await this.updateSequencesWithTransaction(sql, tableName);
-
-          // Get final count
-          const stagingCountAfter = await this.getRowCount(sql, tableName);
-
-          console.log(`  ✅ Successfully synced ${stagingCountAfter} rows`);
-          this.stats.rowsCopied += stagingCountAfter;
-
-          return { success: true, rowCount: stagingCountAfter };
-        })
-        .catch(async error => {
-          throw error;
-        });
-
-      return result;
+      return { success: true, rowCount: stagingCountAfter };
     } catch (error) {
       console.error(`  ❌ Error syncing ${tableName}:`, error.message);
       return { success: false, error: error.message };
