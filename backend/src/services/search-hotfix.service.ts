@@ -34,6 +34,9 @@ export class SearchHotfixService {
           c.disembarkation_port_id,
           cl.name as cruise_line_name,
           s.name as ship_name,
+          s.default_ship_image,
+          s.default_ship_image_hd,
+          s.default_ship_image_2k,
           p1.name as embark_port,
           p2.name as disembark_port,
           NULL as cheapest_price
