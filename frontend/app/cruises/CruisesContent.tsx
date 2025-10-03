@@ -1592,21 +1592,21 @@ export default function CruisesContent() {
                       <div className="flex gap-3 mb-3">
                         {/* Ship Image - 140x100px (increased from 120x80px) */}
                         <div className="w-[140px] h-[100px] bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 relative">
-                          {cruise.ship?.defaultShipImage ||
+                          {cruise.ship?.defaultShipImage2k ||
                           cruise.ship?.defaultShipImageHd ||
-                          cruise.ship?.defaultShipImage2k ||
-                          cruise.shipImage ||
-                          cruise.shipImageHd ||
+                          cruise.ship?.defaultShipImage ||
                           cruise.shipImage2k ||
+                          cruise.shipImageHd ||
+                          cruise.shipImage ||
                           cruise.featuredImageUrl ? (
                             <Image
                               src={
-                                cruise.ship?.defaultShipImage ||
-                                cruise.ship?.defaultShipImageHd ||
                                 cruise.ship?.defaultShipImage2k ||
-                                cruise.shipImage ||
-                                cruise.shipImageHd ||
+                                cruise.ship?.defaultShipImageHd ||
+                                cruise.ship?.defaultShipImage ||
                                 cruise.shipImage2k ||
+                                cruise.shipImageHd ||
+                                cruise.shipImage ||
                                 cruise.featuredImageUrl ||
                                 ""
                               }
@@ -1865,21 +1865,21 @@ export default function CruisesContent() {
                     <div className="hidden md:flex md:gap-6">
                       {/* Featured Image */}
                       <div className="w-48 h-32 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 relative">
-                        {cruise.ship?.defaultShipImage ||
+                        {cruise.ship?.defaultShipImage2k ||
                         cruise.ship?.defaultShipImageHd ||
-                        cruise.ship?.defaultShipImage2k ||
-                        cruise.shipImage ||
-                        cruise.shipImageHd ||
+                        cruise.ship?.defaultShipImage ||
                         cruise.shipImage2k ||
+                        cruise.shipImageHd ||
+                        cruise.shipImage ||
                         cruise.featuredImageUrl ? (
                           <Image
                             src={
-                              cruise.ship?.defaultShipImage ||
-                              cruise.ship?.defaultShipImageHd ||
                               cruise.ship?.defaultShipImage2k ||
-                              cruise.shipImage ||
-                              cruise.shipImageHd ||
+                              cruise.ship?.defaultShipImageHd ||
+                              cruise.ship?.defaultShipImage ||
                               cruise.shipImage2k ||
+                              cruise.shipImageHd ||
+                              cruise.shipImage ||
                               cruise.featuredImageUrl ||
                               ""
                             }

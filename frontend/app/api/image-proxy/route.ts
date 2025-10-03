@@ -110,13 +110,14 @@ export async function GET(request: NextRequest) {
     const contentType = response.headers.get("content-type") || "image/jpeg";
     const contentLength = response.headers.get("content-length");
 
-    // Check if image is too large (limit to 20MB)
+    // Check if image is too large (limit to 50MB)
     // Note: This proxy streams images without resizing them, so we need to allow
     // larger source images. Streaming prevents memory issues even with large files.
-    if (contentLength && parseInt(contentLength) > 20 * 1024 * 1024) {
+    // Some Traveltek ship images are 40MB+, so we increased from 20MB to 50MB.
+    if (contentLength && parseInt(contentLength) > 50 * 1024 * 1024) {
       console.warn(`Image too large: ${imageUrl} (${contentLength} bytes)`);
       return NextResponse.json(
-        { error: "Image too large (max 20MB)" },
+        { error: "Image too large (max 50MB)" },
         { status: 413 },
       );
     }
