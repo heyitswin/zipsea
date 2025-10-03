@@ -469,13 +469,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
         // More specific matching based on category
         if (targetCategory === "inside") {
-          // For inside cabins, avoid matching balcony or suite cabins
+          // For inside cabins, match "inside", "interior", or generic "cabin" (used by Viking, etc.)
+          // Avoid matching balcony or suite cabins
           return (
-            (cabinCat === "inside" || cabinCat === "interior") &&
+            (cabinCat === "inside" ||
+              cabinCat === "interior" ||
+              cabinCat === "cabin") &&
             !cabinName.includes("balcony") &&
             !cabinName.includes("suite") &&
             !cabinName.includes("oceanview") &&
-            !cabinName.includes("outside")
+            !cabinName.includes("outside") &&
+            !cabinName.includes("veranda") &&
+            !cabinName.includes("french balcony")
           );
         } else if (targetCategory === "outside") {
           // For outside cabins, avoid matching balcony or suite cabins
@@ -484,7 +489,9 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             !cabinName.includes("balcony") &&
             !cabinName.includes("suite") &&
             !cabinName.includes("interior") &&
-            !cabinName.includes("inside")
+            !cabinName.includes("inside") &&
+            !cabinName.includes("veranda") &&
+            !cabinName.includes("french balcony")
           );
         } else if (targetCategory === "balcony") {
           // For balcony cabins, avoid matching suite cabins
@@ -516,8 +523,12 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             return (
               cabinCat.includes("inside") ||
               cabinCat.includes("interior") ||
+              cabinCat === "cabin" ||
               cabinName.includes("inside") ||
-              cabinName.includes("interior")
+              cabinName.includes("interior") ||
+              (cabinName.includes("standard") &&
+                !cabinName.includes("balcony") &&
+                !cabinName.includes("veranda"))
             );
           } else if (targetCategory === "outside") {
             return (
