@@ -76,6 +76,14 @@ interface ComprehensiveQuoteEmailData {
   };
   obcAmount?: number;
   totalPassengers?: number;
+  posthogData?: {
+    referrer: string | null;
+    sessionDuration: number | null;
+    device: string | null;
+    location: string | null;
+    pageviews: number;
+    lastActiveAt: string | null;
+  } | null;
 }
 
 export class EmailService {
@@ -1007,6 +1015,46 @@ export class EmailService {
             <div style="padding: 20px; border-bottom: 1px solid #eee;">
               <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #0E1B4D;">ONBOARD CREDIT</h2>
               <p style="margin: 0; font-size: 16px; color: #333;"><strong>$${data.obcAmount}</strong></p>
+            </div>
+            `
+                : ''
+            }
+
+            <!-- Session Analytics (PostHog) -->
+            ${
+              data.posthogData
+                ? `
+            <div style="padding: 20px; border-bottom: 1px solid #eee; background: #f9fafb;">
+              <h2 style="margin: 0 0 15px 0; font-size: 18px; color: #0E1B4D;">📊 SESSION ANALYTICS</h2>
+              <table style="width: 100%; font-size: 14px;">
+                <tr>
+                  <td style="padding: 5px 0; color: #666; width: 40%;">Referring Domain:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.posthogData.referrer || 'Direct / Unknown'}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Time on Site:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${
+                    data.posthogData.sessionDuration
+                      ? Math.floor(data.posthogData.sessionDuration / 60) +
+                        'm ' +
+                        (data.posthogData.sessionDuration % 60) +
+                        's'
+                      : 'Less than 1 minute'
+                  }</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Device:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.posthogData.device || 'Unknown'}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Location:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.posthogData.location || 'Unknown'}</strong></td>
+                </tr>
+                <tr>
+                  <td style="padding: 5px 0; color: #666;">Pages Viewed:</td>
+                  <td style="padding: 5px 0; color: #333;"><strong>${data.posthogData.pageviews}</strong></td>
+                </tr>
+              </table>
             </div>
             `
                 : ''

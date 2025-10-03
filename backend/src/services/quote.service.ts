@@ -4,6 +4,7 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { logger } from '../config/logger';
 import { emailService } from './email.service';
+import { posthogService } from './posthog.service';
 import type { QuoteRequest, NewQuoteRequest } from '../db/schema/quote-requests';
 
 interface CreateQuoteData {
@@ -186,6 +187,19 @@ class QuoteService {
           // Commenting out team notification to prevent duplicate emails
           // const teamEmailSent = await emailService.sendQuoteNotificationToTeam(emailData);
 
+          // Fetch PostHog session data for analytics
+          let posthogData = null;
+          if (data.email) {
+            try {
+              posthogData = await posthogService.getUserSessionData(data.email);
+            } catch (posthogError) {
+              logger.warn('Could not fetch PostHog session data', {
+                email: data.email,
+                error: posthogError instanceof Error ? posthogError.message : 'Unknown error',
+              });
+            }
+          }
+
           // Send comprehensive quote notification to zippy@zipsea.com
           // This is a critical notification that must always fire
           const comprehensiveEmailData = {
@@ -203,6 +217,7 @@ class QuoteService {
             obcAmount,
             totalPassengers: (data.adults || 2) + (data.children || 0),
             childAges: data.childAges || [],
+            posthogData, // Include PostHog session data
           };
           const comprehensiveEmailSent =
             await emailService.sendComprehensiveQuoteNotification(comprehensiveEmailData);
