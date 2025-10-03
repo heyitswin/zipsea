@@ -1,81 +1,84 @@
 #!/usr/bin/env node
 
 /**
- * Quick fix to add missing columns to staging database
+ * Fix Staging Database Schema
+ * Adds missing columns to match production schema
  */
 
-require('dotenv').config();
 const postgres = require('postgres');
 
-async function fixSchema() {
-  if (!process.env.DATABASE_URL) {
-    console.log('No DATABASE_URL found');
-    return;
-  }
+const STAGING_URL = process.env.DATABASE_URL || process.env.DATABASE_URL_STAGING;
 
-  console.log('🔧 Fixing staging database schema...\n');
-  
-  const sql = postgres(process.env.DATABASE_URL, { max: 1 });
-  
+if (!STAGING_URL) {
+  console.error('❌ DATABASE_URL or DATABASE_URL_STAGING environment variable required');
+  process.exit(1);
+}
+
+async function fixSchema() {
+  console.log('🔧 Fixing staging database schema...');
+
+  const sql = postgres(STAGING_URL, {
+    ssl: STAGING_URL.includes('render.com') ? { rejectUnauthorized: false } : false,
+  });
+
   try {
-    // Add missing columns to cruise_lines table
-    console.log('Adding missing columns to cruise_lines...');
-    
-    await sql`
-      ALTER TABLE cruise_lines 
-      ADD COLUMN IF NOT EXISTS logo_url VARCHAR(500),
-      ADD COLUMN IF NOT EXISTS website VARCHAR(255),
-      ADD COLUMN IF NOT EXISTS headquarters VARCHAR(255),
-      ADD COLUMN IF NOT EXISTS founded_year INTEGER,
-      ADD COLUMN IF NOT EXISTS fleet_size INTEGER;
+    // Add missing columns to ports table
+    console.log('\n📋 Checking ports table...');
+    const portsCheck = await sql`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='ports' AND column_name='raw_port_data'
+      ) as has_column
     `;
-    
-    console.log('✅ cruise_lines table updated');
-    
-    // Check if there are other missing columns in ships table
-    console.log('\nAdding missing columns to ships...');
-    
-    await sql`
-      ALTER TABLE ships 
-      ADD COLUMN IF NOT EXISTS ship_class VARCHAR(255),
-      ADD COLUMN IF NOT EXISTS tonnage INTEGER,
-      ADD COLUMN IF NOT EXISTS total_cabins INTEGER,
-      ADD COLUMN IF NOT EXISTS capacity INTEGER,
-      ADD COLUMN IF NOT EXISTS decks INTEGER,
-      ADD COLUMN IF NOT EXISTS launched_year INTEGER,
-      ADD COLUMN IF NOT EXISTS rating INTEGER,
-      ADD COLUMN IF NOT EXISTS highlights TEXT,
-      ADD COLUMN IF NOT EXISTS default_image_url VARCHAR(500),
-      ADD COLUMN IF NOT EXISTS default_image_url_hd VARCHAR(500),
-      ADD COLUMN IF NOT EXISTS images JSONB,
-      ADD COLUMN IF NOT EXISTS additional_info TEXT;
+
+    if (!portsCheck[0].has_column) {
+      console.log('  ➕ Adding raw_port_data column to ports...');
+      await sql`ALTER TABLE ports ADD COLUMN raw_port_data JSONB`;
+      console.log('  ✅ Added raw_port_data to ports');
+    } else {
+      console.log('  ✅ ports.raw_port_data already exists');
+    }
+
+    // Add missing columns to regions table
+    console.log('\n📋 Checking regions table...');
+    const regionsCheck = await sql`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name='regions' AND column_name='code'
+      ) as has_column
     `;
-    
-    console.log('✅ ships table updated');
-    
-    // Add any missing columns to cruises table
-    console.log('\nAdding missing columns to cruises...');
-    
-    await sql`
-      ALTER TABLE cruises 
-      ADD COLUMN IF NOT EXISTS voyage_code VARCHAR(50),
-      ADD COLUMN IF NOT EXISTS sail_nights INTEGER,
-      ADD COLUMN IF NOT EXISTS sea_days INTEGER,
-      ADD COLUMN IF NOT EXISTS no_fly BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS depart_uk BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS fly_cruise_info JSONB,
-      ADD COLUMN IF NOT EXISTS line_content TEXT,
-      ADD COLUMN IF NOT EXISTS currency VARCHAR(3) DEFAULT 'USD';
+
+    if (!regionsCheck[0].has_column) {
+      console.log('  ➕ Adding code column to regions...');
+      await sql`ALTER TABLE regions ADD COLUMN code VARCHAR(10)`;
+      console.log('  ✅ Added code to regions');
+    } else {
+      console.log('  ✅ regions.code already exists');
+    }
+
+    // Verify all columns exist
+    console.log('\n🔍 Verifying schema...');
+
+    const portsColumns = await sql`
+      SELECT column_name, data_type
+      FROM information_schema.columns
+      WHERE table_name = 'ports'
+      ORDER BY ordinal_position
     `;
-    
-    console.log('✅ cruises table updated');
-    
-    console.log('\n✅ All schema fixes applied successfully!');
-    console.log('\nYou can now run the sync script again.');
-    
+    console.log('  ports columns:', portsColumns.map(c => c.column_name).join(', '));
+
+    const regionsColumns = await sql`
+      SELECT column_name, data_type
+      FROM information_schema.columns
+      WHERE table_name = 'regions'
+      ORDER BY ordinal_position
+    `;
+    console.log('  regions columns:', regionsColumns.map(c => c.column_name).join(', '));
+
+    console.log('\n✅ Schema fix completed successfully!');
   } catch (error) {
-    console.error('Error fixing schema:', error.message);
-    console.error('\nFull error:', error);
+    console.error('\n❌ Error fixing schema:', error);
+    process.exit(1);
   } finally {
     await sql.end();
   }
