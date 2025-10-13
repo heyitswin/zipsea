@@ -2433,7 +2433,7 @@ export class WebhookProcessorOptimizedV2 {
         console.log(`[OPTIMIZED-V2] Cleared ship cache (${shipCacheSize} entries)`);
       }
 
-      if (WebhookProcessorOptimizedV2.checksumCache.size > 1000) {
+      if (WebhookProcessorOptimizedV2.checksumCache.size > 0) {
         const checksumCacheSize = WebhookProcessorOptimizedV2.checksumCache.size;
         WebhookProcessorOptimizedV2.checksumCache.clear();
         console.log(`[OPTIMIZED-V2] Cleared checksum cache (${checksumCacheSize} entries)`);
