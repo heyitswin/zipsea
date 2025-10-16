@@ -87,7 +87,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  // Security headers including CSP for Missive chat
+  // Security headers including CSP for Missive chat and SEO headers
   async headers() {
     return [
       {
@@ -111,6 +111,10 @@ const nextConfig: NextConfig = {
               "frame-ancestors 'none'",
               "upgrade-insecure-requests",
             ].join("; "),
+          },
+          {
+            key: "Link",
+            value: '<https://www.zipsea.com>; rel="canonical"',
           },
         ],
       },
