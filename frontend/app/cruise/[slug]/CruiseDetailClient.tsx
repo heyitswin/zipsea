@@ -54,6 +54,19 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const [selectedImage, setSelectedImage] = useState<string>("");
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
+  // Live booking state
+  const [isLiveBookable, setIsLiveBookable] = useState(false);
+  const [passengerCount, setPassengerCount] = useState<{
+    adults: number;
+    children: number;
+    childAges: number[];
+  } | null>(null);
+  const [bookingSessionId, setBookingSessionId] = useState<string | null>(null);
+  const [liveCabinGrades, setLiveCabinGrades] = useState<any>(null);
+  const [isLoadingCabins, setIsLoadingCabins] = useState(false);
+  const [selectedCabinCategory, setSelectedCabinCategory] =
+    useState<string>("interior"); // Tab state
+
   // Time tracking
   const pageLoadTime = useRef<number>(Date.now());
   const hasTrackedView = useRef(false);
@@ -76,6 +89,53 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const handleImageClick = (imageUrl: string) => {
     setSelectedImage(imageUrl);
     setImageModalOpen(true);
+  };
+
+  // Create booking session and fetch live cabin grades
+  const createBookingSessionAndFetchCabins = async () => {
+    if (!isLiveBookable || !passengerCount || !cruise?.id) return;
+
+    setIsLoadingCabins(true);
+    try {
+      // Create booking session with cruiseId and passengerCount
+      const sessionResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/booking/session`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            cruiseId: cruise.id.toString(),
+            passengerCount,
+          }),
+        },
+      );
+
+      if (!sessionResponse.ok) {
+        throw new Error("Failed to create booking session");
+      }
+
+      const sessionData = await sessionResponse.json();
+      setBookingSessionId(sessionData.sessionId);
+
+      // Fetch live cabin grades/pricing
+      const pricingResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionData.sessionId}/pricing?cruiseId=${cruise.id}`,
+      );
+
+      if (!pricingResponse.ok) {
+        throw new Error("Failed to fetch cabin pricing");
+      }
+
+      const pricingData = await pricingResponse.json();
+      setLiveCabinGrades(pricingData);
+    } catch (err) {
+      console.error("Failed to create booking session or fetch cabins:", err);
+      showAlert("Unable to load live pricing. Please try again.");
+    } finally {
+      setIsLoadingCabins(false);
+    }
   };
 
   useEffect(() => {
@@ -180,6 +240,49 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       }
     };
   }, [cruiseData]);
+
+  // Check if cruise is live-bookable and retrieve passenger data
+  useEffect(() => {
+    if (!cruiseData?.cruise) return;
+
+    // Royal Caribbean (22) and Celebrity (3) are live-bookable
+    const liveBookingLineIds = [22, 3];
+    const cruiseLineId =
+      cruiseData.cruiseLine?.id || cruiseData.cruise?.cruiseLineId;
+    const isLiveBooking = liveBookingLineIds.includes(Number(cruiseLineId));
+    setIsLiveBookable(isLiveBooking);
+
+    // Retrieve passenger count from sessionStorage (set by PassengerSelector on homepage)
+    if (isLiveBooking && typeof window !== "undefined") {
+      const storedPassengerCount = sessionStorage.getItem("passengerCount");
+      if (storedPassengerCount) {
+        try {
+          const parsedCount = JSON.parse(storedPassengerCount);
+          setPassengerCount(parsedCount);
+        } catch (err) {
+          console.error("Failed to parse passenger count:", err);
+          // Set default if parsing fails
+          setPassengerCount({ adults: 2, children: 0, childAges: [] });
+        }
+      } else {
+        // Set default if not found
+        setPassengerCount({ adults: 2, children: 0, childAges: [] });
+      }
+    }
+  }, [cruiseData]);
+
+  // Auto-fetch cabin grades when cruise is live-bookable and passenger data is available
+  useEffect(() => {
+    if (
+      isLiveBookable &&
+      passengerCount &&
+      cruise?.id &&
+      !bookingSessionId &&
+      !isLoadingCabins
+    ) {
+      createBookingSessionAndFetchCabins();
+    }
+  }, [isLiveBookable, passengerCount, cruise?.id]);
 
   const formatPrice = (price: string | number | undefined) => {
     if (!price) return "Unavailable";
