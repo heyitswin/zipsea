@@ -218,57 +218,77 @@ class ProductionToStagingSync {
       // Clear staging table first (outside transaction to avoid holding locks)
       await this.stagingDb`TRUNCATE TABLE ${this.stagingDb(tableName)} CASCADE`;
 
-      // Stream data in very small chunks to minimize memory usage
-      const chunkSize = 500; // Smaller chunks for 2GB memory limit
-      const insertBatchSize = 50; // Insert even smaller batches
-      let offset = 0;
-      let totalCopied = 0;
-
-      while (offset < prodCount) {
-        // Fetch small chunk from production - SELECT only common columns
+      // For efficiency, use postgres COPY instead of INSERT for large tables
+      if (prodCount > 1000) {
+        // Use efficient COPY approach for large tables
         const columnList = columns.map(col => `"${col}"`).join(', ');
-        const selectQuery = `SELECT ${columnList} FROM ${tableName} ORDER BY 1 LIMIT ${chunkSize} OFFSET ${offset}`;
-        const rows = await this.prodDb.unsafe(selectQuery);
 
-        if (rows.length === 0) break;
+        // Export from production
+        const selectQuery = `COPY (SELECT ${columnList} FROM ${tableName} ORDER BY 1) TO STDOUT WITH (FORMAT CSV, HEADER false)`;
+        const copyData = await this.prodDb.unsafe(selectQuery);
 
-        // Insert in tiny batches to avoid large query strings
-        for (let i = 0; i < rows.length; i += insertBatchSize) {
-          const batch = rows.slice(i, i + insertBatchSize);
-          const values = batch.map(row => columns.map(col => row[col]));
+        // Import to staging
+        const importQuery = `COPY ${tableName} (${columnList}) FROM STDIN WITH (FORMAT CSV, HEADER false)`;
+        await this.stagingDb.unsafe(importQuery, copyData);
 
-          // Build parameterized insert query
-          const placeholders = batch
-            .map(
-              (_, batchIdx) =>
-                `(${columns.map((_, colIdx) => `$${batchIdx * columns.length + colIdx + 1}`).join(', ')})`
-            )
-            .join(', ');
+        totalCopied = prodCount;
+        console.log(`    ... used COPY for ${totalCopied} rows (faster)`);
+      } else {
+        // Use INSERT for smaller tables (more compatible with schema differences)
+        const chunkSize = 500;
+        const insertBatchSize = 50;
+        let offset = 0;
+        let totalCopied = 0;
 
-          const insertQuery = `
-            INSERT INTO ${tableName} (${columns.map(c => `"${c}"`).join(', ')})
-            VALUES ${placeholders}
-          `;
+        while (offset < prodCount) {
+          // Fetch small chunk from production - SELECT only common columns
+          const columnList = columns.map(col => `"${col}"`).join(', ');
+          const selectQuery = `SELECT ${columnList} FROM ${tableName} ORDER BY 1 LIMIT ${chunkSize} OFFSET ${offset}`;
+          const rows = await this.prodDb.unsafe(selectQuery);
 
-          const flatValues = values.flat();
-          await this.stagingDb.unsafe(insertQuery, flatValues);
-          totalCopied += batch.length;
+          if (rows.length === 0) break;
 
-          // Clear batch from memory immediately
-          batch.length = 0;
-        }
+          // Insert in tiny batches to avoid large query strings
+          for (let i = 0; i < rows.length; i += insertBatchSize) {
+            const batch = rows.slice(i, i + insertBatchSize);
 
-        // Clear rows from memory before fetching next chunk
-        rows.length = 0;
-        offset += chunkSize;
+            // Use postgres.js's insert helper which handles nulls better
+            try {
+              await this.stagingDb`
+                INSERT INTO ${this.stagingDb(tableName)} ${this.stagingDb(batch, ...columns)}
+              `;
+              totalCopied += batch.length;
+            } catch (insertError) {
+              console.log(`    ⚠️  Batch insert failed, trying row-by-row...`);
+              // Fall back to row-by-row for this batch
+              for (const row of batch) {
+                try {
+                  await this.stagingDb`
+                    INSERT INTO ${this.stagingDb(tableName)} ${this.stagingDb(row, ...columns)}
+                  `;
+                  totalCopied++;
+                } catch (rowError) {
+                  console.log(`    ⚠️  Skipping row due to: ${rowError.message}`);
+                }
+              }
+            }
 
-        if (config.verbose && totalCopied % 2000 === 0) {
-          console.log(`    ... copied ${totalCopied} rows`);
-        }
+            // Clear batch from memory immediately
+            batch.length = 0;
+          }
 
-        // Force garbage collection hint
-        if (global.gc && totalCopied % 5000 === 0) {
-          global.gc();
+          // Clear rows from memory before fetching next chunk
+          rows.length = 0;
+          offset += chunkSize;
+
+          if (config.verbose && totalCopied % 2000 === 0) {
+            console.log(`    ... copied ${totalCopied} rows`);
+          }
+
+          // Force garbage collection hint
+          if (global.gc && totalCopied % 5000 === 0) {
+            global.gc();
+          }
         }
       }
 

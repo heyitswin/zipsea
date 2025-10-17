@@ -14,7 +14,7 @@ import quoteRoutes from './quote.routes';
 import adminRoutes from './admin.routes';
 import priceHistoryRoutes from './price-history.routes';
 import { userRoutes } from './user.routes';
-// import bookingRoutes from './booking.routes'; // Removed - has TypeScript errors
+import bookingRoutes from './booking.routes';
 
 const router = Router();
 
@@ -59,7 +59,7 @@ apiRouter.use('/quotes', quoteRoutes);
 apiRouter.use('/price-history', priceHistoryRoutes);
 
 // Live booking routes (Traveltek integration)
-// apiRouter.use('/booking', bookingRoutes); // TODO: Re-implement when auth middleware exists
+apiRouter.use('/booking', bookingRoutes);
 
 // User management routes
 apiRouter.use('/users', userRoutes);
