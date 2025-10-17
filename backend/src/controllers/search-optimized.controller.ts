@@ -92,6 +92,11 @@ class SearchOptimizedController {
         nights: filters.nights?.min === filters.nights?.max ? filters.nights?.min : undefined,
         minNights: filters.nights?.min,
         maxNights: filters.nights?.max,
+        cruiseLineIds: Array.isArray(filters.cruiseLine)
+          ? filters.cruiseLine
+          : filters.cruiseLine
+            ? [filters.cruiseLine]
+            : undefined,
         cruiseLineId: Array.isArray(filters.cruiseLine)
           ? filters.cruiseLine[0]
           : filters.cruiseLine,

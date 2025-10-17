@@ -14,6 +14,7 @@ export interface SearchFilters {
   minNights?: number;
   maxNights?: number;
   cruiseLineId?: number;
+  cruiseLineIds?: number[]; // Support multiple cruise line IDs for live booking filter
   shipId?: number;
   embarkPortId?: number;
   limit?: number;
@@ -33,11 +34,15 @@ class SearchFixedService {
         minNights,
         maxNights,
         cruiseLineId,
+        cruiseLineIds,
         shipId,
         embarkPortId,
         limit = 50,
         offset = 0,
       } = filters;
+
+      // Debug logging
+      console.log('[SearchFixed] Filters:', { cruiseLineId, cruiseLineIds, startDate, endDate });
 
       // Build WHERE conditions
       const conditions = ['c.is_active = true'];
@@ -74,7 +79,12 @@ class SearchFixedService {
         paramCount++;
       }
 
-      if (cruiseLineId) {
+      // Support both single cruise line ID and multiple IDs (for live booking filter)
+      if (cruiseLineIds && cruiseLineIds.length > 0) {
+        conditions.push(`c.cruise_line_id = ANY($${paramCount}::integer[])`);
+        params.push(cruiseLineIds);
+        paramCount++;
+      } else if (cruiseLineId) {
         conditions.push(`c.cruise_line_id = $${paramCount}`);
         params.push(cruiseLineId);
         paramCount++;

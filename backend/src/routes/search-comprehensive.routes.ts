@@ -5,8 +5,12 @@
 
 import { Router } from 'express';
 import { searchComprehensiveController } from '../controllers/search-comprehensive.controller';
+import { liveBookingFilter } from '../middleware/live-booking-filter';
 
 const router = Router();
+
+// Apply live booking filter to all search routes
+router.use(liveBookingFilter);
 
 /**
  * @route GET /api/v1/search/comprehensive
@@ -51,7 +55,10 @@ router.get('/facets', searchComprehensiveController.getFacets.bind(searchCompreh
  * @desc Get popular cruises
  * @query {number} limit - Maximum results (max: 50, default: 10)
  */
-router.get('/popular', searchComprehensiveController.getPopular.bind(searchComprehensiveController));
+router.get(
+  '/popular',
+  searchComprehensiveController.getPopular.bind(searchComprehensiveController)
+);
 
 /**
  * @route GET /api/v1/search/comprehensive/suggestions
@@ -59,6 +66,9 @@ router.get('/popular', searchComprehensiveController.getPopular.bind(searchCompr
  * @query {string} q - Search query (minimum 2 characters)
  * @query {number} limit - Maximum suggestions (max: 20, default: 10)
  */
-router.get('/suggestions', searchComprehensiveController.getSuggestions.bind(searchComprehensiveController));
+router.get(
+  '/suggestions',
+  searchComprehensiveController.getSuggestions.bind(searchComprehensiveController)
+);
 
 export default router;
