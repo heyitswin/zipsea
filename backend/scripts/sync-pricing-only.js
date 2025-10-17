@@ -7,13 +7,26 @@ const postgres = require('postgres');
 require('dotenv').config();
 
 async function syncPricing() {
-  const prodUrl = process.env.DATABASE_URL_PRODUCTION || process.env.DATABASE_URL;
-  const stagingUrl = process.env.DATABASE_URL_STAGING;
+  // On Render staging, DATABASE_URL is staging, we need to provide production URL
+  const prodUrl =
+    process.env.DATABASE_URL_PRODUCTION ||
+    'postgresql://zipsea_user:aOLItWeqKie3hDgFOd2k8wjJNU2KtLVd@dpg-d2idqjjipnbc73abma3g-a.oregon-postgres.render.com/zipsea_db';
+  const stagingUrl = process.env.DATABASE_URL_STAGING || process.env.DATABASE_URL;
 
   if (!prodUrl || !stagingUrl) {
     console.error('❌ Missing DATABASE_URL');
+    console.error('Production URL:', prodUrl ? '✓' : '✗');
+    console.error('Staging URL:', stagingUrl ? '✓' : '✗');
     process.exit(1);
   }
+
+  console.log('🔗 Production: dpg-d2idqjjipnbc73abma3g-a');
+  console.log(
+    '🔗 Staging:',
+    stagingUrl.includes('d2ii4d1r0fns738hchag')
+      ? '✓ dpg-d2ii4d1r0fns738hchag-a'
+      : stagingUrl.substring(0, 50)
+  );
 
   const prod = postgres(prodUrl, { max: 2, ssl: 'require' });
   const staging = postgres(stagingUrl, { max: 2, ssl: 'require' });
@@ -69,7 +82,6 @@ async function syncPricing() {
       WHERE cheapest_price IS NOT NULL AND cheapest_price > 99
     `;
     console.log(`✅ ${withPrices} cruises now have valid pricing`);
-
   } catch (error) {
     console.error('❌ Error:', error);
     throw error;
