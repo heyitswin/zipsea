@@ -30,10 +30,21 @@ const envSchema = z.object({
   CLERK_SECRET_KEY: z.string().min(1).optional(),
   CLERK_JWT_KEY: z.string().min(1).optional(),
 
-  // Traveltek (required in production)
+  // Traveltek FTP (required in production)
   TRAVELTEK_FTP_HOST: z.string().min(1).optional(),
   TRAVELTEK_FTP_USER: z.string().min(1).optional(),
   TRAVELTEK_FTP_PASSWORD: z.string().min(1).optional(),
+
+  // Traveltek Live Booking API
+  TRAVELTEK_API_USERNAME: z.string().min(1).optional(),
+  TRAVELTEK_API_PASSWORD: z.string().min(1).optional(),
+  TRAVELTEK_API_BASE_URL: z.string().url().optional(),
+  TRAVELTEK_LIVE_BOOKING_ENABLED: z
+    .string()
+    .transform(val => val === 'true')
+    .optional()
+    .default('false'),
+  TRAVELTEK_LIVE_BOOKING_LINE_IDS: z.string().optional().default('22,3'), // Royal Caribbean (22) and Celebrity (3)
 
   // Sentry
   SENTRY_DSN: z
@@ -96,6 +107,11 @@ export const env = parseResult.success
       TRAVELTEK_FTP_HOST: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
       TRAVELTEK_FTP_USER: process.env.TRAVELTEK_FTP_USER,
       TRAVELTEK_FTP_PASSWORD: process.env.TRAVELTEK_FTP_PASSWORD,
+      TRAVELTEK_API_USERNAME: process.env.TRAVELTEK_API_USERNAME,
+      TRAVELTEK_API_PASSWORD: process.env.TRAVELTEK_API_PASSWORD,
+      TRAVELTEK_API_BASE_URL: process.env.TRAVELTEK_API_BASE_URL,
+      TRAVELTEK_LIVE_BOOKING_ENABLED: process.env.TRAVELTEK_LIVE_BOOKING_ENABLED === 'true',
+      TRAVELTEK_LIVE_BOOKING_LINE_IDS: process.env.TRAVELTEK_LIVE_BOOKING_LINE_IDS || '22,3',
       SENTRY_DSN: process.env.SENTRY_DSN,
       RESEND_API_KEY: process.env.RESEND_API_KEY,
       TEAM_NOTIFICATION_EMAIL: process.env.TEAM_NOTIFICATION_EMAIL || 'win@zipsea.com',

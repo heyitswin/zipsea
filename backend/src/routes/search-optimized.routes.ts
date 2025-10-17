@@ -1,8 +1,13 @@
 import { Router } from 'express';
 import { searchOptimizedController } from '../controllers/search-optimized.controller';
 import { searchSimpleController } from '../controllers/search-simple.controller';
+import { liveBookingFilter } from '../middleware/live-booking-filter';
 
 const router = Router();
+
+// Apply live booking filter to all search routes
+// This automatically restricts searches to bookable cruise lines when enabled
+router.use(liveBookingFilter);
 
 /**
  * Optimized search routes using raw SQL for performance
@@ -42,7 +47,10 @@ router.get('/popular', searchOptimizedController.getPopularCruises.bind(searchOp
  * GET /api/v1/search/suggestions
  * Get search suggestions/autocomplete
  */
-router.get('/suggestions', searchOptimizedController.getSuggestions.bind(searchOptimizedController));
+router.get(
+  '/suggestions',
+  searchOptimizedController.getSuggestions.bind(searchOptimizedController)
+);
 
 /**
  * GET /api/v1/search/by-ship
@@ -60,6 +68,9 @@ router.get('/ships', searchSimpleController.getShipsWithCruises.bind(searchSimpl
  * GET /api/v1/search/ships/:shipId/sailings
  * Get all sailings for a specific ship
  */
-router.get('/ships/:shipId/sailings', searchSimpleController.getShipSailings.bind(searchSimpleController));
+router.get(
+  '/ships/:shipId/sailings',
+  searchSimpleController.getShipSailings.bind(searchSimpleController)
+);
 
 export default router;

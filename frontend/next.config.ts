@@ -102,7 +102,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://webchat.missiveapp.com",
               "img-src 'self' data: blob: https: http:",
               "font-src 'self' data:",
-              "connect-src 'self' https://zipsea-production.onrender.com https://api.zipsea.com https://auth.missiveapp.com https://webchat.missiveapp.com https://*.twilio.com wss://*.twilio.com https://*.rollbar.com https://*.clerk.accounts.dev https://*.clerk.com https://clerk.zipsea.com https://us.i.posthog.com https://us-assets.i.posthog.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google.com https://*.googleadservices.com https://*.googlesyndication.com https://*.doubleclick.net",
+              "connect-src 'self' https://zipsea-production.onrender.com https://zipsea-backend.onrender.com https://api.zipsea.com https://auth.missiveapp.com https://webchat.missiveapp.com https://*.twilio.com wss://*.twilio.com https://*.rollbar.com https://*.clerk.accounts.dev https://*.clerk.com https://clerk.zipsea.com https://us.i.posthog.com https://us-assets.i.posthog.com https://www.googletagmanager.com https://www.google-analytics.com https://*.google.com https://*.googleadservices.com https://*.googlesyndication.com https://*.doubleclick.net https://clerk-telemetry.com",
               "frame-src 'self' https://challenges.cloudflare.com https://*.clerk.accounts.dev https://webchat.missiveapp.com https://www.googletagmanager.com https://*.google.com https://*.doubleclick.net https://*.googleadservices.com",
               "media-src 'self'",
               "object-src 'none'",
