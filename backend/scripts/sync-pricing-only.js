@@ -45,29 +45,33 @@ async function syncPricing() {
     console.log('🔄 Starting pricing sync...\n');
 
     while (true) {
+      // Get batch from production - simple query with ORDER BY for consistent pagination
       const batch = await prod`
         SELECT id, interior_price, oceanview_price, balcony_price, suite_price, cheapest_price
         FROM cruises
-        WHERE id IN (
-          SELECT id FROM cruises LIMIT ${batchSize} OFFSET ${updated}
-        )
+        ORDER BY id
+        LIMIT ${batchSize} OFFSET ${updated}
       `;
 
       if (batch.length === 0) break;
 
-      // Update each cruise
-      for (const cruise of batch) {
-        await staging`
-          UPDATE cruises
-          SET
-            interior_price = ${cruise.interior_price},
-            oceanview_price = ${cruise.oceanview_price},
-            balcony_price = ${cruise.balcony_price},
-            suite_price = ${cruise.suite_price},
-            cheapest_price = ${cruise.cheapest_price}
-          WHERE id = ${cruise.id}
-        `;
-      }
+      // Bulk update using transaction
+      await staging.begin(async sql => {
+        for (const cruise of batch) {
+          if (!cruise.id) continue;
+
+          await sql`
+            UPDATE cruises
+            SET
+              interior_price = ${cruise.interior_price},
+              oceanview_price = ${cruise.oceanview_price},
+              balcony_price = ${cruise.balcony_price},
+              suite_price = ${cruise.suite_price},
+              cheapest_price = ${cruise.cheapest_price}
+            WHERE id = ${cruise.id}
+          `;
+        }
+      });
 
       updated += batch.length;
       console.log(`✅ Updated ${updated} cruises...`);
