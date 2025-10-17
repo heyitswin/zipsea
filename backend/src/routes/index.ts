@@ -14,6 +14,7 @@ import quoteRoutes from './quote.routes';
 import adminRoutes from './admin.routes';
 import priceHistoryRoutes from './price-history.routes';
 import { userRoutes } from './user.routes';
+import bookingRoutes from './booking.routes';
 
 const router = Router();
 
@@ -57,6 +58,9 @@ apiRouter.use('/ships', shipRoutes);
 apiRouter.use('/quotes', quoteRoutes);
 apiRouter.use('/price-history', priceHistoryRoutes);
 
+// Live booking routes (Traveltek integration)
+apiRouter.use('/booking', bookingRoutes);
+
 // User management routes
 apiRouter.use('/users', userRoutes);
 
@@ -77,6 +81,7 @@ apiRouter.get('/', (req, res) => {
       ships: `${apiConfig.prefix}/${apiConfig.version}/ships`,
       quotes: `${apiConfig.prefix}/${apiConfig.version}/quotes`,
       priceHistory: `${apiConfig.prefix}/${apiConfig.version}/price-history`,
+      booking: `${apiConfig.prefix}/${apiConfig.version}/booking`,
     },
     features: {
       search: {
@@ -114,6 +119,17 @@ apiRouter.get('/', (req, res) => {
         changes: 'GET /price-history/changes/:cruiseId - Price changes over time',
         volatility: 'GET /price-history/volatility/:cruiseId - Price volatility metrics',
         cleanup: 'DELETE /price-history/cleanup - Cleanup old history data (admin)',
+      },
+      booking: {
+        create_session: 'POST /booking/session - Create booking session',
+        get_session: 'GET /booking/session/:sessionId - Get session data',
+        get_pricing: 'GET /booking/:sessionId/pricing?cruiseId=xxx - Get live cabin pricing',
+        select_cabin: 'POST /booking/:sessionId/select-cabin - Select cabin and add to basket',
+        get_basket: 'GET /booking/:sessionId/basket - Get basket contents',
+        create_booking: 'POST /booking/:sessionId/create - Create booking with payment',
+        get_booking: 'GET /booking/:bookingId - Get booking details (auth)',
+        user_bookings: 'GET /booking/user/bookings - List user bookings (auth)',
+        cancel_booking: 'POST /booking/:bookingId/cancel - Cancel booking (auth)',
       },
     },
   });

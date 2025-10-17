@@ -13,3 +13,7 @@ export * from './quote-requests';
 export * from './saved-searches';
 export * from './webhook-events';
 export * from './cruise-tags';
+export * from './booking-sessions';
+export * from './bookings';
+export * from './booking-passengers';
+export * from './booking-payments';
