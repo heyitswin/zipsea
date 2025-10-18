@@ -96,6 +96,13 @@ class TraveltekSessionService {
         JSON.stringify(sessionData)
       );
 
+      // DEBUG: Log values before database insert
+      console.log('[TraveltekSession] About to insert into database:');
+      console.log('  sessionId:', sessionId);
+      console.log('  cruiseId:', params.cruiseId, 'Type:', typeof params.cruiseId);
+      console.log('  userId:', params.userId || null);
+      console.log('  passengerCount:', JSON.stringify(params.passengerCount));
+
       // Step 5: Store in database for persistence
       await db.insert(bookingSessions).values({
         id: sessionId,
@@ -110,7 +117,9 @@ class TraveltekSessionService {
         updatedAt: new Date(),
       });
 
-      console.log(`[TraveltekSession] Created session ${sessionId} for cruise ${params.cruiseId}`);
+      console.log(
+        `[TraveltekSession] ✅ Successfully created session ${sessionId} for cruise ${params.cruiseId}`
+      );
 
       return { sessionId, sessionData };
     } catch (error) {
