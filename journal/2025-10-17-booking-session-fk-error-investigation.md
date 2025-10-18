@@ -1,6 +1,6 @@
 # Booking Session Foreign Key Error Investigation
 **Date:** 2025-10-17  
-**Status:** IN PROGRESS - Awaiting Render deployment to test debug endpoints
+**Status:** ✅ RESOLVED - Root cause identified and confirmed
 
 ## Problem Statement
 API call to create booking session fails with foreign key constraint error:
@@ -161,6 +161,57 @@ The deployed backend on Render has one of these issues:
 - `backend/src/db/connection.ts` - Enabled SQL logging
 - `backend/src/routes/debug.routes.ts` - NEW debug endpoints
 - `backend/src/routes/index.ts` - Mount debug routes
+
+## ✅ RESOLUTION
+
+### Root Cause
+**Database Environment Mismatch**
+
+The error was caused by testing with **production database cruise IDs** against the **staging database**:
+
+1. **Staging backend** (`zipsea-backend.onrender.com`) connects to **`zipsea_staging_db`**
+2. **Production database** has different cruise IDs than staging database
+3. I was testing with cruise IDs like "2239817", "2186855" which exist in **production** but not in **staging**
+4. Foreign key constraint correctly rejected these non-existent cruise IDs
+
+### Verification Tests
+
+**Debug endpoint revealed the truth:**
+```bash
+curl https://zipsea-backend.onrender.com/api/v1/debug/db-info
+# Result: {"database_name":"zipsea_staging_db", ...}
+```
+
+**Found valid staging cruise IDs:**
+```bash
+curl -X POST .../search -d '{"cruiseLines": [22], "limit": 5}'
+# Result: "2161246", "2224806", "2166062", etc.
+```
+
+**Raw SQL test with staging cruise ID:**
+```bash
+curl -X POST .../debug/test-booking-session-raw -d '{"cruiseId": "2161246"}'
+# Result: ✅ SUCCESS
+```
+
+**Drizzle API test with staging cruise ID:**
+```bash
+curl -X POST .../booking/session -d '{"cruiseId": "2161246", ...}'
+# Result: ✅ SUCCESS - Session created!
+```
+
+### Conclusion
+
+**There was NO bug.** The code, database schema, and foreign keys all work perfectly. The issue was simply using the wrong test data for the environment.
+
+**The fix:** Use cruise IDs from the staging database when testing staging backend.
+
+### Lessons Learned
+
+1. Always verify which database an environment is connected to
+2. Don't assume staging uses production data
+3. Debug endpoints are invaluable for environment verification
+4. Foreign key errors can indicate data mismatch, not just schema issues
 
 ## Related Documentation
 - `TRAVELTEK-LIVE-BOOKING-API.md` - Traveltek API documentation
