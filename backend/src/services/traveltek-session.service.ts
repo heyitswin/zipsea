@@ -81,8 +81,8 @@ class TraveltekSessionService {
       // Step 1: Create Traveltek session with date range including the cruise
       const traveltekSession = await traveltekApiService.createSession(sailingDate);
 
-      if (!traveltekSession.sessionkey || !traveltekSession.sid) {
-        throw new Error('Failed to create Traveltek session: missing sessionkey or sid');
+      if (!traveltekSession.sessionkey) {
+        throw new Error('Failed to create Traveltek session: missing sessionkey');
       }
 
       // Step 2: Calculate expiry time (2 hours from now)
@@ -91,9 +91,11 @@ class TraveltekSessionService {
       // Step 3: Generate our session ID
       const sessionId = uuidv4();
 
+      // FIXED: Use Traveltek-provided fixed SID value (52471) for cruisepassjson account
+      // as specified in Traveltek credentials, not the dynamic sid from API response
       const sessionData: SessionData = {
         sessionKey: traveltekSession.sessionkey,
-        sid: traveltekSession.sid,
+        sid: '52471',
         expiresAt,
         passengerCount: params.passengerCount,
         cruiseId: params.cruiseId,
@@ -120,7 +122,7 @@ class TraveltekSessionService {
         userId: params.userId || null,
         cruiseId: params.cruiseId,
         traveltekSessionKey: traveltekSession.sessionkey,
-        traveltekSid: traveltekSession.sid,
+        traveltekSid: '52471', // Fixed SID for cruisepassjson account
         passengerCount: params.passengerCount,
         status: 'active',
         expiresAt,
