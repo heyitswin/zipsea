@@ -1,6 +1,6 @@
 import { traveltekApiService } from './traveltek-api.service';
 import { traveltekSessionService } from './traveltek-session.service';
-import { db, sql } from '../db';
+import { db, sql } from '../db/connection';
 import { bookings, bookingPassengers, bookingPayments } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
