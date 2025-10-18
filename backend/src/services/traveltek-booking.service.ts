@@ -101,8 +101,15 @@ class TraveltekBookingService {
       }
 
       // Get cruise to verify it exists
+      // Only select the columns we need to avoid missing column errors in different environments
       const cruise = await db.query.cruises.findFirst({
         where: (cruises, { eq }) => eq(cruises.id, cruiseId),
+        columns: {
+          id: true,
+          cruiseLineId: true,
+          shipId: true,
+          sailingDate: true,
+        },
       });
 
       if (!cruise) {
@@ -155,8 +162,15 @@ class TraveltekBookingService {
       }
 
       // Get cruise data to verify
+      // Only select the columns we need to avoid missing column errors in different environments
       const cruise = await db.query.cruises.findFirst({
         where: (cruises, { eq }) => eq(cruises.id, params.cruiseId),
+        columns: {
+          id: true,
+          cruiseLineId: true,
+          shipId: true,
+          sailingDate: true,
+        },
       });
 
       if (!cruise) {
