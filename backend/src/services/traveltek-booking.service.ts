@@ -1,6 +1,6 @@
 import { traveltekApiService } from './traveltek-api.service';
 import { traveltekSessionService } from './traveltek-session.service';
-import { db } from '../db';
+import { db, sql } from '../db';
 import { bookings, bookingPassengers, bookingPayments } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -101,20 +101,19 @@ class TraveltekBookingService {
       }
 
       // Get cruise to verify it exists
-      // Only select the columns we need to avoid missing column errors in different environments
-      const cruise = await db.query.cruises.findFirst({
-        where: (cruises, { eq }) => eq(cruises.id, cruiseId),
-        columns: {
-          id: true,
-          cruiseLineId: true,
-          shipId: true,
-          sailingDate: true,
-        },
-      });
+      // Use raw SQL to avoid schema mismatch issues between environments
+      const cruiseResult = await sql`
+        SELECT id, cruise_line_id, ship_id, sailing_date
+        FROM cruises
+        WHERE id = ${cruiseId}
+        LIMIT 1
+      `;
 
-      if (!cruise) {
+      if (cruiseResult.length === 0) {
         throw new Error('Cruise not found');
       }
+
+      const cruise = cruiseResult[0];
 
       // Get cabin grades from Traveltek API
       // cruises.id is the codetocruiseid from Traveltek
@@ -162,20 +161,19 @@ class TraveltekBookingService {
       }
 
       // Get cruise data to verify
-      // Only select the columns we need to avoid missing column errors in different environments
-      const cruise = await db.query.cruises.findFirst({
-        where: (cruises, { eq }) => eq(cruises.id, params.cruiseId),
-        columns: {
-          id: true,
-          cruiseLineId: true,
-          shipId: true,
-          sailingDate: true,
-        },
-      });
+      // Use raw SQL to avoid schema mismatch issues between environments
+      const cruiseResult = await sql`
+        SELECT id, cruise_line_id, ship_id, sailing_date
+        FROM cruises
+        WHERE id = ${params.cruiseId}
+        LIMIT 1
+      `;
 
-      if (!cruise) {
+      if (cruiseResult.length === 0) {
         throw new Error('Cruise not found');
       }
+
+      const cruise = cruiseResult[0];
 
       // FIXED: Use correct parameter names matching traveltek-api.service
       const basketData = await traveltekApiService.addToBasket({
