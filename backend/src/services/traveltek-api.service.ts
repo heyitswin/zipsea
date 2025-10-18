@@ -317,52 +317,51 @@ export class TraveltekApiService {
    */
   async getCabinGrades(params: {
     sessionkey: string;
+    sid: string;
     codetocruiseid: string;
     adults: number;
     children?: number;
     childDobs?: string[]; // Array of YYYY-MM-DD dates
   }): Promise<ApiResponse> {
     try {
-      // Build form data
-      const formData = new URLSearchParams();
-      formData.append('sessionkey', params.sessionkey);
-      formData.append('type', 'cruise');
-      formData.append('codetocruiseid', params.codetocruiseid);
-      formData.append('adults', params.adults.toString());
+      // Generate requestid (UUID format per documentation)
+      const requestid = `${Date.now().toString(16)}p${Math.random().toString(16).substring(2, 6)}-${Math.random().toString(16).substring(2, 6)}-${Math.random().toString(16).substring(2, 6)}-${Math.random().toString(16).substring(2, 14)}`;
+
+      // Build query parameters per Traveltek documentation
+      const queryParams: any = {
+        adults: params.adults.toString(),
+        sid: params.sid,
+        codetocruiseid: params.codetocruiseid,
+        requestid: requestid,
+      };
 
       if (params.children && params.children > 0) {
-        formData.append('children', params.children.toString());
+        queryParams.children = params.children.toString();
 
         // Add child passenger types and DOBs
         if (params.childDobs) {
           params.childDobs.forEach((dob, index) => {
             const childNum = index + 1;
-            formData.append(`paxtype-${childNum}`, 'child');
-            formData.append(`dob-${childNum}`, dob);
+            queryParams[`paxtype-${childNum}`] = 'child';
+            queryParams[`dob-${childNum}`] = dob;
           });
         }
       }
 
-      // Build query parameters (GET request per documentation, not POST!)
-      const queryParams: any = {};
-      formData.forEach((value, key) => {
-        queryParams[key] = value;
-      });
-
       console.log('🔍 Traveltek API: getCabinGrades request');
-      console.log('   Method: GET (corrected from POST)');
+      console.log('   Method: GET');
       console.log('   URL:', `${TRAVELTEK_API_BASE_URL}/cruisecabingrades.pl`);
-      console.log('   Params:', JSON.stringify(params, null, 2));
       console.log('   Query params:', JSON.stringify(queryParams, null, 2));
 
-      // FIXED: Use /cruisecabingrades.pl (from examples) instead of /cabingrades.pl
-      // Also use GET instead of POST per Traveltek documentation
       const response = await this.axiosInstance.get('/cruisecabingrades.pl', {
         params: queryParams,
       });
 
       console.log('✅ Traveltek API: getCabinGrades response status:', response.status);
       console.log('   Response data keys:', Object.keys(response.data));
+      if (response.data.results) {
+        console.log('   Results count:', response.data.results.length);
+      }
 
       return response.data;
     } catch (error: any) {

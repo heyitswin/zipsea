@@ -129,6 +129,7 @@ class TraveltekBookingService {
 
       const pricingData = await traveltekApiService.getCabinGrades({
         sessionkey: sessionData.sessionKey,
+        sid: sessionData.sid, // Fixed SID value (52471)
         codetocruiseid: cruise.id, // This is correct - cruises.id IS the codetocruiseid
         adults,
         children,
@@ -136,7 +137,13 @@ class TraveltekBookingService {
       });
 
       console.log(`[TraveltekBooking] Retrieved cabin pricing for cruise ${cruiseId}`);
-      return pricingData;
+
+      // Transform Traveltek response to match expected format
+      // Traveltek returns 'results' array, we need 'cabinGrades'
+      return {
+        ...pricingData,
+        cabinGrades: pricingData.results || [],
+      };
     } catch (error) {
       console.error('[TraveltekBooking] Failed to get cabin pricing:', error);
       throw error;
