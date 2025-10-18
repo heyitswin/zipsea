@@ -324,15 +324,14 @@ export class TraveltekApiService {
     childDobs?: string[]; // Array of YYYY-MM-DD dates
   }): Promise<ApiResponse> {
     try {
-      // Generate requestid (UUID format per documentation)
-      const requestid = `${Date.now().toString(16)}p${Math.random().toString(16).substring(2, 6)}-${Math.random().toString(16).substring(2, 6)}-${Math.random().toString(16).substring(2, 6)}-${Math.random().toString(16).substring(2, 14)}`;
-
       // Build query parameters per Traveltek documentation
+      // Note: requestid (OAuth token) is added by axios interceptor
       const queryParams: any = {
-        adults: params.adults.toString(),
+        sessionkey: params.sessionkey,
+        type: 'cruise',
         sid: params.sid,
         codetocruiseid: params.codetocruiseid,
-        requestid: requestid,
+        adults: params.adults.toString(),
       };
 
       if (params.children && params.children > 0) {
