@@ -343,12 +343,20 @@ export class TraveltekApiService {
         }
       }
 
+      // Build query parameters (GET request per documentation, not POST!)
+      const queryParams: any = {};
+      formData.forEach((value, key) => {
+        queryParams[key] = value;
+      });
+
       console.log('🔍 Traveltek API: getCabinGrades request');
+      console.log('   Method: GET (corrected from POST)');
       console.log('   URL:', `${TRAVELTEK_API_BASE_URL}/cabingrades.pl`);
       console.log('   Params:', JSON.stringify(params, null, 2));
-      console.log('   FormData:', formData.toString());
+      console.log('   Query params:', JSON.stringify(queryParams, null, 2));
 
-      const response = await this.axiosInstance.post('/cabingrades.pl', formData);
+      // FIXED: Use GET instead of POST per Traveltek documentation
+      const response = await this.axiosInstance.get('/cabingrades.pl', { params: queryParams });
 
       console.log('✅ Traveltek API: getCabinGrades response status:', response.status);
       console.log('   Response data keys:', Object.keys(response.data));
