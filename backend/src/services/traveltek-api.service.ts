@@ -113,6 +113,31 @@ export class TraveltekApiService {
           }
         }
 
+        // Retry logic for network errors and 5xx errors
+        if (originalRequest && originalRequest.headers) {
+          const retryCount = parseInt(originalRequest.headers['X-Retry-Count'] as string) || 0;
+          const maxRetries = 3;
+
+          // Retry on network errors or 5xx server errors
+          const shouldRetry =
+            !error.response || // Network error (no response)
+            (error.response.status >= 500 && error.response.status < 600); // 5xx errors
+
+          if (shouldRetry && retryCount < maxRetries) {
+            // Exponential backoff: 1s, 2s, 4s
+            const delayMs = Math.pow(2, retryCount) * 1000;
+
+            console.log(
+              `⚠️  Traveltek API: Retrying request (attempt ${retryCount + 1}/${maxRetries}) after ${delayMs}ms`
+            );
+
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+
+            originalRequest.headers['X-Retry-Count'] = (retryCount + 1).toString();
+            return this.axiosInstance(originalRequest);
+          }
+        }
+
         return Promise.reject(error);
       }
     );
