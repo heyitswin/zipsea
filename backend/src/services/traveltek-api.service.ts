@@ -237,16 +237,32 @@ export class TraveltekApiService {
    * Create a new session by performing a minimal cruise search
    * This generates a sessionkey and sid needed for booking operations
    */
-  async createSession(): Promise<{ sessionkey: string; sid: string }> {
+  async createSession(targetDate?: Date): Promise<{ sessionkey: string; sid: string }> {
     try {
       // Perform a minimal search to generate session
-      // Search for Royal Caribbean cruises in the next month
-      const today = new Date();
-      const nextMonth = new Date(today);
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      // If targetDate is provided, search around that date
+      // Otherwise search in the next 12 months
+      let startdate: string;
+      let enddate: string;
 
-      const startdate = today.toISOString().split('T')[0];
-      const enddate = nextMonth.toISOString().split('T')[0];
+      if (targetDate) {
+        // Search 30 days before to 30 days after the target sailing date
+        const start = new Date(targetDate);
+        start.setDate(start.getDate() - 30);
+        const end = new Date(targetDate);
+        end.setDate(end.getDate() + 30);
+
+        startdate = start.toISOString().split('T')[0];
+        enddate = end.toISOString().split('T')[0];
+      } else {
+        // Default: search next 12 months
+        const today = new Date();
+        const nextYear = new Date(today);
+        nextYear.setMonth(nextYear.getMonth() + 12);
+
+        startdate = today.toISOString().split('T')[0];
+        enddate = nextYear.toISOString().split('T')[0];
+      }
 
       const response = await this.axiosInstance.get('/cruiseresults.pl', {
         params: {

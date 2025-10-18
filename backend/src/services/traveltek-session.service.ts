@@ -1,7 +1,7 @@
 import { Redis } from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 import { traveltekApiService } from './traveltek-api.service';
-import { db } from '../db';
+import { db, sql } from '../db/connection';
 import { bookingSessions } from '../db/schema/booking-sessions';
 import { eq, and, gt, lt } from 'drizzle-orm';
 
@@ -67,8 +67,19 @@ class TraveltekSessionService {
     sessionData: SessionData;
   }> {
     try {
-      // Step 1: Create Traveltek session
-      const traveltekSession = await traveltekApiService.createSession();
+      // Step 0: Get cruise sailing date to create proper session
+      const cruiseResult = await sql`
+        SELECT sailing_date FROM cruises WHERE id = ${params.cruiseId} LIMIT 1
+      `;
+
+      if (cruiseResult.length === 0) {
+        throw new Error(`Cruise ${params.cruiseId} not found`);
+      }
+
+      const sailingDate = new Date(cruiseResult[0].sailing_date);
+
+      // Step 1: Create Traveltek session with date range including the cruise
+      const traveltekSession = await traveltekApiService.createSession(sailingDate);
 
       if (!traveltekSession.sessionkey || !traveltekSession.sid) {
         throw new Error('Failed to create Traveltek session: missing sessionkey or sid');
