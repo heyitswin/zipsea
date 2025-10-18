@@ -407,10 +407,26 @@ export class TraveltekApiService {
     cabinresult?: string; // Optional specific cabin number
   }): Promise<ApiResponse> {
     try {
-      const response = await this.axiosInstance.get('/basketadd.pl', { params });
+      // Add required resultkey parameter (typically 'default' for basic usage)
+      const basketParams = {
+        ...params,
+        resultkey: 'default', // Required by Traveltek API
+      };
+
+      console.log('🔍 Traveltek API: addToBasket request');
+      console.log('   Params:', JSON.stringify(basketParams, null, 2));
+
+      const response = await this.axiosInstance.get('/basketadd.pl', { params: basketParams });
+
+      console.log('✅ Traveltek API: addToBasket success');
+
       return response.data;
-    } catch (error) {
-      console.error('❌ Traveltek API: addToBasket error:', error);
+    } catch (error: any) {
+      console.error('❌ Traveltek API: addToBasket error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
       throw error;
     }
   }
