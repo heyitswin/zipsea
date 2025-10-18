@@ -343,10 +343,26 @@ export class TraveltekApiService {
         }
       }
 
+      console.log('🔍 Traveltek API: getCabinGrades request');
+      console.log('   URL:', `${TRAVELTEK_API_BASE_URL}/cabingrades.pl`);
+      console.log('   Params:', JSON.stringify(params, null, 2));
+      console.log('   FormData:', formData.toString());
+
       const response = await this.axiosInstance.post('/cabingrades.pl', formData);
+
+      console.log('✅ Traveltek API: getCabinGrades response status:', response.status);
+      console.log('   Response data keys:', Object.keys(response.data));
+
       return response.data;
-    } catch (error) {
-      console.error('❌ Traveltek API: getCabinGrades error:', error);
+    } catch (error: any) {
+      console.error('❌ Traveltek API: getCabinGrades error:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
+      });
       throw error;
     }
   }
