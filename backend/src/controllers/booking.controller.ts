@@ -257,46 +257,6 @@ class BookingController {
   }
 
   /**
-   * GET /api/booking/:sessionId/specific-cabins
-   * Get list of specific cabins for a cabin grade
-   */
-  async getSpecificCabins(req: Request, res: Response): Promise<void> {
-    try {
-      const { sessionId } = req.params;
-      const { cruiseId, resultNo, gradeNo, rateCode } = req.query;
-
-      if (!resultNo || !gradeNo) {
-        res.status(400).json({ error: 'resultNo and gradeNo are required' });
-        return;
-      }
-
-      // rateCode may be empty string or undefined for some cabin grades
-
-      const cabinsData = await traveltekBookingService.getSpecificCabins({
-        sessionId,
-        cruiseId: cruiseId as string,
-        resultNo: resultNo as string,
-        gradeNo: gradeNo as string,
-        rateCode: (rateCode as string) || '',
-      });
-
-      res.json(cabinsData);
-    } catch (error) {
-      console.error('[BookingController] Get specific cabins error:', error);
-
-      if (error instanceof Error && error.message.includes('Invalid or expired')) {
-        res.status(401).json({ error: error.message });
-        return;
-      }
-
-      res.status(500).json({
-        error: 'Failed to get specific cabins',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
-  }
-
-  /**
    * POST /api/booking/:sessionId/create
    * Create booking with passenger and payment details
    */
