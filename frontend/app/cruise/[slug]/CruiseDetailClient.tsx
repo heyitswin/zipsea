@@ -1253,6 +1253,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                               onClick={async () => {
                                 if (cabin.isGuaranteed || index === 0) {
                                   // For guaranteed cabins, add to basket then proceed to booking
+                                  if (!cruiseData?.cruise?.id) {
+                                    showAlert("Cruise data not available");
+                                    return;
+                                  }
+
                                   try {
                                     setIsLoadingCabins(true);
 
