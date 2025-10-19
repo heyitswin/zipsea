@@ -151,16 +151,29 @@ class TraveltekBookingService {
         return dob.toISOString().split('T')[0];
       });
 
-      const pricingData = await traveltekApiService.getCabinGrades({
+      const getCabinGradesParams = {
         sessionkey: sessionData.sessionKey,
         sid: sessionData.sid, // Fixed SID value (52471)
         codetocruiseid: cruise.id, // This is correct - cruises.id IS the codetocruiseid
         adults,
         children,
         childDobs: childDobs.length > 0 ? childDobs : undefined,
+      };
+
+      console.log('[TraveltekBooking] 🚀 Calling getCabinGrades with params:', {
+        ...getCabinGradesParams,
+        sessionkey: '***' + getCabinGradesParams.sessionkey.slice(-8),
       });
 
+      const pricingData = await traveltekApiService.getCabinGrades(getCabinGradesParams);
+
       console.log(`[TraveltekBooking] Retrieved cabin pricing for cruise ${cruiseId}`);
+      console.log('[TraveltekBooking] 🔍 getCabinGrades response structure:', {
+        hasResults: !!pricingData.results,
+        resultsCount: pricingData.results?.length || 0,
+        hasMeta: !!pricingData.meta,
+        metaCriteriaKeys: pricingData.meta?.criteria ? Object.keys(pricingData.meta.criteria) : [],
+      });
 
       // Transform Traveltek response to match frontend expected format
       // Frontend expects: { cabins: [...] }
@@ -362,11 +375,28 @@ class TraveltekBookingService {
    */
   async selectCabin(params: CabinSelectionParams): Promise<any> {
     try {
+      console.log('[TraveltekBooking] 🔍 selectCabin called with params:', {
+        sessionId: params.sessionId,
+        cruiseId: params.cruiseId,
+        resultNo: params.resultNo,
+        gradeNo: params.gradeNo,
+        rateCode: params.rateCode,
+        cabinResult: params.cabinResult,
+        cabinNo: params.cabinNo,
+      });
+
       // Validate session
       const sessionData = await traveltekSessionService.getSession(params.sessionId);
       if (!sessionData) {
         throw new Error('Invalid or expired booking session');
       }
+
+      console.log('[TraveltekBooking] 🔍 Session data:', {
+        sessionKey: sessionData.sessionKey ? '***' + sessionData.sessionKey.slice(-8) : 'MISSING',
+        sid: sessionData.sid,
+        cruiseId: sessionData.cruiseId,
+        hasPassengerCount: !!sessionData.passengerCount,
+      });
 
       // Get cruise data to verify
       // Use raw SQL to avoid schema mismatch issues between environments
@@ -382,6 +412,12 @@ class TraveltekBookingService {
       }
 
       const cruise = cruiseResult[0];
+      console.log('[TraveltekBooking] 🔍 Cruise found:', {
+        id: cruise.id,
+        cruiseLineId: cruise.cruise_line_id,
+        shipId: cruise.ship_id,
+        sailingDate: cruise.sailing_date,
+      });
 
       // Per Traveltek docs: cabinresult is REQUIRED for cruise bookings
       // - For guaranteed cabins: use resultno from cabin grades
@@ -392,7 +428,7 @@ class TraveltekBookingService {
         throw new Error('Either cabinResult (specific cabin) or resultNo (guaranteed) is required');
       }
 
-      const basketData = await traveltekApiService.addToBasket({
+      const addToBasketParams = {
         sessionkey: sessionData.sessionKey,
         type: 'cruise',
         resultno: params.resultNo,
@@ -400,7 +436,14 @@ class TraveltekBookingService {
         ratecode: params.rateCode,
         cabinresult: cabinresult,
         cabinno: params.cabinNo, // Optional specific cabin number
+      };
+
+      console.log('[TraveltekBooking] 🚀 Calling addToBasket with params:', {
+        ...addToBasketParams,
+        sessionkey: '***' + addToBasketParams.sessionkey.slice(-8),
       });
+
+      const basketData = await traveltekApiService.addToBasket(addToBasketParams);
 
       console.log('[TraveltekBooking] 🔍 addToBasket response keys:', Object.keys(basketData));
       if (basketData.errors) {
