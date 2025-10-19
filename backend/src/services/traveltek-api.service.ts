@@ -295,6 +295,7 @@ export class TraveltekApiService {
           enddate,
           lineid: '22,3', // Royal Caribbean and Celebrity
           adults: 2,
+          currency: 'USD', // Always use USD for pricing
         },
       });
 
@@ -357,6 +358,7 @@ export class TraveltekApiService {
         sid: params.sid,
         codetocruiseid: params.codetocruiseid,
         adults: params.adults.toString(),
+        currency: 'USD', // Always use USD for pricing
       };
 
       if (params.children && params.children > 0) {
