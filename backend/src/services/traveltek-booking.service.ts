@@ -261,6 +261,61 @@ class TraveltekBookingService {
   }
 
   /**
+   * Get specific available cabins for a cabin grade
+   *
+   * @param params - Cabin grade parameters
+   * @returns List of specific cabins with availability
+   */
+  async getSpecificCabins(params: {
+    sessionId: string;
+    cruiseId: string;
+    resultNo: string;
+    gradeNo: string;
+    rateCode: string;
+  }): Promise<any> {
+    try {
+      // Validate session
+      const sessionData = await traveltekSessionService.getSession(params.sessionId);
+      if (!sessionData) {
+        throw new Error('Invalid or expired booking session');
+      }
+
+      // Get specific cabins from Traveltek API
+      const cabinsData = await traveltekApiService.getCabins({
+        sessionkey: sessionData.sessionKey,
+        sid: sessionData.sid,
+        resultno: params.resultNo,
+        gradeno: params.gradeNo,
+        ratecode: params.rateCode,
+      });
+
+      // Transform response to match frontend expected format
+      const cabins = (cabinsData.results || []).map((cabin: any) => ({
+        cabinNo: cabin.cabinno,
+        deck: cabin.deck,
+        position: cabin.position,
+        features: cabin.features || [],
+        obstructed: cabin.obstructed || false,
+        available: cabin.available !== false, // Default to true if not specified
+        resultNo: cabin.resultno,
+      }));
+
+      console.log(
+        `[TraveltekBooking] Retrieved ${cabins.length} specific cabins for grade ${params.gradeNo}`
+      );
+
+      return {
+        cabins,
+        sessionId: params.sessionId,
+        cruiseId: params.cruiseId,
+      };
+    } catch (error) {
+      console.error('[TraveltekBooking] Failed to get specific cabins:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get current basket contents
    *
    * @param sessionId - Active booking session ID

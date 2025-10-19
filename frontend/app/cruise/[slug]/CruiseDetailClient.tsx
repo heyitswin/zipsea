@@ -20,6 +20,7 @@ import {
 } from "../../../lib/analytics";
 import { useAdmin } from "../../hooks/useAdmin";
 import { useBooking } from "../../context/BookingContext";
+import SpecificCabinModal from "../../components/SpecificCabinModal";
 import dynamic from "next/dynamic";
 
 const PriceHistoryChart = dynamic(
@@ -62,6 +63,16 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const [isLoadingCabins, setIsLoadingCabins] = useState(false);
   const [selectedCabinCategory, setSelectedCabinCategory] =
     useState<string>("interior"); // Tab state
+
+  // Specific cabin modal state
+  const [isSpecificCabinModalOpen, setIsSpecificCabinModalOpen] =
+    useState(false);
+  const [selectedCabinGrade, setSelectedCabinGrade] = useState<{
+    resultNo: string;
+    gradeNo: string;
+    rateCode: string;
+    gradeName: string;
+  } | null>(null);
 
   // Time tracking
   const pageLoadTime = useRef<number>(Date.now());
@@ -1308,8 +1319,15 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                     setIsLoadingCabins(false);
                                   }
                                 } else {
-                                  // For specific cabins, open modal (to be implemented)
-                                  showAlert("Cabin selection coming soon!");
+                                  // For specific cabins, open modal
+                                  setSelectedCabinGrade({
+                                    resultNo: cabin.resultNo,
+                                    gradeNo: cabin.gradeNo,
+                                    rateCode: cabin.rateCode,
+                                    gradeName:
+                                      cabin.gradeName || cabin.category,
+                                  });
+                                  setIsSpecificCabinModalOpen(true);
                                 }
                               }}
                               disabled={isLoadingCabins}
@@ -1813,6 +1831,59 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             onClick={(e) => e.stopPropagation()}
           />
         </div>
+      )}
+
+      {/* Specific Cabin Selection Modal */}
+      {selectedCabinGrade && cruiseData?.cruise?.id && (
+        <SpecificCabinModal
+          isOpen={isSpecificCabinModalOpen}
+          onClose={() => {
+            setIsSpecificCabinModalOpen(false);
+            setSelectedCabinGrade(null);
+          }}
+          onSelect={async (cabinNo: string) => {
+            // User selected a specific cabin - add to basket
+            try {
+              setIsLoadingCabins(true);
+              setIsSpecificCabinModalOpen(false);
+
+              const basketResponse = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/select-cabin`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    cruiseId: cruiseData.cruise.id.toString(),
+                    resultNo: selectedCabinGrade.resultNo,
+                    gradeNo: selectedCabinGrade.gradeNo,
+                    rateCode: selectedCabinGrade.rateCode,
+                    cabinResult: cabinNo,
+                  }),
+                },
+              );
+
+              if (!basketResponse.ok) {
+                throw new Error("Failed to reserve cabin");
+              }
+
+              // Success! Proceed to options page
+              router.push(`/booking/${sessionId}/options`);
+            } catch (err) {
+              console.error("Failed to add cabin to basket:", err);
+              showAlert("Unable to reserve cabin. Please try again.");
+              setIsLoadingCabins(false);
+              setIsSpecificCabinModalOpen(true); // Reopen modal on error
+            }
+          }}
+          sessionId={sessionId || ""}
+          cruiseId={cruiseData.cruise.id.toString()}
+          resultNo={selectedCabinGrade.resultNo}
+          gradeNo={selectedCabinGrade.gradeNo}
+          rateCode={selectedCabinGrade.rateCode}
+          cabinGradeName={selectedCabinGrade.gradeName}
+        />
       )}
     </div>
   );

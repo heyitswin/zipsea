@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { bookingController } from '../controllers/booking.controller';
-import { authenticateToken, authenticateTokenOptional, authenticateAdmin } from '../middleware/auth';
+import {
+  authenticateToken,
+  authenticateTokenOptional,
+  authenticateAdmin,
+} from '../middleware/auth';
 
 const router = Router();
 
@@ -44,6 +48,20 @@ router.get('/session/:sessionId', bookingController.getSession);
  * Auth: Optional
  */
 router.get('/:sessionId/pricing', bookingController.getCabinPricing);
+
+/**
+ * GET /api/booking/:sessionId/specific-cabins
+ * Get list of specific cabins for a cabin grade
+ *
+ * Query params:
+ * - cruiseId: string (required)
+ * - resultNo: string (required - from pricing response)
+ * - gradeNo: string (required - from pricing response)
+ * - rateCode: string (required - from pricing response)
+ *
+ * Auth: Optional
+ */
+router.get('/:sessionId/specific-cabins', bookingController.getSpecificCabins);
 
 /**
  * POST /api/booking/:sessionId/select-cabin
