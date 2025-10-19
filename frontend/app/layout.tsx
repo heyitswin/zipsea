@@ -10,7 +10,6 @@ import PostHogProviderWrapper, {
   PostHogPageView,
 } from "./providers/PosthogProvider";
 import MissiveChat from "./components/MissiveChat";
-import { BookingProvider } from "./context/BookingContext";
 import { Suspense } from "react";
 
 const geistSans = Geist({
@@ -213,12 +212,10 @@ export default function RootLayout({
               <PostHogPageView />
             </Suspense>
             <GlobalAlertProvider>
-              <BookingProvider>
-                <Navigation />
-                {children}
-                <Footer />
-                <MissiveChat />
-              </BookingProvider>
+              <Navigation />
+              {children}
+              <Footer />
+              <MissiveChat />
             </GlobalAlertProvider>
           </PostHogProviderWrapper>
         </body>

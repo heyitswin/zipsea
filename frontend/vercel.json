@@ -9,10 +9,7 @@
         }
       ],
       "destination": "https://www.zipsea.com/:path*",
-      "permanent": true,
-      "headers": {
-        "X-Robots-Tag": "noindex"
-      }
+      "permanent": true
     }
   ],
   "headers": [
