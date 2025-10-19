@@ -499,16 +499,16 @@ export class TraveltekApiService {
    */
   async getShipDetails(params: {
     sessionkey: string;
-    sid: string; // Ship ID
+    shipid: number; // Ship ID from cruise.ship_id
   }): Promise<ApiResponse> {
     try {
       console.log('🔍 Traveltek API: getShipDetails request');
-      console.log('   Ship ID:', params.sid);
+      console.log('   Ship ID:', params.shipid);
 
       const response = await this.axiosInstance.get('/cruiseshipdetails.pl', {
         params: {
           sessionkey: params.sessionkey,
-          sid: params.sid,
+          shipid: params.shipid, // Per Traveltek docs: use shipid parameter
         },
       });
 
