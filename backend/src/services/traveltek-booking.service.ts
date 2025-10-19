@@ -375,15 +375,18 @@ class TraveltekBookingService {
    */
   async selectCabin(params: CabinSelectionParams): Promise<any> {
     try {
-      console.log('[TraveltekBooking] 🔍 selectCabin called with params:', {
-        sessionId: params.sessionId,
-        cruiseId: params.cruiseId,
-        resultNo: params.resultNo,
-        gradeNo: params.gradeNo,
-        rateCode: params.rateCode,
-        cabinResult: params.cabinResult,
-        cabinNo: params.cabinNo,
-      });
+      console.log(
+        '[TraveltekBooking] 🔍 selectCabin called with params:',
+        JSON.stringify({
+          sessionId: params.sessionId,
+          cruiseId: params.cruiseId,
+          resultNo: params.resultNo,
+          gradeNo: params.gradeNo,
+          rateCode: params.rateCode,
+          cabinResult: params.cabinResult,
+          cabinNo: params.cabinNo,
+        })
+      );
 
       // Validate session
       const sessionData = await traveltekSessionService.getSession(params.sessionId);
@@ -391,12 +394,15 @@ class TraveltekBookingService {
         throw new Error('Invalid or expired booking session');
       }
 
-      console.log('[TraveltekBooking] 🔍 Session data:', {
-        sessionKey: sessionData.sessionKey ? '***' + sessionData.sessionKey.slice(-8) : 'MISSING',
-        sid: sessionData.sid,
-        cruiseId: sessionData.cruiseId,
-        hasPassengerCount: !!sessionData.passengerCount,
-      });
+      console.log(
+        '[TraveltekBooking] 🔍 Session data:',
+        JSON.stringify({
+          sessionKey: sessionData.sessionKey ? '***' + sessionData.sessionKey.slice(-8) : 'MISSING',
+          sid: sessionData.sid,
+          cruiseId: sessionData.cruiseId,
+          hasPassengerCount: !!sessionData.passengerCount,
+        })
+      );
 
       // Get cruise data to verify
       // Use raw SQL to avoid schema mismatch issues between environments
@@ -419,29 +425,34 @@ class TraveltekBookingService {
         sailingDate: cruise.sailing_date,
       });
 
-      // Per Traveltek docs: cabinresult is REQUIRED for cruise bookings
-      // - For guaranteed cabins: use resultno from cabin grades
-      // - For specific cabins: use cabinresult from getCabins endpoint
-      const cabinresult = params.cabinResult || params.resultNo;
-
-      if (!cabinresult) {
-        throw new Error('Either cabinResult (specific cabin) or resultNo (guaranteed) is required');
-      }
-
-      const addToBasketParams = {
+      // Build addToBasket params
+      // For guaranteed cabins: only send resultno, gradeno, ratecode
+      // For specific cabins: also send cabinresult and cabinno
+      const addToBasketParams: any = {
         sessionkey: sessionData.sessionKey,
         type: 'cruise' as const,
         resultno: params.resultNo,
         gradeno: params.gradeNo,
         ratecode: params.rateCode,
-        cabinresult: cabinresult,
-        cabinno: params.cabinNo, // Optional specific cabin number
       };
 
-      console.log('[TraveltekBooking] 🚀 Calling addToBasket with params:', {
-        ...addToBasketParams,
-        sessionkey: '***' + addToBasketParams.sessionkey.slice(-8),
-      });
+      // Only add cabinresult for specific cabin selection
+      if (params.cabinResult) {
+        addToBasketParams.cabinresult = params.cabinResult;
+      }
+
+      // Only add cabinno for specific cabin number
+      if (params.cabinNo) {
+        addToBasketParams.cabinno = params.cabinNo;
+      }
+
+      console.log(
+        '[TraveltekBooking] 🚀 Calling addToBasket with params:',
+        JSON.stringify({
+          ...addToBasketParams,
+          sessionkey: '***' + addToBasketParams.sessionkey.slice(-8),
+        })
+      );
 
       const basketData = await traveltekApiService.addToBasket(addToBasketParams);
 
