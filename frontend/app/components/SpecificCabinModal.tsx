@@ -5,10 +5,24 @@ import { useState, useEffect } from "react";
 interface Cabin {
   cabinNo: string;
   deck: string;
+  deckCode?: string;
+  deckId?: number;
   position: string;
   features: string[];
   obstructed: boolean;
   available: boolean;
+  x1?: number;
+  y1?: number;
+  x2?: number;
+  y2?: number;
+}
+
+interface DeckPlan {
+  name: string;
+  deckCode: string;
+  deckId: number;
+  imageUrl: string;
+  description?: string;
 }
 
 interface SpecificCabinModalProps {
@@ -35,6 +49,8 @@ export default function SpecificCabinModal({
   cabinGradeName,
 }: SpecificCabinModalProps) {
   const [cabins, setCabins] = useState<Cabin[]>([]);
+  const [deckPlans, setDeckPlans] = useState<DeckPlan[]>([]);
+  const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCabinNo, setSelectedCabinNo] = useState<string | null>(null);
@@ -64,6 +80,12 @@ export default function SpecificCabinModal({
 
         const data = await response.json();
         setCabins(data.cabins || []);
+        setDeckPlans(data.deckPlans || []);
+
+        // Auto-select first deck if available
+        if (data.deckPlans && data.deckPlans.length > 0) {
+          setSelectedDeck(data.deckPlans[0].deckCode || data.deckPlans[0].name);
+        }
       } catch (err) {
         console.error("Failed to fetch specific cabins:", err);
         setError("Unable to load cabin list. Please try again.");
@@ -94,7 +116,7 @@ export default function SpecificCabinModal({
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-xl">
+        <div className="relative w-full max-w-4xl bg-white rounded-lg shadow-xl">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
             <div>
@@ -125,6 +147,111 @@ export default function SpecificCabinModal({
 
           {/* Content */}
           <div className="p-6">
+            {/* Deck Plan Viewer */}
+            {!isLoading && deckPlans.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-geograph font-semibold text-lg mb-3">
+                  Deck Plans
+                </h3>
+
+                {/* Deck Selector */}
+                {deckPlans.length > 1 && (
+                  <div className="mb-4">
+                    <select
+                      value={selectedDeck || ""}
+                      onChange={(e) => setSelectedDeck(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      {deckPlans.map((deck) => (
+                        <option
+                          key={deck.deckId}
+                          value={deck.deckCode || deck.name}
+                        >
+                          {deck.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Deck Plan Image with Cabin Highlighting */}
+                {selectedDeck && (
+                  <div className="relative border border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+                    {(() => {
+                      const currentDeck = deckPlans.find(
+                        (d) =>
+                          d.deckCode === selectedDeck ||
+                          d.name === selectedDeck,
+                      );
+
+                      if (!currentDeck?.imageUrl) return null;
+
+                      // Get cabins on this deck
+                      const cabinsOnDeck = cabins.filter(
+                        (c) =>
+                          c.deckCode === selectedDeck ||
+                          c.deck === selectedDeck,
+                      );
+
+                      return (
+                        <div className="relative">
+                          <img
+                            src={currentDeck.imageUrl}
+                            alt={currentDeck.name}
+                            className="w-full h-auto"
+                          />
+
+                          {/* Draw rectangles for each cabin on this deck */}
+                          <svg
+                            className="absolute top-0 left-0 w-full h-full pointer-events-none"
+                            viewBox="0 0 100 100"
+                            preserveAspectRatio="none"
+                          >
+                            {cabinsOnDeck.map((cabin) => {
+                              if (
+                                !cabin.x1 ||
+                                !cabin.y1 ||
+                                !cabin.x2 ||
+                                !cabin.y2
+                              )
+                                return null;
+
+                              const isSelected =
+                                selectedCabinNo === cabin.cabinNo;
+
+                              return (
+                                <rect
+                                  key={cabin.cabinNo}
+                                  x={cabin.x1}
+                                  y={cabin.y1}
+                                  width={cabin.x2 - cabin.x1}
+                                  height={cabin.y2 - cabin.y1}
+                                  fill={
+                                    isSelected
+                                      ? "rgba(59, 130, 246, 0.3)"
+                                      : "rgba(59, 130, 246, 0.1)"
+                                  }
+                                  stroke={isSelected ? "#3b82f6" : "#93c5fd"}
+                                  strokeWidth={isSelected ? "0.5" : "0.2"}
+                                  className="transition-all"
+                                />
+                              );
+                            })}
+                          </svg>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                <p className="mt-2 text-xs text-gray-500">
+                  {selectedCabinNo
+                    ? `Selected cabin is highlighted in blue on the deck plan above.`
+                    : `Select a cabin below to see its location on the deck plan.`}
+                </p>
+              </div>
+            )}
+
             {isLoading && (
               <div className="text-center py-12">
                 <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>

@@ -423,16 +423,48 @@ class TraveltekBookingService {
         );
       }
 
+      // Get ship details for deck plans
+      let deckPlans = null;
+      try {
+        const shipDetails = await traveltekApiService.getShipDetails({
+          sessionkey: sessionData.sessionKey,
+          sid: sessionData.sid,
+        });
+
+        // Extract deck plan images indexed by deck code/name
+        if (shipDetails.decks && Array.isArray(shipDetails.decks)) {
+          deckPlans = shipDetails.decks.map((deck: any) => ({
+            name: deck.name,
+            deckCode: deck.deckcode,
+            deckId: deck.id,
+            imageUrl: deck.imageurl,
+            description: deck.description,
+          }));
+          console.log(`[TraveltekBooking] Retrieved ${deckPlans.length} deck plans`);
+        }
+      } catch (error) {
+        console.error('[TraveltekBooking] Failed to get ship details for deck plans:', error);
+        // Continue without deck plans if this fails
+      }
+
       // Transform response to match frontend expected format
       // Per Traveltek docs: deck info can be in deckname, deckcode, or deck fields
+      // Include x1, y1, x2, y2 coordinates for cabin highlighting on deck plans
       const cabins = (cabinsData.results || []).map((cabin: any) => ({
         cabinNo: cabin.cabinno || cabin.cabinNumber,
         deck: cabin.deckname || cabin.deck || cabin.deckcode || 'Unknown',
+        deckCode: cabin.deckcode,
+        deckId: cabin.deckid,
         position: cabin.position || cabin.location,
         features: cabin.features || [],
         obstructed: cabin.obstructed === true || cabin.obstructed === 'Y',
         available: cabin.available !== false && cabin.available !== 'N',
         resultNo: cabin.resultno,
+        // Coordinates for highlighting cabin on deck plan
+        x1: cabin.x1,
+        y1: cabin.y1,
+        x2: cabin.x2,
+        y2: cabin.y2,
       }));
 
       console.log(
@@ -441,6 +473,7 @@ class TraveltekBookingService {
 
       return {
         cabins,
+        deckPlans, // Array of deck plan images with metadata
         sessionId: params.sessionId,
         cruiseId: params.cruiseId,
       };
