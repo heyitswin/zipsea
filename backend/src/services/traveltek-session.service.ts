@@ -1,7 +1,7 @@
 import { Redis } from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 import { traveltekApiService } from './traveltek-api.service';
-import { db } from '../db';
+import { db, sql } from '../db/connection';
 import { bookingSessions } from '../db/schema/booking-sessions';
 import { eq, and, gt, lt } from 'drizzle-orm';
 
@@ -67,11 +67,22 @@ class TraveltekSessionService {
     sessionData: SessionData;
   }> {
     try {
-      // Step 1: Create Traveltek session
-      const traveltekSession = await traveltekApiService.createSession();
+      // Step 0: Get cruise sailing date to create proper session
+      const cruiseResult = await sql`
+        SELECT sailing_date FROM cruises WHERE id = ${params.cruiseId} LIMIT 1
+      `;
 
-      if (!traveltekSession.sessionkey || !traveltekSession.sid) {
-        throw new Error('Failed to create Traveltek session: missing sessionkey or sid');
+      if (cruiseResult.length === 0) {
+        throw new Error(`Cruise ${params.cruiseId} not found`);
+      }
+
+      const sailingDate = new Date(cruiseResult[0].sailing_date);
+
+      // Step 1: Create Traveltek session with date range including the cruise
+      const traveltekSession = await traveltekApiService.createSession(sailingDate);
+
+      if (!traveltekSession.sessionkey) {
+        throw new Error('Failed to create Traveltek session: missing sessionkey');
       }
 
       // Step 2: Calculate expiry time (2 hours from now)
@@ -80,9 +91,11 @@ class TraveltekSessionService {
       // Step 3: Generate our session ID
       const sessionId = uuidv4();
 
+      // FIXED: Use Traveltek-provided fixed SID value (52471) for cruisepassjson account
+      // as specified in Traveltek credentials, not the dynamic sid from API response
       const sessionData: SessionData = {
         sessionKey: traveltekSession.sessionkey,
-        sid: traveltekSession.sid,
+        sid: '52471',
         expiresAt,
         passengerCount: params.passengerCount,
         cruiseId: params.cruiseId,
@@ -96,13 +109,20 @@ class TraveltekSessionService {
         JSON.stringify(sessionData)
       );
 
+      // DEBUG: Log values before database insert
+      console.log('[TraveltekSession] About to insert into database:');
+      console.log('  sessionId:', sessionId);
+      console.log('  cruiseId:', params.cruiseId, 'Type:', typeof params.cruiseId);
+      console.log('  userId:', params.userId || null);
+      console.log('  passengerCount:', JSON.stringify(params.passengerCount));
+
       // Step 5: Store in database for persistence
       await db.insert(bookingSessions).values({
         id: sessionId,
         userId: params.userId || null,
         cruiseId: params.cruiseId,
         traveltekSessionKey: traveltekSession.sessionkey,
-        traveltekSid: traveltekSession.sid,
+        traveltekSid: '52471', // Fixed SID for cruisepassjson account
         passengerCount: params.passengerCount,
         status: 'active',
         expiresAt,
@@ -110,7 +130,9 @@ class TraveltekSessionService {
         updatedAt: new Date(),
       });
 
-      console.log(`[TraveltekSession] Created session ${sessionId} for cruise ${params.cruiseId}`);
+      console.log(
+        `[TraveltekSession] ✅ Successfully created session ${sessionId} for cruise ${params.cruiseId}`
+      );
 
       return { sessionId, sessionData };
     } catch (error) {

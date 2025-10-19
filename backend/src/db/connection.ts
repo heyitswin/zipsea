@@ -22,14 +22,17 @@ const sql = env.DATABASE_URL
 export const db = sql
   ? drizzle(sql, {
       schema,
-      logger:
-        env.NODE_ENV === 'staging'
-          ? {
-              logQuery: (query, params) => {
-                dbLogger.debug('SQL Query', { query, params });
-              },
-            }
-          : false,
+      logger: {
+        logQuery: (query, params) => {
+          console.log('=== DRIZZLE SQL QUERY ===');
+          console.log('Query:', query);
+          console.log('Params:', params);
+          console.log('========================');
+          if (env.NODE_ENV === 'staging') {
+            dbLogger.debug('SQL Query', { query, params });
+          }
+        },
+      },
     })
   : (null as any);
 

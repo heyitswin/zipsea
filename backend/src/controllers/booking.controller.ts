@@ -17,22 +17,41 @@ class BookingController {
     try {
       const { cruiseId, passengerCount } = req.body;
 
+      // DEBUG: Log received cruiseId
+      console.log(
+        '[BookingController] createSession - Received cruiseId:',
+        cruiseId,
+        'Type:',
+        typeof cruiseId
+      );
+      console.log(
+        '[BookingController] createSession - Received passengerCount:',
+        JSON.stringify(passengerCount)
+      );
+
       // Validation
       if (!cruiseId) {
         res.status(400).json({ error: 'cruiseId is required' });
         return;
       }
 
-      if (!passengerCount || typeof passengerCount.adults !== 'number' || typeof passengerCount.children !== 'number') {
+      if (
+        !passengerCount ||
+        typeof passengerCount.adults !== 'number' ||
+        typeof passengerCount.children !== 'number'
+      ) {
         res.status(400).json({
-          error: 'passengerCount is required with adults (number) and children (number)'
+          error: 'passengerCount is required with adults (number) and children (number)',
         });
         return;
       }
 
-      if (passengerCount.children > 0 && (!passengerCount.childAges || passengerCount.childAges.length !== passengerCount.children)) {
+      if (
+        passengerCount.children > 0 &&
+        (!passengerCount.childAges || passengerCount.childAges.length !== passengerCount.children)
+      ) {
         res.status(400).json({
-          error: 'childAges array must be provided with exact count matching children'
+          error: 'childAges array must be provided with exact count matching children',
         });
         return;
       }

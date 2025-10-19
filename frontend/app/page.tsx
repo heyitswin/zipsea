@@ -18,6 +18,7 @@ import { createSlugFromCruise } from "../lib/slug";
 import { useAlert } from "../components/GlobalAlertProvider";
 import Navigation from "./components/Navigation";
 import SearchResultsModal from "./components/SearchResultsModal";
+import PassengerSelector from "./components/PassengerSelector";
 import { trackSearch, trackEngagement } from "../lib/analytics";
 
 interface FilterOption {
@@ -35,6 +36,13 @@ function HomeWithParams() {
   // Last minute deals states
   const [lastMinuteDeals, setLastMinuteDeals] = useState<LastMinuteDeals[]>([]);
   const [isLoadingDeals, setIsLoadingDeals] = useState(false);
+
+  // Passenger selection state
+  const [passengerCount, setPassengerCount] = useState({
+    adults: 2,
+    children: 0,
+    childAges: [] as number[],
+  });
 
   // Handle post-authentication redirects
   useEffect(() => {
@@ -107,6 +115,8 @@ function HomeWithParams() {
   };
 
   const handleSearchClick = () => {
+    // Store passenger count in sessionStorage to pass to search results
+    sessionStorage.setItem("passengerCount", JSON.stringify(passengerCount));
     router.push("/cruises");
   };
 
@@ -199,11 +209,19 @@ function HomeWithParams() {
 
           {/* Subheading - Responsive */}
           <p
-            className="text-white text-[18px] md:text-[18px] font-medium font-geograph tracking-tight text-center w-full max-w-[900px] mb-8 md:mb-12"
+            className="text-white text-[18px] md:text-[18px] font-medium font-geograph tracking-tight text-center w-full max-w-[900px] mb-6 md:mb-8"
             style={{ lineHeight: "1.75" }}
           >
             More value. Zero hassle. All for you.
           </p>
+
+          {/* Passenger Selector */}
+          <div className="w-full max-w-[400px] mb-4">
+            <PassengerSelector
+              value={passengerCount}
+              onChange={setPassengerCount}
+            />
+          </div>
 
           {/* CTA Button */}
           <button

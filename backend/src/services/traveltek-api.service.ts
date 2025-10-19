@@ -113,6 +113,31 @@ export class TraveltekApiService {
           }
         }
 
+        // Retry logic for network errors and 5xx errors
+        if (originalRequest && originalRequest.headers) {
+          const retryCount = parseInt(originalRequest.headers['X-Retry-Count'] as string) || 0;
+          const maxRetries = 3;
+
+          // Retry on network errors or 5xx server errors
+          const shouldRetry =
+            !error.response || // Network error (no response)
+            (error.response.status >= 500 && error.response.status < 600); // 5xx errors
+
+          if (shouldRetry && retryCount < maxRetries) {
+            // Exponential backoff: 1s, 2s, 4s
+            const delayMs = Math.pow(2, retryCount) * 1000;
+
+            console.log(
+              `⚠️  Traveltek API: Retrying request (attempt ${retryCount + 1}/${maxRetries}) after ${delayMs}ms`
+            );
+
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+
+            originalRequest.headers['X-Retry-Count'] = (retryCount + 1).toString();
+            return this.axiosInstance(originalRequest);
+          }
+        }
+
         return Promise.reject(error);
       }
     );
@@ -237,16 +262,32 @@ export class TraveltekApiService {
    * Create a new session by performing a minimal cruise search
    * This generates a sessionkey and sid needed for booking operations
    */
-  async createSession(): Promise<{ sessionkey: string; sid: string }> {
+  async createSession(targetDate?: Date): Promise<{ sessionkey: string; sid: string }> {
     try {
       // Perform a minimal search to generate session
-      // Search for Royal Caribbean cruises in the next month
-      const today = new Date();
-      const nextMonth = new Date(today);
-      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      // If targetDate is provided, search around that date
+      // Otherwise search in the next 12 months
+      let startdate: string;
+      let enddate: string;
 
-      const startdate = today.toISOString().split('T')[0];
-      const enddate = nextMonth.toISOString().split('T')[0];
+      if (targetDate) {
+        // Search 30 days before to 30 days after the target sailing date
+        const start = new Date(targetDate);
+        start.setDate(start.getDate() - 30);
+        const end = new Date(targetDate);
+        end.setDate(end.getDate() + 30);
+
+        startdate = start.toISOString().split('T')[0];
+        enddate = end.toISOString().split('T')[0];
+      } else {
+        // Default: search next 12 months
+        const today = new Date();
+        const nextYear = new Date(today);
+        nextYear.setMonth(nextYear.getMonth() + 12);
+
+        startdate = today.toISOString().split('T')[0];
+        enddate = nextYear.toISOString().split('T')[0];
+      }
 
       const response = await this.axiosInstance.get('/cruiseresults.pl', {
         params: {
@@ -254,6 +295,7 @@ export class TraveltekApiService {
           enddate,
           lineid: '22,3', // Royal Caribbean and Celebrity
           adults: 2,
+          currency: 'USD', // Always use USD for pricing
         },
       });
 
@@ -301,36 +343,62 @@ export class TraveltekApiService {
    */
   async getCabinGrades(params: {
     sessionkey: string;
+    sid: string;
     codetocruiseid: string;
     adults: number;
     children?: number;
     childDobs?: string[]; // Array of YYYY-MM-DD dates
   }): Promise<ApiResponse> {
     try {
-      // Build form data
-      const formData = new URLSearchParams();
-      formData.append('sessionkey', params.sessionkey);
-      formData.append('type', 'cruise');
-      formData.append('codetocruiseid', params.codetocruiseid);
-      formData.append('adults', params.adults.toString());
+      // Build query parameters per Traveltek documentation
+      // Note: requestid (OAuth token) is added by axios interceptor
+      const queryParams: any = {
+        sessionkey: params.sessionkey,
+        type: 'cruise',
+        sid: params.sid,
+        codetocruiseid: params.codetocruiseid,
+        adults: params.adults.toString(),
+        currency: 'USD', // Always use USD for pricing
+      };
 
       if (params.children && params.children > 0) {
-        formData.append('children', params.children.toString());
+        queryParams.children = params.children.toString();
 
         // Add child passenger types and DOBs
         if (params.childDobs) {
           params.childDobs.forEach((dob, index) => {
             const childNum = index + 1;
-            formData.append(`paxtype-${childNum}`, 'child');
-            formData.append(`dob-${childNum}`, dob);
+            queryParams[`paxtype-${childNum}`] = 'child';
+            queryParams[`dob-${childNum}`] = dob;
           });
         }
       }
 
-      const response = await this.axiosInstance.post('/cabingrades.pl', formData);
+      console.log('🔍 Traveltek API: getCabinGrades request');
+      console.log('   Method: GET');
+      console.log('   URL:', `${TRAVELTEK_API_BASE_URL}/cruisecabingrades.pl`);
+      console.log('   Query params:', JSON.stringify(queryParams, null, 2));
+
+      const response = await this.axiosInstance.get('/cruisecabingrades.pl', {
+        params: queryParams,
+      });
+
+      console.log('✅ Traveltek API: getCabinGrades response status:', response.status);
+      console.log('   Response data keys:', Object.keys(response.data));
+      if (response.data.results) {
+        console.log('   Results count:', response.data.results.length);
+      }
+
       return response.data;
-    } catch (error) {
-      console.error('❌ Traveltek API: getCabinGrades error:', error);
+    } catch (error: any) {
+      console.error('❌ Traveltek API: getCabinGrades error:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
+      });
       throw error;
     }
   }
@@ -367,10 +435,26 @@ export class TraveltekApiService {
     cabinresult?: string; // Optional specific cabin number
   }): Promise<ApiResponse> {
     try {
-      const response = await this.axiosInstance.get('/basketadd.pl', { params });
+      // Add required resultkey parameter (typically 'default' for basic usage)
+      const basketParams = {
+        ...params,
+        resultkey: 'default', // Required by Traveltek API
+      };
+
+      console.log('🔍 Traveltek API: addToBasket request');
+      console.log('   Params:', JSON.stringify(basketParams, null, 2));
+
+      const response = await this.axiosInstance.get('/basketadd.pl', { params: basketParams });
+
+      console.log('✅ Traveltek API: addToBasket success');
+
       return response.data;
-    } catch (error) {
-      console.error('❌ Traveltek API: addToBasket error:', error);
+    } catch (error: any) {
+      console.error('❌ Traveltek API: addToBasket error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
       throw error;
     }
   }

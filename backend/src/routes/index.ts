@@ -15,6 +15,7 @@ import adminRoutes from './admin.routes';
 import priceHistoryRoutes from './price-history.routes';
 import { userRoutes } from './user.routes';
 import bookingRoutes from './booking.routes';
+import debugRoutes from './debug.routes';
 
 const router = Router();
 
@@ -43,6 +44,9 @@ apiRouter.use('/webhooks-pricing', webhookPricingRoutes);
 
 // Admin routes (for debugging and management)
 apiRouter.use('/admin', adminRoutes);
+
+// Debug routes (temporary for diagnosing issues)
+apiRouter.use('/debug', debugRoutes);
 
 // Core API routes
 // Use optimized search routes for better performance

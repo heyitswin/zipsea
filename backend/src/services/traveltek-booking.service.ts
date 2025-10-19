@@ -1,6 +1,6 @@
 import { traveltekApiService } from './traveltek-api.service';
 import { traveltekSessionService } from './traveltek-session.service';
-import { db } from '../db';
+import { db, sql } from '../db/connection';
 import { bookings, bookingPassengers, bookingPayments } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -101,13 +101,19 @@ class TraveltekBookingService {
       }
 
       // Get cruise to verify it exists
-      const cruise = await db.query.cruises.findFirst({
-        where: (cruises, { eq }) => eq(cruises.id, cruiseId),
-      });
+      // Use raw SQL to avoid schema mismatch issues between environments
+      const cruiseResult = await sql`
+        SELECT id, cruise_line_id, ship_id, sailing_date
+        FROM cruises
+        WHERE id = ${cruiseId}
+        LIMIT 1
+      `;
 
-      if (!cruise) {
+      if (cruiseResult.length === 0) {
         throw new Error('Cruise not found');
       }
+
+      const cruise = cruiseResult[0];
 
       // Get cabin grades from Traveltek API
       // cruises.id is the codetocruiseid from Traveltek
@@ -123,6 +129,7 @@ class TraveltekBookingService {
 
       const pricingData = await traveltekApiService.getCabinGrades({
         sessionkey: sessionData.sessionKey,
+        sid: sessionData.sid, // Fixed SID value (52471)
         codetocruiseid: cruise.id, // This is correct - cruises.id IS the codetocruiseid
         adults,
         children,
@@ -178,13 +185,19 @@ class TraveltekBookingService {
       }
 
       // Get cruise data to verify
-      const cruise = await db.query.cruises.findFirst({
-        where: (cruises, { eq }) => eq(cruises.id, params.cruiseId),
-      });
+      // Use raw SQL to avoid schema mismatch issues between environments
+      const cruiseResult = await sql`
+        SELECT id, cruise_line_id, ship_id, sailing_date
+        FROM cruises
+        WHERE id = ${params.cruiseId}
+        LIMIT 1
+      `;
 
-      if (!cruise) {
+      if (cruiseResult.length === 0) {
         throw new Error('Cruise not found');
       }
+
+      const cruise = cruiseResult[0];
 
       // FIXED: Use correct parameter names matching traveltek-api.service
       const basketData = await traveltekApiService.addToBasket({
