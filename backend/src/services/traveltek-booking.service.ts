@@ -215,7 +215,7 @@ class TraveltekBookingService {
             });
 
           cabins.push({
-            code: cabin.code || cabin.gradecode || cabin.categorycode || cabin.codtype,
+            code: cabin.cabincode || cabin.code || cabin.gradecode,
             name: cabin.name,
             description: cabin.description,
             category: cabin.codtype, // 'inside', 'outside', 'balcony', 'suite'
@@ -246,7 +246,7 @@ class TraveltekBookingService {
           };
 
           cabins.push({
-            code: cabin.code || cabin.gradecode || cabin.categorycode || cabin.codtype,
+            code: cabin.cabincode || cabin.code || cabin.gradecode,
             name: cabin.name,
             description: cabin.description,
             category: cabin.codtype,
