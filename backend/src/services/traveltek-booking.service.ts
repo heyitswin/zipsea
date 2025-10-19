@@ -496,21 +496,34 @@ class TraveltekBookingService {
             '[TraveltekBooking] 🔍 Ship details response keys:',
             Object.keys(shipDetails)
           );
-          if (shipDetails.decks) {
-            console.log('[TraveltekBooking] 🔍 Decks length:', shipDetails.decks.length);
-            if (shipDetails.decks.length > 0) {
+
+          // Traveltek returns ship data in results field (or results array)
+          const shipData =
+            shipDetails.results && Array.isArray(shipDetails.results)
+              ? shipDetails.results[0]
+              : shipDetails.results || shipDetails;
+
+          console.log('[TraveltekBooking] 🔍 Ship data keys:', Object.keys(shipData || {}));
+
+          if (shipData?.decks) {
+            console.log('[TraveltekBooking] 🔍 Decks length:', shipData.decks.length);
+            if (shipData.decks.length > 0) {
               console.log(
                 '[TraveltekBooking] 🔍 First deck sample:',
-                JSON.stringify(shipDetails.decks[0]).substring(0, 200)
+                JSON.stringify(shipData.decks[0]).substring(0, 200)
               );
             }
           } else {
-            console.log('[TraveltekBooking] ⚠️  No decks field in ship details response');
+            console.log('[TraveltekBooking] ⚠️  No decks field in ship data');
+            console.log(
+              '[TraveltekBooking] 🔍 Available ship data fields:',
+              Object.keys(shipData || {})
+            );
           }
 
           // Extract deck plan images indexed by deck code/name
-          if (shipDetails.decks && Array.isArray(shipDetails.decks)) {
-            deckPlans = shipDetails.decks.map((deck: any) => ({
+          if (shipData?.decks && Array.isArray(shipData.decks)) {
+            deckPlans = shipData.decks.map((deck: any) => ({
               name: deck.name,
               deckCode: deck.deckcode,
               deckId: deck.id,
