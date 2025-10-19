@@ -130,7 +130,30 @@ class TraveltekBookingService {
       });
 
       console.log(`[TraveltekBooking] Retrieved cabin pricing for cruise ${cruiseId}`);
-      return pricingData;
+
+      // Transform Traveltek response to match frontend expected format
+      // Frontend expects: { cabins: [...] }
+      // Traveltek returns: { results: [...] }
+      const cabins = (pricingData.results || []).map((cabin: any) => ({
+        code: cabin.code,
+        name: cabin.name,
+        description: cabin.description,
+        category: cabin.codtype, // 'inside', 'outside', 'balcony', 'suite'
+        imageUrl: cabin.imageurlhd || cabin.imageurl,
+        cheapestPrice: parseFloat(cabin.cheapestprice || '0'),
+        isGuaranteed:
+          cabin.code?.toLowerCase().includes('guarantee') ||
+          cabin.name?.toLowerCase().includes('guarantee'),
+        resultNo: cabin.resultno,
+        gradeNo: cabin.gradeno,
+        rateCode: cabin.ratecode,
+      }));
+
+      return {
+        cabins,
+        sessionId,
+        cruiseId,
+      };
     } catch (error) {
       console.error('[TraveltekBooking] Failed to get cabin pricing:', error);
       throw error;
