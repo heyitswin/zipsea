@@ -430,7 +430,7 @@ class TraveltekBookingService {
 
       const addToBasketParams = {
         sessionkey: sessionData.sessionKey,
-        type: 'cruise',
+        type: 'cruise' as const,
         resultno: params.resultNo,
         gradeno: params.gradeNo,
         ratecode: params.rateCode,
