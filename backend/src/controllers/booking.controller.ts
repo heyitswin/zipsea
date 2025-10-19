@@ -151,10 +151,12 @@ class BookingController {
       const { sessionId } = req.params;
       const { resultNo, gradeNo, rateCode, cabinResult } = req.body;
 
-      if (!resultNo || !gradeNo || !rateCode) {
-        res.status(400).json({ error: 'resultNo, gradeNo, and rateCode are required' });
+      if (!resultNo || !gradeNo) {
+        res.status(400).json({ error: 'resultNo and gradeNo are required' });
         return;
       }
+
+      // rateCode may be empty string for some cabin grades - that's okay
 
       // Get cruise ID from session
       const sessionData = await traveltekSessionService.getSession(sessionId);
