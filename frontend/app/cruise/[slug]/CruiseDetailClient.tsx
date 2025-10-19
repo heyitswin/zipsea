@@ -1320,12 +1320,24 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                   }
                                 } else {
                                   // For specific cabins, open modal
+                                  console.log(
+                                    "Opening specific cabin modal with data:",
+                                    {
+                                      resultNo: cabin.resultNo,
+                                      gradeNo: cabin.gradeNo,
+                                      rateCode: cabin.rateCode,
+                                      fullCabin: cabin,
+                                    },
+                                  );
+
                                   setSelectedCabinGrade({
                                     resultNo: cabin.resultNo,
                                     gradeNo: cabin.gradeNo,
                                     rateCode: cabin.rateCode,
                                     gradeName:
-                                      cabin.gradeName || cabin.category,
+                                      cabin.name ||
+                                      cabin.gradeName ||
+                                      cabin.category,
                                   });
                                   setIsSpecificCabinModalOpen(true);
                                 }
