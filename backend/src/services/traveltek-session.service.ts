@@ -18,6 +18,7 @@ interface SessionData {
   passengerCount: PassengerCount;
   cruiseId?: string;
   userId?: string;
+  cruiseResultNo?: string; // Cruise result number from getCabinGrades for addToBasket API
 }
 
 interface CreateSessionParams {
@@ -30,6 +31,7 @@ interface UpdateSessionParams {
   selectedCabinGrade?: string;
   selectedCabin?: string;
   basketData?: any;
+  cruiseResultNo?: string; // Allow updating cruise result number
 }
 
 /**
