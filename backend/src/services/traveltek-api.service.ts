@@ -80,8 +80,14 @@ export class TraveltekApiService {
             ...config.params,
             requestid: token,
           };
-        } else if (config.method === 'post' && config.headers) {
-          config.headers.requestid = token;
+        } else if (config.method === 'post') {
+          // For POST requests with URLSearchParams (form data), add to the body
+          if (config.data instanceof URLSearchParams) {
+            config.data.append('requestid', token);
+          } else if (config.headers) {
+            // For other POST requests, add to headers as fallback
+            config.headers.requestid = token;
+          }
         }
 
         return config;
