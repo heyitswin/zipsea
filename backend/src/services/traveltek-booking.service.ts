@@ -174,35 +174,47 @@ class TraveltekBookingService {
         );
       }
 
-      // Transform cabin grades into individual pricing options
-      // Each cabin grade has a gridpricing array with multiple rate options
+      // Transform cabin grades - each cabin should appear ONCE with its cheapest rate
+      // Per Traveltek docs: gridpricing array contains multiple rate codes for the SAME cabin grade
       const cabins: any[] = [];
 
       (pricingData.results || []).forEach((cabin: any) => {
-        // Check if cabin has gridpricing array with multiple rate options
+        // Find the cheapest available rate from gridpricing array
+        let cheapestOption = null;
+
         if (cabin.gridpricing && Array.isArray(cabin.gridpricing) && cabin.gridpricing.length > 0) {
-          // Create a cabin entry for each pricing option in gridpricing array
-          cabin.gridpricing.forEach((pricingOption: any) => {
-            // Only include available pricing options
-            if (pricingOption.available === 'Y') {
-              cabins.push({
-                code: cabin.code,
-                name: cabin.name,
-                description: cabin.description,
-                category: cabin.codtype, // 'inside', 'outside', 'balcony', 'suite'
-                imageUrl: cabin.imageurlhd || cabin.imageurl,
-                cheapestPrice: parseFloat(pricingOption.price || cabin.cheapestprice || '0'),
-                isGuaranteed:
-                  cabin.code?.toLowerCase().includes('guarantee') ||
-                  cabin.name?.toLowerCase().includes('guarantee'),
-                resultNo: cabin.resultno,
-                gradeNo: pricingOption.gradeno, // Use gradeno from gridpricing element (e.g., "201:CU286197:2")
-                rateCode: pricingOption.ratecode || '', // Extract ratecode from gridpricing element
-              });
-            }
+          // Filter to available options and find cheapest
+          const availableOptions = cabin.gridpricing.filter((opt: any) => opt.available === 'Y');
+
+          if (availableOptions.length > 0) {
+            cheapestOption = availableOptions.reduce((cheapest: any, current: any) => {
+              const cheapestPrice = parseFloat(cheapest.price || '99999');
+              const currentPrice = parseFloat(current.price || '99999');
+              return currentPrice < cheapestPrice ? current : cheapest;
+            });
+          }
+        }
+
+        // Only add cabin if we have a valid pricing option
+        if (cheapestOption) {
+          cabins.push({
+            code: cabin.code,
+            name: cabin.name,
+            description: cabin.description,
+            category: cabin.codtype, // 'inside', 'outside', 'balcony', 'suite'
+            imageUrl: cabin.imageurlhd || cabin.imageurl,
+            cheapestPrice: parseFloat(cheapestOption.price || cabin.cheapestprice || '0'),
+            isGuaranteed:
+              cabin.code?.toLowerCase().includes('guarantee') ||
+              cabin.name?.toLowerCase().includes('guarantee'),
+            resultNo: cabin.resultno,
+            gradeNo: cheapestOption.gradeno, // Use gradeno from cheapest pricing option
+            rateCode: cheapestOption.ratecode || '', // Use ratecode from cheapest pricing option
+            // Include all rate options for potential future use (e.g., showing pricing tiers)
+            allRates: cabin.gridpricing.filter((opt: any) => opt.available === 'Y'),
           });
-        } else {
-          // Fallback: If no gridpricing array, use top-level values (shouldn't happen with Traveltek)
+        } else if (cabin.gradeno && cabin.ratecode) {
+          // Fallback: If no gridpricing array, use top-level values
           cabins.push({
             code: cabin.code,
             name: cabin.name,
@@ -216,6 +228,7 @@ class TraveltekBookingService {
             resultNo: cabin.resultno,
             gradeNo: cabin.gradeno,
             rateCode: cabin.ratecode || '',
+            allRates: [],
           });
         }
       });
@@ -339,14 +352,23 @@ class TraveltekBookingService {
         ratecode: params.rateCode,
       });
 
+      // Log first cabin for debugging deck field structure
+      if (cabinsData.results && cabinsData.results.length > 0) {
+        console.log(
+          '[TraveltekBooking] 🔍 DEBUG First cabin from getCabins:',
+          JSON.stringify(cabinsData.results[0], null, 2)
+        );
+      }
+
       // Transform response to match frontend expected format
+      // Per Traveltek docs: deck info can be in deckname, deckcode, or deck fields
       const cabins = (cabinsData.results || []).map((cabin: any) => ({
-        cabinNo: cabin.cabinno,
-        deck: cabin.deck,
-        position: cabin.position,
+        cabinNo: cabin.cabinno || cabin.cabinNumber,
+        deck: cabin.deckname || cabin.deck || cabin.deckcode || 'Unknown',
+        position: cabin.position || cabin.location,
         features: cabin.features || [],
-        obstructed: cabin.obstructed || false,
-        available: cabin.available !== false, // Default to true if not specified
+        obstructed: cabin.obstructed === true || cabin.obstructed === 'Y',
+        available: cabin.available !== false && cabin.available !== 'N',
         resultNo: cabin.resultno,
       }));
 
