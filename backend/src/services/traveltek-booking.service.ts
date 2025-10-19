@@ -427,7 +427,9 @@ class TraveltekBookingService {
           JSON.stringify(basketData.errors, null, 2)
         );
         const errorMessages = basketData.errors
-          .map((e: any) => `${e.code}: ${e.message || e.msg || e.error || 'Unknown error'}`)
+          .map(
+            (e: any) => `${e.code}: ${e.text || e.message || e.msg || e.error || 'Unknown error'}`
+          )
           .join(', ');
         console.error('[TraveltekBooking] ❌ Error messages:', errorMessages);
         throw new Error(`Failed to add cabin to basket: ${errorMessages}`);
