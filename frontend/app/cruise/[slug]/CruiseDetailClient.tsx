@@ -1250,20 +1250,63 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
                             {/* Reserve Button - Changes based on if it's guaranteed or not */}
                             <button
-                              onClick={() => {
+                              onClick={async () => {
                                 if (cabin.isGuaranteed || index === 0) {
-                                  // For guaranteed (or first cabin), go directly to booking
-                                  router.push(`/booking/${sessionId}/options`);
+                                  // For guaranteed cabins, add to basket then proceed to booking
+                                  try {
+                                    setIsLoadingCabins(true);
+
+                                    // Add cabin to Traveltek basket
+                                    const basketResponse = await fetch(
+                                      `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/select-cabin`,
+                                      {
+                                        method: "POST",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                          cruiseId:
+                                            cruiseData.cruise.id.toString(),
+                                          resultNo: cabin.resultNo,
+                                          gradeNo: cabin.gradeNo,
+                                          rateCode: cabin.rateCode,
+                                        }),
+                                      },
+                                    );
+
+                                    if (!basketResponse.ok) {
+                                      throw new Error(
+                                        "Failed to reserve cabin",
+                                      );
+                                    }
+
+                                    // Success! Proceed to options page
+                                    router.push(
+                                      `/booking/${sessionId}/options`,
+                                    );
+                                  } catch (err) {
+                                    console.error(
+                                      "Failed to add cabin to basket:",
+                                      err,
+                                    );
+                                    showAlert(
+                                      "Unable to reserve cabin. Please try again.",
+                                    );
+                                    setIsLoadingCabins(false);
+                                  }
                                 } else {
                                   // For specific cabins, open modal (to be implemented)
                                   showAlert("Cabin selection coming soon!");
                                 }
                               }}
-                              className="font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer transition-colors self-end"
+                              disabled={isLoadingCabins}
+                              className="font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer transition-colors self-end disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              {cabin.isGuaranteed || index === 0
-                                ? "Reserve This Cabin"
-                                : "Choose Specific Cabin"}
+                              {isLoadingCabins
+                                ? "Reserving..."
+                                : cabin.isGuaranteed || index === 0
+                                  ? "Reserve This Cabin"
+                                  : "Choose Specific Cabin"}
                             </button>
                           </div>
                         </div>
