@@ -1261,6 +1261,14 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                   try {
                                     setIsLoadingCabins(true);
 
+                                    // Debug: Log cabin data being sent
+                                    console.log("Reserving cabin:", {
+                                      resultNo: cabin.resultNo,
+                                      gradeNo: cabin.gradeNo,
+                                      rateCode: cabin.rateCode,
+                                      fullCabin: cabin,
+                                    });
+
                                     // Add cabin to Traveltek basket
                                     const basketResponse = await fetch(
                                       `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/select-cabin`,
