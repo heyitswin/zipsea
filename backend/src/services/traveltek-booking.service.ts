@@ -197,8 +197,25 @@ class TraveltekBookingService {
 
         // Only add cabin if we have a valid pricing option
         if (cheapestOption) {
+          // Transform all available rates for this cabin to be easily accessible by rate code
+          const ratesByCode: Record<string, any> = {};
+          cabin.gridpricing
+            .filter((opt: any) => opt.available === 'Y')
+            .forEach((rate: any) => {
+              ratesByCode[rate.ratecode] = {
+                price: parseFloat(rate.price || '0'),
+                gradeno: rate.gradeno,
+                ratecode: rate.ratecode,
+                resultno: rate.resultno || cabin.resultno, // Use rate-specific resultno if available, fallback to cabin resultno
+                fare: parseFloat(rate.fare || '0'),
+                taxes: parseFloat(rate.taxes || '0'),
+                fees: parseFloat(rate.fees || '0'),
+                gratuity: parseFloat(rate.gratuity || '0'),
+              };
+            });
+
           cabins.push({
-            code: cabin.code,
+            code: cabin.cabincode || cabin.code || cabin.gradecode,
             name: cabin.name,
             description: cabin.description,
             category: cabin.codtype, // 'inside', 'outside', 'balcony', 'suite'
@@ -210,13 +227,26 @@ class TraveltekBookingService {
             resultNo: cabin.resultno,
             gradeNo: cheapestOption.gradeno, // Use gradeno from cheapest pricing option
             rateCode: cheapestOption.ratecode || '', // Use ratecode from cheapest pricing option
-            // Include all rate options for potential future use (e.g., showing pricing tiers)
-            allRates: cabin.gridpricing.filter((opt: any) => opt.available === 'Y'),
+            // Include all rate options indexed by rate code for easy lookup when user changes selection
+            ratesByCode,
           });
         } else if (cabin.gradeno && cabin.ratecode) {
           // Fallback: If no gridpricing array, use top-level values
+          const singleRateByCode: Record<string, any> = {
+            [cabin.ratecode]: {
+              price: parseFloat(cabin.cheapestprice || '0'),
+              gradeno: cabin.gradeno,
+              ratecode: cabin.ratecode,
+              resultno: cabin.resultno,
+              fare: 0,
+              taxes: 0,
+              fees: 0,
+              gratuity: 0,
+            },
+          };
+
           cabins.push({
-            code: cabin.code,
+            code: cabin.cabincode || cabin.code || cabin.gradecode,
             name: cabin.name,
             description: cabin.description,
             category: cabin.codtype,
@@ -228,15 +258,48 @@ class TraveltekBookingService {
             resultNo: cabin.resultno,
             gradeNo: cabin.gradeno,
             rateCode: cabin.ratecode || '',
-            allRates: [],
+            ratesByCode: singleRateByCode,
           });
         }
+      });
+
+      // Extract all unique rate codes across all cabins for the rate selector
+      const rateCodesMap = new Map<string, any>();
+
+      (pricingData.results || []).forEach((cabin: any) => {
+        if (cabin.gridpricing && Array.isArray(cabin.gridpricing)) {
+          cabin.gridpricing.forEach((rate: any) => {
+            if (rate.available === 'Y' && rate.ratecode && !rateCodesMap.has(rate.ratecode)) {
+              rateCodesMap.set(rate.ratecode, {
+                code: rate.ratecode,
+                description: rate.ratedescription || rate.ratecode,
+                // Track if this is a refundable/flexible rate for easy identification
+                isRefundable:
+                  rate.ratecode.toLowerCase().includes('refund') ||
+                  rate.ratecode.toLowerCase().includes('flex') ||
+                  (rate.ratedescription &&
+                    (rate.ratedescription.toLowerCase().includes('refund') ||
+                      rate.ratedescription.toLowerCase().includes('flex'))),
+              });
+            }
+          });
+        }
+      });
+
+      const availableRateCodes = Array.from(rateCodesMap.values());
+
+      console.log(`[TraveltekBooking] 📊 Found ${availableRateCodes.length} unique rate codes`);
+      availableRateCodes.forEach(rate => {
+        console.log(
+          `   - ${rate.code}${rate.isRefundable ? ' (REFUNDABLE)' : ''}: ${rate.description}`
+        );
       });
 
       const result = {
         cabins,
         sessionId,
         cruiseId,
+        availableRateCodes, // Add available rate codes for frontend selector
       };
 
       // Cache the result for 5 minutes (300 seconds)
@@ -360,16 +423,48 @@ class TraveltekBookingService {
         );
       }
 
+      // Get ship details for deck plans
+      let deckPlans = null;
+      try {
+        const shipDetails = await traveltekApiService.getShipDetails({
+          sessionkey: sessionData.sessionKey,
+          sid: sessionData.sid,
+        });
+
+        // Extract deck plan images indexed by deck code/name
+        if (shipDetails.decks && Array.isArray(shipDetails.decks)) {
+          deckPlans = shipDetails.decks.map((deck: any) => ({
+            name: deck.name,
+            deckCode: deck.deckcode,
+            deckId: deck.id,
+            imageUrl: deck.imageurl,
+            description: deck.description,
+          }));
+          console.log(`[TraveltekBooking] Retrieved ${deckPlans.length} deck plans`);
+        }
+      } catch (error) {
+        console.error('[TraveltekBooking] Failed to get ship details for deck plans:', error);
+        // Continue without deck plans if this fails
+      }
+
       // Transform response to match frontend expected format
       // Per Traveltek docs: deck info can be in deckname, deckcode, or deck fields
+      // Include x1, y1, x2, y2 coordinates for cabin highlighting on deck plans
       const cabins = (cabinsData.results || []).map((cabin: any) => ({
         cabinNo: cabin.cabinno || cabin.cabinNumber,
         deck: cabin.deckname || cabin.deck || cabin.deckcode || 'Unknown',
+        deckCode: cabin.deckcode,
+        deckId: cabin.deckid,
         position: cabin.position || cabin.location,
         features: cabin.features || [],
         obstructed: cabin.obstructed === true || cabin.obstructed === 'Y',
         available: cabin.available !== false && cabin.available !== 'N',
         resultNo: cabin.resultno,
+        // Coordinates for highlighting cabin on deck plan
+        x1: cabin.x1,
+        y1: cabin.y1,
+        x2: cabin.x2,
+        y2: cabin.y2,
       }));
 
       console.log(
@@ -378,6 +473,7 @@ class TraveltekBookingService {
 
       return {
         cabins,
+        deckPlans, // Array of deck plan images with metadata
         sessionId: params.sessionId,
         cruiseId: params.cruiseId,
       };

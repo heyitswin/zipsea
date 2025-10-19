@@ -495,6 +495,40 @@ export class TraveltekApiService {
   }
 
   /**
+   * Get ship details including deck plans
+   */
+  async getShipDetails(params: {
+    sessionkey: string;
+    sid: string; // Ship ID
+  }): Promise<ApiResponse> {
+    try {
+      console.log('🔍 Traveltek API: getShipDetails request');
+      console.log('   Ship ID:', params.sid);
+
+      const response = await this.axiosInstance.get('/cruiseshipdetails.pl', {
+        params: {
+          sessionkey: params.sessionkey,
+          sid: params.sid,
+        },
+      });
+
+      console.log('✅ Traveltek API: getShipDetails response status:', response.status);
+      if (response.data.decks) {
+        console.log('   Decks count:', response.data.decks.length);
+      }
+
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Traveltek API: getShipDetails error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Add cruise to basket
    */
   async addToBasket(params: {
