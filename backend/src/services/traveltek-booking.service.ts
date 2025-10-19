@@ -173,21 +173,51 @@ class TraveltekBookingService {
         );
       }
 
-      const cabins = (pricingData.results || []).map((cabin: any) => ({
-        code: cabin.code,
-        name: cabin.name,
-        description: cabin.description,
-        category: cabin.codtype, // 'inside', 'outside', 'balcony', 'suite'
-        imageUrl: cabin.imageurlhd || cabin.imageurl,
-        cheapestPrice: parseFloat(cabin.cheapestprice || '0'),
-        isGuaranteed:
-          cabin.code?.toLowerCase().includes('guarantee') ||
-          cabin.name?.toLowerCase().includes('guarantee'),
-        resultNo: cabin.resultno,
-        gradeNo: cabin.gradeno,
-        // Some cabin grades don't have a ratecode - use empty string as fallback
-        rateCode: cabin.ratecode || '',
-      }));
+      // Transform cabin grades into individual pricing options
+      // Each cabin grade has a gridpricing array with multiple rate options
+      const cabins: any[] = [];
+
+      (pricingData.results || []).forEach((cabin: any) => {
+        // Check if cabin has gridpricing array with multiple rate options
+        if (cabin.gridpricing && Array.isArray(cabin.gridpricing) && cabin.gridpricing.length > 0) {
+          // Create a cabin entry for each pricing option in gridpricing array
+          cabin.gridpricing.forEach((pricingOption: any) => {
+            // Only include available pricing options
+            if (pricingOption.available === 'Y') {
+              cabins.push({
+                code: cabin.code,
+                name: cabin.name,
+                description: cabin.description,
+                category: cabin.codtype, // 'inside', 'outside', 'balcony', 'suite'
+                imageUrl: cabin.imageurlhd || cabin.imageurl,
+                cheapestPrice: parseFloat(pricingOption.price || cabin.cheapestprice || '0'),
+                isGuaranteed:
+                  cabin.code?.toLowerCase().includes('guarantee') ||
+                  cabin.name?.toLowerCase().includes('guarantee'),
+                resultNo: cabin.resultno,
+                gradeNo: pricingOption.gradeno, // Use gradeno from gridpricing element (e.g., "201:CU286197:2")
+                rateCode: pricingOption.ratecode || '', // Extract ratecode from gridpricing element
+              });
+            }
+          });
+        } else {
+          // Fallback: If no gridpricing array, use top-level values (shouldn't happen with Traveltek)
+          cabins.push({
+            code: cabin.code,
+            name: cabin.name,
+            description: cabin.description,
+            category: cabin.codtype,
+            imageUrl: cabin.imageurlhd || cabin.imageurl,
+            cheapestPrice: parseFloat(cabin.cheapestprice || '0'),
+            isGuaranteed:
+              cabin.code?.toLowerCase().includes('guarantee') ||
+              cabin.name?.toLowerCase().includes('guarantee'),
+            resultNo: cabin.resultno,
+            gradeNo: cabin.gradeno,
+            rateCode: cabin.ratecode || '',
+          });
+        }
+      });
 
       const result = {
         cabins,
