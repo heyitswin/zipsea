@@ -42,8 +42,7 @@ interface PaymentDetails {
 interface CabinSelectionParams {
   sessionId: string;
   cruiseId: string;
-  cruiseResultNo?: string; // CRUISE result number from getCabinGrades top-level response (for addToBasket)
-  resultNo: string; // CABIN result number from cabin grades response (kept for backward compatibility)
+  resultNo: string; // From cabin grades response
   gradeNo: string; // From cabin grades response
   rateCode: string; // From cabin grades response
   cabinResult?: string; // Optional specific cabin result
@@ -162,15 +161,6 @@ class TraveltekBookingService {
       });
 
       console.log(`[TraveltekBooking] Retrieved cabin pricing for cruise ${cruiseId}`);
-
-      // DEBUG: Log top-level pricingData structure to find cruise resultno
-      console.log(
-        '[TraveltekBooking] 🔍 DEBUG pricingData top-level keys:',
-        Object.keys(pricingData)
-      );
-      if (pricingData.resultno) {
-        console.log('[TraveltekBooking] 🔍 DEBUG Cruise resultno found:', pricingData.resultno);
-      }
 
       // Transform Traveltek response to match frontend expected format
       // Frontend expects: { cabins: [...] }
@@ -340,7 +330,6 @@ class TraveltekBookingService {
         cabins,
         sessionId,
         cruiseId,
-        cruiseResultNo: pricingData.resultno, // Cruise result number for addToBasket API
         availableRateCodes, // Add available rate codes for frontend selector
       };
 
@@ -403,23 +392,10 @@ class TraveltekBookingService {
         throw new Error('Either cabinResult (specific cabin) or resultNo (guaranteed) is required');
       }
 
-      // Use cruiseResultNo if provided (from getCabinGrades response), otherwise fall back to resultNo
-      const cruiseResultNo = params.cruiseResultNo || params.resultNo;
-
-      console.log('[TraveltekBooking] 🔍 Calling addToBasket with params:', {
-        sessionkey: sessionData.sessionKey.substring(0, 20) + '...',
-        type: 'cruise',
-        resultno: cruiseResultNo,
-        gradeno: params.gradeNo,
-        ratecode: params.rateCode,
-        cabinresult: cabinresult,
-        cabinno: params.cabinNo,
-      });
-
       const basketData = await traveltekApiService.addToBasket({
         sessionkey: sessionData.sessionKey,
         type: 'cruise',
-        resultno: cruiseResultNo, // Use CRUISE result number, not cabin result number
+        resultno: params.resultNo,
         gradeno: params.gradeNo,
         ratecode: params.rateCode,
         cabinresult: cabinresult,
