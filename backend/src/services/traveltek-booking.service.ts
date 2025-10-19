@@ -45,7 +45,8 @@ interface CabinSelectionParams {
   resultNo: string; // From cabin grades response
   gradeNo: string; // From cabin grades response
   rateCode: string; // From cabin grades response
-  cabinResult?: string; // Optional specific cabin
+  cabinResult?: string; // Optional specific cabin result
+  cabinNo?: string; // Optional specific cabin number
 }
 
 interface BookingParams {
