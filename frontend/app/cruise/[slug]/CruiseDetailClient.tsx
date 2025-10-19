@@ -266,12 +266,17 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   useEffect(() => {
     if (!cruiseData?.cruise) return;
 
+    // Check if live booking is enabled via environment variable
+    const liveBookingEnabled =
+      process.env.NEXT_PUBLIC_ENABLE_LIVE_BOOKING === "true";
+
     // Royal Caribbean (22) and Celebrity (3) are live-bookable
     const liveBookingLineIds = [22, 3];
     const cruiseLineId = cruiseData.cruiseLine?.id;
-    const isLiveBooking = cruiseLineId
-      ? liveBookingLineIds.includes(Number(cruiseLineId))
-      : false;
+    const isLiveBooking =
+      liveBookingEnabled && cruiseLineId
+        ? liveBookingLineIds.includes(Number(cruiseLineId))
+        : false;
     setIsLiveBookable(isLiveBooking);
   }, [cruiseData]);
 
