@@ -27,12 +27,17 @@ class CruiseController {
       const limit = req.query.limit ? Number(req.query.limit) : 20;
       const offset = (page - 1) * limit;
 
-      // Extract filter parameters
-      const { shipId, shipName, departureDate } = req.query;
+      // Extract filter parameters (including cruiseLine added by live booking filter middleware)
+      const { shipId, shipName, departureDate, cruiseLine } = req.query;
 
-      // If no filters are provided, use the original hotfix service
+      // If no filters are provided (except cruiseLine which may be auto-added by middleware), use the original hotfix service
       if (!shipId && !shipName && !departureDate) {
-        const results = await searchHotfixService.getSimpleCruiseList(limit, offset);
+        // Parse cruise line IDs if provided by middleware
+        const cruiseLineIds = cruiseLine
+          ? (Array.isArray(cruiseLine) ? cruiseLine : [cruiseLine]).map(Number)
+          : undefined;
+
+        const results = await searchHotfixService.getSimpleCruiseList(limit, offset, cruiseLineIds);
 
         // Map the results to ensure consistent field names
         const formattedCruises = results.cruises.map((cruise: any) => ({
