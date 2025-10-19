@@ -275,14 +275,23 @@ class TraveltekBookingService {
 
       const cruise = cruiseResult[0];
 
-      // FIXED: Use correct parameter names matching traveltek-api.service
+      // Per Traveltek docs: cabinresult is REQUIRED for cruise bookings
+      // - For guaranteed cabins: use resultno from cabin grades
+      // - For specific cabins: use cabinresult from getCabins endpoint
+      const cabinresult = params.cabinResult || params.resultNo;
+
+      if (!cabinresult) {
+        throw new Error('Either cabinResult (specific cabin) or resultNo (guaranteed) is required');
+      }
+
       const basketData = await traveltekApiService.addToBasket({
         sessionkey: sessionData.sessionKey,
         type: 'cruise',
         resultno: params.resultNo,
         gradeno: params.gradeNo,
         ratecode: params.rateCode,
-        cabinresult: params.cabinResult,
+        cabinresult: cabinresult,
+        cabinno: params.cabinNo, // Optional specific cabin number
       });
 
       // Update session with basket data
@@ -369,8 +378,10 @@ class TraveltekBookingService {
         throw new Error('Invalid or expired booking session');
       }
 
-      // FIXED: getBasket takes sessionkey directly, not an object
-      const basketData = await traveltekApiService.getBasket(sessionData.sessionKey);
+      // Get basket with sessionkey and default resultkey
+      const basketData = await traveltekApiService.getBasket({
+        sessionkey: sessionData.sessionKey,
+      });
 
       return basketData;
     } catch (error) {

@@ -503,13 +503,20 @@ export class TraveltekApiService {
     resultno: string;
     gradeno: string;
     ratecode: string;
-    cabinresult?: string; // Optional specific cabin number
+    cabinresult: string; // REQUIRED: Cabin result from cabin grades endpoint
+    resultkey?: string; // Optional, defaults to 'default'
+    cabinno?: string; // Optional specific cabin number
   }): Promise<ApiResponse> {
     try {
+      // Per Traveltek docs: cabinresult is REQUIRED for cruise bookings
+      if (!params.cabinresult) {
+        throw new Error('cabinresult is required for adding cruise to basket');
+      }
+
       // Add required resultkey parameter (typically 'default' for basic usage)
       const basketParams = {
         ...params,
-        resultkey: 'default', // Required by Traveltek API
+        resultkey: params.resultkey || 'default', // Required by Traveltek API
       };
 
       console.log('🔍 Traveltek API: addToBasket request');
@@ -518,13 +525,24 @@ export class TraveltekApiService {
       const response = await this.axiosInstance.get('/basketadd.pl', { params: basketParams });
 
       console.log('✅ Traveltek API: addToBasket success');
+      console.log('   Response data keys:', Object.keys(response.data));
+
+      // Log any errors or warnings
+      if (response.data.errors && response.data.errors.length > 0) {
+        console.error('⚠️  Traveltek API: addToBasket returned errors:', response.data.errors);
+      }
+      if (response.data.warnings && response.data.warnings.length > 0) {
+        console.warn('⚠️  Traveltek API: addToBasket returned warnings:', response.data.warnings);
+      }
 
       return response.data;
     } catch (error: any) {
       console.error('❌ Traveltek API: addToBasket error:', {
         message: error.message,
         status: error.response?.status,
+        statusText: error.response?.statusText,
         data: error.response?.data,
+        url: error.config?.url,
       });
       throw error;
     }
@@ -533,14 +551,40 @@ export class TraveltekApiService {
   /**
    * Get current basket contents
    */
-  async getBasket(sessionkey: string): Promise<ApiResponse> {
+  async getBasket(params: {
+    sessionkey: string;
+    resultkey?: string; // Optional, defaults to 'default'
+  }): Promise<ApiResponse> {
     try {
-      const response = await this.axiosInstance.get('/basket.pl', {
-        params: { sessionkey },
-      });
+      const basketParams = {
+        sessionkey: params.sessionkey,
+        resultkey: params.resultkey || 'default',
+      };
+
+      console.log('🔍 Traveltek API: getBasket request');
+      console.log('   Params:', JSON.stringify(basketParams, null, 2));
+
+      const response = await this.axiosInstance.get('/basket.pl', { params: basketParams });
+
+      console.log('✅ Traveltek API: getBasket success');
+      console.log('   Basket items:', response.data.basketitems?.length || 0);
+
+      // Log any errors or warnings
+      if (response.data.errors && response.data.errors.length > 0) {
+        console.error('⚠️  Traveltek API: getBasket returned errors:', response.data.errors);
+      }
+      if (response.data.warnings && response.data.warnings.length > 0) {
+        console.warn('⚠️  Traveltek API: getBasket returned warnings:', response.data.warnings);
+      }
+
       return response.data;
-    } catch (error) {
-      console.error('❌ Traveltek API: getBasket error:', error);
+    } catch (error: any) {
+      console.error('❌ Traveltek API: getBasket error:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+      });
       throw error;
     }
   }
