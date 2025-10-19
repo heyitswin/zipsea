@@ -31,7 +31,9 @@ export class SearchHotfixService {
 
       // Add cruise line filter if provided (from live booking filter middleware)
       if (cruiseLineIds && cruiseLineIds.length > 0) {
-        whereConditions.push(sql`c.cruise_line_id = ANY(${cruiseLineIds})`);
+        // Convert JavaScript array to PostgreSQL array literal
+        const pgArray = sql.raw(`ARRAY[${cruiseLineIds.join(',')}]`);
+        whereConditions.push(sql`c.cruise_line_id = ANY(${pgArray})`);
       }
 
       // Much simpler query without complex joins
