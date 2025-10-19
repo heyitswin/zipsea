@@ -1182,9 +1182,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         <option value="">Cheapest Rate (Auto)</option>
                         {liveCabinGrades.availableRateCodes.map((rate: any) => (
                           <option key={rate.code} value={rate.code}>
-                            {rate.code}
-                            {rate.isRefundable ? " ⭐ REFUNDABLE" : ""} -{" "}
-                            {rate.description}
+                            {rate.code} - {rate.name || rate.description}
+                            {rate.isRefundable ? " ⭐ REFUNDABLE" : ""}
+                            {rate.military ? " 🎖️ MILITARY" : ""}
+                            {rate.senior ? " 👴 SENIOR" : ""}
+                            {rate.pastpassenger ? " 🚢 PAST GUEST" : ""}
                           </option>
                         ))}
                       </select>

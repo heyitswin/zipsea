@@ -263,24 +263,46 @@ class TraveltekBookingService {
         }
       });
 
-      // Extract all unique rate codes across all cabins for the rate selector
+      // Extract rate code metadata from meta.criteria.ratecodes (per Traveltek docs)
+      const rateCodeMetadata = new Map<string, any>();
+      if (
+        pricingData.meta?.criteria?.ratecodes &&
+        Array.isArray(pricingData.meta.criteria.ratecodes)
+      ) {
+        pricingData.meta.criteria.ratecodes.forEach((rateInfo: any) => {
+          rateCodeMetadata.set(rateInfo.code, {
+            code: rateInfo.code,
+            name: rateInfo.name || rateInfo.code,
+            description: rateInfo.description || rateInfo.name || rateInfo.code,
+            isRefundable: rateInfo.nonrefundable === false || rateInfo.nonrefundable === 'N',
+            faretype: rateInfo.faretype,
+            military: rateInfo.military === true || rateInfo.military === 'Y',
+            senior: rateInfo.senior === true || rateInfo.senior === 'Y',
+            pastpassenger: rateInfo.pastpassenger === true || rateInfo.pastpassenger === 'Y',
+          });
+        });
+      }
+
+      // Extract all unique rate codes that are actually available in gridpricing
       const rateCodesMap = new Map<string, any>();
 
       (pricingData.results || []).forEach((cabin: any) => {
         if (cabin.gridpricing && Array.isArray(cabin.gridpricing)) {
           cabin.gridpricing.forEach((rate: any) => {
             if (rate.available === 'Y' && rate.ratecode && !rateCodesMap.has(rate.ratecode)) {
-              rateCodesMap.set(rate.ratecode, {
-                code: rate.ratecode,
-                description: rate.ratedescription || rate.ratecode,
-                // Track if this is a refundable/flexible rate for easy identification
-                isRefundable:
-                  rate.ratecode.toLowerCase().includes('refund') ||
-                  rate.ratecode.toLowerCase().includes('flex') ||
-                  (rate.ratedescription &&
-                    (rate.ratedescription.toLowerCase().includes('refund') ||
-                      rate.ratedescription.toLowerCase().includes('flex'))),
-              });
+              // Use metadata from meta.criteria.ratecodes if available
+              const metadata = rateCodeMetadata.get(rate.ratecode);
+              if (metadata) {
+                rateCodesMap.set(rate.ratecode, metadata);
+              } else {
+                // Fallback to gridpricing data if metadata not found
+                rateCodesMap.set(rate.ratecode, {
+                  code: rate.ratecode,
+                  name: rate.ratecode,
+                  description: rate.ratecode,
+                  isRefundable: false,
+                });
+              }
             }
           });
         }
@@ -361,6 +383,16 @@ class TraveltekBookingService {
         throw new Error('Either cabinResult (specific cabin) or resultNo (guaranteed) is required');
       }
 
+      console.log('[TraveltekBooking] 🔍 Calling addToBasket with params:', {
+        sessionkey: sessionData.sessionKey.substring(0, 20) + '...',
+        type: 'cruise',
+        resultno: params.resultNo,
+        gradeno: params.gradeNo,
+        ratecode: params.rateCode,
+        cabinresult: cabinresult,
+        cabinno: params.cabinNo,
+      });
+
       const basketData = await traveltekApiService.addToBasket({
         sessionkey: sessionData.sessionKey,
         type: 'cruise',
@@ -426,10 +458,24 @@ class TraveltekBookingService {
       // Get ship details for deck plans
       let deckPlans = null;
       try {
+        console.log('[TraveltekBooking] 🚢 Fetching ship details for sid:', sessionData.sid);
         const shipDetails = await traveltekApiService.getShipDetails({
           sessionkey: sessionData.sessionKey,
           sid: sessionData.sid,
         });
+
+        console.log('[TraveltekBooking] 🔍 Ship details response keys:', Object.keys(shipDetails));
+        if (shipDetails.decks) {
+          console.log('[TraveltekBooking] 🔍 Decks length:', shipDetails.decks.length);
+          if (shipDetails.decks.length > 0) {
+            console.log(
+              '[TraveltekBooking] 🔍 First deck sample:',
+              JSON.stringify(shipDetails.decks[0]).substring(0, 200)
+            );
+          }
+        } else {
+          console.log('[TraveltekBooking] ⚠️  No decks field in ship details response');
+        }
 
         // Extract deck plan images indexed by deck code/name
         if (shipDetails.decks && Array.isArray(shipDetails.decks)) {
@@ -440,10 +486,14 @@ class TraveltekBookingService {
             imageUrl: deck.imageurl,
             description: deck.description,
           }));
-          console.log(`[TraveltekBooking] Retrieved ${deckPlans.length} deck plans`);
+          console.log(`[TraveltekBooking] ✅ Retrieved ${deckPlans.length} deck plans`);
         }
       } catch (error) {
-        console.error('[TraveltekBooking] Failed to get ship details for deck plans:', error);
+        console.error('[TraveltekBooking] ❌ Failed to get ship details for deck plans:', error);
+        if (error instanceof Error) {
+          console.error('[TraveltekBooking] Error message:', error.message);
+          console.error('[TraveltekBooking] Error stack:', error.stack);
+        }
         // Continue without deck plans if this fails
       }
 
