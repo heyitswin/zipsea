@@ -139,7 +139,49 @@ Transform Zipsea from manual quote-based booking to fully automated live booking
 
 ## 🚧 In Progress
 
-### Phase 5: Frontend Implementation
+### Phase 5: Frontend Implementation - Cabin Selection ✅ (Oct 18, 2025)
+
+#### Live Cabin Pricing Display
+- [x] Remove static pricing display on cruise detail page
+- [x] Fetch live cabin grades from backend on page load
+- [x] Create tabbed cabin category selector (Interior/Oceanview/Balcony/Suite)
+- [x] Display cabin cards with:
+  - [x] Cabin name and description
+  - [x] Live pricing from Traveltek
+  - [x] "Best Value" badge for guaranteed cabins
+  - [x] Cabin images
+- [x] Add "Reserve This Cabin" button for guaranteed cabins
+- [x] Add "Choose Specific Cabin" button for non-guaranteed cabins
+
+#### Performance Optimizations (Oct 18, 2025)
+- [x] Implement Redis caching for cabin pricing (5-minute TTL)
+- [x] Implement session reuse to avoid duplicate sessions
+- [x] Reduce load time from 15-30s to <2s (expected on cache hits)
+
+#### Guest Checkout (Oct 18, 2025)
+- [x] Make `/booking/*` routes public in Clerk middleware
+- [x] Allow complete booking flow without authentication
+
+#### Specific Cabin Selection Modal (Oct 18, 2025)
+- [x] Create `SpecificCabinModal` component
+- [x] Add backend route `GET /booking/:sessionId/specific-cabins`
+- [x] Add backend controller method `getSpecificCabins`
+- [x] Add backend service method to fetch cabins from Traveltek
+- [x] Display cabin list with:
+  - [x] Cabin number and deck
+  - [x] Position (Forward/Midship/Aft)
+  - [x] Features list
+  - [x] Obstructed view warnings
+  - [x] Availability status
+- [x] Radio button selection
+- [x] "Reserve Selected Cabin" button
+- [x] Pass selected cabin to basket API
+
+**Current Issues:**
+- ⚠️ `rateCode` parameter showing as `undefined` in API calls
+  - Added debug logging to diagnose
+  - Deployed to staging for testing
+  - Waiting for console output to fix
 
 #### Authentication Middleware
 **Status:** Deferred - Not blocking frontend development
@@ -196,28 +238,29 @@ Transform Zipsea from manual quote-based booking to fully automated live booking
 - [ ] Show "Live Booking Available" badge on bookable cruises
 - [ ] Update CTA from "View Details" to include booking indicator
 
-#### Cruise Detail Page - Major Rebuild
-**Current State:** Shows static pricing + "Get Quote" button  
-**New State:** Shows live cabin selection + "Reserve" button
+#### Cruise Detail Page - Major Rebuild ✅ COMPLETE
+**Previous State:** Shows static pricing + "Get Quote" button  
+**Current State:** Shows live cabin selection + "Reserve" button for Royal Caribbean & Celebrity
 
-**Required Changes:**
-- [ ] Remove static pricing display
-- [ ] Remove "Get Quote" button
-- [ ] Add tabbed cabin type selector:
-  - [ ] Interior tab
-  - [ ] Oceanview tab
-  - [ ] Balcony tab
-  - [ ] Suite tab
-- [ ] Fetch live cabin grades from backend on page load
-- [ ] Display cabin categories with:
-  - [ ] Cabin code and description
-  - [ ] Live pricing (per person)
-  - [ ] Availability status
-  - [ ] Amenities/features
-- [ ] Add "Reserve" button for each cabin
-- [ ] Handle loading states
-- [ ] Handle error states (no availability, API error)
-- [ ] Keep existing itinerary and content sections
+**Completed Changes:**
+- [x] Keep static pricing for non-live-bookable cruises (other cruise lines)
+- [x] For live-bookable cruises (RCL & Celebrity):
+  - [x] Add tabbed cabin type selector (Interior/Oceanview/Balcony/Suite)
+  - [x] Fetch live cabin grades from backend on page load
+  - [x] Display cabin cards with live pricing and descriptions
+  - [x] Add "Reserve This Cabin" button for guaranteed cabins
+  - [x] Add "Choose Specific Cabin" button for non-guaranteed cabins
+  - [x] Handle loading states (spinner during API calls)
+  - [x] Handle error states (API failures, session issues)
+  - [x] Keep existing itinerary and content sections
+
+**Files Modified:**
+- `frontend/app/cruise/[slug]/CruiseDetailClient.tsx`
+- `frontend/app/components/SpecificCabinModal.tsx` (new)
+- `frontend/middleware.ts` (guest checkout)
+- `backend/src/routes/booking.routes.ts`
+- `backend/src/controllers/booking.controller.ts`
+- `backend/src/services/traveltek-booking.service.ts`
 
 #### New Page: Options Selection
 **Route:** `/booking/:sessionId/options`
@@ -590,7 +633,7 @@ Transform Zipsea from manual quote-based booking to fully automated live booking
 - ✅ Build fixes and deployments
 - ✅ Environment variables documented
 
-### 2025-10-18
+### 2025-10-18 (Morning Session)
 - ✅ Fixed critical Traveltek API 404 errors
   - Root cause identified: Wrong SID parameter
   - Solution: Use fixed SID value `52471` from Traveltek credentials
@@ -611,6 +654,30 @@ Transform Zipsea from manual quote-based booking to fully automated live booking
   - Database storage working
   - Ready for end-to-end testing
 
+### 2025-10-18 (Afternoon Session)
+- ✅ Frontend cabin selection implementation
+  - Live cabin pricing display with tabs (Interior/Oceanview/Balcony/Suite)
+  - "Reserve This Cabin" button for guaranteed cabins
+  - "Choose Specific Cabin" button for non-guaranteed cabins
+- ✅ Performance optimizations
+  - Redis caching for cabin pricing (5-minute TTL)
+  - Session reuse to avoid duplicate Traveltek sessions
+  - Load time: 15-30s → <2s expected on cache hits
+- ✅ Guest checkout enabled
+  - Made `/booking/*` routes public in Clerk middleware
+  - Users can book without authentication
+- ✅ Specific cabin selection modal
+  - Created `SpecificCabinModal` component
+  - Backend route for fetching specific cabins (`GET /booking/:sessionId/specific-cabins`)
+  - Displays cabin number, deck, position, features, obstructions
+  - Radio button selection with "Reserve Selected Cabin" button
+- ✅ Deployed to staging for testing
+
+**Current Issue:**
+- ⚠️ `rateCode` parameter undefined in cabin data
+  - Added debug logging to diagnose
+  - Waiting for user to test and provide console output
+
 ---
 
-**Next Action:** Phase 4 - Find cruise with availability and test complete booking flow end-to-end
+**Next Action:** Fix `rateCode` issue based on console output, then continue with options page implementation
