@@ -20,6 +20,7 @@ import {
 } from "../../../lib/analytics";
 import { useAdmin } from "../../hooks/useAdmin";
 import { useBooking } from "../../context/BookingContext";
+import SpecificCabinModal from "../../components/SpecificCabinModal";
 import dynamic from "next/dynamic";
 
 const PriceHistoryChart = dynamic(
@@ -62,6 +63,16 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const [isLoadingCabins, setIsLoadingCabins] = useState(false);
   const [selectedCabinCategory, setSelectedCabinCategory] =
     useState<string>("interior"); // Tab state
+
+  // Specific cabin modal state
+  const [isSpecificCabinModalOpen, setIsSpecificCabinModalOpen] =
+    useState(false);
+  const [selectedCabinGrade, setSelectedCabinGrade] = useState<{
+    resultNo: string;
+    gradeNo: string;
+    rateCode: string;
+    gradeName: string;
+  } | null>(null);
 
   // Time tracking
   const pageLoadTime = useRef<number>(Date.now());
@@ -1250,20 +1261,95 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
                             {/* Reserve Button - Changes based on if it's guaranteed or not */}
                             <button
-                              onClick={() => {
+                              onClick={async () => {
                                 if (cabin.isGuaranteed || index === 0) {
-                                  // For guaranteed (or first cabin), go directly to booking
-                                  router.push(`/booking/${sessionId}/options`);
+                                  // For guaranteed cabins, add to basket then proceed to booking
+                                  if (!cruiseData?.cruise?.id) {
+                                    showAlert("Cruise data not available");
+                                    return;
+                                  }
+
+                                  try {
+                                    setIsLoadingCabins(true);
+
+                                    // Debug: Log cabin data being sent
+                                    console.log("Reserving cabin:", {
+                                      resultNo: cabin.resultNo,
+                                      gradeNo: cabin.gradeNo,
+                                      rateCode: cabin.rateCode,
+                                      fullCabin: cabin,
+                                    });
+
+                                    // Add cabin to Traveltek basket
+                                    const basketResponse = await fetch(
+                                      `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/select-cabin`,
+                                      {
+                                        method: "POST",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                          cruiseId:
+                                            cruiseData.cruise.id.toString(),
+                                          resultNo: cabin.resultNo,
+                                          gradeNo: cabin.gradeNo,
+                                          rateCode: cabin.rateCode,
+                                        }),
+                                      },
+                                    );
+
+                                    if (!basketResponse.ok) {
+                                      throw new Error(
+                                        "Failed to reserve cabin",
+                                      );
+                                    }
+
+                                    // Success! Proceed to options page
+                                    router.push(
+                                      `/booking/${sessionId}/options`,
+                                    );
+                                  } catch (err) {
+                                    console.error(
+                                      "Failed to add cabin to basket:",
+                                      err,
+                                    );
+                                    showAlert(
+                                      "Unable to reserve cabin. Please try again.",
+                                    );
+                                    setIsLoadingCabins(false);
+                                  }
                                 } else {
-                                  // For specific cabins, open modal (to be implemented)
-                                  showAlert("Cabin selection coming soon!");
+                                  // For specific cabins, open modal
+                                  console.log(
+                                    "Opening specific cabin modal with data:",
+                                    {
+                                      resultNo: cabin.resultNo,
+                                      gradeNo: cabin.gradeNo,
+                                      rateCode: cabin.rateCode,
+                                      fullCabin: cabin,
+                                    },
+                                  );
+
+                                  setSelectedCabinGrade({
+                                    resultNo: cabin.resultNo,
+                                    gradeNo: cabin.gradeNo,
+                                    rateCode: cabin.rateCode,
+                                    gradeName:
+                                      cabin.name ||
+                                      cabin.gradeName ||
+                                      cabin.category,
+                                  });
+                                  setIsSpecificCabinModalOpen(true);
                                 }
                               }}
-                              className="font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer transition-colors self-end"
+                              disabled={isLoadingCabins}
+                              className="font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer transition-colors self-end disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              {cabin.isGuaranteed || index === 0
-                                ? "Reserve This Cabin"
-                                : "Choose Specific Cabin"}
+                              {isLoadingCabins
+                                ? "Reserving..."
+                                : cabin.isGuaranteed || index === 0
+                                  ? "Reserve This Cabin"
+                                  : "Choose Specific Cabin"}
                             </button>
                           </div>
                         </div>
@@ -1757,6 +1843,59 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             onClick={(e) => e.stopPropagation()}
           />
         </div>
+      )}
+
+      {/* Specific Cabin Selection Modal */}
+      {selectedCabinGrade && cruiseData?.cruise?.id && (
+        <SpecificCabinModal
+          isOpen={isSpecificCabinModalOpen}
+          onClose={() => {
+            setIsSpecificCabinModalOpen(false);
+            setSelectedCabinGrade(null);
+          }}
+          onSelect={async (cabinNo: string) => {
+            // User selected a specific cabin - add to basket
+            try {
+              setIsLoadingCabins(true);
+              setIsSpecificCabinModalOpen(false);
+
+              const basketResponse = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/select-cabin`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    cruiseId: cruiseData.cruise.id.toString(),
+                    resultNo: selectedCabinGrade.resultNo,
+                    gradeNo: selectedCabinGrade.gradeNo,
+                    rateCode: selectedCabinGrade.rateCode,
+                    cabinResult: cabinNo,
+                  }),
+                },
+              );
+
+              if (!basketResponse.ok) {
+                throw new Error("Failed to reserve cabin");
+              }
+
+              // Success! Proceed to options page
+              router.push(`/booking/${sessionId}/options`);
+            } catch (err) {
+              console.error("Failed to add cabin to basket:", err);
+              showAlert("Unable to reserve cabin. Please try again.");
+              setIsLoadingCabins(false);
+              setIsSpecificCabinModalOpen(true); // Reopen modal on error
+            }
+          }}
+          sessionId={sessionId || ""}
+          cruiseId={cruiseData.cruise.id.toString()}
+          resultNo={selectedCabinGrade.resultNo}
+          gradeNo={selectedCabinGrade.gradeNo}
+          rateCode={selectedCabinGrade.rateCode}
+          cabinGradeName={selectedCabinGrade.gradeName}
+        />
       )}
     </div>
   );

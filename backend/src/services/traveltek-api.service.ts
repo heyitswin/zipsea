@@ -445,7 +445,13 @@ export class TraveltekApiService {
       console.log('   URL:', `${TRAVELTEK_API_BASE_URL}/cruisecabins.pl`);
       console.log('   Params:', JSON.stringify(params, null, 2));
 
-      const formData = new URLSearchParams(params as any);
+      // Traveltek requires 'selectedgrade' parameter in addition to other params
+      const apiParams = {
+        ...params,
+        selectedgrade: params.gradeno, // Add selectedgrade parameter (same value as gradeno)
+      };
+
+      const formData = new URLSearchParams(apiParams as any);
       const response = await this.axiosInstance.post('/cruisecabins.pl', formData);
 
       console.log('✅ Traveltek API: getCabins response status:', response.status);
