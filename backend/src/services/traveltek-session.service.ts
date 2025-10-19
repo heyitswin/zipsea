@@ -59,6 +59,9 @@ class TraveltekSessionService {
    * This creates both a Traveltek session and our local tracking session.
    * The Traveltek session is required for all subsequent API calls.
    *
+   * OPTIMIZATION: Checks for existing active sessions first to avoid unnecessary
+   * Traveltek API calls and speed up session creation.
+   *
    * @param params - Session creation parameters
    * @returns Session ID and session data
    */
@@ -67,6 +70,29 @@ class TraveltekSessionService {
     sessionData: SessionData;
   }> {
     try {
+      // OPTIMIZATION: Check if we have an existing active session for this cruise/passenger combo
+      // This can reuse Traveltek sessions and avoid the slow session creation call
+      const passengerKey = `${params.passengerCount.adults}:${params.passengerCount.children}:${params.passengerCount.childAges.join(',')}`;
+      const existingSessionKey = `existing_session:${params.cruiseId}:${passengerKey}`;
+
+      try {
+        const existingSessionId = await this.redis.get(existingSessionKey);
+        if (existingSessionId) {
+          const existingSession = await this.getSession(existingSessionId);
+          if (existingSession) {
+            console.log(
+              `[TraveltekSession] 🚀 Reusing existing session ${existingSessionId} for cruise ${params.cruiseId}`
+            );
+            return {
+              sessionId: existingSessionId,
+              sessionData: existingSession,
+            };
+          }
+        }
+      } catch (err) {
+        console.log('[TraveltekSession] Could not check for existing session:', err);
+      }
+
       // Step 0: Get cruise sailing date to create proper session
       const cruiseResult = await sql`
         SELECT sailing_date FROM cruises WHERE id = ${params.cruiseId} LIMIT 1
@@ -133,6 +159,13 @@ class TraveltekSessionService {
       console.log(
         `[TraveltekSession] ✅ Successfully created session ${sessionId} for cruise ${params.cruiseId}`
       );
+
+      // OPTIMIZATION: Store mapping for session reuse (expires with session)
+      try {
+        await this.redis.setex(existingSessionKey, this.SESSION_TTL, sessionId);
+      } catch (err) {
+        console.warn('[TraveltekSession] Failed to store session mapping:', err);
+      }
 
       return { sessionId, sessionData };
     } catch (error) {

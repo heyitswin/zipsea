@@ -88,6 +88,8 @@ class TraveltekBookingService {
    * This is called from the cruise detail page to show real-time pricing.
    * Requires an active booking session with passenger count.
    *
+   * OPTIMIZATION: Caches pricing data in Redis for 5 minutes to speed up repeated requests.
+   *
    * @param sessionId - Active booking session ID
    * @param cruiseId - Cruise ID (codetocruiseid from Traveltek, stored as cruises.id)
    * @returns Cabin grades with pricing
@@ -100,6 +102,27 @@ class TraveltekBookingService {
         throw new Error('Invalid or expired booking session');
       }
 
+      const { adults, children, childAges } = sessionData.passengerCount;
+
+      // Check Redis cache first for faster response
+      // Cache key includes cruise ID and passenger count for accurate pricing
+      const cacheKey = `cabin_pricing:${cruiseId}:${adults}a:${children}c:${childAges.join(',')}`;
+
+      const Redis = require('ioredis');
+      const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+
+      try {
+        const cachedData = await redis.get(cacheKey);
+        if (cachedData) {
+          console.log(`[TraveltekBooking] 🚀 Cache HIT for cabin pricing: ${cruiseId}`);
+          redis.disconnect();
+          return JSON.parse(cachedData);
+        }
+        console.log(`[TraveltekBooking] Cache MISS for cabin pricing: ${cruiseId}`);
+      } catch (cacheError) {
+        console.warn('[TraveltekBooking] Redis cache read failed:', cacheError);
+      }
+
       // Get cruise to verify it exists
       // Use raw SQL to avoid schema mismatch issues between environments
       const cruiseResult = await sql`
@@ -110,6 +133,7 @@ class TraveltekBookingService {
       `;
 
       if (cruiseResult.length === 0) {
+        redis.disconnect();
         throw new Error('Cruise not found');
       }
 
@@ -117,11 +141,10 @@ class TraveltekBookingService {
 
       // Get cabin grades from Traveltek API
       // cruises.id is the codetocruiseid from Traveltek
-      const { adults, children, childAges } = sessionData.passengerCount;
 
       // Format child DOBs for API (YYYY-MM-DD)
       // Calculate DOB from ages assuming today's date
-      const childDobs = childAges.map(age => {
+      const childDobs = childAges.map((age: number) => {
         const dob = new Date();
         dob.setFullYear(dob.getFullYear() - age);
         return dob.toISOString().split('T')[0];
@@ -156,11 +179,24 @@ class TraveltekBookingService {
         rateCode: cabin.ratecode,
       }));
 
-      return {
+      const result = {
         cabins,
         sessionId,
         cruiseId,
       };
+
+      // Cache the result for 5 minutes (300 seconds)
+      // Pricing changes infrequently, so this provides a good balance
+      try {
+        await redis.setex(cacheKey, 300, JSON.stringify(result));
+        console.log(`[TraveltekBooking] 💾 Cached cabin pricing for 5 minutes: ${cruiseId}`);
+      } catch (cacheError) {
+        console.warn('[TraveltekBooking] Failed to cache pricing:', cacheError);
+      } finally {
+        redis.disconnect();
+      }
+
+      return result;
     } catch (error) {
       console.error('[TraveltekBooking] Failed to get cabin pricing:', error);
       throw error;
