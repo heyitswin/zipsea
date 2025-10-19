@@ -149,7 +149,7 @@ class BookingController {
   async selectCabin(req: Request, res: Response): Promise<void> {
     try {
       const { sessionId } = req.params;
-      const { cruiseResultNo, resultNo, gradeNo, rateCode, cabinResult } = req.body;
+      const { resultNo, gradeNo, rateCode, cabinResult } = req.body;
 
       if (!resultNo || !gradeNo) {
         res.status(400).json({ error: 'resultNo and gradeNo are required' });
@@ -168,7 +168,6 @@ class BookingController {
       const basketData = await traveltekBookingService.selectCabin({
         sessionId,
         cruiseId: sessionData.cruiseId,
-        cruiseResultNo, // Pass cruise result number from getCabinGrades response
         resultNo,
         gradeNo,
         rateCode,

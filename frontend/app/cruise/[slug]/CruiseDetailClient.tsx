@@ -1387,9 +1387,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                           body: JSON.stringify({
                                             cruiseId:
                                               cruiseData.cruise.id.toString(),
-                                            cruiseResultNo:
-                                              liveCabinGrades.cruiseResultNo, // CRUISE result number for basket API
-                                            resultNo: cabinPricing.resultNo, // CABIN result number
+                                            resultNo: cabinPricing.resultNo,
                                             gradeNo: cabinPricing.gradeNo,
                                             rateCode: cabinPricing.rateCode,
                                           }),
@@ -1968,8 +1966,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   },
                   body: JSON.stringify({
                     cruiseId: cruiseData.cruise.id.toString(),
-                    cruiseResultNo: liveCabinGrades.cruiseResultNo, // CRUISE result number for basket API
-                    resultNo: selectedCabinGrade.resultNo, // CABIN result number
+                    resultNo: selectedCabinGrade.resultNo,
                     gradeNo: selectedCabinGrade.gradeNo,
                     rateCode: selectedCabinGrade.rateCode,
                     cabinResult: cabinNo,
