@@ -389,6 +389,26 @@ export class TraveltekApiService {
         console.log('   Results count:', response.data.results.length);
       }
 
+      // Log errors and warnings if present
+      if (response.data.errors && response.data.errors.length > 0) {
+        console.log(
+          '⚠️  Traveltek API: getCabinGrades returned errors:',
+          JSON.stringify(response.data.errors, null, 2)
+        );
+      }
+      if (response.data.warnings && response.data.warnings.length > 0) {
+        console.log(
+          '⚠️  Traveltek API: getCabinGrades returned warnings:',
+          JSON.stringify(response.data.warnings, null, 2)
+        );
+      }
+
+      // If no results, log full response for debugging
+      if (!response.data.results || response.data.results.length === 0) {
+        console.log('⚠️  Traveltek API: getCabinGrades returned 0 results. Full response:');
+        console.log(JSON.stringify(response.data, null, 2));
+      }
+
       return response.data;
     } catch (error: any) {
       console.error('❌ Traveltek API: getCabinGrades error:', {
@@ -414,11 +434,50 @@ export class TraveltekApiService {
     ratecode: string;
   }): Promise<ApiResponse> {
     try {
+      console.log('🔍 Traveltek API: getCabins request');
+      console.log('   Method: POST');
+      console.log('   URL:', `${TRAVELTEK_API_BASE_URL}/cruisecabins.pl`);
+      console.log('   Params:', JSON.stringify(params, null, 2));
+
       const formData = new URLSearchParams(params as any);
       const response = await this.axiosInstance.post('/cruisecabins.pl', formData);
+
+      console.log('✅ Traveltek API: getCabins response status:', response.status);
+      console.log('   Response data keys:', Object.keys(response.data));
+      if (response.data.results) {
+        console.log('   Results count:', response.data.results.length);
+      }
+
+      // Log errors and warnings if present
+      if (response.data.errors && response.data.errors.length > 0) {
+        console.log(
+          '⚠️  Traveltek API: getCabins returned errors:',
+          JSON.stringify(response.data.errors, null, 2)
+        );
+      }
+      if (response.data.warnings && response.data.warnings.length > 0) {
+        console.log(
+          '⚠️  Traveltek API: getCabins returned warnings:',
+          JSON.stringify(response.data.warnings, null, 2)
+        );
+      }
+
+      // If no results, log full response for debugging
+      if (!response.data.results || response.data.results.length === 0) {
+        console.log('⚠️  Traveltek API: getCabins returned 0 results. Full response:');
+        console.log(JSON.stringify(response.data, null, 2));
+      }
+
       return response.data;
-    } catch (error) {
-      console.error('❌ Traveltek API: getCabins error:', error);
+    } catch (error: any) {
+      console.error('❌ Traveltek API: getCabins error:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
+      });
       throw error;
     }
   }
