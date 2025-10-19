@@ -11,6 +11,7 @@ interface Cabin {
   features: string[];
   obstructed: boolean;
   available: boolean;
+  resultNo: string; // Required for basket API
   x1?: number;
   y1?: number;
   x2?: number;
@@ -79,12 +80,21 @@ export default function SpecificCabinModal({
         }
 
         const data = await response.json();
+        console.log("🔍 SpecificCabinModal: Received data:", {
+          cabinsCount: data.cabins?.length || 0,
+          deckPlansCount: data.deckPlans?.length || 0,
+          deckPlans: data.deckPlans,
+        });
+
         setCabins(data.cabins || []);
         setDeckPlans(data.deckPlans || []);
 
         // Auto-select first deck if available
         if (data.deckPlans && data.deckPlans.length > 0) {
+          console.log("✅ Auto-selecting first deck:", data.deckPlans[0].name);
           setSelectedDeck(data.deckPlans[0].deckCode || data.deckPlans[0].name);
+        } else {
+          console.log("⚠️  No deck plans available");
         }
       } catch (err) {
         console.error("Failed to fetch specific cabins:", err);
@@ -99,7 +109,18 @@ export default function SpecificCabinModal({
 
   const handleSelect = () => {
     if (selectedCabinNo) {
-      onSelect(selectedCabinNo);
+      // Find the selected cabin to get its resultNo
+      const selectedCabin = cabins.find((c) => c.cabinNo === selectedCabinNo);
+      if (selectedCabin && selectedCabin.resultNo) {
+        // Pass the resultNo (cabinresult) instead of cabinNo
+        onSelect(selectedCabin.resultNo);
+      } else {
+        console.error(
+          "Selected cabin not found or missing resultNo:",
+          selectedCabinNo,
+        );
+        onSelect(selectedCabinNo); // Fallback to cabinNo
+      }
       onClose();
     }
   };
