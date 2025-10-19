@@ -7,7 +7,7 @@ import logger from '../config/logger';
  * Hotfix for search service - simpler, faster queries
  */
 export class SearchHotfixService {
-  async getSimpleCruiseList(limit: number = 20, offset: number = 0) {
+  async getSimpleCruiseList(limit: number = 20, offset: number = 0, cruiseLineIds?: number[]) {
     try {
       // Check if database is available
       if (!db) {
@@ -23,6 +23,17 @@ export class SearchHotfixService {
           },
         };
       }
+      // Build WHERE clause conditions
+      const whereConditions = [
+        sql`c.is_active = true`,
+        sql`c.sailing_date >= CURRENT_DATE + INTERVAL '14 days'`,
+      ];
+
+      // Add cruise line filter if provided (from live booking filter middleware)
+      if (cruiseLineIds && cruiseLineIds.length > 0) {
+        whereConditions.push(sql`c.cruise_line_id = ANY(${cruiseLineIds})`);
+      }
+
       // Much simpler query without complex joins
       const results = await db.execute(sql`
         SELECT
@@ -45,19 +56,17 @@ export class SearchHotfixService {
         LEFT JOIN ships s ON c.ship_id = s.id
         LEFT JOIN ports p1 ON c.embarkation_port_id = p1.id
         LEFT JOIN ports p2 ON c.disembarkation_port_id = p2.id
-        WHERE c.is_active = true
-        AND c.sailing_date >= CURRENT_DATE + INTERVAL '14 days'
+        WHERE ${sql.join(whereConditions, sql` AND `)}
         ORDER BY c.sailing_date ASC
         LIMIT ${limit}
         OFFSET ${offset}
       `);
 
-      // Get total count separately
+      // Get total count separately with same filters
       const countResult = await db.execute(sql`
         SELECT COUNT(*) as count
-        FROM cruises
-        WHERE is_active = true
-        AND sailing_date >= CURRENT_DATE + INTERVAL '14 days'
+        FROM cruises c
+        WHERE ${sql.join(whereConditions, sql` AND `)}
       `);
 
       // Handle both possible response formats from drizzle

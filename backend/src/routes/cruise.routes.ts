@@ -2,8 +2,12 @@ import { Router, Request, Response } from 'express';
 import { cruiseController } from '../controllers/cruise.controller';
 import { db } from '../db/connection';
 import { sql } from 'drizzle-orm';
+import { liveBookingFilter } from '../middleware/live-booking-filter';
 
 const router = Router();
+
+// Apply live booking filter to all cruise routes
+router.use(liveBookingFilter);
 
 /**
  * GET /api/v1/cruises
