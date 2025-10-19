@@ -263,16 +263,33 @@ class TraveltekSessionService {
    */
   async updateSession(sessionId: string, updates: UpdateSessionParams): Promise<void> {
     try {
+      // Prepare update data - only include defined values
+      const updateData: any = {
+        updatedAt: new Date(),
+      };
+
+      if (updates.selectedCabinGrade !== undefined) {
+        updateData.selectedCabinGrade = updates.selectedCabinGrade;
+      }
+
+      if (updates.selectedCabin !== undefined) {
+        updateData.selectedCabin = updates.selectedCabin;
+      }
+
+      if (updates.basketData !== undefined) {
+        // Safely serialize basketData as JSON - handle circular references
+        try {
+          updateData.basketData = JSON.parse(JSON.stringify(updates.basketData));
+        } catch (serializeError) {
+          console.warn(
+            '[TraveltekSession] Failed to serialize basketData, skipping:',
+            serializeError
+          );
+        }
+      }
+
       // Update database
-      await db
-        .update(bookingSessions)
-        .set({
-          selectedCabinGrade: updates.selectedCabinGrade,
-          selectedCabin: updates.selectedCabin,
-          basketData: updates.basketData,
-          updatedAt: new Date(),
-        })
-        .where(eq(bookingSessions.id, sessionId));
+      await db.update(bookingSessions).set(updateData).where(eq(bookingSessions.id, sessionId));
 
       // Update Redis cache
       const sessionData = await this.getSession(sessionId);
