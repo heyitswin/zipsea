@@ -274,11 +274,20 @@ class TraveltekBookingService {
             code: rateInfo.code,
             name: rateInfo.name || rateInfo.code,
             description: rateInfo.description || rateInfo.name || rateInfo.code,
-            isRefundable: rateInfo.nonrefundable === false || rateInfo.nonrefundable === 'N',
+            // Per Traveltek docs: nonrefundable is 0/1 integer, 0 = refundable, 1 = non-refundable
+            isRefundable:
+              rateInfo.nonrefundable === 0 ||
+              rateInfo.nonrefundable === false ||
+              rateInfo.nonrefundable === 'N',
             faretype: rateInfo.faretype,
-            military: rateInfo.military === true || rateInfo.military === 'Y',
-            senior: rateInfo.senior === true || rateInfo.senior === 'Y',
-            pastpassenger: rateInfo.pastpassenger === true || rateInfo.pastpassenger === 'Y',
+            // Per Traveltek docs: military/senior/pastpassenger are 0/1 integers
+            military:
+              rateInfo.military === 1 || rateInfo.military === true || rateInfo.military === 'Y',
+            senior: rateInfo.senior === 1 || rateInfo.senior === true || rateInfo.senior === 'Y',
+            pastpassenger:
+              rateInfo.pastpassenger === 1 ||
+              rateInfo.pastpassenger === true ||
+              rateInfo.pastpassenger === 'Y',
           });
         });
       }
@@ -403,6 +412,15 @@ class TraveltekBookingService {
         cabinno: params.cabinNo, // Optional specific cabin number
       });
 
+      // Check if Traveltek returned errors in response body
+      if (basketData.errors && basketData.errors.length > 0) {
+        const errorMessages = basketData.errors
+          .map((e: any) => `${e.code}: ${e.message}`)
+          .join(', ');
+        console.error('[TraveltekBooking] ❌ Traveltek returned errors:', errorMessages);
+        throw new Error(`Failed to add cabin to basket: ${errorMessages}`);
+      }
+
       // Update session with basket data
       await traveltekSessionService.updateSession(params.sessionId, {
         selectedCabinGrade: params.gradeNo,
@@ -410,7 +428,7 @@ class TraveltekBookingService {
         basketData,
       });
 
-      console.log(`[TraveltekBooking] Added cabin to basket for session ${params.sessionId}`);
+      console.log(`[TraveltekBooking] ✅ Added cabin to basket for session ${params.sessionId}`);
       return basketData;
     } catch (error) {
       console.error('[TraveltekBooking] Failed to select cabin:', error);
@@ -455,46 +473,62 @@ class TraveltekBookingService {
         );
       }
 
+      // Get cruise to fetch ship_id for deck plans
+      const cruiseResult = await sql`
+        SELECT ship_id
+        FROM cruises
+        WHERE id = ${params.cruiseId}
+        LIMIT 1
+      `;
+
       // Get ship details for deck plans
       let deckPlans = null;
-      try {
-        console.log('[TraveltekBooking] 🚢 Fetching ship details for sid:', sessionData.sid);
-        const shipDetails = await traveltekApiService.getShipDetails({
-          sessionkey: sessionData.sessionKey,
-          sid: sessionData.sid,
-        });
+      if (cruiseResult.length > 0 && cruiseResult[0].ship_id) {
+        try {
+          const shipId = cruiseResult[0].ship_id;
+          console.log('[TraveltekBooking] 🚢 Fetching ship details for shipId:', shipId);
+          const shipDetails = await traveltekApiService.getShipDetails({
+            sessionkey: sessionData.sessionKey,
+            shipid: shipId, // Per Traveltek docs: use shipid not sid
+          });
 
-        console.log('[TraveltekBooking] 🔍 Ship details response keys:', Object.keys(shipDetails));
-        if (shipDetails.decks) {
-          console.log('[TraveltekBooking] 🔍 Decks length:', shipDetails.decks.length);
-          if (shipDetails.decks.length > 0) {
-            console.log(
-              '[TraveltekBooking] 🔍 First deck sample:',
-              JSON.stringify(shipDetails.decks[0]).substring(0, 200)
-            );
+          console.log(
+            '[TraveltekBooking] 🔍 Ship details response keys:',
+            Object.keys(shipDetails)
+          );
+          if (shipDetails.decks) {
+            console.log('[TraveltekBooking] 🔍 Decks length:', shipDetails.decks.length);
+            if (shipDetails.decks.length > 0) {
+              console.log(
+                '[TraveltekBooking] 🔍 First deck sample:',
+                JSON.stringify(shipDetails.decks[0]).substring(0, 200)
+              );
+            }
+          } else {
+            console.log('[TraveltekBooking] ⚠️  No decks field in ship details response');
           }
-        } else {
-          console.log('[TraveltekBooking] ⚠️  No decks field in ship details response');
-        }
 
-        // Extract deck plan images indexed by deck code/name
-        if (shipDetails.decks && Array.isArray(shipDetails.decks)) {
-          deckPlans = shipDetails.decks.map((deck: any) => ({
-            name: deck.name,
-            deckCode: deck.deckcode,
-            deckId: deck.id,
-            imageUrl: deck.imageurl,
-            description: deck.description,
-          }));
-          console.log(`[TraveltekBooking] ✅ Retrieved ${deckPlans.length} deck plans`);
+          // Extract deck plan images indexed by deck code/name
+          if (shipDetails.decks && Array.isArray(shipDetails.decks)) {
+            deckPlans = shipDetails.decks.map((deck: any) => ({
+              name: deck.name,
+              deckCode: deck.deckcode,
+              deckId: deck.id,
+              imageUrl: deck.imageurl,
+              description: deck.description,
+            }));
+            console.log(`[TraveltekBooking] ✅ Retrieved ${deckPlans.length} deck plans`);
+          }
+        } catch (error) {
+          console.error('[TraveltekBooking] ❌ Failed to get ship details for deck plans:', error);
+          if (error instanceof Error) {
+            console.error('[TraveltekBooking] Error message:', error.message);
+            console.error('[TraveltekBooking] Error stack:', error.stack);
+          }
+          // Continue without deck plans if this fails
         }
-      } catch (error) {
-        console.error('[TraveltekBooking] ❌ Failed to get ship details for deck plans:', error);
-        if (error instanceof Error) {
-          console.error('[TraveltekBooking] Error message:', error.message);
-          console.error('[TraveltekBooking] Error stack:', error.stack);
-        }
-        // Continue without deck plans if this fails
+      } else {
+        console.log('[TraveltekBooking] ⚠️  No ship_id found for cruise, skipping deck plans');
       }
 
       // Transform response to match frontend expected format
