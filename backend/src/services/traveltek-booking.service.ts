@@ -164,6 +164,15 @@ class TraveltekBookingService {
       // Transform Traveltek response to match frontend expected format
       // Frontend expects: { cabins: [...] }
       // Traveltek returns: { results: [...] }
+
+      // DEBUG: Log first cabin to see Traveltek's actual structure
+      if (pricingData.results && pricingData.results.length > 0) {
+        console.log(
+          '[TraveltekBooking] 🔍 DEBUG First cabin from Traveltek:',
+          JSON.stringify(pricingData.results[0], null, 2)
+        );
+      }
+
       const cabins = (pricingData.results || []).map((cabin: any) => ({
         code: cabin.code,
         name: cabin.name,
