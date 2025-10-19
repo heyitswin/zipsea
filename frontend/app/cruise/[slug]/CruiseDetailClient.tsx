@@ -1299,6 +1299,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                             <div className="px-0 md:px-5 py-4 md:py-3 flex-1 min-w-0 md:min-w-[400px] max-w-full md:max-w-[480px]">
                               <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
                                 {cabin.name}
+                                {cabin.code && (
+                                  <span className="ml-2 text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded font-mono">
+                                    {cabin.code}
+                                  </span>
+                                )}
                                 {cabin.isGuaranteed && (
                                   <span className="ml-2 text-xs bg-purple-obc text-dark-blue px-2 py-1 rounded-full">
                                     Best Value
