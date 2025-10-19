@@ -412,12 +412,24 @@ class TraveltekBookingService {
         cabinno: params.cabinNo, // Optional specific cabin number
       });
 
+      console.log('[TraveltekBooking] 🔍 addToBasket response keys:', Object.keys(basketData));
+      if (basketData.errors) {
+        console.log('[TraveltekBooking] 🔍 Response has errors field');
+      }
+      if (basketData.warnings) {
+        console.log('[TraveltekBooking] 🔍 Response has warnings:', basketData.warnings);
+      }
+
       // Check if Traveltek returned errors in response body
       if (basketData.errors && basketData.errors.length > 0) {
+        console.error(
+          '[TraveltekBooking] ❌ Traveltek returned errors:',
+          JSON.stringify(basketData.errors, null, 2)
+        );
         const errorMessages = basketData.errors
-          .map((e: any) => `${e.code}: ${e.message}`)
+          .map((e: any) => `${e.code}: ${e.message || e.msg || e.error || 'Unknown error'}`)
           .join(', ');
-        console.error('[TraveltekBooking] ❌ Traveltek returned errors:', errorMessages);
+        console.error('[TraveltekBooking] ❌ Error messages:', errorMessages);
         throw new Error(`Failed to add cabin to basket: ${errorMessages}`);
       }
 
