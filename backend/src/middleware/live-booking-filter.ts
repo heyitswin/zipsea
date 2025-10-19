@@ -30,22 +30,28 @@ export function liveBookingFilter(req: Request, res: Response, next: NextFunctio
   // Apply filter based on request method
   if (req.method === 'GET') {
     // For GET requests, filter query params
-    if (req.query.cruiseLine) {
+    // Check both cruiseLine and cruiseLineId parameter names
+    const existingFilter = req.query.cruiseLine || req.query.cruiseLineId;
+
+    if (existingFilter) {
       // If cruise line filter already exists, intersect with allowed IDs
-      const requestedLines = Array.isArray(req.query.cruiseLine)
-        ? req.query.cruiseLine.map(Number)
-        : [Number(req.query.cruiseLine)];
+      const requestedLines = Array.isArray(existingFilter)
+        ? existingFilter.map(Number)
+        : [Number(existingFilter)];
 
       const filteredLines = requestedLines.filter(id => allowedLineIds.includes(id));
 
       if (filteredLines.length === 0) {
         // User requested cruise lines that aren't available for live booking
+        req.query.cruiseLineId = allowedLineIds.map(String);
         req.query.cruiseLine = allowedLineIds.map(String);
       } else {
+        req.query.cruiseLineId = filteredLines.map(String);
         req.query.cruiseLine = filteredLines.map(String);
       }
     } else {
-      // No cruise line filter specified, add it
+      // No cruise line filter specified, add it to both parameter names
+      req.query.cruiseLineId = allowedLineIds.map(String);
       req.query.cruiseLine = allowedLineIds.map(String);
     }
   } else if (req.method === 'POST') {
