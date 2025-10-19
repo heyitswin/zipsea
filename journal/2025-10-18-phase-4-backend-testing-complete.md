@@ -236,13 +236,49 @@ All Phase 3 and 4 work was done in previous session. Current state has:
 - Response transformation
 - Retry logic with exponential backoff
 
+## Currency Fix (Oct 18, 2025)
+
+After completing Phase 4 testing, discovered all prices were being returned in GBP instead of USD.
+
+### Root Cause
+- Traveltek API defaults to GBP currency
+- Session creation (`cruiseresults.pl`) sets the currency for the entire session
+- All subsequent API calls (cabin pricing, basket, etc.) inherit session currency
+
+### Solution
+Added `currency: 'USD'` parameter to:
+1. **Session Creation** (`createSession` method in `traveltek-api.service.ts`)
+   - Added to `/cruiseresults.pl` params
+2. **Cabin Pricing** (`getCabinGrades` method in `traveltek-api.service.ts`)
+   - Added to `/cruisecabingrades.pl` params
+
+### Test Results
+```bash
+✅ SUCCESS: Prices are in USD!
+
+Sample cabin pricing:
+1. Interior Stateroom - Guaranteed
+   Currency: USD
+   Cheapest Price: $2487.36
+2. Oceanview Stateroom - Guaranteed
+   Currency: USD
+   Cheapest Price: $2707.36
+3. Interior with Virtual Balcony
+   Currency: USD
+   Cheapest Price: $2746.36
+```
+
+**Commit:** `eb36d82` - Fix: Force USD currency for all Traveltek API pricing
+
 ## Conclusion
 
 **Phase 4 is complete!** 🎉
 
-All critical backend API endpoints are working correctly with live Traveltek API data. The system is ready for Phase 5 (Frontend Implementation).
+All critical backend API endpoints are working correctly with live Traveltek API data **in USD currency**. The system is ready for Phase 5 (Frontend Implementation).
 
-**Key Achievement:** Fixed 404 errors by using correct fixed SID value (52471) instead of dynamic value from API response.
+**Key Achievements:** 
+- Fixed 404 errors by using correct fixed SID value (52471) instead of dynamic value from API response
+- Fixed currency to USD for all pricing responses
 
 **Project Progress:** ~55% complete (up from 50%)
 
