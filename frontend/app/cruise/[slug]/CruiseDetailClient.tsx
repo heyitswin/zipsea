@@ -1951,11 +1951,19 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             setIsSpecificCabinModalOpen(false);
             setSelectedCabinGrade(null);
           }}
-          onSelect={async (cabinNo: string) => {
+          onSelect={async (cabinResultNo: string) => {
             // User selected a specific cabin - add to basket
+            // cabinResultNo is the specific cabin's resultNo from getCabins API
             try {
               setIsLoadingCabins(true);
               setIsSpecificCabinModalOpen(false);
+
+              console.log("Reserving cabin:", {
+                resultNo: selectedCabinGrade.resultNo,
+                gradeNo: selectedCabinGrade.gradeNo,
+                rateCode: selectedCabinGrade.rateCode,
+                cabinResult: cabinResultNo,
+              });
 
               const basketResponse = await fetch(
                 `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/select-cabin`,
@@ -1969,7 +1977,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     resultNo: selectedCabinGrade.resultNo,
                     gradeNo: selectedCabinGrade.gradeNo,
                     rateCode: selectedCabinGrade.rateCode,
-                    cabinResult: cabinNo,
+                    cabinResult: cabinResultNo,
                   }),
                 },
               );
