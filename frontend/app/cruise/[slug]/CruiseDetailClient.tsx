@@ -237,18 +237,12 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       isLiveBookable &&
       passengerCount &&
       cruiseData?.cruise?.id &&
-      !sessionId &&
-      !isLoadingCabins
+      !isLoadingCabins &&
+      !liveCabinGrades // Only fetch if we don't have cabin data yet
     ) {
       createBookingSessionAndFetchCabins();
     }
-  }, [
-    isLiveBookable,
-    passengerCount,
-    cruiseData?.cruise?.id,
-    sessionId,
-    isLoadingCabins,
-  ]);
+  }, [isLiveBookable, passengerCount, cruiseData?.cruise?.id, isLoadingCabins]);
 
   const formatPrice = (price: string | number | undefined) => {
     if (!price) return "Unavailable";
