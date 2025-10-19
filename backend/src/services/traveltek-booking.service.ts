@@ -185,7 +185,8 @@ class TraveltekBookingService {
           cabin.name?.toLowerCase().includes('guarantee'),
         resultNo: cabin.resultno,
         gradeNo: cabin.gradeno,
-        rateCode: cabin.ratecode,
+        // Some cabin grades don't have a ratecode - use empty string as fallback
+        rateCode: cabin.ratecode || '',
       }));
 
       const result = {
