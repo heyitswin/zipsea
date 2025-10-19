@@ -537,21 +537,30 @@ export class TraveltekApiService {
     resultno: string;
     gradeno: string;
     ratecode: string;
-    cabinresult: string; // REQUIRED: Cabin result from cabin grades endpoint
+    cabinresult?: string; // Optional: For specific cabin selection, omit for guaranteed
     resultkey?: string; // Optional, defaults to 'default'
     cabinno?: string; // Optional specific cabin number
   }): Promise<ApiResponse> {
     try {
-      // Per Traveltek docs: cabinresult is REQUIRED for cruise bookings
-      if (!params.cabinresult) {
-        throw new Error('cabinresult is required for adding cruise to basket');
-      }
-
-      // Add required resultkey parameter (typically 'default' for basic usage)
-      const basketParams = {
-        ...params,
+      // Build basket params - only include cabinresult if provided
+      const basketParams: any = {
+        sessionkey: params.sessionkey,
+        type: params.type,
+        resultno: params.resultno,
+        gradeno: params.gradeno,
+        ratecode: params.ratecode,
         resultkey: params.resultkey || 'default', // Required by Traveltek API
       };
+
+      // Only add cabinresult if it's provided (for specific cabin selection)
+      if (params.cabinresult) {
+        basketParams.cabinresult = params.cabinresult;
+      }
+
+      // Only add cabinno if it's provided (for specific cabin number)
+      if (params.cabinno) {
+        basketParams.cabinno = params.cabinno;
+      }
 
       console.log('🔍 Traveltek API: addToBasket request');
       console.log('   Params:', JSON.stringify(basketParams, null, 2));
