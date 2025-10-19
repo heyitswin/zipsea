@@ -206,6 +206,7 @@ class TraveltekBookingService {
                 price: parseFloat(rate.price || '0'),
                 gradeno: rate.gradeno,
                 ratecode: rate.ratecode,
+                resultno: rate.resultno || cabin.resultno, // Use rate-specific resultno if available, fallback to cabin resultno
                 fare: parseFloat(rate.fare || '0'),
                 taxes: parseFloat(rate.taxes || '0'),
                 fees: parseFloat(rate.fees || '0'),
@@ -236,6 +237,7 @@ class TraveltekBookingService {
               price: parseFloat(cabin.cheapestprice || '0'),
               gradeno: cabin.gradeno,
               ratecode: cabin.ratecode,
+              resultno: cabin.resultno,
               fare: 0,
               taxes: 0,
               fees: 0,

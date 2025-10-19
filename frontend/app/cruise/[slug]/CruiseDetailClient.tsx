@@ -107,6 +107,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         price: cabin.cheapestPrice,
         gradeNo: cabin.gradeNo,
         rateCode: cabin.rateCode,
+        resultNo: cabin.resultNo,
       };
     }
 
@@ -117,6 +118,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         price: rateData.price,
         gradeNo: rateData.gradeno,
         rateCode: rateData.ratecode,
+        resultNo: rateData.resultno || cabin.resultNo,
       };
     }
 
@@ -125,6 +127,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       price: cabin.cheapestPrice,
       gradeNo: cabin.gradeNo,
       rateCode: cabin.rateCode,
+      resultNo: cabin.resultNo,
     };
   };
 
@@ -1372,7 +1375,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                           body: JSON.stringify({
                                             cruiseId:
                                               cruiseData.cruise.id.toString(),
-                                            resultNo: cabin.resultNo,
+                                            resultNo: cabinPricing.resultNo,
                                             gradeNo: cabinPricing.gradeNo,
                                             rateCode: cabinPricing.rateCode,
                                           }),
@@ -1404,7 +1407,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                     console.log(
                                       "Opening specific cabin modal with data:",
                                       {
-                                        resultNo: cabin.resultNo,
+                                        resultNo: cabinPricing.resultNo,
                                         gradeNo: cabinPricing.gradeNo,
                                         rateCode: cabinPricing.rateCode,
                                         selectedRateCode: selectedRateCode,
@@ -1413,7 +1416,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                     );
 
                                     setSelectedCabinGrade({
-                                      resultNo: cabin.resultNo,
+                                      resultNo: cabinPricing.resultNo,
                                       gradeNo: cabinPricing.gradeNo,
                                       rateCode: cabinPricing.rateCode,
                                       gradeName:
