@@ -288,15 +288,29 @@ class TraveltekBookingService {
             `[TraveltekBooking] 🔍 Rate ${rateInfo.code}: nonrefundable=${rateInfo.nonrefundable} (type: ${typeof rateInfo.nonrefundable})`
           );
 
+          // BUG FIX: Traveltek's nonrefundable field is unreliable (often returns 0 even for non-refundable rates)
+          // Instead, check the description/name for keywords indicating non-refundable status
+          const description = (rateInfo.description || rateInfo.name || '').toLowerCase();
+          const name = (rateInfo.name || '').toLowerCase();
+          const code = (rateInfo.code || '').toLowerCase();
+
+          // Check for non-refundable indicators in description, name, or code
+          const hasNonRefundableKeyword =
+            description.includes('nonrefundable') ||
+            description.includes('non-refundable') ||
+            description.includes('nrd') || // Non-Refundable Deposit
+            name.includes('nonrefundable') ||
+            name.includes('non-refundable') ||
+            name.includes('nrd') ||
+            code.includes('nrd');
+
           rateCodeMetadata.set(rateInfo.code, {
             code: rateInfo.code,
             name: rateInfo.name || rateInfo.code,
             description: rateInfo.description || rateInfo.name || rateInfo.code,
-            // Per Traveltek docs: nonrefundable is 0/1 integer, 0 = refundable, 1 = non-refundable
-            isRefundable:
-              rateInfo.nonrefundable === 0 ||
-              rateInfo.nonrefundable === false ||
-              rateInfo.nonrefundable === 'N',
+            // Use description-based check instead of unreliable nonrefundable field
+            // If description mentions "nonrefundable" or "NRD", it's NOT refundable
+            isRefundable: !hasNonRefundableKeyword,
             faretype: rateInfo.faretype,
             // Per Traveltek docs: military/senior/pastpassenger are 0/1 integers
             military:
