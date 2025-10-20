@@ -502,10 +502,16 @@ class TraveltekBookingService {
 
       // Extract itemkey from basket response
       // The itemkey is needed for booking creation to specify dining preferences
+      // Note: basketitems is nested inside results[0], not at the top level
       let itemkey: string | undefined;
-      if (basketData.basketitems && basketData.basketitems.length > 0) {
+      if (
+        basketData.results &&
+        basketData.results.length > 0 &&
+        basketData.results[0].basketitems &&
+        basketData.results[0].basketitems.length > 0
+      ) {
         // Get the first basket item (the cruise we just added)
-        const basketItem = basketData.basketitems[0];
+        const basketItem = basketData.results[0].basketitems[0];
         itemkey = basketItem.itemkey;
         console.log('[TraveltekBooking] 📦 Extracted itemkey from basket:', itemkey);
       } else {
