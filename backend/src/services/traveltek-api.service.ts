@@ -710,6 +710,7 @@ export class TraveltekApiService {
           [params.itemkey]: {
             dining: {
               seating: params.dining, // e.g., "early", "late", "anytime"
+              smoking: 'non-smoking', // Hardcoded to non-smoking
             },
           },
         },
