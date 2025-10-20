@@ -811,8 +811,8 @@ class TraveltekBookingService {
             email: leadPassenger.email || params.contact.email,
             phone: leadPassenger.phone || params.contact.phone,
           },
-          cabinGrade: sessionData.selectedCabin?.gradeCode,
-          rateCode: sessionData.selectedCabin?.rateCode,
+          cabinGrade: bookingResponse.cabingrade || bookingResponse.cabintype,
+          rateCode: bookingResponse.ratecode,
           status: paymentResponse.status === 'success' ? 'confirmed' : 'pending',
         });
       } catch (slackError) {
