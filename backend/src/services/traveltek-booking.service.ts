@@ -747,6 +747,11 @@ class TraveltekBookingService {
 
       // Step 4: Create booking with Traveltek
       // Using JSON format per Traveltek API documentation
+      console.log(
+        '🔍 [TraveltekBooking] Raw passengers received from frontend:',
+        JSON.stringify(params.passengers, null, 2)
+      );
+
       const bookingResponse = await traveltekApiService.createBooking({
         sessionkey: sessionData.sessionKey,
         sid: sessionData.sid,
