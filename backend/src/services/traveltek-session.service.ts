@@ -225,6 +225,8 @@ class TraveltekSessionService {
         passengerCount: dbSession.passengerCount as PassengerCount,
         cruiseId: dbSession.cruiseId,
         userId: dbSession.userId || undefined,
+        itemkey: dbSession.itemkey || undefined,
+        cruiseResultNo: dbSession.selectedCabinGrade || undefined, // Store cruise result number
       };
 
       // Restore to Redis
