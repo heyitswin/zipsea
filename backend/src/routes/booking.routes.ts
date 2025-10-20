@@ -5,6 +5,7 @@ import {
   authenticateTokenOptional,
   authenticateAdmin,
 } from '../middleware/auth';
+import { liveBookingFilter } from '../middleware/live-booking-filter';
 
 const router = Router();
 
@@ -14,7 +15,13 @@ const router = Router();
  * These routes handle the complete live booking flow with Traveltek API.
  * Most routes support optional authentication for guest bookings,
  * but booking management requires authentication.
+ *
+ * Live booking filter applied: Only cruise lines with live booking enabled
+ * (Royal Caribbean, Celebrity) can proceed through the booking flow.
  */
+
+// Apply live booking filter to restrict bookings to supported cruise lines
+router.use(liveBookingFilter);
 
 // Session Management
 /**

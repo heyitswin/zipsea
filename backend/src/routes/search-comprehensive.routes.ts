@@ -5,12 +5,11 @@
 
 import { Router } from 'express';
 import { searchComprehensiveController } from '../controllers/search-comprehensive.controller';
-import { liveBookingFilter } from '../middleware/live-booking-filter';
 
 const router = Router();
 
-// Apply live booking filter to all search routes
-router.use(liveBookingFilter);
+// Live booking filter removed - users should see ALL cruises for browsing
+// Filter only applies to actual booking flow (see booking.routes.ts)
 
 /**
  * @route GET /api/v1/search/comprehensive

@@ -1,13 +1,11 @@
 import { Router } from 'express';
 import { searchOptimizedController } from '../controllers/search-optimized.controller';
 import { searchSimpleController } from '../controllers/search-simple.controller';
-import { liveBookingFilter } from '../middleware/live-booking-filter';
 
 const router = Router();
 
-// Apply live booking filter to all search routes
-// This automatically restricts searches to bookable cruise lines when enabled
-router.use(liveBookingFilter);
+// Live booking filter removed - users should see ALL cruises for browsing
+// Filter only applies to actual booking flow (see booking.routes.ts)
 
 /**
  * Optimized search routes using raw SQL for performance
