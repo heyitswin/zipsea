@@ -5,10 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useBooking } from "../../../context/BookingContext";
 
 interface PassengerData {
+  title: string;
   firstName: string;
   lastName: string;
   dateOfBirth: string;
   gender: string;
+  nationality: string;
   email?: string;
   phone?: string;
   address?: string;
@@ -29,17 +31,21 @@ export default function BookingPassengersPage() {
   // Initialize passenger data array
   const [passengers, setPassengers] = useState<PassengerData[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Record<number, Record<string, string>>>({});
+  const [errors, setErrors] = useState<Record<number, Record<string, string>>>(
+    {},
+  );
 
   useEffect(() => {
     // Initialize empty passenger forms
     const initialPassengers: PassengerData[] = [];
     for (let i = 0; i < totalPassengers; i++) {
       initialPassengers.push({
+        title: "",
         firstName: "",
         lastName: "",
         dateOfBirth: "",
         gender: "",
+        nationality: "US", // Default to United States
         email: i === 0 ? "" : undefined, // Only lead passenger needs contact info
         phone: i === 0 ? "" : undefined,
         address: i === 0 ? "" : undefined,
@@ -52,7 +58,11 @@ export default function BookingPassengersPage() {
     setPassengers(initialPassengers);
   }, [totalPassengers]);
 
-  const updatePassenger = (index: number, field: keyof PassengerData, value: string) => {
+  const updatePassenger = (
+    index: number,
+    field: keyof PassengerData,
+    value: string,
+  ) => {
     const newPassengers = [...passengers];
     newPassengers[index] = { ...newPassengers[index], [field]: value };
     setPassengers(newPassengers);
@@ -73,6 +83,10 @@ export default function BookingPassengersPage() {
       const passengerErrors: Record<string, string> = {};
 
       // Required fields for all passengers
+      if (!passenger.title) {
+        passengerErrors.title = "Title is required";
+        isValid = false;
+      }
       if (!passenger.firstName.trim()) {
         passengerErrors.firstName = "First name is required";
         isValid = false;
@@ -87,6 +101,10 @@ export default function BookingPassengersPage() {
       }
       if (!passenger.gender) {
         passengerErrors.gender = "Gender is required";
+        isValid = false;
+      }
+      if (!passenger.nationality) {
+        passengerErrors.nationality = "Nationality is required";
         isValid = false;
       }
 
@@ -227,6 +245,33 @@ export default function BookingPassengersPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               <div>
                 <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                  Title *
+                </label>
+                <select
+                  value={passenger.title}
+                  onChange={(e) =>
+                    updatePassenger(index, "title", e.target.value)
+                  }
+                  className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
+                    errors[index]?.title ? "border-red-500" : "border-gray-300"
+                  }`}
+                >
+                  <option value="">Select title</option>
+                  <option value="Mr">Mr</option>
+                  <option value="Mrs">Mrs</option>
+                  <option value="Ms">Ms</option>
+                  <option value="Miss">Miss</option>
+                  <option value="Dr">Dr</option>
+                </select>
+                {errors[index]?.title && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors[index].title}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
                   First Name *
                 </label>
                 <input
@@ -316,6 +361,59 @@ export default function BookingPassengersPage() {
                 {errors[index]?.gender && (
                   <p className="text-red-500 text-sm mt-1">
                     {errors[index].gender}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                  Nationality *
+                </label>
+                <select
+                  value={passenger.nationality}
+                  onChange={(e) =>
+                    updatePassenger(index, "nationality", e.target.value)
+                  }
+                  className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
+                    errors[index]?.nationality
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  }`}
+                >
+                  <option value="">Select nationality</option>
+                  <option value="US">United States</option>
+                  <option value="CA">Canada</option>
+                  <option value="GB">United Kingdom</option>
+                  <option value="AU">Australia</option>
+                  <option value="NZ">New Zealand</option>
+                  <option value="IE">Ireland</option>
+                  <option value="FR">France</option>
+                  <option value="DE">Germany</option>
+                  <option value="IT">Italy</option>
+                  <option value="ES">Spain</option>
+                  <option value="PT">Portugal</option>
+                  <option value="NL">Netherlands</option>
+                  <option value="BE">Belgium</option>
+                  <option value="CH">Switzerland</option>
+                  <option value="AT">Austria</option>
+                  <option value="SE">Sweden</option>
+                  <option value="NO">Norway</option>
+                  <option value="DK">Denmark</option>
+                  <option value="FI">Finland</option>
+                  <option value="MX">Mexico</option>
+                  <option value="BR">Brazil</option>
+                  <option value="AR">Argentina</option>
+                  <option value="CL">Chile</option>
+                  <option value="JP">Japan</option>
+                  <option value="KR">South Korea</option>
+                  <option value="CN">China</option>
+                  <option value="IN">India</option>
+                  <option value="SG">Singapore</option>
+                  <option value="ZA">South Africa</option>
+                </select>
+                {errors[index]?.nationality && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors[index].nationality}
                   </p>
                 )}
               </div>
