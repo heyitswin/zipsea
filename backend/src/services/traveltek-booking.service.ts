@@ -808,6 +808,7 @@ class TraveltekBookingService {
       // Step 5: Store booking in our database
       const bookingId = await this.storeBooking({
         sessionId: params.sessionId,
+        cruiseId: sessionData.cruiseId,
         traveltekBookingId: bookingResponse.bookingid,
         bookingDetails: bookingResponse,
         passengers: params.passengers,
@@ -964,6 +965,7 @@ class TraveltekBookingService {
    */
   private async storeBooking(params: {
     sessionId: string;
+    cruiseId: string;
     traveltekBookingId: string;
     bookingDetails: any;
     passengers: PassengerDetails[];
@@ -979,6 +981,7 @@ class TraveltekBookingService {
         .insert(bookings)
         .values({
           bookingSessionId: params.sessionId,
+          cruiseId: params.cruiseId,
           traveltekBookingId: params.traveltekBookingId,
           status: 'confirmed',
           bookingDetails: params.bookingDetails,
