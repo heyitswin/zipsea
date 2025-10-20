@@ -849,13 +849,36 @@ class TraveltekBookingService {
         );
 
         // Check if payment was successful
-        if (paymentResponse.success !== 1) {
-          const errorMessage = paymentResponse.message || 'Payment processing failed';
-          console.error('[TraveltekBooking] ❌ Payment failed:', errorMessage);
-          throw new Error(`Payment failed: ${errorMessage}`);
+        // Traveltek returns errors in an errors array, not a success field
+        if (paymentResponse.errors && paymentResponse.errors.length > 0) {
+          const errorMessages = paymentResponse.errors
+            .flat()
+            .map((err: any) => err.text || err.message || JSON.stringify(err))
+            .join('; ');
+          console.error('[TraveltekBooking] ❌ Payment failed with errors:', errorMessages);
+          throw new Error(`Payment failed: ${errorMessages}`);
         }
 
-        console.log('[TraveltekBooking] ✅ Payment processed successfully');
+        // Check if we have results with successful transaction
+        if (!paymentResponse.results || paymentResponse.results.length === 0) {
+          console.error('[TraveltekBooking] ❌ Payment response missing results');
+          throw new Error('Payment failed: No transaction results returned');
+        }
+
+        const transactionResult = paymentResponse.results[0];
+        if (transactionResult.transstatus !== 'COMPLETE') {
+          console.error(
+            '[TraveltekBooking] ❌ Payment transaction not complete:',
+            transactionResult.transstatus
+          );
+          throw new Error(
+            `Payment failed: Transaction status is ${transactionResult.transstatus}, expected COMPLETE`
+          );
+        }
+
+        console.log(
+          `[TraveltekBooking] ✅ Payment processed successfully: ${transactionResult.code} - ${transactionResult.message}`
+        );
       } catch (paymentError) {
         console.error('[TraveltekBooking] ❌ Payment processing error:', paymentError);
         // Booking was created but payment failed - this is a critical error

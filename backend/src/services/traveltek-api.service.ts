@@ -794,8 +794,8 @@ export class TraveltekApiService {
   /**
    * Process payment for booking
    *
-   * Uses Traveltek's payment.pl endpoint with JSON body (application/json)
-   * NOT form-urlencoded like other endpoints
+   * Uses Traveltek's payment.pl endpoint with JSON format
+   * Documentation shows both JSON and form-urlencoded are supported
    */
   async processPayment(params: {
     sessionkey: string;
@@ -823,9 +823,10 @@ export class TraveltekApiService {
         params.sessionkey.slice(-8)
       );
       console.log('🔍 Traveltek API: processPayment ccard:', JSON.stringify(params.ccard, null, 2));
+      console.log('🔍 Traveltek API: Full payment request:', JSON.stringify(params, null, 2));
 
-      // Payment endpoint requires application/json, NOT form-urlencoded
-      // Send params directly as JSON body with proper Content-Type header
+      // Send payment request as JSON - both JSON and form-urlencoded are documented as valid
+      // Using JSON format for simplicity and better error handling
       const response = await this.axiosInstance.post('/payment.pl', params, {
         headers: {
           'Content-Type': 'application/json',
