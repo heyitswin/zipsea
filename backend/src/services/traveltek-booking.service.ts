@@ -988,7 +988,7 @@ class TraveltekBookingService {
           totalAmount: (bookingData.totalprice || bookingData.totalcost || 0).toString(),
           depositAmount: (bookingData.depositamount || 0).toString(),
           paidAmount: params.payment.amount.toString(),
-          paymentStatus: 'paid',
+          paymentStatus: 'fully_paid',
           balanceDueDate: bookingData.balanceduedate ? new Date(bookingData.balanceduedate) : null,
           createdAt: new Date(),
           updatedAt: new Date(),
