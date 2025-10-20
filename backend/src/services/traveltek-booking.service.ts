@@ -846,6 +846,12 @@ class TraveltekBookingService {
             type: tx.type,
           });
 
+          // Debug authcode
+          console.log('[DEBUG] authcode value:', JSON.stringify(tx.authcode));
+          console.log('[DEBUG] authcode type:', typeof tx.authcode);
+          console.log('[DEBUG] authcode falsy check:', !tx.authcode);
+          console.log('[DEBUG] authcode length:', tx.authcode ? tx.authcode.length : 'N/A');
+
           // Check for payment decline - empty authcode indicates declined transaction
           if (!tx.authcode || tx.authcode.trim() === '') {
             console.error('[TraveltekBooking] ❌ Payment DECLINED - no authorization code');
