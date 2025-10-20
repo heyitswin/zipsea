@@ -755,6 +755,7 @@ class TraveltekBookingService {
       // Get lead passenger title for contact info
       const leadPassengerTitle = params.passengers[0]?.title;
 
+      // Step 4: Create booking with payment included
       const bookingResponse = await traveltekApiService.createBooking({
         sessionkey: sessionData.sessionKey,
         sid: sessionData.sid,
@@ -781,29 +782,33 @@ class TraveltekBookingService {
           paxtype: p.passengerType,
           age: this.calculateAge(p.dateOfBirth),
         })),
-        dining: params.dining, // Dining seating preference passed to API service
-        depositBooking: false, // Full payment for now
+        dining: params.dining, // Dining seating preference
+        depositBooking: false, // Full payment
+        ccard: {
+          // Include payment in booking request (passthrough to cruise line API)
+          passthroughitem: sessionData.itemkey,
+          amount: params.payment.amount,
+          nameoncard: params.payment.cardholderName,
+          cardtype: 'VIS', // TODO: Determine from card number
+          cardnumber: params.payment.cardNumber,
+          expirymonth: params.payment.expiryMonth,
+          expiryyear: params.payment.expiryYear,
+          signature: params.payment.cvv,
+          title: leadPassengerTitle,
+          firstname: params.contact.firstName,
+          lastname: params.contact.lastName,
+          postcode: params.contact.postalCode,
+          address1: params.contact.address,
+          address2: params.contact.address2 || '',
+          homecity: params.contact.city,
+          county: params.contact.state,
+          country: params.contact.country,
+        },
       });
 
       if (!bookingResponse.bookingid) {
         throw new Error('Booking creation failed: no booking ID returned');
       }
-
-      // Step 4: Process payment
-      const paymentResponse = await traveltekApiService.processPayment({
-        sessionkey: sessionData.sessionKey,
-        cardtype: 'VIS', // TODO: Determine from card number
-        cardnumber: params.payment.cardNumber,
-        expirymonth: params.payment.expiryMonth,
-        expiryyear: params.payment.expiryYear,
-        nameoncard: params.payment.cardholderName,
-        cvv: params.payment.cvv,
-        amount: params.payment.amount.toString(),
-        address1: params.contact.address,
-        city: params.contact.city,
-        postcode: params.contact.postalCode,
-        country: params.contact.country,
-      });
 
       // Step 5: Store booking in our database
       const bookingId = await this.storeBooking({
@@ -814,7 +819,7 @@ class TraveltekBookingService {
         passengers: params.passengers,
         payment: {
           ...params.payment,
-          transactionId: paymentResponse.transactionid,
+          transactionId: bookingResponse.bookingid, // Use booking ID as transaction reference
           last4: params.payment.cardNumber.slice(-4),
         },
       });
@@ -858,7 +863,7 @@ class TraveltekBookingService {
           },
           cabinGrade: bookingData.cabingrade || bookingData.cabintype,
           rateCode: bookingData.ratecode,
-          status: paymentResponse.status === 'success' ? 'confirmed' : 'pending',
+          status: bookingResponse.status || 'confirmed', // Use booking status from Traveltek
         });
       } catch (slackError) {
         // Don't fail the booking if Slack notification fails
@@ -872,7 +877,7 @@ class TraveltekBookingService {
       return {
         bookingId,
         traveltekBookingId: bookingResponse.bookingid,
-        status: paymentResponse.status === 'success' ? 'confirmed' : 'pending',
+        status: bookingResponse.status || 'confirmed', // Status from Traveltek
         totalAmount: bookingData.totalprice || bookingData.totalcost,
         depositAmount: bookingData.depositamount,
         paidAmount: params.payment.amount,
