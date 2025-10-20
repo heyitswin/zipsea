@@ -766,7 +766,7 @@ export default function CruisesContent() {
       const departDate = new Date(dateString);
       const returnDate = new Date(departDate);
       returnDate.setUTCDate(departDate.getUTCDate() + cruise.nights);
-      return formatDate(returnDate.toISOString().split('T')[0]);
+      return formatDate(returnDate.toISOString().split("T")[0]);
     } catch {
       return "N/A";
     }
@@ -774,28 +774,6 @@ export default function CruisesContent() {
 
   return (
     <div className="min-h-screen bg-[#F6F3ED] pt-[100px]">
-      {/* Banner Section - Hidden on mobile */}
-      <div className="hidden md:block max-w-7xl mx-auto px-4">
-        <div
-          className="bg-[#E9B4EB] rounded-[10px] px-8 py-6 cursor-pointer"
-          onClick={handleOpenMissive}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h2
-                className="font-whitney font-black text-[#0E1B4D] uppercase text-[32px] leading-[1.25] mb-4"
-                style={{ letterSpacing: "-0.02em" }}
-              >
-                Always the most onboard credit back
-              </h2>
-              <p className="font-geograph text-[20px] text-[#0E1B4D]">
-                Have a question? We're here to help, just click to chat →
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content Area with Sidebar Filters */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex gap-8">
@@ -807,43 +785,68 @@ export default function CruisesContent() {
                 <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
                   Cruise Lines
                 </h3>
-                <div className="space-y-2">
-                  {cruiseLines.slice(0, 8).map((line) => (
-                    <label
-                      key={line.id}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedCruiseLines.includes(line.id as number)}
-                        onChange={() => {
-                          const lineId = line.id as number;
-                          const urlParams = new URLSearchParams(
-                            window.location.search,
-                          );
-                          const currentParam = urlParams.get("cruiseLines");
-                          const currentLines = currentParam
-                            ? currentParam
-                                .split(",")
-                                .map(Number)
-                                .filter((n) => !isNaN(n))
-                            : [];
-                          const newSelection = currentLines.includes(lineId)
-                            ? currentLines.filter((id) => id !== lineId)
-                            : [...currentLines, lineId];
-                          updateURLParams({
-                            cruiseLines:
-                              newSelection.length > 0 ? newSelection : null,
-                            page: 1,
-                          });
-                        }}
-                        className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
-                      />
-                      <span className="font-geograph text-[14px] text-[#2F2F2F]">
-                        {line.name}
-                      </span>
-                    </label>
-                  ))}
+                {/* Search Input */}
+                <div className="mb-3">
+                  <input
+                    type="text"
+                    value={cruiseLineSearch}
+                    onChange={(e) => setCruiseLineSearch(e.target.value)}
+                    placeholder="Search cruise lines..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                  />
+                </div>
+                {/* Scrollable List */}
+                <div
+                  className="space-y-2 max-h-64 overflow-y-auto pr-2"
+                  style={{
+                    scrollbarWidth: "thin",
+                    scrollbarColor: "#d9d9d9 #f6f3ed",
+                  }}
+                >
+                  {cruiseLines
+                    .filter((line) =>
+                      line.name
+                        .toLowerCase()
+                        .includes(cruiseLineSearch.toLowerCase()),
+                    )
+                    .map((line) => (
+                      <label
+                        key={line.id}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedCruiseLines.includes(
+                            line.id as number,
+                          )}
+                          onChange={() => {
+                            const lineId = line.id as number;
+                            const urlParams = new URLSearchParams(
+                              window.location.search,
+                            );
+                            const currentParam = urlParams.get("cruiseLines");
+                            const currentLines = currentParam
+                              ? currentParam
+                                  .split(",")
+                                  .map(Number)
+                                  .filter((n) => !isNaN(n))
+                              : [];
+                            const newSelection = currentLines.includes(lineId)
+                              ? currentLines.filter((id) => id !== lineId)
+                              : [...currentLines, lineId];
+                            updateURLParams({
+                              cruiseLines:
+                                newSelection.length > 0 ? newSelection : null,
+                              page: 1,
+                            });
+                          }}
+                          className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                        />
+                        <span className="font-geograph text-[14px] text-[#2F2F2F]">
+                          {line.name}
+                        </span>
+                      </label>
+                    ))}
                 </div>
               </div>
 
@@ -879,7 +882,8 @@ export default function CruisesContent() {
                             "Dec",
                           ].map((month, index) => {
                             const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
-                            const isSelected = selectedMonths.includes(monthStr);
+                            const isSelected =
+                              selectedMonths.includes(monthStr);
                             const isPast =
                               year < currentYear ||
                               (year === currentYear && index < currentMonth);
@@ -892,14 +896,17 @@ export default function CruisesContent() {
                                     const urlParams = new URLSearchParams(
                                       window.location.search,
                                     );
-                                    const currentParam = urlParams.get("months");
+                                    const currentParam =
+                                      urlParams.get("months");
                                     const currentMonths = currentParam
                                       ? currentParam.split(",")
                                       : [];
                                     const newSelection = currentMonths.includes(
                                       monthStr,
                                     )
-                                      ? currentMonths.filter((m) => m !== monthStr)
+                                      ? currentMonths.filter(
+                                          (m) => m !== monthStr,
+                                        )
                                       : [...currentMonths, monthStr];
                                     updateURLParams({
                                       months:
@@ -976,43 +983,68 @@ export default function CruisesContent() {
                 <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
                   Departure Port
                 </h3>
-                <div className="space-y-2">
-                  {departurePorts.slice(0, 8).map((port) => (
-                    <label
-                      key={port.id}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedDeparturePorts.includes(port.id as number)}
-                        onChange={() => {
-                          const portId = port.id as number;
-                          const urlParams = new URLSearchParams(
-                            window.location.search,
-                          );
-                          const currentParam = urlParams.get("ports");
-                          const currentPorts = currentParam
-                            ? currentParam
-                                .split(",")
-                                .map(Number)
-                                .filter((n) => !isNaN(n))
-                            : [];
-                          const newSelection = currentPorts.includes(portId)
-                            ? currentPorts.filter((id) => id !== portId)
-                            : [...currentPorts, portId];
-                          updateURLParams({
-                            ports:
-                              newSelection.length > 0 ? newSelection : null,
-                            page: 1,
-                          });
-                        }}
-                        className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
-                      />
-                      <span className="font-geograph text-[14px] text-[#2F2F2F]">
-                        {port.name}
-                      </span>
-                    </label>
-                  ))}
+                {/* Search Input */}
+                <div className="mb-3">
+                  <input
+                    type="text"
+                    value={departurePortSearch}
+                    onChange={(e) => setDeparturePortSearch(e.target.value)}
+                    placeholder="Search ports..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                  />
+                </div>
+                {/* Scrollable List */}
+                <div
+                  className="space-y-2 max-h-64 overflow-y-auto pr-2"
+                  style={{
+                    scrollbarWidth: "thin",
+                    scrollbarColor: "#d9d9d9 #f6f3ed",
+                  }}
+                >
+                  {departurePorts
+                    .filter((port) =>
+                      port.name
+                        .toLowerCase()
+                        .includes(departurePortSearch.toLowerCase()),
+                    )
+                    .map((port) => (
+                      <label
+                        key={port.id}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedDeparturePorts.includes(
+                            port.id as number,
+                          )}
+                          onChange={() => {
+                            const portId = port.id as number;
+                            const urlParams = new URLSearchParams(
+                              window.location.search,
+                            );
+                            const currentParam = urlParams.get("ports");
+                            const currentPorts = currentParam
+                              ? currentParam
+                                  .split(",")
+                                  .map(Number)
+                                  .filter((n) => !isNaN(n))
+                              : [];
+                            const newSelection = currentPorts.includes(portId)
+                              ? currentPorts.filter((id) => id !== portId)
+                              : [...currentPorts, portId];
+                            updateURLParams({
+                              ports:
+                                newSelection.length > 0 ? newSelection : null,
+                              page: 1,
+                            });
+                          }}
+                          className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                        />
+                        <span className="font-geograph text-[14px] text-[#2F2F2F]">
+                          {port.name}
+                        </span>
+                      </label>
+                    ))}
                 </div>
               </div>
 
@@ -1165,7 +1197,7 @@ export default function CruisesContent() {
                     <div
                       key={cruise.id}
                       onClick={() => router.push(`/cruise/${slug}`)}
-                      className="bg-white rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
+                      className="bg-white rounded-lg overflow-hidden cursor-pointer border border-transparent hover:border-[#d9d9d9] transition-all"
                     >
                       {/* Mobile Layout */}
                       <div className="md:hidden">
@@ -1189,7 +1221,11 @@ export default function CruisesContent() {
                                 cruise.featuredImageUrl ||
                                 ""
                               }
-                              alt={cruise.ship?.name || cruise.name || "Cruise ship"}
+                              alt={
+                                cruise.ship?.name ||
+                                cruise.name ||
+                                "Cruise ship"
+                              }
                               fill
                               sizes="100vw"
                               className="object-cover"
@@ -1227,7 +1263,7 @@ export default function CruisesContent() {
                           <div className="space-y-2 mb-4">
                             {/* Ship */}
                             <div className="flex items-center gap-2">
-                              <Image
+                              <img
                                 src="/images/ship-small.svg"
                                 alt="Ship"
                                 width={16}
@@ -1241,7 +1277,7 @@ export default function CruisesContent() {
 
                             {/* Dates */}
                             <div className="flex items-center gap-2">
-                              <Image
+                              <img
                                 src="/images/calendar-small.svg"
                                 alt="Calendar"
                                 width={16}
@@ -1249,13 +1285,16 @@ export default function CruisesContent() {
                                 className="flex-shrink-0"
                               />
                               <span className="font-geograph text-[14px] text-[#606060]">
-                                {formatDate(cruise.sailingDate || cruise.departureDate)} - {getReturnDate(cruise)}
+                                {formatDate(
+                                  cruise.sailingDate || cruise.departureDate,
+                                )}{" "}
+                                - {getReturnDate(cruise)}
                               </span>
                             </div>
 
                             {/* Departure Port */}
                             <div className="flex items-center gap-2">
-                              <Image
+                              <img
                                 src="/images/location-small.svg"
                                 alt="Location"
                                 width={16}
@@ -1290,7 +1329,8 @@ export default function CruisesContent() {
                               </div>
                               {lowestPrice && (
                                 <div className="font-geograph font-medium text-[14px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] mt-2 inline-block">
-                                  +${Math.floor((lowestPrice * 0.2) / 10) * 10} onboard credit
+                                  +${Math.floor((lowestPrice * 0.2) / 10) * 10}{" "}
+                                  onboard credit
                                 </div>
                               )}
                             </div>
@@ -1299,9 +1339,12 @@ export default function CruisesContent() {
                       </div>
 
                       {/* Desktop Layout */}
-                      <div className="hidden md:flex p-4 gap-4" style={{ maxWidth: "800px" }}>
-                        {/* Ship Thumbnail - Square */}
-                        <div className="w-32 h-32 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 relative">
+                      <div
+                        className="hidden md:flex p-4 gap-4"
+                        style={{ maxWidth: "800px" }}
+                      >
+                        {/* Ship Thumbnail - Fill Height */}
+                        <div className="w-32 h-full bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 relative self-stretch">
                           {cruise.ship?.defaultShipImage2k ||
                           cruise.ship?.defaultShipImageHd ||
                           cruise.ship?.defaultShipImage ||
@@ -1320,7 +1363,11 @@ export default function CruisesContent() {
                                 cruise.featuredImageUrl ||
                                 ""
                               }
-                              alt={cruise.ship?.name || cruise.name || "Cruise ship"}
+                              alt={
+                                cruise.ship?.name ||
+                                cruise.name ||
+                                "Cruise ship"
+                              }
                               fill
                               sizes="128px"
                               className="object-cover"
@@ -1358,12 +1405,12 @@ export default function CruisesContent() {
                           </div>
 
                           {/* Bottom Section - Details and Price */}
-                          <div className="flex justify-between items-end">
+                          <div className="flex justify-between items-end gap-8">
                             {/* Details with Icons */}
-                            <div className="space-y-1">
+                            <div className="space-y-1 flex-shrink-0">
                               {/* Ship */}
                               <div className="flex items-center gap-2">
-                                <Image
+                                <img
                                   src="/images/ship-small.svg"
                                   alt="Ship"
                                   width={14}
@@ -1377,7 +1424,7 @@ export default function CruisesContent() {
 
                               {/* Dates */}
                               <div className="flex items-center gap-2">
-                                <Image
+                                <img
                                   src="/images/calendar-small.svg"
                                   alt="Calendar"
                                   width={14}
@@ -1385,13 +1432,16 @@ export default function CruisesContent() {
                                   className="flex-shrink-0"
                                 />
                                 <span className="font-geograph text-[14px] text-[#606060]">
-                                  {formatDate(cruise.sailingDate || cruise.departureDate)} - {getReturnDate(cruise)}
+                                  {formatDate(
+                                    cruise.sailingDate || cruise.departureDate,
+                                  )}{" "}
+                                  - {getReturnDate(cruise)}
                                 </span>
                               </div>
 
                               {/* Departure Port */}
                               <div className="flex items-center gap-2">
-                                <Image
+                                <img
                                   src="/images/location-small.svg"
                                   alt="Location"
                                   width={14}
@@ -1414,7 +1464,7 @@ export default function CruisesContent() {
 
                               {/* Nights */}
                               <div className="flex items-center gap-2">
-                                <Image
+                                <img
                                   src="/images/nights-small.svg"
                                   alt="Nights"
                                   width={14}
@@ -1427,8 +1477,8 @@ export default function CruisesContent() {
                               </div>
                             </div>
 
-                            {/* Price Block */}
-                            <div className="text-right">
+                            {/* Price Block - Push to right */}
+                            <div className="text-right flex-shrink-0 ml-auto">
                               <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
                                 STARTING FROM
                               </div>
@@ -1439,7 +1489,8 @@ export default function CruisesContent() {
                               </div>
                               {lowestPrice && (
                                 <div className="font-geograph font-medium text-[14px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] mt-2 inline-block">
-                                  +${Math.floor((lowestPrice * 0.2) / 10) * 10} onboard credit
+                                  +${Math.floor((lowestPrice * 0.2) / 10) * 10}{" "}
+                                  onboard credit
                                 </div>
                               )}
                             </div>
@@ -1456,7 +1507,9 @@ export default function CruisesContent() {
             {!loading && !error && cruises.length > 0 && totalPages > 1 && (
               <div className="mt-8 flex justify-center items-center gap-2">
                 <button
-                  onClick={() => updateURLParams({ page: Math.max(1, page - 1) })}
+                  onClick={() =>
+                    updateURLParams({ page: Math.max(1, page - 1) })
+                  }
                   disabled={page === 1}
                   className="px-4 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] text-[#0E1B4D] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
                 >
