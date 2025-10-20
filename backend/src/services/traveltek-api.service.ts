@@ -737,10 +737,12 @@ export class TraveltekApiService {
 
       // Log any errors or warnings
       if (response.data.errors && response.data.errors.length > 0) {
-        console.error('⚠️  Traveltek API: createBooking returned errors:', response.data.errors);
+        console.error('⚠️  Traveltek API: createBooking returned errors:');
+        console.error(JSON.stringify(response.data.errors, null, 2));
       }
       if (response.data.warnings && response.data.warnings.length > 0) {
-        console.warn('⚠️  Traveltek API: createBooking returned warnings:', response.data.warnings);
+        console.warn('⚠️  Traveltek API: createBooking returned warnings:');
+        console.warn(JSON.stringify(response.data.warnings, null, 2));
       }
 
       return response.data;
