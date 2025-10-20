@@ -1002,20 +1002,39 @@ class TraveltekBookingService {
 
       // Insert passengers
       await db.insert(bookingPassengers).values(
-        params.passengers.map((p, index) => ({
-          bookingId: booking.id,
-          passengerNumber: index + 1, // Passenger numbers are 1-indexed
-          passengerType: p.passengerType,
-          firstName: p.firstName,
-          lastName: p.lastName,
-          dateOfBirth: new Date(p.dateOfBirth),
-          gender: p.gender,
-          citizenship: p.citizenship,
-          email: p.email || null,
-          phone: p.phone || null,
-          isLeadPassenger: p.isLeadPassenger,
-          createdAt: new Date(),
-        }))
+        params.passengers.map((p, index) => {
+          // Derive passenger type from paxtype or age
+          let passengerType: 'adult' | 'child' | 'infant';
+          if (p.passengerType) {
+            // If frontend provides it, use it
+            passengerType = p.passengerType;
+          } else {
+            // Otherwise derive from age
+            const age = this.calculateAge(p.dateOfBirth);
+            if (age < 2) {
+              passengerType = 'infant';
+            } else if (age < 18) {
+              passengerType = 'child';
+            } else {
+              passengerType = 'adult';
+            }
+          }
+
+          return {
+            bookingId: booking.id,
+            passengerNumber: index + 1, // Passenger numbers are 1-indexed
+            passengerType,
+            firstName: p.firstName,
+            lastName: p.lastName,
+            dateOfBirth: new Date(p.dateOfBirth),
+            gender: p.gender,
+            citizenship: p.citizenship,
+            email: p.email || null,
+            phone: p.phone || null,
+            isLeadPassenger: p.isLeadPassenger,
+            createdAt: new Date(),
+          };
+        })
       );
 
       // Insert payment
