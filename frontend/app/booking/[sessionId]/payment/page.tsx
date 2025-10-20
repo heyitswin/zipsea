@@ -98,29 +98,59 @@ export default function BookingPaymentPage() {
     setIsProcessing(true);
 
     try {
+      // Extract lead passenger (first passenger) for contact info
+      const leadPassenger = bookingSummary.passengers?.[0];
+      if (!leadPassenger) {
+        throw new Error("No passenger data found");
+      }
+
+      // Parse expiry date (MM/YY format)
+      const [expiryMonth, expiryYear] = expiryDate.split("/");
+
+      // Get total amount from the basket/pricing
+      // TODO: This should come from the basket API response
+      const totalAmount = 2487.36;
+
+      // Format request according to backend API contract
+      const requestBody = {
+        passengers: bookingSummary.passengers,
+        contact: {
+          firstName: leadPassenger.firstName,
+          lastName: leadPassenger.lastName,
+          email: leadPassenger.email,
+          phone: leadPassenger.phone,
+          address: leadPassenger.address || "",
+          city: leadPassenger.city || "",
+          state: leadPassenger.state || "",
+          postalCode: leadPassenger.zipCode || "",
+          country: leadPassenger.country || "US",
+        },
+        payment: {
+          cardNumber: cardNumber.replace(/\s/g, ""),
+          expiryMonth,
+          expiryYear: `20${expiryYear}`, // Convert YY to YYYY
+          cardholderName: cardName,
+          cvv,
+          amount: totalAmount,
+        },
+        dining: bookingSummary.options?.diningPreference || "anytime",
+      };
+
       // Call booking API
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/confirm`,
+        `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/create`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            passengers: bookingSummary.passengers,
-            options: bookingSummary.options,
-            payment: {
-              cardNumber: cardNumber.replace(/\s/g, ""),
-              expiryDate,
-              cvv,
-              cardName,
-            },
-          }),
-        }
+          body: JSON.stringify(requestBody),
+        },
       );
 
       if (!response.ok) {
-        throw new Error("Booking failed");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Booking failed");
       }
 
       const data = await response.json();
@@ -133,10 +163,17 @@ export default function BookingPaymentPage() {
       }
 
       // Navigate to success page
-      router.push(`/booking/${sessionId}/success?confirmationId=${data.confirmationId}`);
+      router.push(
+        `/booking/${sessionId}/success?confirmationId=${data.confirmationNumber || data.bookingId}`,
+      );
     } catch (error) {
       console.error("Booking error:", error);
-      setErrors({ submit: "Failed to process booking. Please try again." });
+      setErrors({
+        submit:
+          error instanceof Error
+            ? error.message
+            : "Failed to process booking. Please try again.",
+      });
       setIsProcessing(false);
     }
   };
@@ -212,23 +249,30 @@ export default function BookingPaymentPage() {
                   Passengers ({bookingSummary.passengers.length})
                 </h3>
                 <div className="space-y-3">
-                  {bookingSummary.passengers.map((passenger: any, index: number) => (
-                    <div key={index} className="flex justify-between items-center pb-3 border-b border-gray-200 last:border-0">
-                      <div>
-                        <p className="font-geograph font-medium text-[16px] text-dark-blue">
-                          {passenger.firstName} {passenger.lastName}
-                        </p>
-                        <p className="font-geograph text-[14px] text-gray-600">
-                          {index === 0 ? "Lead Passenger" : `Guest ${index + 1}`}
-                        </p>
+                  {bookingSummary.passengers.map(
+                    (passenger: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex justify-between items-center pb-3 border-b border-gray-200 last:border-0"
+                      >
+                        <div>
+                          <p className="font-geograph font-medium text-[16px] text-dark-blue">
+                            {passenger.firstName} {passenger.lastName}
+                          </p>
+                          <p className="font-geograph text-[14px] text-gray-600">
+                            {index === 0
+                              ? "Lead Passenger"
+                              : `Guest ${index + 1}`}
+                          </p>
+                        </div>
+                        {index === 0 && passenger.email && (
+                          <p className="font-geograph text-[14px] text-gray-600">
+                            {passenger.email}
+                          </p>
+                        )}
                       </div>
-                      {index === 0 && passenger.email && (
-                        <p className="font-geograph text-[14px] text-gray-600">
-                          {passenger.email}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
               </div>
             )}
@@ -283,7 +327,9 @@ export default function BookingPaymentPage() {
                     type="text"
                     value={cardNumber}
                     onChange={(e) => {
-                      const formatted = formatCardNumber(e.target.value.slice(0, 19));
+                      const formatted = formatCardNumber(
+                        e.target.value.slice(0, 19),
+                      );
                       setCardNumber(formatted);
                       if (errors.cardNumber) {
                         const newErrors = { ...errors };
@@ -298,7 +344,9 @@ export default function BookingPaymentPage() {
                     maxLength={19}
                   />
                   {errors.cardNumber && (
-                    <p className="text-red-500 text-sm mt-1">{errors.cardNumber}</p>
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.cardNumber}
+                    </p>
                   )}
                 </div>
 
@@ -326,7 +374,9 @@ export default function BookingPaymentPage() {
                       maxLength={5}
                     />
                     {errors.expiryDate && (
-                      <p className="text-red-500 text-sm mt-1">{errors.expiryDate}</p>
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.expiryDate}
+                      </p>
                     )}
                   </div>
 
@@ -338,7 +388,9 @@ export default function BookingPaymentPage() {
                       type="text"
                       value={cvv}
                       onChange={(e) => {
-                        const value = e.target.value.replace(/\D/g, "").slice(0, 4);
+                        const value = e.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, 4);
                         setCvv(value);
                         if (errors.cvv) {
                           const newErrors = { ...errors };
@@ -379,7 +431,9 @@ export default function BookingPaymentPage() {
                     placeholder="John Doe"
                   />
                   {errors.cardName && (
-                    <p className="text-red-500 text-sm mt-1">{errors.cardName}</p>
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.cardName}
+                    </p>
                   )}
                 </div>
 

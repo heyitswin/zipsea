@@ -818,6 +818,189 @@ export class SlackService {
 
     await this.sendToSlack(blocks);
   }
+
+  /**
+   * Send notification for new booking
+   */
+  async notifyBookingCreated(bookingData: {
+    bookingId: string;
+    confirmationNumber?: string;
+    traveltekBookingId: string;
+    cruiseName?: string;
+    cruiseLine?: string;
+    shipName?: string;
+    sailingDate?: string;
+    nights?: number;
+    passengerCount: number;
+    totalAmount: number;
+    paidAmount: number;
+    depositAmount?: number;
+    balanceDueDate?: string;
+    leadPassenger: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+    };
+    cabinGrade?: string;
+    rateCode?: string;
+    status: string;
+  }): Promise<void> {
+    if (!this.enabled) return;
+
+    const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+
+    // Format currency
+    const formatCurrency = (amount: number) =>
+      `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    // Build cruise details text
+    let cruiseDetails = '';
+    if (bookingData.cruiseName) {
+      cruiseDetails += `*${bookingData.cruiseName}*\n`;
+    }
+    if (bookingData.cruiseLine && bookingData.shipName) {
+      cruiseDetails += `${bookingData.cruiseLine} - ${bookingData.shipName}\n`;
+    }
+    if (bookingData.nights && bookingData.sailingDate) {
+      cruiseDetails += `${bookingData.nights} nights departing ${bookingData.sailingDate}`;
+    }
+
+    const blocks: any[] = [
+      {
+        type: 'header',
+        text: {
+          type: 'plain_text',
+          text: '🎉 New Booking Confirmed!',
+          emoji: true,
+        },
+      },
+    ];
+
+    // Cruise details section (if available)
+    if (cruiseDetails) {
+      blocks.push({
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: cruiseDetails,
+        },
+      });
+    }
+
+    // Booking details
+    blocks.push({
+      type: 'section',
+      fields: [
+        {
+          type: 'mrkdwn',
+          text: `*Booking ID:*\n${bookingData.bookingId.substring(0, 8)}`,
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Confirmation #:*\n${bookingData.confirmationNumber || 'Pending'}`,
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Traveltek ID:*\n${bookingData.traveltekBookingId}`,
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Status:*\n${bookingData.status.charAt(0).toUpperCase() + bookingData.status.slice(1)}`,
+        },
+      ],
+    });
+
+    // Passenger and cabin details
+    const passengerFields: any[] = [
+      {
+        type: 'mrkdwn',
+        text: `*Lead Passenger:*\n${bookingData.leadPassenger.firstName} ${bookingData.leadPassenger.lastName}`,
+      },
+      {
+        type: 'mrkdwn',
+        text: `*Total Passengers:*\n${bookingData.passengerCount}`,
+      },
+    ];
+
+    if (bookingData.cabinGrade) {
+      passengerFields.push({
+        type: 'mrkdwn',
+        text: `*Cabin Grade:*\n${bookingData.cabinGrade}`,
+      });
+    }
+
+    if (bookingData.rateCode) {
+      passengerFields.push({
+        type: 'mrkdwn',
+        text: `*Rate Code:*\n${bookingData.rateCode}`,
+      });
+    }
+
+    blocks.push({
+      type: 'section',
+      fields: passengerFields,
+    });
+
+    // Contact details
+    blocks.push({
+      type: 'section',
+      fields: [
+        {
+          type: 'mrkdwn',
+          text: `*Email:*\n${bookingData.leadPassenger.email}`,
+        },
+        {
+          type: 'mrkdwn',
+          text: `*Phone:*\n${bookingData.leadPassenger.phone}`,
+        },
+      ],
+    });
+
+    // Payment details
+    const paymentFields: any[] = [
+      {
+        type: 'mrkdwn',
+        text: `*Total Amount:*\n${formatCurrency(bookingData.totalAmount)}`,
+      },
+      {
+        type: 'mrkdwn',
+        text: `*Paid Amount:*\n${formatCurrency(bookingData.paidAmount)}`,
+      },
+    ];
+
+    if (bookingData.depositAmount !== undefined) {
+      paymentFields.push({
+        type: 'mrkdwn',
+        text: `*Deposit Amount:*\n${formatCurrency(bookingData.depositAmount)}`,
+      });
+    }
+
+    if (bookingData.balanceDueDate) {
+      paymentFields.push({
+        type: 'mrkdwn',
+        text: `*Balance Due Date:*\n${bookingData.balanceDueDate}`,
+      });
+    }
+
+    blocks.push({
+      type: 'section',
+      fields: paymentFields,
+    });
+
+    // Timestamp
+    blocks.push({
+      type: 'context',
+      elements: [
+        {
+          type: 'mrkdwn',
+          text: `🕒 ${timestamp} ET | Booking created via Zipsea Live Booking`,
+        },
+      ],
+    });
+
+    await this.sendToSlack(blocks);
+  }
 }
 
 // Export singleton instance

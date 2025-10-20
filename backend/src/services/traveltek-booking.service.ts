@@ -1,7 +1,9 @@
 import { traveltekApiService } from './traveltek-api.service';
 import { traveltekSessionService } from './traveltek-session.service';
+import { slackService } from './slack.service';
 import { db, sql } from '../db/connection';
 import { bookings, bookingPassengers, bookingPayments } from '../db/schema';
+import { cruises, cruiseLines, ships } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
 interface PassengerDetails {
@@ -780,7 +782,45 @@ class TraveltekBookingService {
 
       console.log(`[TraveltekBooking] Successfully created booking ${bookingId}`);
 
-      // Step 7: Return booking result
+      // Step 7: Send Slack notification
+      try {
+        // Get cruise details for the notification
+        const cruiseDetails = await this.getCruiseDetailsForNotification(sessionData.cruiseId);
+
+        // Find lead passenger
+        const leadPassenger =
+          params.passengers.find(p => p.isLeadPassenger) || params.passengers[0];
+
+        await slackService.notifyBookingCreated({
+          bookingId,
+          confirmationNumber: bookingResponse.confirmationnumber,
+          traveltekBookingId: bookingResponse.bookingid,
+          cruiseName: cruiseDetails?.cruiseName,
+          cruiseLine: cruiseDetails?.cruiseLine,
+          shipName: cruiseDetails?.shipName,
+          sailingDate: cruiseDetails?.sailingDate,
+          nights: cruiseDetails?.nights,
+          passengerCount: params.passengers.length,
+          totalAmount: bookingResponse.totalcost,
+          paidAmount: params.payment.amount,
+          depositAmount: bookingResponse.depositamount,
+          balanceDueDate: bookingResponse.balanceduedate,
+          leadPassenger: {
+            firstName: leadPassenger.firstName,
+            lastName: leadPassenger.lastName,
+            email: leadPassenger.email || params.contact.email,
+            phone: leadPassenger.phone || params.contact.phone,
+          },
+          cabinGrade: sessionData.selectedCabin?.gradeCode,
+          rateCode: sessionData.selectedCabin?.rateCode,
+          status: paymentResponse.status === 'success' ? 'confirmed' : 'pending',
+        });
+      } catch (slackError) {
+        // Don't fail the booking if Slack notification fails
+        console.error('[TraveltekBooking] Failed to send Slack notification:', slackError);
+      }
+
+      // Step 8: Return booking result
       return {
         bookingId,
         traveltekBookingId: bookingResponse.bookingid,
@@ -819,6 +859,52 @@ class TraveltekBookingService {
     }
 
     return age;
+  }
+
+  /**
+   * Get cruise details for Slack notification
+   *
+   * @param cruiseId - The cruise ID
+   * @returns Cruise details or null
+   */
+  private async getCruiseDetailsForNotification(cruiseId: string): Promise<{
+    cruiseName: string;
+    cruiseLine: string;
+    shipName: string;
+    sailingDate: string;
+    nights: number;
+  } | null> {
+    try {
+      const cruise = await db
+        .select({
+          name: cruises.name,
+          nights: cruises.nights,
+          sailingDate: cruises.sailingDate,
+          lineName: cruiseLines.name,
+          shipName: ships.name,
+        })
+        .from(cruises)
+        .leftJoin(cruiseLines, eq(cruises.cruiseLineId, cruiseLines.id))
+        .leftJoin(ships, eq(cruises.shipId, ships.id))
+        .where(eq(cruises.id, cruiseId))
+        .limit(1);
+
+      if (cruise.length === 0) {
+        return null;
+      }
+
+      const c = cruise[0];
+      return {
+        cruiseName: c.name || 'Unknown Cruise',
+        cruiseLine: c.lineName || 'Unknown Line',
+        shipName: c.shipName || 'Unknown Ship',
+        sailingDate: c.sailingDate || 'Unknown Date',
+        nights: c.nights || 0,
+      };
+    } catch (error) {
+      console.error('[TraveltekBooking] Failed to get cruise details for notification:', error);
+      return null;
+    }
   }
 
   /**
