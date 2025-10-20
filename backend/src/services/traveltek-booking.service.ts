@@ -811,8 +811,10 @@ class TraveltekBookingService {
       });
 
       try {
-        // Build ccard payload - IMPORTANT: Don't include empty/optional fields
-        // Traveltek API documentation doesn't show address2 field, so we omit it
+        // Build ccard payload - MINIMAL fields only per Traveltek documentation
+        // The documentation curl example shows payment WITHOUT address fields
+        // when paying for an existing booking (post-booking payment)
+        // Only include the core required fields: card info + amount
         const ccardPayload = {
           cardtype: 'VIS', // TODO: Determine from card number
           cardnumber: params.payment.cardNumber,
@@ -821,13 +823,6 @@ class TraveltekBookingService {
           nameoncard: params.payment.cardholderName,
           cvv: params.payment.cvv,
           amount: params.payment.amount.toString(),
-          title: leadPassengerTitle,
-          firstname: params.contact.firstName,
-          lastname: params.contact.lastName,
-          address1: params.contact.address,
-          city: params.contact.city,
-          postcode: params.contact.postalCode,
-          country: params.contact.country,
         };
 
         console.log('[TraveltekBooking] Full ccard payload (sanitized):', {
