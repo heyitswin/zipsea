@@ -752,11 +752,15 @@ class TraveltekBookingService {
         JSON.stringify(params.passengers, null, 2)
       );
 
+      // Get lead passenger title for contact info
+      const leadPassengerTitle = params.passengers[0]?.title;
+
       const bookingResponse = await traveltekApiService.createBooking({
         sessionkey: sessionData.sessionKey,
         sid: sessionData.sid,
         itemkey: sessionData.itemkey,
         contact: {
+          title: leadPassengerTitle,
           firstname: params.contact.firstName,
           lastname: params.contact.lastName,
           email: params.contact.email,

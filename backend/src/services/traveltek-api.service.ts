@@ -641,6 +641,7 @@ export class TraveltekApiService {
     sid: string;
     itemkey: string; // Required: itemkey from basket response
     contact: {
+      title: string;
       firstname: string;
       lastname: string;
       email: string;
