@@ -9,10 +9,12 @@ import { eq } from 'drizzle-orm';
 interface PassengerDetails {
   passengerNumber: number;
   passengerType: 'adult' | 'child' | 'infant';
+  title: string; // Mr, Mrs, Ms, Miss, Dr, etc.
   firstName: string;
   lastName: string;
   dateOfBirth: string; // YYYY-MM-DD
   gender: 'M' | 'F';
+  nationality: string; // ISO country code
   citizenship: string; // ISO country code
   email?: string;
   phone?: string;
@@ -761,14 +763,19 @@ class TraveltekBookingService {
           country: params.contact.country,
         },
         passengers: params.passengers.map(p => ({
+          title: p.title,
           firstname: p.firstName,
           lastname: p.lastName,
           dob: p.dateOfBirth,
           gender: p.gender,
+          nationality: p.nationality,
           paxtype: p.passengerType,
           age: this.calculateAge(p.dateOfBirth),
         })),
-        dining: params.dining,
+        dining: {
+          ...params.dining,
+          smoking: 'non-smoking', // Hardcoded to non-smoking
+        },
         depositBooking: false, // Full payment for now
       });
 
