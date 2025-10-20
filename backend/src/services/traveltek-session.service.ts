@@ -301,18 +301,9 @@ class TraveltekSessionService {
       // Update database
       await db.update(bookingSessions).set(updateData).where(eq(bookingSessions.id, sessionId));
 
-      // Update Redis cache
-      const sessionData = await this.getSession(sessionId);
-      if (sessionData) {
-        const ttl = Math.floor((new Date(sessionData.expiresAt).getTime() - Date.now()) / 1000);
-        if (ttl > 0) {
-          await this.redis.setex(
-            `${this.REDIS_KEY_PREFIX}${sessionId}`,
-            ttl,
-            JSON.stringify(sessionData)
-          );
-        }
-      }
+      // Invalidate Redis cache so next getSession will fetch fresh data from database
+      // This ensures the updated itemkey and other fields are included
+      await this.redis.del(`${this.REDIS_KEY_PREFIX}${sessionId}`);
 
       console.log(`[TraveltekSession] Updated session ${sessionId}`);
     } catch (error) {
