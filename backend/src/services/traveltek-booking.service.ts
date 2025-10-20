@@ -773,7 +773,7 @@ class TraveltekBookingService {
           age: this.calculateAge(p.dateOfBirth),
         })),
         dining: {
-          ...(params.dining || {}),
+          seating: params.dining, // Dining seating preference (early/late)
           smoking: 'non-smoking', // Hardcoded to non-smoking
         },
         depositBooking: false, // Full payment for now
