@@ -811,6 +811,8 @@ class TraveltekBookingService {
       });
 
       try {
+        // Build ccard payload - IMPORTANT: Don't include empty/optional fields
+        // Traveltek API documentation doesn't show address2 field, so we omit it
         const ccardPayload = {
           cardtype: 'VIS', // TODO: Determine from card number
           cardnumber: params.payment.cardNumber,
@@ -823,7 +825,6 @@ class TraveltekBookingService {
           firstname: params.contact.firstName,
           lastname: params.contact.lastName,
           address1: params.contact.address,
-          address2: '',
           city: params.contact.city,
           postcode: params.contact.postalCode,
           country: params.contact.country,
