@@ -824,6 +824,49 @@ class TraveltekBookingService {
       // Traveltek will process payment as part of booking creation
       console.log('[TraveltekBooking] Payment included in booking - checking status...');
 
+      // Check payment status from booking response
+      const bookingDetails = bookingResponse.bookingdetails || bookingResponse;
+      console.log('[TraveltekBooking] Payment Status Check:');
+      console.log('  - Booking Status:', bookingDetails.status || 'N/A');
+      console.log('  - Total Due:', bookingDetails.totaldue || 0);
+      console.log('  - Total Paid:', bookingDetails.totalpaid || 0);
+      console.log('  - Outstanding:', bookingDetails.outstanding || 0);
+      console.log('  - Handoff Status:', bookingDetails.handoffstatus || 'N/A');
+
+      // Check if there are any transactions
+      if (bookingDetails.transactions && bookingDetails.transactions.length > 0) {
+        console.log('[TraveltekBooking] Transactions:');
+        bookingDetails.transactions.forEach((tx: any, idx: number) => {
+          console.log(`  Transaction ${idx + 1}:`, {
+            amount: tx.amount,
+            authcode: tx.authcode,
+            status: tx.status,
+            type: tx.type,
+          });
+        });
+      } else {
+        console.log('[TraveltekBooking] ⚠️  No transactions found in booking response');
+      }
+
+      // Check if payment actually went through
+      const totalPaid = bookingDetails.totalpaid || 0;
+      const totalDue = bookingDetails.totaldue || 0;
+      const outstanding = bookingDetails.outstanding || 0;
+
+      if (totalPaid < totalDue || outstanding > 0) {
+        console.error('[TraveltekBooking] ❌ Payment may have failed:');
+        console.error(`  - Expected to pay: ${totalDue}`);
+        console.error(`  - Actually paid: ${totalPaid}`);
+        console.error(`  - Still outstanding: ${outstanding}`);
+        throw new Error(
+          `Payment incomplete: Paid ${totalPaid} of ${totalDue} (${outstanding} outstanding). ` +
+            `Booking status: ${bookingDetails.status}. ` +
+            `Please check Traveltek booking ${bookingResponse.bookingid} for details.`
+        );
+      }
+
+      console.log('[TraveltekBooking] ✅ Payment confirmed: Full amount paid');
+
       // Step 6: Store booking in our database
       const bookingId = await this.storeBooking({
         sessionId: params.sessionId,
