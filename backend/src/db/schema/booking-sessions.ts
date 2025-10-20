@@ -1,12 +1,4 @@
-import {
-  pgTable,
-  uuid,
-  varchar,
-  jsonb,
-  timestamp,
-  text,
-  boolean,
-} from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, jsonb, timestamp, text, boolean } from 'drizzle-orm/pg-core';
 import { users } from './users';
 import { cruises } from './cruises';
 
@@ -58,6 +50,9 @@ export const bookingSessions = pgTable('booking_sessions', {
     totaldeposit?: number;
     duedate?: string;
   }>(),
+
+  // Item key for booking (extracted from basket for easy access)
+  itemkey: varchar('itemkey', { length: 255 }),
 
   // Session management
   expiresAt: timestamp('expires_at').notNull(), // 2 hours from creation
