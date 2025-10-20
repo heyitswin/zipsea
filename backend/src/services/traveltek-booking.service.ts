@@ -833,16 +833,34 @@ class TraveltekBookingService {
       console.log('  - Outstanding:', bookingDetails.outstanding || 0);
       console.log('  - Handoff Status:', bookingDetails.handoffstatus || 'N/A');
 
-      // Check if there are any transactions
+      // Check if there are any transactions and validate them
       if (bookingDetails.transactions && bookingDetails.transactions.length > 0) {
         console.log('[TraveltekBooking] Transactions:');
         bookingDetails.transactions.forEach((tx: any, idx: number) => {
           console.log(`  Transaction ${idx + 1}:`, {
             amount: tx.amount,
             authcode: tx.authcode,
+            fraudcategory: tx.fraudcategory,
+            cardnumber: tx.cardnumber,
             status: tx.status,
             type: tx.type,
           });
+
+          // Check for payment decline - empty authcode indicates declined transaction
+          if (!tx.authcode || tx.authcode.trim() === '') {
+            console.error('[TraveltekBooking] ❌ Payment DECLINED - no authorization code');
+            throw new Error(
+              `Payment declined by card processor. ` +
+                `Fraud category: ${tx.fraudcategory || 'N/A'}. ` +
+                `Booking ${bookingResponse.bookingid} was created but payment failed. ` +
+                `Please use a different payment method or contact your bank.`
+            );
+          }
+
+          // Warn about fraud flags
+          if (tx.fraudcategory && tx.fraudcategory !== 'Green') {
+            console.warn(`[TraveltekBooking] ⚠️  Fraud warning: ${tx.fraudcategory}`);
+          }
         });
       } else {
         console.log('[TraveltekBooking] ⚠️  No transactions found in booking response');
