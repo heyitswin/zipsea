@@ -1002,9 +1002,9 @@ class TraveltekBookingService {
 
       // Insert passengers
       await db.insert(bookingPassengers).values(
-        params.passengers.map(p => ({
+        params.passengers.map((p, index) => ({
           bookingId: booking.id,
-          passengerNumber: p.passengerNumber,
+          passengerNumber: index + 1, // Passenger numbers are 1-indexed
           passengerType: p.passengerType,
           firstName: p.firstName,
           lastName: p.lastName,

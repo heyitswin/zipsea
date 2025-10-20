@@ -713,6 +713,7 @@ export class TraveltekApiService {
       params.passengers.forEach((passenger, index) => {
         const paxNum = index + 1;
         passengersObject[paxNum] = {
+          paxno: paxNum, // Required: passenger number
           title: passenger.title,
           firstname: passenger.firstname,
           lastname: passenger.lastname,
