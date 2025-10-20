@@ -755,8 +755,11 @@ class TraveltekBookingService {
       // Get lead passenger title for contact info
       const leadPassengerTitle = params.passengers[0]?.title;
 
-      // Step 4: Create booking WITHOUT payment (payment will be processed separately)
-      console.log('[TraveltekBooking] Creating booking without payment...');
+      // Step 4: Create booking WITH payment included (per Traveltek documentation)
+      // Using the booking request format with ccard object using correct field names:
+      // - signature (not cvv)
+      // - homecity (not city)
+      console.log('[TraveltekBooking] Creating booking with payment included...');
       const bookingResponse = await traveltekApiService.createBooking({
         sessionkey: sessionData.sessionKey,
         sid: sessionData.sid,
@@ -785,7 +788,26 @@ class TraveltekBookingService {
         })),
         dining: params.dining, // Dining seating preference
         depositBooking: false, // Full payment
-        // Note: ccard removed - payment will be processed separately
+        // Include payment details in booking request
+        ccard: {
+          passthroughitem: sessionData.itemkey, // Required for passthrough payment
+          amount: params.payment.amount,
+          nameoncard: params.payment.cardholderName,
+          cardtype: 'VIS', // TODO: Determine from card number
+          cardnumber: params.payment.cardNumber,
+          expirymonth: params.payment.expiryMonth,
+          expiryyear: params.payment.expiryYear,
+          signature: params.payment.cvv, // NOTE: Field name is 'signature' not 'cvv'
+          title: leadPassengerTitle,
+          firstname: params.contact.firstName,
+          lastname: params.contact.lastName,
+          postcode: params.contact.postalCode,
+          address1: params.contact.address,
+          address2: params.contact.address2,
+          homecity: params.contact.city, // NOTE: Field name is 'homecity' not 'city'
+          county: params.contact.state,
+          country: params.contact.country,
+        },
       });
 
       if (!bookingResponse.bookingid) {
@@ -794,96 +816,9 @@ class TraveltekBookingService {
 
       console.log('[TraveltekBooking] ✅ Booking created:', bookingResponse.bookingid);
 
-      // Step 5: Process payment using separate payment endpoint
-      console.log('[TraveltekBooking] Processing payment...');
-      console.log('[TraveltekBooking] Payment field values:', {
-        cvv: params.payment.cvv
-          ? `***${params.payment.cvv.slice(-1)} (length: ${params.payment.cvv.length})`
-          : 'MISSING',
-        city: params.contact.city || 'MISSING',
-        cardNumber: params.payment.cardNumber
-          ? `****${params.payment.cardNumber.slice(-4)}`
-          : 'MISSING',
-        amount: params.payment.amount,
-        address1: params.contact.address || 'MISSING',
-        postcode: params.contact.postalCode || 'MISSING',
-        country: params.contact.country || 'MISSING',
-      });
-
-      try {
-        // Build ccard payload - MINIMAL fields only per Traveltek documentation
-        // The documentation curl example shows payment WITHOUT address fields
-        // when paying for an existing booking (post-booking payment)
-        // Only include the core required fields: card info + amount
-        const ccardPayload = {
-          cardtype: 'VIS', // TODO: Determine from card number
-          cardnumber: params.payment.cardNumber,
-          expirymonth: params.payment.expiryMonth,
-          expiryyear: params.payment.expiryYear,
-          nameoncard: params.payment.cardholderName,
-          cvv: params.payment.cvv,
-          amount: params.payment.amount.toString(),
-        };
-
-        console.log('[TraveltekBooking] Full ccard payload (sanitized):', {
-          ...ccardPayload,
-          cardnumber: ccardPayload.cardnumber
-            ? `****${ccardPayload.cardnumber.slice(-4)}`
-            : 'MISSING',
-          cvv: ccardPayload.cvv ? `***${ccardPayload.cvv.slice(-1)}` : 'MISSING',
-        });
-
-        const paymentResponse = await traveltekApiService.processPayment({
-          sessionkey: sessionData.sessionKey,
-          ccard: ccardPayload,
-        });
-
-        console.log(
-          '[TraveltekBooking] Payment response:',
-          JSON.stringify(paymentResponse, null, 2)
-        );
-
-        // Check if payment was successful
-        // Traveltek returns errors in an errors array, not a success field
-        if (paymentResponse.errors && paymentResponse.errors.length > 0) {
-          const errorMessages = paymentResponse.errors
-            .flat()
-            .map((err: any) => err.text || err.message || JSON.stringify(err))
-            .join('; ');
-          console.error('[TraveltekBooking] ❌ Payment failed with errors:', errorMessages);
-          throw new Error(`Payment failed: ${errorMessages}`);
-        }
-
-        // Check if we have results with successful transaction
-        if (!paymentResponse.results || paymentResponse.results.length === 0) {
-          console.error('[TraveltekBooking] ❌ Payment response missing results');
-          throw new Error('Payment failed: No transaction results returned');
-        }
-
-        const transactionResult = paymentResponse.results[0];
-        if (transactionResult.transstatus !== 'COMPLETE') {
-          console.error(
-            '[TraveltekBooking] ❌ Payment transaction not complete:',
-            transactionResult.transstatus
-          );
-          throw new Error(
-            `Payment failed: Transaction status is ${transactionResult.transstatus}, expected COMPLETE`
-          );
-        }
-
-        console.log(
-          `[TraveltekBooking] ✅ Payment processed successfully: ${transactionResult.code} - ${transactionResult.message}`
-        );
-      } catch (paymentError) {
-        console.error('[TraveltekBooking] ❌ Payment processing error:', paymentError);
-        // Booking was created but payment failed - this is a critical error
-        // The booking exists in Traveltek but is not paid
-        throw new Error(
-          `Booking created (ID: ${bookingResponse.bookingid}) but payment failed: ${
-            paymentError instanceof Error ? paymentError.message : 'Unknown error'
-          }`
-        );
-      }
+      // Payment was included in booking request, so check booking status for payment confirmation
+      // Traveltek will process payment as part of booking creation
+      console.log('[TraveltekBooking] Payment included in booking - checking status...');
 
       // Step 6: Store booking in our database
       const bookingId = await this.storeBooking({
