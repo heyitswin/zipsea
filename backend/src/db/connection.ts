@@ -24,10 +24,11 @@ export const db = sql
       schema,
       logger: {
         logQuery: (query, params) => {
-          console.log('=== DRIZZLE SQL QUERY ===');
-          console.log('Query:', query);
-          console.log('Params:', params);
-          console.log('========================');
+          // Disabled to reduce log noise - sync logs are kept
+          // console.log('=== DRIZZLE SQL QUERY ===');
+          // console.log('Query:', query);
+          // console.log('Params:', params);
+          // console.log('========================');
           if (env.NODE_ENV === 'staging') {
             dbLogger.debug('SQL Query', { query, params });
           }
