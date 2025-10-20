@@ -778,13 +778,7 @@ export default function CruisesContent() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex gap-8">
           {/* Left Sidebar - Filters (Desktop Only) */}
-          <aside
-            className="hidden md:block w-64 flex-shrink-0 max-h-[calc(100vh-120px)] overflow-y-auto pr-2"
-            style={{
-              scrollbarWidth: "thin",
-              scrollbarColor: "#d9d9d9 #f6f3ed",
-            }}
-          >
+          <aside className="hidden md:block w-64 flex-shrink-0">
             <div className="space-y-4">
               {/* Cruise Lines Filter */}
               <div>
@@ -1054,6 +1048,78 @@ export default function CruisesContent() {
                 </div>
               </div>
 
+              {/* Region Filter */}
+              <div>
+                <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
+                  Region
+                </h3>
+                {/* Search Input */}
+                <div className="mb-3">
+                  <input
+                    type="text"
+                    value={regionSearch}
+                    onChange={(e) => setRegionSearch(e.target.value)}
+                    placeholder="Search regions..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                  />
+                </div>
+                {/* Scrollable List */}
+                <div
+                  className="space-y-2 max-h-64 overflow-y-auto pr-2"
+                  style={{
+                    scrollbarWidth: "thin",
+                    scrollbarColor: "#d9d9d9 #f6f3ed",
+                  }}
+                >
+                  {regions
+                    .filter((region) =>
+                      region.name
+                        .toLowerCase()
+                        .includes(regionSearch.toLowerCase()),
+                    )
+                    .map((region) => (
+                      <label
+                        key={region.id}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedRegions.includes(
+                            region.id as number,
+                          )}
+                          onChange={() => {
+                            const regionId = region.id as number;
+                            const urlParams = new URLSearchParams(
+                              window.location.search,
+                            );
+                            const currentParam = urlParams.get("regions");
+                            const currentRegions = currentParam
+                              ? currentParam
+                                  .split(",")
+                                  .map(Number)
+                                  .filter((n) => !isNaN(n))
+                              : [];
+                            const newSelection = currentRegions.includes(
+                              regionId,
+                            )
+                              ? currentRegions.filter((id) => id !== regionId)
+                              : [...currentRegions, regionId];
+                            updateURLParams({
+                              regions:
+                                newSelection.length > 0 ? newSelection : null,
+                              page: 1,
+                            });
+                          }}
+                          className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                        />
+                        <span className="font-geograph text-[14px] text-[#2F2F2F]">
+                          {region.name}
+                        </span>
+                      </label>
+                    ))}
+                </div>
+              </div>
+
               {/* Clear All Filters Button */}
               {appliedFilters.length > 0 && (
                 <button
@@ -1203,7 +1269,7 @@ export default function CruisesContent() {
                     <div
                       key={cruise.id}
                       onClick={() => router.push(`/cruise/${slug}`)}
-                      className="bg-white rounded-lg overflow-hidden cursor-pointer border border-transparent hover:border-[#d9d9d9] transition-all"
+                      className="bg-white rounded-lg overflow-hidden cursor-pointer border border-[#d9d9d9]"
                     >
                       {/* Mobile Layout */}
                       <div className="md:hidden">
@@ -1345,12 +1411,9 @@ export default function CruisesContent() {
                       </div>
 
                       {/* Desktop Layout */}
-                      <div
-                        className="hidden md:flex p-4 gap-4"
-                        style={{ maxWidth: "800px" }}
-                      >
-                        {/* Ship Thumbnail - Fill Height */}
-                        <div className="w-32 h-40 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 relative">
+                      <div className="hidden md:flex p-4 gap-4">
+                        {/* Ship Thumbnail - Square */}
+                        <div className="w-40 h-40 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 relative">
                           {cruise.ship?.defaultShipImage2k ||
                           cruise.ship?.defaultShipImageHd ||
                           cruise.ship?.defaultShipImage ||
@@ -1375,9 +1438,10 @@ export default function CruisesContent() {
                                 "Cruise ship"
                               }
                               fill
-                              sizes="128px"
+                              sizes="160px"
                               className="object-cover"
                               loading="lazy"
+                              quality={90}
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
@@ -1400,11 +1464,14 @@ export default function CruisesContent() {
 
                             {/* Cruise Line Logo */}
                             {cruiseLineLogo && (
-                              <div className="mb-3 h-6 flex items-center">
+                              <div className="mb-3 flex items-center">
                                 <img
                                   src={cruiseLineLogo}
                                   alt={cruise.cruiseLine?.name || ""}
-                                  className="h-full w-auto object-contain"
+                                  width={186}
+                                  height={60}
+                                  className="object-contain"
+                                  style={{ width: "186px", height: "60px" }}
                                 />
                               </div>
                             )}
@@ -1485,16 +1552,16 @@ export default function CruisesContent() {
 
                             {/* Price Block - Push to right */}
                             <div className="text-right flex-shrink-0 ml-auto">
-                              <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider mb-1">
-                                STARTING FROM
+                              <div className="font-geograph font-bold text-[10px] text-[#474747] uppercase tracking-wider -mb-1">
+                                PER PERSON
                               </div>
-                              <div className="font-geograph font-bold text-[24px] text-[#0E1B4D]">
+                              <div className="font-geograph font-medium text-[24px] text-[#1c1c1c]">
                                 {lowestPrice !== null
-                                  ? formatPrice(lowestPrice)
+                                  ? formatPrice(lowestPrice / 2)
                                   : "Call for price"}
                               </div>
                               {lowestPrice && (
-                                <div className="font-geograph font-medium text-[14px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] mt-2 inline-block">
+                                <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[5px] mt-2 inline-block">
                                   +${Math.floor((lowestPrice * 0.2) / 10) * 10}{" "}
                                   onboard credit
                                 </div>
