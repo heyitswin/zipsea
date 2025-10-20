@@ -832,9 +832,12 @@ class TraveltekBookingService {
         const leadPassenger =
           params.passengers.find(p => p.isLeadPassenger) || params.passengers[0];
 
+        // Extract booking data from response structure
+        const bookingData = bookingResponse.booking || bookingResponse;
+
         await slackService.notifyBookingCreated({
           bookingId,
-          confirmationNumber: bookingResponse.confirmationnumber,
+          confirmationNumber: bookingData.confirmationnumber,
           traveltekBookingId: bookingResponse.bookingid,
           cruiseName: cruiseDetails?.cruiseName,
           cruiseLine: cruiseDetails?.cruiseLine,
@@ -842,18 +845,18 @@ class TraveltekBookingService {
           sailingDate: cruiseDetails?.sailingDate,
           nights: cruiseDetails?.nights,
           passengerCount: params.passengers.length,
-          totalAmount: bookingResponse.totalcost,
+          totalAmount: bookingData.totalprice || bookingData.totalcost,
           paidAmount: params.payment.amount,
-          depositAmount: bookingResponse.depositamount,
-          balanceDueDate: bookingResponse.balanceduedate,
+          depositAmount: bookingData.depositamount,
+          balanceDueDate: bookingData.balanceduedate,
           leadPassenger: {
             firstName: leadPassenger.firstName,
             lastName: leadPassenger.lastName,
             email: leadPassenger.email || params.contact.email,
             phone: leadPassenger.phone || params.contact.phone,
           },
-          cabinGrade: bookingResponse.cabingrade || bookingResponse.cabintype,
-          rateCode: bookingResponse.ratecode,
+          cabinGrade: bookingData.cabingrade || bookingData.cabintype,
+          rateCode: bookingData.ratecode,
           status: paymentResponse.status === 'success' ? 'confirmed' : 'pending',
         });
       } catch (slackError) {
@@ -862,15 +865,18 @@ class TraveltekBookingService {
       }
 
       // Step 8: Return booking result
+      // Extract booking data from response structure
+      const bookingData = bookingResponse.booking || bookingResponse;
+
       return {
         bookingId,
         traveltekBookingId: bookingResponse.bookingid,
         status: paymentResponse.status === 'success' ? 'confirmed' : 'pending',
-        totalAmount: bookingResponse.totalcost,
-        depositAmount: bookingResponse.depositamount,
+        totalAmount: bookingData.totalprice || bookingData.totalcost,
+        depositAmount: bookingData.depositamount,
         paidAmount: params.payment.amount,
-        balanceDueDate: bookingResponse.balanceduedate,
-        confirmationNumber: bookingResponse.confirmationnumber,
+        balanceDueDate: bookingData.balanceduedate,
+        confirmationNumber: bookingData.confirmationnumber,
         bookingDetails: bookingResponse,
       };
     } catch (error) {
@@ -964,6 +970,10 @@ class TraveltekBookingService {
     payment: any;
   }): Promise<string> {
     try {
+      // Extract booking data from the response structure
+      // Traveltek returns: { bookingid, status, booking: { ... details ... } }
+      const bookingData = params.bookingDetails.booking || params.bookingDetails;
+
       // Insert booking
       const [booking] = await db
         .insert(bookings)
@@ -972,11 +982,11 @@ class TraveltekBookingService {
           traveltekBookingId: params.traveltekBookingId,
           status: 'confirmed',
           bookingDetails: params.bookingDetails,
-          totalAmount: params.bookingDetails.totalcost.toString(),
-          depositAmount: params.bookingDetails.depositamount.toString(),
+          totalAmount: (bookingData.totalprice || bookingData.totalcost || 0).toString(),
+          depositAmount: (bookingData.depositamount || 0).toString(),
           paidAmount: params.payment.amount.toString(),
           paymentStatus: 'paid',
-          balanceDueDate: new Date(params.bookingDetails.balanceduedate),
+          balanceDueDate: bookingData.balanceduedate ? new Date(bookingData.balanceduedate) : null,
           createdAt: new Date(),
           updatedAt: new Date(),
         })
