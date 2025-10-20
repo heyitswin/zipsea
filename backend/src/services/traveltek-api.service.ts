@@ -748,6 +748,12 @@ export class TraveltekApiService {
         console.warn(JSON.stringify(response.data.warnings, null, 2));
       }
 
+      // Extract the first result from the results array
+      if (response.data.results && response.data.results.length > 0) {
+        return response.data.results[0];
+      }
+
+      // If no results, return the full response (for error handling)
       return response.data;
     } catch (error) {
       console.error('❌ Traveltek API: createBooking error:', error);
