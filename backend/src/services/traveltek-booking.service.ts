@@ -799,17 +799,23 @@ class TraveltekBookingService {
       try {
         const paymentResponse = await traveltekApiService.processPayment({
           sessionkey: sessionData.sessionKey,
-          cardtype: 'VIS', // TODO: Determine from card number
-          cardnumber: params.payment.cardNumber,
-          expirymonth: params.payment.expiryMonth,
-          expiryyear: params.payment.expiryYear,
-          nameoncard: params.payment.cardholderName,
-          cvv: params.payment.cvv,
-          amount: params.payment.amount.toString(),
-          address1: params.contact.address,
-          city: params.contact.city,
-          postcode: params.contact.postalCode,
-          country: params.contact.country,
+          ccard: {
+            cardtype: 'VIS', // TODO: Determine from card number
+            cardnumber: params.payment.cardNumber,
+            expirymonth: params.payment.expiryMonth,
+            expiryyear: params.payment.expiryYear,
+            nameoncard: params.payment.cardholderName,
+            cvv: params.payment.cvv,
+            amount: params.payment.amount.toString(),
+            title: leadPassengerTitle,
+            firstname: params.contact.firstName,
+            lastname: params.contact.lastName,
+            address1: params.contact.address,
+            address2: '',
+            city: params.contact.city,
+            postcode: params.contact.postalCode,
+            country: params.contact.country,
+          },
         });
 
         console.log(

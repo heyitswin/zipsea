@@ -793,24 +793,49 @@ export class TraveltekApiService {
 
   /**
    * Process payment for booking
+   *
+   * Uses Traveltek's payment.pl endpoint with nested ccard object structure
    */
   async processPayment(params: {
     sessionkey: string;
-    cardtype: string; // VIS, MSC, AMX
-    cardnumber: string;
-    expirymonth: string;
-    expiryyear: string;
-    nameoncard: string;
-    cvv: string;
-    amount: string;
-    address1: string;
-    city: string;
-    postcode: string;
-    country: string;
+    ccard: {
+      cardtype: string; // VIS, MSC, AMX
+      cardnumber: string;
+      expirymonth: string;
+      expiryyear: string;
+      nameoncard: string;
+      cvv: string;
+      amount: string;
+      title?: string;
+      firstname?: string;
+      lastname?: string;
+      address1?: string;
+      address2?: string;
+      city?: string;
+      postcode?: string;
+      country?: string;
+    };
   }): Promise<ApiResponse> {
     try {
-      const formData = new URLSearchParams(params as any);
+      // Build form data with nested ccard object
+      // Format: sessionkey=xxx&ccard={...json...}
+      const formData = new URLSearchParams();
+      formData.append('sessionkey', params.sessionkey);
+      formData.append('ccard', JSON.stringify(params.ccard));
+
+      console.log(
+        '🔍 Traveltek API: processPayment called with sessionkey:',
+        params.sessionkey.slice(-8)
+      );
+      console.log('🔍 Traveltek API: processPayment ccard:', JSON.stringify(params.ccard, null, 2));
+
       const response = await this.axiosInstance.post('/payment.pl', formData);
+
+      console.log(
+        '✅ Traveltek API: processPayment response:',
+        JSON.stringify(response.data, null, 2)
+      );
+
       return response.data;
     } catch (error) {
       console.error('❌ Traveltek API: processPayment error:', error);
