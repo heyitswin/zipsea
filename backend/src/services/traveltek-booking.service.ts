@@ -772,10 +772,7 @@ class TraveltekBookingService {
           paxtype: p.passengerType,
           age: this.calculateAge(p.dateOfBirth),
         })),
-        dining: {
-          seating: params.dining, // Dining seating preference (early/late)
-          smoking: 'non-smoking', // Hardcoded to non-smoking
-        },
+        dining: params.dining, // Dining seating preference passed to API service
         depositBooking: false, // Full payment for now
       });
 
