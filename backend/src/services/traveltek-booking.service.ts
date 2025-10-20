@@ -480,9 +480,10 @@ class TraveltekBookingService {
       }
 
       // Update session with basket data
+      // Note: We're only storing the basketData for now since we don't have complete cabin details
+      // The selectedCabinGrade and selectedCabin fields in the schema expect full objects,
+      // but we only have the IDs at this point. We can add them later if needed.
       await traveltekSessionService.updateSession(params.sessionId, {
-        selectedCabinGrade: params.gradeNo,
-        selectedCabin: params.cabinResult,
         basketData,
       });
 
