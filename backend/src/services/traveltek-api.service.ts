@@ -652,10 +652,12 @@ export class TraveltekApiService {
       country: string;
     };
     passengers: Array<{
+      title: string;
       firstname: string;
       lastname: string;
       dob: string; // YYYY-MM-DD
       gender: string; // M, F, X
+      nationality: string;
       paxtype: 'adult' | 'child' | 'infant';
       age: number;
     }>;
@@ -690,10 +692,12 @@ export class TraveltekApiService {
       params.passengers.forEach((passenger, index) => {
         const paxNum = index + 1;
         passengersObject[paxNum] = {
+          title: passenger.title,
           firstname: passenger.firstname,
           lastname: passenger.lastname,
           dob: passenger.dob,
           gender: passenger.gender,
+          nationality: passenger.nationality,
           paxtype: passenger.paxtype,
           age: passenger.age,
         };
