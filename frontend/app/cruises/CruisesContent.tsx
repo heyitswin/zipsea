@@ -778,8 +778,14 @@ export default function CruisesContent() {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex gap-8">
           {/* Left Sidebar - Filters (Desktop Only) */}
-          <aside className="hidden md:block w-64 flex-shrink-0">
-            <div className="sticky top-24 space-y-4">
+          <aside
+            className="hidden md:block w-64 flex-shrink-0 max-h-[calc(100vh-120px)] overflow-y-auto pr-2"
+            style={{
+              scrollbarWidth: "thin",
+              scrollbarColor: "#d9d9d9 #f6f3ed",
+            }}
+          >
+            <div className="space-y-4">
               {/* Cruise Lines Filter */}
               <div>
                 <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
@@ -1344,7 +1350,7 @@ export default function CruisesContent() {
                         style={{ maxWidth: "800px" }}
                       >
                         {/* Ship Thumbnail - Fill Height */}
-                        <div className="w-32 h-full bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 relative self-stretch">
+                        <div className="w-32 h-40 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 relative">
                           {cruise.ship?.defaultShipImage2k ||
                           cruise.ship?.defaultShipImageHd ||
                           cruise.ship?.defaultShipImage ||
@@ -1405,9 +1411,9 @@ export default function CruisesContent() {
                           </div>
 
                           {/* Bottom Section - Details and Price */}
-                          <div className="flex justify-between items-end gap-8">
+                          <div className="flex items-end gap-4">
                             {/* Details with Icons */}
-                            <div className="space-y-1 flex-shrink-0">
+                            <div className="space-y-1 flex-1">
                               {/* Ship */}
                               <div className="flex items-center gap-2">
                                 <img
