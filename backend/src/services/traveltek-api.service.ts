@@ -634,10 +634,12 @@ export class TraveltekApiService {
 
   /**
    * Create booking with passenger details
+   * Note: Traveltek expects JSON format, not form data
    */
   async createBooking(params: {
     sessionkey: string;
     sid: string;
+    itemkey: string; // Required: itemkey from basket response
     contact: {
       firstname: string;
       lastname: string;
@@ -658,12 +660,15 @@ export class TraveltekApiService {
       age: number;
     }>;
     dining: string;
+    depositBooking?: boolean; // true = deposit only, false = full payment
   }): Promise<ApiResponse> {
     try {
       console.log('🔍 Traveltek API: createBooking called with:', {
         hasContact: !!params.contact,
         passengerCount: params.passengers?.length,
         hasDining: !!params.dining,
+        itemkey: params.itemkey,
+        depositBooking: params.depositBooking,
       });
 
       // Validate required parameters
@@ -676,39 +681,61 @@ export class TraveltekApiService {
       if (!params.dining) {
         throw new Error('Dining selection is required for booking');
       }
+      if (!params.itemkey) {
+        throw new Error('itemkey is required for booking (from basket response)');
+      }
 
-      const formData = new URLSearchParams();
-      formData.append('sessionkey', params.sessionkey);
-      formData.append('sid', params.sid);
-
-      // Add contact details
-      Object.entries(params.contact).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          formData.append(`contact[${key}]`, value.toString());
-        }
-      });
-
-      // Add passenger details
+      // Convert passengers array to keyed object format (1, 2, 3...)
+      const passengersObject: Record<number, any> = {};
       params.passengers.forEach((passenger, index) => {
         const paxNum = index + 1;
-        console.log(`🔍 Processing passenger ${paxNum}:`, passenger);
-
-        Object.entries(passenger).forEach(([key, value]) => {
-          // Only append if value exists (not null/undefined)
-          if (value !== null && value !== undefined) {
-            formData.append(`pax-${paxNum}[${key}]`, value.toString());
-          }
-        });
+        passengersObject[paxNum] = {
+          firstname: passenger.firstname,
+          lastname: passenger.lastname,
+          dob: passenger.dob,
+          gender: passenger.gender,
+          paxtype: passenger.paxtype,
+          age: passenger.age,
+        };
       });
 
-      // Add dining selection
-      formData.append('dining', params.dining);
+      // Build JSON request body per Traveltek documentation
+      const requestBody = {
+        sessionkey: params.sessionkey,
+        sid: params.sid,
+        depositbooking: params.depositBooking ? 1 : 0, // 1 for deposit, 0 for full payment
+        contact: params.contact,
+        passengers: passengersObject, // Keyed by passenger number
+        allocation: {
+          [params.itemkey]: {
+            dining: {
+              seating: params.dining, // e.g., "early", "late", "anytime"
+            },
+          },
+        },
+      };
 
-      console.log('✅ Traveltek API: createBooking FormData prepared, calling API...');
+      console.log('🔍 Traveltek API: createBooking JSON request body:');
+      console.log(JSON.stringify(requestBody, null, 2));
 
-      const response = await this.axiosInstance.post('/book.pl', formData);
+      // Make POST request with JSON content type
+      const response = await this.axiosInstance.post('/book.pl', requestBody, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
       console.log('✅ Traveltek API: createBooking response received');
+      console.log('   Response status:', response.status);
+      console.log('   Response data keys:', Object.keys(response.data));
+
+      // Log any errors or warnings
+      if (response.data.errors && response.data.errors.length > 0) {
+        console.error('⚠️  Traveltek API: createBooking returned errors:', response.data.errors);
+      }
+      if (response.data.warnings && response.data.warnings.length > 0) {
+        console.warn('⚠️  Traveltek API: createBooking returned warnings:', response.data.warnings);
+      }
 
       return response.data;
     } catch (error) {

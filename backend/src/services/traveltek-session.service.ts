@@ -19,6 +19,7 @@ interface SessionData {
   cruiseId?: string;
   userId?: string;
   cruiseResultNo?: string; // Cruise result number from getCabinGrades for addToBasket API
+  itemkey?: string; // Item key from basket response, required for booking creation
 }
 
 interface CreateSessionParams {
@@ -32,6 +33,7 @@ interface UpdateSessionParams {
   selectedCabin?: string;
   basketData?: any;
   cruiseResultNo?: string; // Allow updating cruise result number
+  itemkey?: string; // Item key from basket response
 }
 
 /**
@@ -288,6 +290,10 @@ class TraveltekSessionService {
             serializeError
           );
         }
+      }
+
+      if (updates.itemkey !== undefined) {
+        updateData.itemkey = updates.itemkey;
       }
 
       // Update database

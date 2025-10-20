@@ -500,12 +500,27 @@ class TraveltekBookingService {
         throw new Error(`Failed to add cabin to basket: ${errorMessages}`);
       }
 
-      // Update session with basket data
+      // Extract itemkey from basket response
+      // The itemkey is needed for booking creation to specify dining preferences
+      let itemkey: string | undefined;
+      if (basketData.basketitems && basketData.basketitems.length > 0) {
+        // Get the first basket item (the cruise we just added)
+        const basketItem = basketData.basketitems[0];
+        itemkey = basketItem.itemkey;
+        console.log('[TraveltekBooking] 📦 Extracted itemkey from basket:', itemkey);
+      } else {
+        console.warn(
+          '[TraveltekBooking] ⚠️ No basketitems found in response, itemkey not available'
+        );
+      }
+
+      // Update session with basket data and itemkey
       // Note: We're only storing the basketData for now since we don't have complete cabin details
       // The selectedCabinGrade and selectedCabin fields in the schema expect full objects,
       // but we only have the IDs at this point. We can add them later if needed.
       await traveltekSessionService.updateSession(params.sessionId, {
         basketData,
+        itemkey,
       });
 
       console.log(`[TraveltekBooking] ✅ Added cabin to basket for session ${params.sessionId}`);
@@ -717,11 +732,17 @@ class TraveltekBookingService {
         );
       }
 
-      // Step 3: Create booking with Traveltek
-      // FIXED: Match the exact parameter structure from traveltek-api.service
+      // Step 3: Validate itemkey is available
+      if (!sessionData.itemkey) {
+        throw new Error('No itemkey found in session. Please select a cabin before booking.');
+      }
+
+      // Step 4: Create booking with Traveltek
+      // Using JSON format per Traveltek API documentation
       const bookingResponse = await traveltekApiService.createBooking({
         sessionkey: sessionData.sessionKey,
         sid: sessionData.sid,
+        itemkey: sessionData.itemkey,
         contact: {
           firstname: params.contact.firstName,
           lastname: params.contact.lastName,
@@ -742,6 +763,7 @@ class TraveltekBookingService {
           age: this.calculateAge(p.dateOfBirth),
         })),
         dining: params.dining,
+        depositBooking: false, // Full payment for now
       });
 
       if (!bookingResponse.bookingid) {
