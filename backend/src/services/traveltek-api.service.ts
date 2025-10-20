@@ -794,7 +794,8 @@ export class TraveltekApiService {
   /**
    * Process payment for booking
    *
-   * Uses Traveltek's payment.pl endpoint with nested ccard object structure
+   * Uses Traveltek's payment.pl endpoint with JSON body (application/json)
+   * NOT form-urlencoded like other endpoints
    */
   async processPayment(params: {
     sessionkey: string;
@@ -817,19 +818,19 @@ export class TraveltekApiService {
     };
   }): Promise<ApiResponse> {
     try {
-      // Build form data with nested ccard object
-      // Format: sessionkey=xxx&ccard={...json...}
-      const formData = new URLSearchParams();
-      formData.append('sessionkey', params.sessionkey);
-      formData.append('ccard', JSON.stringify(params.ccard));
-
       console.log(
         '🔍 Traveltek API: processPayment called with sessionkey:',
         params.sessionkey.slice(-8)
       );
       console.log('🔍 Traveltek API: processPayment ccard:', JSON.stringify(params.ccard, null, 2));
 
-      const response = await this.axiosInstance.post('/payment.pl', formData);
+      // Payment endpoint requires application/json, NOT form-urlencoded
+      // Send params directly as JSON body with proper Content-Type header
+      const response = await this.axiosInstance.post('/payment.pl', params, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
       console.log(
         '✅ Traveltek API: processPayment response:',
