@@ -799,7 +799,7 @@ class TraveltekBookingService {
           lastname: params.contact.lastName,
           postcode: params.contact.postalCode,
           address1: params.contact.address,
-          address2: params.contact.address2 || '',
+          address2: '',
           homecity: params.contact.city,
           county: params.contact.state,
           country: params.contact.country,
