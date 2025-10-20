@@ -735,6 +735,9 @@ export class TraveltekApiService {
       console.log('   Response status:', response.status);
       console.log('   Response data keys:', Object.keys(response.data));
 
+      // Log full response for debugging
+      console.log('🔍 Full Traveltek response:', JSON.stringify(response.data, null, 2));
+
       // Log any errors or warnings
       if (response.data.errors && response.data.errors.length > 0) {
         console.error('⚠️  Traveltek API: createBooking returned errors:');
