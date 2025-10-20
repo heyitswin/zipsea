@@ -755,7 +755,8 @@ class TraveltekBookingService {
       // Get lead passenger title for contact info
       const leadPassengerTitle = params.passengers[0]?.title;
 
-      // Step 4: Create booking with payment included
+      // Step 4: Create booking WITHOUT payment (payment will be processed separately)
+      console.log('[TraveltekBooking] Creating booking without payment...');
       const bookingResponse = await traveltekApiService.createBooking({
         sessionkey: sessionData.sessionKey,
         sid: sessionData.sid,
@@ -784,33 +785,58 @@ class TraveltekBookingService {
         })),
         dining: params.dining, // Dining seating preference
         depositBooking: false, // Full payment
-        ccard: {
-          // Include payment in booking request (passthrough to cruise line API)
-          passthroughitem: sessionData.itemkey,
-          amount: params.payment.amount,
-          nameoncard: params.payment.cardholderName,
-          cardtype: 'VIS', // TODO: Determine from card number
-          cardnumber: params.payment.cardNumber,
-          expirymonth: params.payment.expiryMonth,
-          expiryyear: params.payment.expiryYear,
-          signature: params.payment.cvv,
-          title: leadPassengerTitle,
-          firstname: params.contact.firstName,
-          lastname: params.contact.lastName,
-          postcode: params.contact.postalCode,
-          address1: params.contact.address,
-          address2: '',
-          homecity: params.contact.city,
-          county: params.contact.state,
-          country: params.contact.country,
-        },
+        // Note: ccard removed - payment will be processed separately
       });
 
       if (!bookingResponse.bookingid) {
         throw new Error('Booking creation failed: no booking ID returned');
       }
 
-      // Step 5: Store booking in our database
+      console.log('[TraveltekBooking] ✅ Booking created:', bookingResponse.bookingid);
+
+      // Step 5: Process payment using separate payment endpoint
+      console.log('[TraveltekBooking] Processing payment...');
+      try {
+        const paymentResponse = await traveltekApiService.processPayment({
+          sessionkey: sessionData.sessionKey,
+          cardtype: 'VIS', // TODO: Determine from card number
+          cardnumber: params.payment.cardNumber,
+          expirymonth: params.payment.expiryMonth,
+          expiryyear: params.payment.expiryYear,
+          nameoncard: params.payment.cardholderName,
+          cvv: params.payment.cvv,
+          amount: params.payment.amount.toString(),
+          address1: params.contact.address,
+          city: params.contact.city,
+          postcode: params.contact.postalCode,
+          country: params.contact.country,
+        });
+
+        console.log(
+          '[TraveltekBooking] Payment response:',
+          JSON.stringify(paymentResponse, null, 2)
+        );
+
+        // Check if payment was successful
+        if (paymentResponse.success !== 1) {
+          const errorMessage = paymentResponse.message || 'Payment processing failed';
+          console.error('[TraveltekBooking] ❌ Payment failed:', errorMessage);
+          throw new Error(`Payment failed: ${errorMessage}`);
+        }
+
+        console.log('[TraveltekBooking] ✅ Payment processed successfully');
+      } catch (paymentError) {
+        console.error('[TraveltekBooking] ❌ Payment processing error:', paymentError);
+        // Booking was created but payment failed - this is a critical error
+        // The booking exists in Traveltek but is not paid
+        throw new Error(
+          `Booking created (ID: ${bookingResponse.bookingid}) but payment failed: ${
+            paymentError instanceof Error ? paymentError.message : 'Unknown error'
+          }`
+        );
+      }
+
+      // Step 6: Store booking in our database
       const bookingId = await this.storeBooking({
         sessionId: params.sessionId,
         cruiseId: sessionData.cruiseId,
@@ -824,12 +850,12 @@ class TraveltekBookingService {
         },
       });
 
-      // Step 6: Mark session as completed
+      // Step 7: Mark session as completed
       await traveltekSessionService.completeSession(params.sessionId);
 
       console.log(`[TraveltekBooking] Successfully created booking ${bookingId}`);
 
-      // Step 7: Send Slack notification
+      // Step 8: Send Slack notification
       try {
         // Get cruise details for the notification
         const cruiseDetails = await this.getCruiseDetailsForNotification(sessionData.cruiseId);
@@ -851,9 +877,11 @@ class TraveltekBookingService {
           sailingDate: cruiseDetails?.sailingDate,
           nights: cruiseDetails?.nights,
           passengerCount: params.passengers.length,
-          totalAmount: bookingData.totalprice || bookingData.totalcost,
+          totalAmount: parseFloat(bookingData.totalprice || bookingData.totalcost || '0'),
           paidAmount: params.payment.amount,
-          depositAmount: bookingData.depositamount,
+          depositAmount: bookingData.depositamount
+            ? parseFloat(bookingData.depositamount)
+            : undefined,
           balanceDueDate: bookingData.balanceduedate,
           leadPassenger: {
             firstName: leadPassenger.firstName,
