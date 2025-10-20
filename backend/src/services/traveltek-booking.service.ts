@@ -283,6 +283,11 @@ class TraveltekBookingService {
         Array.isArray(pricingData.meta.criteria.ratecodes)
       ) {
         pricingData.meta.criteria.ratecodes.forEach((rateInfo: any) => {
+          // Debug: Log the actual nonrefundable value from Traveltek
+          console.log(
+            `[TraveltekBooking] 🔍 Rate ${rateInfo.code}: nonrefundable=${rateInfo.nonrefundable} (type: ${typeof rateInfo.nonrefundable})`
+          );
+
           rateCodeMetadata.set(rateInfo.code, {
             code: rateInfo.code,
             name: rateInfo.name || rateInfo.code,
