@@ -1314,93 +1314,100 @@ export default function CruisesContent() {
                         <div className="p-4">
                           {/* Cruise Name */}
                           <h3
-                            className="font-geograph text-[22px] font-medium text-[#2F2F2F] mb-2"
-                            style={{ letterSpacing: "-0.02em" }}
+                            className="font-geograph text-[16px] font-medium text-[#2F2F2F] mb-2"
+                            style={{
+                              letterSpacing: "-0.02em",
+                              lineHeight: "1.3",
+                            }}
                           >
                             {cruise.name}
                           </h3>
 
                           {/* Cruise Line Logo */}
                           {cruiseLineLogo && (
-                            <div className="mb-3 h-8 flex items-center">
+                            <div className="mb-3 flex items-center">
                               <img
                                 src={cruiseLineLogo}
                                 alt={cruise.cruiseLine?.name || ""}
-                                className="h-full w-auto object-contain"
+                                width={96}
+                                height={31}
+                                className="object-contain"
+                                style={{ width: "96px", height: "31px" }}
                               />
                             </div>
                           )}
 
-                          {/* Details with Icons */}
-                          <div className="space-y-2 mb-4">
-                            {/* Ship */}
-                            <div className="flex items-center gap-2">
-                              <img
-                                src="/images/ship-small.svg"
-                                alt="Ship"
-                                width={16}
-                                height={16}
-                                className="flex-shrink-0"
-                              />
-                              <span className="font-geograph text-[14px] text-[#606060]">
-                                {cruise.ship?.name || "Unknown Ship"}
-                              </span>
-                            </div>
-
-                            {/* Dates */}
-                            <div className="flex items-center gap-2">
-                              <img
-                                src="/images/calendar-small.svg"
-                                alt="Calendar"
-                                width={16}
-                                height={16}
-                                className="flex-shrink-0"
-                              />
-                              <span className="font-geograph text-[14px] text-[#606060]">
-                                {formatDate(
-                                  cruise.sailingDate || cruise.departureDate,
-                                )}{" "}
-                                - {getReturnDate(cruise)}
-                              </span>
-                            </div>
-
-                            {/* Departure Port */}
-                            <div className="flex items-center gap-2">
-                              <img
-                                src="/images/location-small.svg"
-                                alt="Location"
-                                width={16}
-                                height={16}
-                                className="flex-shrink-0"
-                              />
-                              <span className="font-geograph text-[14px] text-[#606060]">
-                                {(() => {
-                                  const portName =
-                                    cruise.embarkPort?.name ||
-                                    cruise.embarkPortName ||
-                                    "Unknown";
-                                  const commaIndex = portName.indexOf(",");
-                                  return commaIndex > -1
-                                    ? portName.substring(0, commaIndex)
-                                    : portName;
-                                })()}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Price Block */}
-                          <div className="flex justify-end">
-                            <div className="text-right">
-                              <div className="font-geograph font-bold text-[12px] text-gray-500 uppercase tracking-wider mb-1">
-                                STARTING FROM
+                          {/* Details and Price - Same Line */}
+                          <div className="flex items-end gap-4">
+                            {/* Details with Icons */}
+                            <div className="space-y-1 flex-1">
+                              {/* Ship */}
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src="/images/ship-small.svg"
+                                  alt="Ship"
+                                  width={14}
+                                  height={14}
+                                  className="flex-shrink-0"
+                                />
+                                <span className="font-geograph text-[14px] text-[#606060]">
+                                  {cruise.ship?.name || "Unknown Ship"}
+                                </span>
                               </div>
-                              <div className="font-geograph font-bold text-[22px] text-[#0E1B4D]">
+
+                              {/* Dates */}
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src="/images/calendar-small.svg"
+                                  alt="Calendar"
+                                  width={14}
+                                  height={14}
+                                  className="flex-shrink-0"
+                                />
+                                <span className="font-geograph text-[14px] text-[#606060]">
+                                  {formatDate(
+                                    cruise.sailingDate || cruise.departureDate,
+                                  )}{" "}
+                                  - {getReturnDate(cruise)}
+                                </span>
+                              </div>
+
+                              {/* Departure Port */}
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src="/images/location-small.svg"
+                                  alt="Location"
+                                  width={14}
+                                  height={14}
+                                  className="flex-shrink-0"
+                                />
+                                <span className="font-geograph text-[14px] text-[#606060]">
+                                  {(() => {
+                                    const portName =
+                                      cruise.embarkPort?.name ||
+                                      cruise.embarkPortName ||
+                                      "Unknown";
+                                    const commaIndex = portName.indexOf(",");
+                                    return commaIndex > -1
+                                      ? portName.substring(0, commaIndex)
+                                      : portName;
+                                  })()}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Price Block */}
+                            <div className="text-right flex-shrink-0">
+                              <div className="font-geograph font-bold text-[10px] text-[#474747] uppercase tracking-wider -mb-1">
+                                PER PERSON
+                              </div>
+                              <div className="font-geograph font-medium text-[24px] text-[#1c1c1c]">
                                 {lowestPrice !== null
-                                  ? formatPrice(lowestPrice)
+                                  ? formatPrice(lowestPrice / 2)
                                   : "Call for price"}
                               </div>
                               {lowestPrice && (
-                                <div className="font-geograph font-medium text-[14px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] mt-2 inline-block">
+                                <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[5px] mt-2 inline-block">
                                   +${Math.floor((lowestPrice * 0.2) / 10) * 10}{" "}
                                   onboard credit
                                 </div>
@@ -1413,7 +1420,7 @@ export default function CruisesContent() {
                       {/* Desktop Layout */}
                       <div className="hidden md:flex p-4 gap-4">
                         {/* Ship Thumbnail - Square */}
-                        <div className="w-40 h-40 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 relative">
+                        <div className="w-40 h-40 md:w-52 md:h-52 lg:w-56 lg:h-56 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 relative">
                           {cruise.ship?.defaultShipImage2k ||
                           cruise.ship?.defaultShipImageHd ||
                           cruise.ship?.defaultShipImage ||
@@ -1438,7 +1445,7 @@ export default function CruisesContent() {
                                 "Cruise ship"
                               }
                               fill
-                              sizes="160px"
+                              sizes="(max-width: 768px) 160px, (max-width: 1024px) 208px, 224px"
                               className="object-cover"
                               loading="lazy"
                               quality={90}
@@ -1468,10 +1475,10 @@ export default function CruisesContent() {
                                 <img
                                   src={cruiseLineLogo}
                                   alt={cruise.cruiseLine?.name || ""}
-                                  width={186}
-                                  height={60}
+                                  width={96}
+                                  height={31}
                                   className="object-contain"
-                                  style={{ width: "186px", height: "60px" }}
+                                  style={{ width: "96px", height: "31px" }}
                                 />
                               </div>
                             )}
