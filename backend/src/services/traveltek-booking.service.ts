@@ -796,26 +796,50 @@ class TraveltekBookingService {
 
       // Step 5: Process payment using separate payment endpoint
       console.log('[TraveltekBooking] Processing payment...');
+      console.log('[TraveltekBooking] Payment field values:', {
+        cvv: params.payment.cvv
+          ? `***${params.payment.cvv.slice(-1)} (length: ${params.payment.cvv.length})`
+          : 'MISSING',
+        city: params.contact.city || 'MISSING',
+        cardNumber: params.payment.cardNumber
+          ? `****${params.payment.cardNumber.slice(-4)}`
+          : 'MISSING',
+        amount: params.payment.amount,
+        address1: params.contact.address || 'MISSING',
+        postcode: params.contact.postalCode || 'MISSING',
+        country: params.contact.country || 'MISSING',
+      });
+
       try {
+        const ccardPayload = {
+          cardtype: 'VIS', // TODO: Determine from card number
+          cardnumber: params.payment.cardNumber,
+          expirymonth: params.payment.expiryMonth,
+          expiryyear: params.payment.expiryYear,
+          nameoncard: params.payment.cardholderName,
+          cvv: params.payment.cvv,
+          amount: params.payment.amount.toString(),
+          title: leadPassengerTitle,
+          firstname: params.contact.firstName,
+          lastname: params.contact.lastName,
+          address1: params.contact.address,
+          address2: '',
+          city: params.contact.city,
+          postcode: params.contact.postalCode,
+          country: params.contact.country,
+        };
+
+        console.log('[TraveltekBooking] Full ccard payload (sanitized):', {
+          ...ccardPayload,
+          cardnumber: ccardPayload.cardnumber
+            ? `****${ccardPayload.cardnumber.slice(-4)}`
+            : 'MISSING',
+          cvv: ccardPayload.cvv ? `***${ccardPayload.cvv.slice(-1)}` : 'MISSING',
+        });
+
         const paymentResponse = await traveltekApiService.processPayment({
           sessionkey: sessionData.sessionKey,
-          ccard: {
-            cardtype: 'VIS', // TODO: Determine from card number
-            cardnumber: params.payment.cardNumber,
-            expirymonth: params.payment.expiryMonth,
-            expiryyear: params.payment.expiryYear,
-            nameoncard: params.payment.cardholderName,
-            signature: params.payment.cvv, // CVV field is called 'signature' in Traveltek API
-            amount: params.payment.amount.toString(),
-            title: leadPassengerTitle,
-            firstname: params.contact.firstName,
-            lastname: params.contact.lastName,
-            address1: params.contact.address,
-            address2: '',
-            homecity: params.contact.city, // City field is called 'homecity' in Traveltek API
-            postcode: params.contact.postalCode,
-            country: params.contact.country,
-          },
+          ccard: ccardPayload,
         });
 
         console.log(

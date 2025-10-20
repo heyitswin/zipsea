@@ -805,14 +805,14 @@ export class TraveltekApiService {
       expirymonth: string;
       expiryyear: string;
       nameoncard: string;
-      signature: string; // CVV/security code
+      cvv: string; // CVV/security code (1-7 digit numeric format)
       amount: string;
       title?: string;
       firstname?: string;
       lastname?: string;
       address1?: string;
       address2?: string;
-      homecity?: string; // City field (called 'homecity' in Traveltek API)
+      city?: string; // Billing city
       postcode?: string;
       country?: string;
     };
