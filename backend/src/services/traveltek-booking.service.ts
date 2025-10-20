@@ -787,11 +787,15 @@ class TraveltekBookingService {
           age: this.calculateAge(p.dateOfBirth),
         })),
         dining: params.dining, // Dining seating preference
-        depositBooking: false, // Full payment
+        depositBooking: params.payment.paymentType === 'deposit', // true = deposit only, false = full payment
         // Include payment details in booking request
+        // IMPORTANT: The amount field should match the payment type:
+        // - For full payment: use basket.totalprice
+        // - For deposit: use basket.totaldeposit
+        // The frontend is responsible for setting params.payment.amount correctly based on paymentType
         ccard: {
           passthroughitem: sessionData.itemkey, // Required for passthrough payment
-          amount: params.payment.amount,
+          amount: params.payment.amount, // Should be totaldeposit or totalprice from basket
           nameoncard: params.payment.cardholderName,
           cardtype: 'VIS', // TODO: Determine from card number
           cardnumber: params.payment.cardNumber,
@@ -803,7 +807,7 @@ class TraveltekBookingService {
           lastname: params.contact.lastName,
           postcode: params.contact.postalCode,
           address1: params.contact.address,
-          address2: params.contact.address2,
+          // address2 is optional and we don't collect it in our form
           homecity: params.contact.city, // NOTE: Field name is 'homecity' not 'city'
           county: params.contact.state,
           country: params.contact.country,
