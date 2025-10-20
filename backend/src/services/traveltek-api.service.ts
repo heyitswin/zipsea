@@ -758,34 +758,42 @@ export class TraveltekApiService {
       });
 
       console.log('✅ Traveltek API: createBooking response received');
-      console.log('   Response status:', response.status);
-      console.log('   Response data keys:', Object.keys(response.data));
 
-      // Don't log full response - it can be huge and cause crashes
-      // Instead, log key information only
-      if (response.data.results && response.data.results.length > 0) {
-        const firstResult = response.data.results[0];
-        console.log('🔍 Booking result keys:', Object.keys(firstResult));
-        if (firstResult.bookingdetails) {
-          console.log('   Booking ID:', firstResult.bookingdetails.bookingid);
-          console.log('   Status:', firstResult.bookingdetails.status);
-          console.log('   Total Cost:', firstResult.bookingdetails.totalcost);
-          console.log('   Total Paid:', firstResult.bookingdetails.totalpaid);
-          console.log(
-            '   Transaction Count:',
-            firstResult.bookingdetails.transactions?.length || 0
-          );
+      // Wrap all logging in try-catch to prevent crashes
+      try {
+        console.log('   Response status:', response.status);
+        console.log('   Response data keys:', Object.keys(response.data));
+
+        // Don't log full response - it can be huge and cause crashes
+        // Instead, log key information only
+        if (response.data.results && response.data.results.length > 0) {
+          const firstResult = response.data.results[0];
+          console.log('🔍 Booking result keys:', Object.keys(firstResult));
+          if (firstResult.bookingdetails) {
+            console.log('   Booking ID:', firstResult.bookingdetails.bookingid);
+            console.log('   Status:', firstResult.bookingdetails.status);
+            console.log('   Total Cost:', firstResult.bookingdetails.totalcost);
+            console.log('   Total Paid:', firstResult.bookingdetails.totalpaid);
+            console.log(
+              '   Transaction Count:',
+              firstResult.bookingdetails.transactions?.length || 0
+            );
+          }
         }
-      }
 
-      // Log any errors or warnings
-      if (response.data.errors && response.data.errors.length > 0) {
-        console.error('⚠️  Traveltek API: createBooking returned errors:');
-        console.error(JSON.stringify(response.data.errors, null, 2));
-      }
-      if (response.data.warnings && response.data.warnings.length > 0) {
-        console.warn('⚠️  Traveltek API: createBooking returned warnings:');
-        console.warn(JSON.stringify(response.data.warnings, null, 2));
+        // Log any errors or warnings
+        if (response.data.errors && response.data.errors.length > 0) {
+          console.error('⚠️  Traveltek API: createBooking returned errors:');
+          console.error(JSON.stringify(response.data.errors, null, 2));
+        }
+        if (response.data.warnings && response.data.warnings.length > 0) {
+          console.warn('⚠️  Traveltek API: createBooking returned warnings:');
+          console.warn(JSON.stringify(response.data.warnings, null, 2));
+        }
+      } catch (loggingError) {
+        console.error('⚠️  Error while logging response:', loggingError);
+        console.error('Response exists:', !!response);
+        console.error('Response.data exists:', !!response?.data);
       }
 
       // Extract the first result from the results array
