@@ -20,7 +20,7 @@ import {
 } from "../../../lib/analytics";
 import { useAdmin } from "../../hooks/useAdmin";
 import { useBooking } from "../../context/BookingContext";
-import SpecificCabinModal from "../../components/SpecificCabinModal";
+// import SpecificCabinModal from "../../components/SpecificCabinModal"; // TODO: Re-enable when deploying to production
 import dynamic from "next/dynamic";
 
 const PriceHistoryChart = dynamic(
@@ -1943,8 +1943,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         </div>
       )}
 
-      {/* Specific Cabin Selection Modal */}
-      {selectedCabinGrade && cruiseData?.cruise?.id && (
+      {/* Specific Cabin Selection Modal - TODO: Re-enable when deploying to production */}
+      {/* {selectedCabinGrade && cruiseData?.cruise?.id && (
         <SpecificCabinModal
           isOpen={isSpecificCabinModalOpen}
           onClose={() => {
@@ -2002,7 +2002,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           rateCode={selectedCabinGrade.rateCode}
           cabinGradeName={selectedCabinGrade.gradeName}
         />
-      )}
+      )} */}
     </div>
   );
 }
