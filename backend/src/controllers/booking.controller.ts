@@ -396,6 +396,132 @@ class BookingController {
   }
 
   /**
+   * POST /api/booking/:sessionId/hold
+   * Create a hold booking without payment
+   */
+  async createHoldBooking(req: Request, res: Response): Promise<void> {
+    try {
+      const { sessionId } = req.params;
+      const { firstName, lastName, email, phone, holdDurationDays } = req.body;
+
+      // Validation
+      if (!firstName || !lastName || !email || !phone) {
+        res.status(400).json({
+          error: 'firstName, lastName, email, and phone are required for hold booking',
+        });
+        return;
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        res.status(400).json({ error: 'Invalid email format' });
+        return;
+      }
+
+      // Phone validation (basic)
+      if (phone.length < 10) {
+        res.status(400).json({ error: 'Invalid phone number' });
+        return;
+      }
+
+      // Create hold booking
+      const bookingResult = await traveltekBookingService.createHoldBooking({
+        sessionId,
+        leadPassenger: {
+          firstName,
+          lastName,
+          email,
+          phone,
+        },
+        holdDurationDays,
+      });
+
+      res.status(201).json(bookingResult);
+    } catch (error) {
+      console.error('[BookingController] Create hold booking error:', error);
+
+      if (error instanceof Error && error.message.includes('Invalid or expired')) {
+        res.status(401).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof Error && error.message.includes('No itemkey')) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+
+      res.status(500).json({
+        error: 'Failed to create hold booking',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  /**
+   * POST /api/booking/:bookingId/complete-payment
+   * Complete payment for a held booking
+   */
+  async completeHoldPayment(req: Request, res: Response): Promise<void> {
+    try {
+      const { bookingId } = req.params;
+      const { passengers, contact, payment } = req.body;
+
+      // Validation
+      if (!passengers || !Array.isArray(passengers) || passengers.length === 0) {
+        res.status(400).json({ error: 'passengers array is required' });
+        return;
+      }
+
+      if (!contact || !contact.email || !contact.phone || !contact.address) {
+        res.status(400).json({
+          error: 'contact details with email, phone, and address are required',
+        });
+        return;
+      }
+
+      if (!payment || !payment.cardNumber || !payment.amount) {
+        res.status(400).json({
+          error: 'payment details with cardNumber and amount are required',
+        });
+        return;
+      }
+
+      // Complete payment
+      const bookingResult = await traveltekBookingService.completeHoldPayment({
+        bookingId,
+        passengers,
+        contact,
+        payment,
+      });
+
+      res.json(bookingResult);
+    } catch (error) {
+      console.error('[BookingController] Complete hold payment error:', error);
+
+      if (error instanceof Error && error.message.includes('not found')) {
+        res.status(404).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof Error && error.message.includes('not in hold status')) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof Error && error.message.includes('expired')) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+
+      res.status(500).json({
+        error: 'Failed to complete hold payment',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  /**
    * POST /api/booking/cleanup-sessions
    * Cleanup expired sessions (admin only)
    */

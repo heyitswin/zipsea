@@ -100,6 +100,38 @@ router.get('/:sessionId/basket', bookingController.getBasket);
  */
 router.post('/:sessionId/create', authenticateTokenOptional, bookingController.createBooking);
 
+/**
+ * POST /api/booking/:sessionId/hold
+ * Create a hold booking without payment (reserves cabin for free)
+ *
+ * Body:
+ * - firstName: string (required)
+ * - lastName: string (required)
+ * - email: string (required)
+ * - phone: string (required)
+ * - holdDurationDays: number (optional - defaults to 7 days)
+ *
+ * Auth: Optional
+ */
+router.post('/:sessionId/hold', authenticateTokenOptional, bookingController.createHoldBooking);
+
+/**
+ * POST /api/booking/:bookingId/complete-payment
+ * Complete payment for a held booking
+ *
+ * Body:
+ * - passengers: Array<PassengerDetails> (required - full details)
+ * - contact: ContactDetails (required - full details)
+ * - payment: PaymentDetails (required)
+ *
+ * Auth: Optional (but recommended)
+ */
+router.post(
+  '/:bookingId/complete-payment',
+  authenticateTokenOptional,
+  bookingController.completeHoldPayment
+);
+
 // Booking Management (Auth Required)
 /**
  * GET /api/booking/:bookingId

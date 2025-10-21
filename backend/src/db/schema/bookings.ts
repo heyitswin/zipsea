@@ -1,12 +1,4 @@
-import {
-  pgTable,
-  uuid,
-  varchar,
-  jsonb,
-  timestamp,
-  decimal,
-  text,
-} from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, jsonb, timestamp, decimal, text } from 'drizzle-orm/pg-core';
 import { users } from './users';
 import { cruises } from './cruises';
 import { bookingSessions } from './booking-sessions';
@@ -36,7 +28,16 @@ export const bookings = pgTable('bookings', {
   status: varchar('status', { length: 20 })
     .notNull()
     .default('pending')
-    .$type<'confirmed' | 'pending' | 'cancelled' | 'failed'>(),
+    .$type<'confirmed' | 'pending' | 'cancelled' | 'failed' | 'hold'>(),
+
+  // Booking type - determines payment flow
+  bookingType: varchar('booking_type', { length: 20 })
+    .notNull()
+    .default('full_payment')
+    .$type<'hold' | 'deposit' | 'full_payment'>(),
+
+  // Hold expiration for held bookings
+  holdExpiresAt: timestamp('hold_expires_at'),
 
   // Complete booking response from Traveltek
   bookingDetails: jsonb('booking_details').notNull().$type<{
