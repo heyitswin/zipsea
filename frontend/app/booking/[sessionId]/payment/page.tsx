@@ -6,10 +6,6 @@ import { useBooking } from "../../../context/BookingContext";
 import BookingSummary from "../../../components/BookingSummary";
 
 interface BookingSummary {
-  options?: {
-    diningPreference: string;
-    specialRequests: string;
-  };
   passengers?: any[];
   leadContact?: {
     firstName: string;
@@ -36,16 +32,16 @@ export default function BookingPaymentPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [diningPreference, setDiningPreference] = useState<string>("anytime");
+  const [specialRequests, setSpecialRequests] = useState<string>("");
 
   useEffect(() => {
     // Load booking data from localStorage
     if (typeof window !== "undefined") {
-      const options = localStorage.getItem("bookingOptions");
       const passengers = localStorage.getItem("bookingPassengers");
       const leadContact = localStorage.getItem("leadContact");
 
       setBookingSummary({
-        options: options ? JSON.parse(options) : undefined,
         passengers: passengers ? JSON.parse(passengers) : undefined,
         leadContact: leadContact ? JSON.parse(leadContact) : undefined,
       });
@@ -148,7 +144,8 @@ export default function BookingPaymentPage() {
           cvv,
           amount: totalAmount,
         },
-        dining: bookingSummary.options?.diningPreference || "anytime",
+        dining: diningPreference,
+        specialRequests: specialRequests || undefined,
       };
 
       // Call booking API
@@ -173,8 +170,8 @@ export default function BookingPaymentPage() {
       // Clear session and booking data
       clearSession();
       if (typeof window !== "undefined") {
-        localStorage.removeItem("bookingOptions");
         localStorage.removeItem("bookingPassengers");
+        localStorage.removeItem("leadContact");
       }
 
       // Navigate to success page
@@ -191,15 +188,6 @@ export default function BookingPaymentPage() {
       });
       setIsProcessing(false);
     }
-  };
-
-  const getDiningLabel = (pref: string) => {
-    const labels: Record<string, string> = {
-      anytime: "Anytime Dining",
-      early: "Early Seating",
-      late: "Late Seating",
-    };
-    return labels[pref] || pref;
   };
 
   return (
@@ -248,34 +236,135 @@ export default function BookingPaymentPage() {
               </div>
             )}
 
-            {/* Options Summary */}
-            {bookingSummary.options && (
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
-                  Booking Options
-                </h3>
-                <div className="space-y-3">
+            {/* Dining Preference */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-3">
+                Dining Preference
+              </h3>
+              <p className="font-geograph text-[14px] text-gray-600 mb-4">
+                Choose your preferred dining time
+              </p>
+              <div className="space-y-3">
+                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="dining"
+                    value="anytime"
+                    checked={diningPreference === "anytime"}
+                    onChange={(e) => setDiningPreference(e.target.value)}
+                    className="mr-3 w-4 h-4"
+                  />
                   <div>
-                    <p className="font-geograph text-[14px] text-gray-600">
-                      Dining Preference
-                    </p>
-                    <p className="font-geograph font-medium text-[16px] text-dark-blue">
-                      {getDiningLabel(bookingSummary.options.diningPreference)}
-                    </p>
-                  </div>
-                  {bookingSummary.options.specialRequests && (
-                    <div>
-                      <p className="font-geograph text-[14px] text-gray-600">
-                        Special Requests
-                      </p>
-                      <p className="font-geograph text-[16px] text-dark-blue">
-                        {bookingSummary.options.specialRequests}
-                      </p>
+                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
+                      Anytime Dining
                     </div>
-                  )}
+                    <div className="font-geograph text-[14px] text-gray-600">
+                      Flexible dining times between 5:30 PM - 9:30 PM
+                    </div>
+                  </div>
+                </label>
+
+                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="dining"
+                    value="early"
+                    checked={diningPreference === "early"}
+                    onChange={(e) => setDiningPreference(e.target.value)}
+                    className="mr-3 w-4 h-4"
+                  />
+                  <div>
+                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
+                      Early Seating
+                    </div>
+                    <div className="font-geograph text-[14px] text-gray-600">
+                      Fixed time around 6:00 PM
+                    </div>
+                  </div>
+                </label>
+
+                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="dining"
+                    value="late"
+                    checked={diningPreference === "late"}
+                    onChange={(e) => setDiningPreference(e.target.value)}
+                    className="mr-3 w-4 h-4"
+                  />
+                  <div>
+                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
+                      Late Seating
+                    </div>
+                    <div className="font-geograph text-[14px] text-gray-600">
+                      Fixed time around 8:30 PM
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              {/* Special Requests */}
+              <div className="mt-6">
+                <label className="block font-geograph font-bold text-[16px] text-dark-blue mb-2">
+                  Special Requests{" "}
+                  <span className="text-gray-500 font-normal text-[14px]">
+                    (Optional)
+                  </span>
+                </label>
+                <p className="font-geograph text-[14px] text-gray-600 mb-3">
+                  Let us know if you have any dietary restrictions,
+                  accessibility needs, or special occasions
+                </p>
+                <textarea
+                  value={specialRequests}
+                  onChange={(e) => setSpecialRequests(e.target.value)}
+                  placeholder="E.g., Celebrating our anniversary, need wheelchair accessible cabin, vegetarian diet..."
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue resize-none"
+                  maxLength={500}
+                />
+                <div className="font-geograph text-[12px] text-gray-500 mt-1 text-right">
+                  {specialRequests.length}/500 characters
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Cancellation Policy */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
+                Cancellation Policy
+              </h3>
+              <div className="space-y-3 font-geograph text-[14px] text-gray-700">
+                <p>
+                  <strong className="text-dark-blue">Full Refund:</strong>{" "}
+                  Cancel up to 90 days before departure for a full refund to
+                  your original payment method.
+                </p>
+                <p>
+                  <strong className="text-dark-blue">Partial Refund:</strong>{" "}
+                  Cancellations made 60-89 days before departure will receive a
+                  50% refund. Cancellations made 30-59 days before departure
+                  will receive a 25% refund.
+                </p>
+                <p>
+                  <strong className="text-dark-blue">Non-Refundable:</strong>{" "}
+                  Cancellations made less than 30 days before departure are
+                  non-refundable. In this case, you may receive a future cruise
+                  credit for 50% of the total fare.
+                </p>
+                <p>
+                  <strong className="text-dark-blue">Changes:</strong> Changes
+                  to your booking (date, cabin type, etc.) are subject to
+                  availability and may incur additional fees. Changes made
+                  within 60 days of departure cannot be guaranteed.
+                </p>
+                <p className="text-[13px] text-gray-600 mt-4">
+                  Please note that some promotional rates may have different
+                  cancellation policies. Travel insurance is strongly
+                  recommended to protect your investment.
+                </p>
+              </div>
+            </div>
 
             {/* Payment Form */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">

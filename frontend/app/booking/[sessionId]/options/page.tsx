@@ -11,8 +11,6 @@ export default function BookingOptionsPage() {
   const sessionId = params.sessionId as string;
   const { passengerCount } = useBooking();
 
-  const [diningPreference, setDiningPreference] = useState<string>("anytime");
-  const [specialRequests, setSpecialRequests] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Lead contact fields
@@ -55,15 +53,8 @@ export default function BookingOptionsPage() {
     setIsSubmitting(true);
 
     try {
-      // Save options and lead contact to localStorage
+      // Save lead contact to localStorage
       if (typeof window !== "undefined") {
-        localStorage.setItem(
-          "bookingOptions",
-          JSON.stringify({
-            diningPreference,
-            specialRequests,
-          }),
-        );
         localStorage.setItem("leadContact", JSON.stringify(leadContact));
       }
 
@@ -191,100 +182,6 @@ export default function BookingOptionsPage() {
             {errors.address && (
               <p className="text-red-500 text-sm mt-1">{errors.address}</p>
             )}
-          </div>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-6 md:p-8 mb-6">
-          {/* Dining Preference */}
-          <div className="mb-8">
-            <label className="block font-geograph font-bold text-[18px] text-dark-blue mb-3">
-              Dining Preference
-            </label>
-            <p className="font-geograph text-[14px] text-gray-600 mb-4">
-              Choose your preferred dining time
-            </p>
-            <div className="space-y-3">
-              <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
-                <input
-                  type="radio"
-                  name="dining"
-                  value="anytime"
-                  checked={diningPreference === "anytime"}
-                  onChange={(e) => setDiningPreference(e.target.value)}
-                  className="mr-3 w-4 h-4"
-                />
-                <div>
-                  <div className="font-geograph font-medium text-[16px] text-dark-blue">
-                    Anytime Dining
-                  </div>
-                  <div className="font-geograph text-[14px] text-gray-600">
-                    Flexible dining times between 5:30 PM - 9:30 PM
-                  </div>
-                </div>
-              </label>
-
-              <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
-                <input
-                  type="radio"
-                  name="dining"
-                  value="early"
-                  checked={diningPreference === "early"}
-                  onChange={(e) => setDiningPreference(e.target.value)}
-                  className="mr-3 w-4 h-4"
-                />
-                <div>
-                  <div className="font-geograph font-medium text-[16px] text-dark-blue">
-                    Early Seating
-                  </div>
-                  <div className="font-geograph text-[14px] text-gray-600">
-                    Fixed time around 6:00 PM
-                  </div>
-                </div>
-              </label>
-
-              <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
-                <input
-                  type="radio"
-                  name="dining"
-                  value="late"
-                  checked={diningPreference === "late"}
-                  onChange={(e) => setDiningPreference(e.target.value)}
-                  className="mr-3 w-4 h-4"
-                />
-                <div>
-                  <div className="font-geograph font-medium text-[16px] text-dark-blue">
-                    Late Seating
-                  </div>
-                  <div className="font-geograph text-[14px] text-gray-600">
-                    Fixed time around 8:30 PM
-                  </div>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          {/* Special Requests */}
-          <div>
-            <label className="block font-geograph font-bold text-[18px] text-dark-blue mb-3">
-              Special Requests{" "}
-              <span className="text-gray-500 font-normal text-[14px]">
-                (Optional)
-              </span>
-            </label>
-            <p className="font-geograph text-[14px] text-gray-600 mb-4">
-              Let us know if you have any dietary restrictions, accessibility
-              needs, or special occasions
-            </p>
-            <textarea
-              value={specialRequests}
-              onChange={(e) => setSpecialRequests(e.target.value)}
-              placeholder="E.g., Celebrating our anniversary, need wheelchair accessible cabin, vegetarian diet..."
-              rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue resize-none"
-              maxLength={500}
-            />
-            <div className="font-geograph text-[12px] text-gray-500 mt-1 text-right">
-              {specialRequests.length}/500 characters
-            </div>
           </div>
         </div>
 

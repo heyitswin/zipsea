@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 interface BookingSummaryProps {
   sessionId: string;
@@ -9,6 +10,7 @@ interface BookingSummaryProps {
 interface CruiseData {
   name?: string;
   shipName?: string;
+  shipImage?: string;
   departureDate?: string;
   arrivalDate?: string;
   nights?: number;
@@ -55,14 +57,25 @@ export default function BookingSummary({ sessionId }: BookingSummaryProps) {
           );
 
           if (cruiseResponse.ok) {
-            const cruise = await cruiseResponse.json();
+            const cruiseResponseData = await cruiseResponse.json();
+            const cruise = cruiseResponseData.data || cruiseResponseData;
             console.log("🚢 Cruise data received:", cruise);
 
             setCruiseData({
               name: cruise.name || cruise.title || cruise.voyageName,
               shipName: cruise.shipName || cruise.ship?.name,
+              shipImage:
+                cruise.ship?.defaultShipImageHd ||
+                cruise.ship?.defaultShipImage2k ||
+                cruise.ship?.defaultShipImage ||
+                cruise.shipImageHd ||
+                cruise.shipImage2k ||
+                cruise.shipImage,
               departureDate:
-                cruise.departureDate || cruise.startDate || cruise.sailingDate,
+                cruise.departureDate ||
+                cruise.startDate ||
+                cruise.sailingDate ||
+                cruise.sailingDateText,
               arrivalDate:
                 cruise.arrivalDate || cruise.endDate || cruise.returnDate,
               nights: cruise.nights || cruise.duration,
@@ -79,16 +92,33 @@ export default function BookingSummary({ sessionId }: BookingSummaryProps) {
           console.warn("⚠️ No cruiseId in session data");
         }
 
-        // Set cabin data from session
-        if (sessionData.selectedCabinGrade) {
-          console.log("🛏️ Cabin data:", sessionData.selectedCabinGrade);
-          setCabinData({
-            cabinType: sessionData.selectedCabinGrade.cabinType,
-            description: sessionData.selectedCabinGrade.description,
-            gradeno: sessionData.selectedCabinGrade.gradeno,
-          });
-        } else {
-          console.warn("⚠️ No selectedCabinGrade in session data");
+        // Fetch basket data to get cabin information
+        try {
+          const basketResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/basket`,
+          );
+
+          if (basketResponse.ok) {
+            const basketData = await basketResponse.json();
+            console.log("🛏️ Basket data received:", basketData);
+
+            // Extract cabin info from basket
+            if (basketData.items && basketData.items.length > 0) {
+              const cabinItem = basketData.items[0];
+              setCabinData({
+                cabinType: cabinItem.name || cabinItem.description,
+                description: cabinItem.details || cabinItem.longDescription,
+                gradeno: cabinItem.gradeNo,
+              });
+            }
+          } else {
+            console.warn(
+              "⚠️ Failed to fetch basket data:",
+              basketResponse.status,
+            );
+          }
+        } catch (error) {
+          console.warn("⚠️ Error fetching basket data:", error);
         }
 
         setIsLoading(false);
@@ -136,79 +166,95 @@ export default function BookingSummary({ sessionId }: BookingSummaryProps) {
         Booking Summary
       </h3>
 
-      <div className="space-y-3">
-        {/* Cruise Name */}
-        {cruiseData?.name && (
-          <div>
-            <p className="font-geograph text-[12px] text-gray-600 uppercase tracking-wide mb-1">
-              Cruise
-            </p>
-            <p className="font-geograph font-medium text-[16px] text-dark-blue">
-              {cruiseData.name}
-            </p>
+      <div className="flex gap-4">
+        {/* Ship Image Thumbnail */}
+        {cruiseData?.shipImage && (
+          <div className="flex-shrink-0">
+            <Image
+              src={cruiseData.shipImage}
+              alt={cruiseData.shipName || "Cruise ship"}
+              width={80}
+              height={80}
+              className="rounded-lg object-cover"
+            />
           </div>
         )}
 
-        {/* Ship Name */}
-        {cruiseData?.shipName && (
-          <div>
-            <p className="font-geograph text-[12px] text-gray-600 uppercase tracking-wide mb-1">
-              Ship
-            </p>
-            <p className="font-geograph text-[14px] text-dark-blue">
-              {cruiseData.shipName}
-            </p>
-          </div>
-        )}
-
-        {/* Dates */}
-        {cruiseData?.departureDate && cruiseData?.arrivalDate && (
-          <div>
-            <p className="font-geograph text-[12px] text-gray-600 uppercase tracking-wide mb-1">
-              Dates
-            </p>
-            <p className="font-geograph text-[14px] text-dark-blue">
-              {formatDate(cruiseData.departureDate)} -{" "}
-              {formatDate(cruiseData.arrivalDate)}
-              {cruiseData.nights && (
-                <span className="text-gray-600">
-                  {" "}
-                  ({cruiseData.nights} night{cruiseData.nights !== 1 ? "s" : ""}
-                  )
-                </span>
-              )}
-            </p>
-          </div>
-        )}
-
-        {/* Ports of Call */}
-        {cruiseData?.ports && cruiseData.ports.length > 0 && (
-          <div>
-            <p className="font-geograph text-[12px] text-gray-600 uppercase tracking-wide mb-1">
-              Ports of Call
-            </p>
-            <p className="font-geograph text-[14px] text-dark-blue">
-              {cruiseData.ports.join(" • ")}
-            </p>
-          </div>
-        )}
-
-        {/* Cabin Details */}
-        {cabinData?.cabinType && (
-          <div>
-            <p className="font-geograph text-[12px] text-gray-600 uppercase tracking-wide mb-1">
-              Cabin
-            </p>
-            <p className="font-geograph font-medium text-[14px] text-dark-blue">
-              {cabinData.cabinType}
-            </p>
-            {cabinData.description && (
-              <p className="font-geograph text-[13px] text-gray-600 mt-1">
-                {cabinData.description}
+        {/* Booking Details */}
+        <div className="flex-1 space-y-3">
+          {/* Cruise Name */}
+          {cruiseData?.name && (
+            <div>
+              <p className="font-geograph text-[12px] text-gray-600 uppercase tracking-wide mb-1">
+                Cruise
               </p>
-            )}
-          </div>
-        )}
+              <p className="font-geograph font-medium text-[16px] text-dark-blue">
+                {cruiseData.name}
+              </p>
+            </div>
+          )}
+
+          {/* Ship Name */}
+          {cruiseData?.shipName && (
+            <div>
+              <p className="font-geograph text-[12px] text-gray-600 uppercase tracking-wide mb-1">
+                Ship
+              </p>
+              <p className="font-geograph text-[14px] text-dark-blue">
+                {cruiseData.shipName}
+              </p>
+            </div>
+          )}
+
+          {/* Dates */}
+          {cruiseData?.departureDate && cruiseData?.arrivalDate && (
+            <div>
+              <p className="font-geograph text-[12px] text-gray-600 uppercase tracking-wide mb-1">
+                Dates
+              </p>
+              <p className="font-geograph text-[14px] text-dark-blue">
+                {formatDate(cruiseData.departureDate)} -{" "}
+                {formatDate(cruiseData.arrivalDate)}
+                {cruiseData.nights && (
+                  <span className="text-gray-600">
+                    {" "}
+                    ({cruiseData.nights} night
+                    {cruiseData.nights !== 1 ? "s" : ""})
+                  </span>
+                )}
+              </p>
+            </div>
+          )}
+
+          {/* Ports of Call */}
+          {cruiseData?.ports && cruiseData.ports.length > 0 && (
+            <div>
+              <p className="font-geograph text-[12px] text-gray-600 uppercase tracking-wide mb-1">
+                Ports of Call
+              </p>
+              <p className="font-geograph text-[14px] text-dark-blue">
+                {cruiseData.ports.join(" • ")}
+              </p>
+            </div>
+          )}
+
+          {/* Cabin Details */}
+          {cabinData?.cabinType && (
+            <div>
+              <p className="font-geograph text-[12px] text-gray-600 uppercase tracking-wide mb-1">
+                Cabin
+              </p>
+              <p className="font-geograph font-medium text-[14px] text-dark-blue">
+                {cabinData.cabinType}
+              </p>
+              {cabinData.description && (
+                <p className="font-geograph text-[13px] text-gray-600 mt-1">
+                  {cabinData.description}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

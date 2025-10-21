@@ -552,8 +552,8 @@ export default function Navigation({
     <>
       <nav
         className={`fixed top-0 left-0 right-0 z-50 py-[14px] md:py-[20px] px-[30px] md:px-[28px] transition-all duration-300 ease-in-out h-[64px] md:h-auto ${
-          isScrolled || isBookingPage ? "bg-white shadow-lg" : "bg-transparent"
-        }`}
+          isScrolled || isBookingPage ? "bg-white" : "bg-transparent"
+        } ${isScrolled && !isBookingPage ? "shadow-lg" : ""} ${isBookingPage ? "border-b border-[#d9d9d9]" : ""}`}
       >
         <div className="flex items-center justify-between h-[40px] md:h-[44px]">
           {/* Logo - Responsive sizing */}
