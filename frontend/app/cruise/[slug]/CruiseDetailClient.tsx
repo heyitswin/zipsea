@@ -89,6 +89,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     childAges: [] as number[],
   });
 
+  // Cabin details modal state
+  const [isCabinDetailsModalOpen, setIsCabinDetailsModalOpen] = useState(false);
+  const [selectedCabinDetails, setSelectedCabinDetails] = useState<any>(null);
+
   // Time tracking
   const pageLoadTime = useRef<number>(Date.now());
   const hasTrackedView = useRef(false);
@@ -1191,98 +1195,27 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               </div>
 
               {isLiveBookable && liveCabinGrades ? (
-                <div className="flex items-center gap-6 flex-wrap">
-                  {/* Adults Stepper */}
-                  <div className="flex items-center gap-3">
-                    <span className="font-geograph text-[16px] text-[#2f2f2f]">
-                      Adults:
-                    </span>
-                    <div className="flex items-center gap-0 border border-gray-300 rounded-lg overflow-hidden">
-                      <button
-                        onClick={() => {
-                          setLocalPassengerCount((prev) => ({
-                            ...prev,
-                            adults: Math.max(1, prev.adults - 1),
-                          }));
-                        }}
-                        disabled={localPassengerCount.adults <= 1}
-                        className="px-3 py-2 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-geograph text-[18px] transition-colors"
-                      >
-                        −
-                      </button>
-                      <span className="px-4 py-2 bg-white font-geograph text-[16px] min-w-[40px] text-center">
-                        {localPassengerCount.adults}
-                      </span>
-                      <button
-                        onClick={() => {
-                          setLocalPassengerCount((prev) => ({
-                            ...prev,
-                            adults: Math.min(6, prev.adults + 1),
-                          }));
-                        }}
-                        disabled={localPassengerCount.adults >= 6}
-                        className="px-3 py-2 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-geograph text-[18px] transition-colors"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
+                <PassengerSelector
+                  value={localPassengerCount}
+                  onChange={(newPassengerCount) => {
+                    // Enforce max 4 people per cabin
+                    const totalPassengers =
+                      newPassengerCount.adults + newPassengerCount.children;
+                    if (totalPassengers > 4) {
+                      showAlert("Maximum 4 passengers per cabin");
+                      return;
+                    }
 
-                  {/* Children Stepper */}
-                  <div className="flex items-center gap-3">
-                    <span className="font-geograph text-[16px] text-[#2f2f2f]">
-                      Children:
-                    </span>
-                    <div className="flex items-center gap-0 border border-gray-300 rounded-lg overflow-hidden">
-                      <button
-                        onClick={() => {
-                          setLocalPassengerCount((prev) => ({
-                            ...prev,
-                            children: Math.max(0, prev.children - 1),
-                            childAges:
-                              prev.children > 0
-                                ? prev.childAges.slice(0, -1)
-                                : [],
-                          }));
-                        }}
-                        disabled={localPassengerCount.children <= 0}
-                        className="px-3 py-2 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-geograph text-[18px] transition-colors"
-                      >
-                        −
-                      </button>
-                      <span className="px-4 py-2 bg-white font-geograph text-[16px] min-w-[40px] text-center">
-                        {localPassengerCount.children}
-                      </span>
-                      <button
-                        onClick={() => {
-                          setLocalPassengerCount((prev) => ({
-                            ...prev,
-                            children: Math.min(4, prev.children + 1),
-                            childAges: [...prev.childAges, 10],
-                          }));
-                        }}
-                        disabled={localPassengerCount.children >= 4}
-                        className="px-3 py-2 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-geograph text-[18px] transition-colors"
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Update Prices Button */}
-                  <button
-                    onClick={() => {
-                      sessionStorage.setItem(
-                        "passengerCount",
-                        JSON.stringify(localPassengerCount),
-                      );
-                      createBookingSessionAndFetchCabins();
-                    }}
-                    className="px-5 py-2 bg-[#2f7ddd] text-white rounded-lg hover:bg-[#2f7ddd]/90 font-geograph font-medium text-[14px] transition-colors"
-                  >
-                    Update Prices
-                  </button>
-                </div>
+                    setLocalPassengerCount(newPassengerCount);
+                    // Update session storage and refetch prices
+                    sessionStorage.setItem(
+                      "passengerCount",
+                      JSON.stringify(newPassengerCount),
+                    );
+                    createBookingSessionAndFetchCabins();
+                  }}
+                  className="w-full md:w-96"
+                />
               ) : (
                 <p
                   className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5]"
@@ -1537,19 +1470,33 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                   </div>
 
                                   {/* Cabin Description - Truncate to 3 lines */}
-                                  <p
-                                    className="font-geograph text-[14px] text-[#777777] mb-4 flex-grow"
-                                    style={{
-                                      letterSpacing: "-0.02em",
-                                      lineHeight: "1.5",
-                                      display: "-webkit-box",
-                                      WebkitLineClamp: 3,
-                                      WebkitBoxOrient: "vertical",
-                                      overflow: "hidden",
-                                    }}
-                                  >
-                                    {cabin.description || ""}
-                                  </p>
+                                  <div className="mb-4 flex-grow">
+                                    <div
+                                      className="font-geograph text-[14px] text-[#777777]"
+                                      style={{
+                                        letterSpacing: "-0.02em",
+                                        lineHeight: "1.5",
+                                        display: "-webkit-box",
+                                        WebkitLineClamp: 3,
+                                        WebkitBoxOrient: "vertical",
+                                        overflow: "hidden",
+                                      }}
+                                      dangerouslySetInnerHTML={{
+                                        __html: cabin.description || "",
+                                      }}
+                                    />
+                                    {cabin.description && (
+                                      <button
+                                        onClick={() => {
+                                          setSelectedCabinDetails(cabin);
+                                          setIsCabinDetailsModalOpen(true);
+                                        }}
+                                        className="text-[#2f7ddd] text-[14px] font-geograph hover:underline mt-1"
+                                      >
+                                        Read More
+                                      </button>
+                                    )}
+                                  </div>
 
                                   {/* Horizontal Separator */}
                                   <div className="border-t border-[#d9d9d9] mb-4 mt-auto"></div>
@@ -2197,6 +2144,142 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             className="max-w-full max-h-full object-contain rounded-[10px]"
             onClick={(e) => e.stopPropagation()}
           />
+        </div>
+      )}
+
+      {/* Cabin Details Modal */}
+      {isCabinDetailsModalOpen && selectedCabinDetails && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+            onClick={() => setIsCabinDetailsModalOpen(false)}
+          />
+
+          {/* Modal */}
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative w-full max-w-2xl bg-white rounded-lg shadow-xl">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b">
+                <h2 className="text-2xl font-geograph font-semibold text-gray-900">
+                  {selectedCabinDetails.name}
+                </h2>
+                <button
+                  onClick={() => setIsCabinDetailsModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-500"
+                >
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 max-h-[70vh] overflow-y-auto">
+                {/* Cabin Image */}
+                {selectedCabinDetails.imageUrl && (
+                  <div className="mb-6">
+                    <img
+                      src={selectedCabinDetails.imageUrl}
+                      alt={selectedCabinDetails.name}
+                      className="w-full h-64 object-cover rounded-lg"
+                    />
+                  </div>
+                )}
+
+                {/* Cabin Code */}
+                {selectedCabinDetails.code && (
+                  <div className="mb-4">
+                    <span className="text-sm font-geograph text-gray-600">
+                      Cabin Code:{" "}
+                    </span>
+                    <span className="text-sm font-geograph font-semibold text-gray-900">
+                      {selectedCabinDetails.code}
+                    </span>
+                  </div>
+                )}
+
+                {/* Full Description */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-geograph font-semibold text-gray-900 mb-3">
+                    Description
+                  </h3>
+                  <div
+                    className="font-geograph text-[16px] text-[#2f2f2f] leading-relaxed"
+                    style={{ letterSpacing: "-0.02em" }}
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        selectedCabinDetails.description ||
+                        "No description available",
+                    }}
+                  />
+                </div>
+
+                {/* Additional Details */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  {selectedCabinDetails.size && (
+                    <div>
+                      <span className="text-sm font-geograph text-gray-600">
+                        Size:
+                      </span>
+                      <p className="text-sm font-geograph font-semibold text-gray-900">
+                        {selectedCabinDetails.size}
+                      </p>
+                    </div>
+                  )}
+                  {selectedCabinDetails.occupancy && (
+                    <div>
+                      <span className="text-sm font-geograph text-gray-600">
+                        Max Occupancy:
+                      </span>
+                      <p className="text-sm font-geograph font-semibold text-gray-900">
+                        {selectedCabinDetails.occupancy} guests
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Amenities/Features if available */}
+                {selectedCabinDetails.amenities &&
+                  selectedCabinDetails.amenities.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-geograph font-semibold text-gray-900 mb-3">
+                        Amenities
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedCabinDetails.amenities.map(
+                          (amenity: string, idx: number) => (
+                            <span
+                              key={idx}
+                              className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-geograph"
+                            >
+                              {amenity}
+                            </span>
+                          ),
+                        )}
+                      </div>
+                    </div>
+                  )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
+                <button
+                  onClick={() => setIsCabinDetailsModalOpen(false)}
+                  className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-geograph font-medium transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

@@ -25,26 +25,32 @@ export default function PassengerSelector({
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
 
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () => document.removeEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen]);
 
   const updateAdults = (newCount: number) => {
-    // Min 1, max 8 adults
-    const adults = Math.max(1, Math.min(8, newCount));
+    // Min 1, max 4 adults (cabin occupancy limit)
+    const maxAdults = Math.min(4, 4 - value.children); // Ensure total doesn't exceed 4
+    const adults = Math.max(1, Math.min(maxAdults, newCount));
     onChange({ ...value, adults });
   };
 
   const updateChildren = (newCount: number) => {
-    // Min 0, max 6 children
-    const children = Math.max(0, Math.min(6, newCount));
+    // Min 0, max children depends on adults (total max 4)
+    const maxChildren = 4 - value.adults;
+    const children = Math.max(0, Math.min(maxChildren, newCount));
 
     // Adjust childAges array
     let childAges = [...value.childAges];
@@ -116,8 +122,9 @@ export default function PassengerSelector({
               {totalPassengers} {totalPassengers === 1 ? "Guest" : "Guests"}
               {value.children > 0 && (
                 <span className="text-sm text-gray-600 ml-1">
-                  ({value.adults} {value.adults === 1 ? "adult" : "adults"}, {value.children}{" "}
-                  {value.children === 1 ? "child" : "children"})
+                  ({value.adults} {value.adults === 1 ? "adult" : "adults"},{" "}
+                  {value.children} {value.children === 1 ? "child" : "children"}
+                  )
                 </span>
               )}
             </div>
@@ -165,11 +172,13 @@ export default function PassengerSelector({
                   />
                 </svg>
               </button>
-              <span className="w-8 text-center font-semibold text-lg">{value.adults}</span>
+              <span className="w-8 text-center font-semibold text-lg">
+                {value.adults}
+              </span>
               <button
                 type="button"
                 onClick={() => updateAdults(value.adults + 1)}
-                disabled={value.adults >= 8}
+                disabled={value.adults + value.children >= 4}
                 className="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300 transition-colors"
               >
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -206,11 +215,13 @@ export default function PassengerSelector({
                   />
                 </svg>
               </button>
-              <span className="w-8 text-center font-semibold text-lg">{value.children}</span>
+              <span className="w-8 text-center font-semibold text-lg">
+                {value.children}
+              </span>
               <button
                 type="button"
                 onClick={() => updateChildren(value.children + 1)}
-                disabled={value.children >= 6}
+                disabled={value.adults + value.children >= 4}
                 className="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-300 transition-colors"
               >
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -228,7 +239,9 @@ export default function PassengerSelector({
           {/* Child Ages */}
           {value.children > 0 && (
             <div className="border-t border-gray-200 pt-4 mt-4">
-              <div className="text-sm font-semibold text-gray-900 mb-3">Child Ages (at time of cruise)</div>
+              <div className="text-sm font-semibold text-gray-900 mb-3">
+                Child Ages (at time of cruise)
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 {value.childAges.map((age, index) => (
                   <div key={index}>
@@ -237,14 +250,18 @@ export default function PassengerSelector({
                     </label>
                     <select
                       value={age}
-                      onChange={(e) => updateChildAge(index, parseInt(e.target.value))}
+                      onChange={(e) =>
+                        updateChildAge(index, parseInt(e.target.value))
+                      }
                       className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                     >
-                      {Array.from({ length: 18 }, (_, i) => i).map((ageOption) => (
-                        <option key={ageOption} value={ageOption}>
-                          {ageOption} {ageOption === 0 ? "year" : "years"}
-                        </option>
-                      ))}
+                      {Array.from({ length: 18 }, (_, i) => i).map(
+                        (ageOption) => (
+                          <option key={ageOption} value={ageOption}>
+                            {ageOption} {ageOption === 0 ? "year" : "years"}
+                          </option>
+                        ),
+                      )}
                     </select>
                   </div>
                 ))}

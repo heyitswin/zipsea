@@ -64,6 +64,24 @@ export default function SpecificCabinModal({
   } | null>(null);
   const [mobileTab, setMobileTab] = useState<"cabins" | "deckplans">("cabins");
 
+  // Reset deck plan dimensions when deck changes
+  useEffect(() => {
+    setDeckPlanDimensions(null);
+  }, [selectedDeck]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen]);
+
   // Fetch specific cabins when modal opens
   useEffect(() => {
     if (!isOpen) return;
@@ -353,6 +371,11 @@ export default function SpecificCabinModal({
                             }}
                           />
 
+                          {/* White overlay when cabin is selected */}
+                          {selectedCabinNo && (
+                            <div className="absolute top-0 left-0 w-full h-full bg-white opacity-50 pointer-events-none" />
+                          )}
+
                           {/* Draw rectangles for selected cabin */}
                           {deckPlanDimensions && (
                             <svg
@@ -360,6 +383,18 @@ export default function SpecificCabinModal({
                               viewBox={`0 0 ${deckPlanDimensions.width} ${deckPlanDimensions.height}`}
                               preserveAspectRatio="xMidYMid meet"
                             >
+                              <defs>
+                                <filter id="glow">
+                                  <feGaussianBlur
+                                    stdDeviation="3"
+                                    result="coloredBlur"
+                                  />
+                                  <feMerge>
+                                    <feMergeNode in="coloredBlur" />
+                                    <feMergeNode in="SourceGraphic" />
+                                  </feMerge>
+                                </filter>
+                              </defs>
                               {cabinsOnSelectedDeck.map((cabin) => {
                                 if (
                                   !cabin.x1 ||
@@ -382,13 +417,14 @@ export default function SpecificCabinModal({
                                     y={cabin.y1}
                                     width={cabin.x2 - cabin.x1}
                                     height={cabin.y2 - cabin.y1}
-                                    fill="rgba(255, 193, 7, 0.4)"
-                                    stroke="#ff6b00"
+                                    fill="rgba(59, 130, 246, 0.5)"
+                                    stroke="#2563eb"
                                     strokeWidth={6}
+                                    filter="url(#glow)"
                                     className="transition-all"
                                     style={{
-                                      filter:
-                                        "drop-shadow(0 0 4px rgba(255, 107, 0, 0.8))",
+                                      animation:
+                                        "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
                                     }}
                                   />
                                 );
