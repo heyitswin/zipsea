@@ -619,35 +619,6 @@ export default function Navigation({
 
           {/* Navigation Links and Button (Desktop Only) */}
           <div className="hidden md:flex items-center gap-8">
-            <a
-              href="/why-zipsea"
-              className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                isScrolled ||
-                (isCruiseDetailPage && !isScrolled) ||
-                (isCruisesPage && !isScrolled) ||
-                (isFirstTimeCruisersPage && !isScrolled) ||
-                (isAdminPage && !isScrolled)
-                  ? "text-[#0E1B4D]"
-                  : "text-white"
-              }`}
-            >
-              Why Zipsea
-            </a>
-            <a
-              href="/faqs"
-              className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
-                isScrolled ||
-                (isCruiseDetailPage && !isScrolled) ||
-                (isCruisesPage && !isScrolled) ||
-                (isFirstTimeCruisersPage && !isScrolled) ||
-                (isAdminPage && !isScrolled)
-                  ? "text-[#0E1B4D]"
-                  : "text-white"
-              }`}
-            >
-              FAQs
-            </a>
-
             {/* User Authentication Area */}
             {isLoaded && (
               <>
@@ -1026,27 +997,12 @@ export default function Navigation({
             </div>
 
             {/* Navigation Links */}
-            <div className="flex-1 flex flex-col justify-center px-8 space-y-8">
-              <a
-                href="/why-zipsea"
-                className="text-dark-blue text-[24px] font-medium font-geograph py-4 border-b border-gray-separator"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Why Zipsea
-              </a>
-              <a
-                href="/faqs"
-                className="text-dark-blue text-[24px] font-medium font-geograph py-4 border-b border-gray-separator"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                FAQs
-              </a>
-
-              {/* User Authentication Area - Mobile */}
+            <div className="flex-1 flex flex-col justify-center px-8 space-y-4">
+              {/* User Authentication Area - Mobile - MOVED TO TOP */}
               {isLoaded && (
                 <>
                   {isSignedIn && user ? (
-                    <div className="mt-8 space-y-4">
+                    <div className="mb-4 space-y-3">
                       {/* User Info */}
                       <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-lg">
                         <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
@@ -1090,7 +1046,7 @@ export default function Navigation({
                     </div>
                   ) : (
                     <button
-                      className="mt-8 px-6 py-3 border border-gray-separator text-dark-blue bg-transparent rounded-full text-[18px] font-medium font-geograph hover:opacity-80 transition-opacity"
+                      className="mb-4 px-6 py-3 border border-gray-separator text-dark-blue bg-transparent rounded-full text-[16px] font-medium font-geograph hover:opacity-80 transition-opacity w-full"
                       onClick={() => {
                         setIsMobileMenuOpen(false);
                         setIsLoginModalOpen(true);
@@ -1101,6 +1057,45 @@ export default function Navigation({
                   )}
                 </>
               )}
+
+              {/* Smaller Navigation Links */}
+              <div className="space-y-0 pt-4 border-t border-gray-separator">
+                <a
+                  href="/why-zipsea"
+                  className="block text-dark-blue text-[14px] font-medium font-geograph py-3 border-b border-gray-separator hover:opacity-80"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Why Zipsea
+                </a>
+                <a
+                  href="/faqs"
+                  className="block text-dark-blue text-[14px] font-medium font-geograph py-3 border-b border-gray-separator hover:opacity-80"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  FAQs
+                </a>
+                <a
+                  href="/privacy-policy"
+                  className="block text-dark-blue text-[14px] font-medium font-geograph py-3 border-b border-gray-separator hover:opacity-80"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Privacy Policy
+                </a>
+                <a
+                  href="/terms-of-service"
+                  className="block text-dark-blue text-[14px] font-medium font-geograph py-3 border-b border-gray-separator hover:opacity-80"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Terms of Service
+                </a>
+                <a
+                  href="/contact"
+                  className="block text-dark-blue text-[14px] font-medium font-geograph py-3 hover:opacity-80"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Contact Us
+                </a>
+              </div>
             </div>
           </div>
         </div>
