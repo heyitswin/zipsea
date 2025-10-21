@@ -62,6 +62,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const [isLiveBookable, setIsLiveBookable] = useState(false);
   const [liveCabinGrades, setLiveCabinGrades] = useState<any>(null);
   const [isLoadingCabins, setIsLoadingCabins] = useState(false);
+  const [isReserving, setIsReserving] = useState(false);
   const [selectedCabinCategory, setSelectedCabinCategory] =
     useState<string>("interior"); // Tab state
   const [selectedRateCode, setSelectedRateCode] = useState<string | null>(null); // Rate code selector
@@ -1181,7 +1182,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       className="font-whitney font-black text-[20px] text-[#1c1c1c] uppercase mb-1"
                       style={{ letterSpacing: "-0.02em" }}
                     >
-                      Lowest Price Guarantee
+                      Same Price Guarantee
                     </h3>
                     <p
                       className="font-geograph text-[16px] text-[#2f2f2f] leading-[1.5]"
@@ -1543,7 +1544,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                             }
 
                                             try {
-                                              setIsLoadingCabins(true);
+                                              setIsReserving(true);
 
                                               // Debug: Log cabin data being sent (using selected rate)
                                               console.log("Reserving cabin:", {
@@ -1596,7 +1597,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                               showAlert(
                                                 "Unable to reserve cabin. Please try again.",
                                               );
-                                              setIsLoadingCabins(false);
+                                              setIsReserving(false);
                                             }
                                           } else {
                                             // For specific cabins, open modal (using selected rate)
@@ -1624,13 +1625,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                             setIsSpecificCabinModalOpen(true);
                                           }
                                         }}
-                                        disabled={isLoadingCabins}
+                                        disabled={isReserving}
                                         className="font-geograph font-medium text-[16px] px-[18px] py-[10px] rounded-[5px] bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                       >
-                                        {isLoadingCabins && (
+                                        {isReserving && (
                                           <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
                                         )}
-                                        {isLoadingCabins
+                                        {isReserving
                                           ? "Creating Booking..."
                                           : "Reserve"}
                                       </button>
@@ -2294,12 +2295,12 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             setIsSpecificCabinModalOpen(false);
             setSelectedCabinGrade(null);
           }}
-          isReserving={isLoadingCabins}
+          isReserving={isReserving}
           onSelect={async (cabinResultNo: string) => {
             // User selected a specific cabin - add to basket
             // cabinResultNo is the specific cabin's resultNo from getCabins API
             try {
-              setIsLoadingCabins(true);
+              setIsReserving(true);
 
               console.log("Reserving cabin:", {
                 resultNo: selectedCabinGrade.resultNo,
@@ -2334,7 +2335,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             } catch (err) {
               console.error("Failed to add cabin to basket:", err);
               showAlert("Unable to reserve cabin. Please try again.");
-              setIsLoadingCabins(false);
+              setIsReserving(false);
               setIsSpecificCabinModalOpen(true); // Reopen modal on error
             }
           }}

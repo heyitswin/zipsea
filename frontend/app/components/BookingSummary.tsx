@@ -79,8 +79,15 @@ export default function BookingSummary({ sessionId }: BookingSummaryProps) {
               arrivalDate:
                 cruise.arrivalDate || cruise.endDate || cruise.returnDate,
               nights: cruise.nights || cruise.duration,
-              ports:
-                cruise.ports || cruise.portsOfCall || cruise.portNames || [],
+              ports: Array.isArray(cruise.ports)
+                ? cruise.ports.map((p: any) =>
+                    typeof p === "string" ? p : p.name || p.portName || p,
+                  )
+                : Array.isArray(cruise.portsOfCall)
+                  ? cruise.portsOfCall.map((p: any) =>
+                      typeof p === "string" ? p : p.name || p.portName || p,
+                    )
+                  : cruise.portNames || [],
             });
           } else {
             console.error(
@@ -163,7 +170,7 @@ export default function BookingSummary({ sessionId }: BookingSummaryProps) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
       <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
-        Booking Summary
+        Booking Summary{cruiseData?.name ? ` - ${cruiseData.name}` : ""}
       </h3>
 
       <div className="flex gap-4">
@@ -182,18 +189,6 @@ export default function BookingSummary({ sessionId }: BookingSummaryProps) {
 
         {/* Booking Details */}
         <div className="flex-1 space-y-3">
-          {/* Cruise Name */}
-          {cruiseData?.name && (
-            <div>
-              <p className="font-geograph text-[12px] text-gray-600 uppercase tracking-wide mb-1">
-                Cruise
-              </p>
-              <p className="font-geograph font-medium text-[16px] text-dark-blue">
-                {cruiseData.name}
-              </p>
-            </div>
-          )}
-
           {/* Ship Name */}
           {cruiseData?.shipName && (
             <div>

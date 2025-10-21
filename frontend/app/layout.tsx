@@ -12,6 +12,7 @@ import PostHogProviderWrapper, {
 import MissiveChat from "./components/MissiveChat";
 import { BookingProvider } from "./context/BookingContext";
 import { Suspense } from "react";
+import ConditionalFooter from "./components/ConditionalFooter";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -216,7 +217,7 @@ export default function RootLayout({
               <BookingProvider>
                 <Navigation />
                 {children}
-                <Footer />
+                <ConditionalFooter />
                 <MissiveChat />
               </BookingProvider>
             </GlobalAlertProvider>
