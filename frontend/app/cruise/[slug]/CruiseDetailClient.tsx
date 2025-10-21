@@ -82,6 +82,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     gradeName: string;
   } | null>(null);
 
+  // Local passenger count state for steppers
+  const [localPassengerCount, setLocalPassengerCount] = useState({
+    adults: 2,
+    children: 0,
+    childAges: [] as number[],
+  });
+
   // Time tracking
   const pageLoadTime = useRef<number>(Date.now());
   const hasTrackedView = useRef(false);
@@ -277,6 +284,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       }
     };
   }, [cruiseData]);
+
+  // Sync local passenger count with context
+  useEffect(() => {
+    if (passengerCount) {
+      setLocalPassengerCount(passengerCount);
+    }
+  }, [passengerCount]);
 
   // Check if cruise is live-bookable
   useEffect(() => {
@@ -1073,39 +1087,6 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       {/* Body Section - Updated background and styling */}
       <div className="bg-sand py-8 md:py-16">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
-          {/* Lowest Price Guarantee Box */}
-          <div className="mb-6 bg-white rounded-[5px] border border-[#d9d9d9] p-4 md:py-[22px] md:px-[15px]">
-            <div className="flex items-center gap-4">
-              {/* Icon */}
-              <div className="flex-shrink-0">
-                <img
-                  src="/images/best-price.svg"
-                  alt="Best Price"
-                  width={55}
-                  height={55}
-                  className="w-[55px] h-[55px]"
-                />
-              </div>
-
-              {/* Text Content */}
-              <div>
-                <h3
-                  className="font-whitney font-black text-[20px] text-[#1c1c1c] uppercase mb-1"
-                  style={{ letterSpacing: "-0.02em" }}
-                >
-                  Lowest Price Guarantee
-                </h3>
-                <p
-                  className="font-geograph text-[16px] text-[#2f2f2f] leading-[1.5]"
-                  style={{ letterSpacing: "-0.02em" }}
-                >
-                  Fare prices shown come directly from cruise lines, never any
-                  added fees or markups
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Description Section */}
           {(ship?.description || ship?.shortDescription) && (
             <div className="mb-6">
@@ -1170,35 +1151,137 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <div className="mb-6 px-0 md:px-0">
               <h2
-                className="font-whitney font-black text-[32px] text-dark-blue uppercase"
+                className="font-whitney font-black text-[32px] text-dark-blue uppercase mb-4"
                 style={{ letterSpacing: "-0.02em" }}
               >
                 CHOOSE YOUR ROOM
               </h2>
-              {isLiveBookable && liveCabinGrades ? (
+
+              {/* Lowest Price Guarantee Box */}
+              <div className="mb-6 bg-white rounded-[5px] border border-[#d9d9d9] p-4 md:py-[22px] md:px-[15px]">
                 <div className="flex items-center gap-4">
-                  <span
-                    className="font-geograph text-[18px] text-[#2f2f2f]"
-                    style={{ letterSpacing: "-0.02em" }}
-                  >
-                    Passengers:
-                  </span>
-                  <PassengerSelector
-                    value={{
-                      adults: passengerCount?.adults || 2,
-                      children: passengerCount?.children || 0,
-                      childAges: passengerCount?.childAges || [],
-                    }}
-                    onChange={(newPassengerCount) => {
-                      // Update passenger count in context and refetch pricing
+                  {/* Icon */}
+                  <div className="flex-shrink-0">
+                    <img
+                      src="/images/best-price.svg"
+                      alt="Best Price"
+                      width={55}
+                      height={55}
+                      className="w-[55px] h-[55px]"
+                    />
+                  </div>
+
+                  {/* Text Content */}
+                  <div>
+                    <h3
+                      className="font-whitney font-black text-[20px] text-[#1c1c1c] uppercase mb-1"
+                      style={{ letterSpacing: "-0.02em" }}
+                    >
+                      Lowest Price Guarantee
+                    </h3>
+                    <p
+                      className="font-geograph text-[16px] text-[#2f2f2f] leading-[1.5]"
+                      style={{ letterSpacing: "-0.02em" }}
+                    >
+                      Fare prices shown come directly from cruise lines, never
+                      any added fees or markups
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {isLiveBookable && liveCabinGrades ? (
+                <div className="flex items-center gap-6 flex-wrap">
+                  {/* Adults Stepper */}
+                  <div className="flex items-center gap-3">
+                    <span className="font-geograph text-[16px] text-[#2f2f2f]">
+                      Adults:
+                    </span>
+                    <div className="flex items-center gap-0 border border-gray-300 rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => {
+                          setLocalPassengerCount((prev) => ({
+                            ...prev,
+                            adults: Math.max(1, prev.adults - 1),
+                          }));
+                        }}
+                        disabled={localPassengerCount.adults <= 1}
+                        className="px-3 py-2 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-geograph text-[18px] transition-colors"
+                      >
+                        −
+                      </button>
+                      <span className="px-4 py-2 bg-white font-geograph text-[16px] min-w-[40px] text-center">
+                        {localPassengerCount.adults}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setLocalPassengerCount((prev) => ({
+                            ...prev,
+                            adults: Math.min(6, prev.adults + 1),
+                          }));
+                        }}
+                        disabled={localPassengerCount.adults >= 6}
+                        className="px-3 py-2 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-geograph text-[18px] transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Children Stepper */}
+                  <div className="flex items-center gap-3">
+                    <span className="font-geograph text-[16px] text-[#2f2f2f]">
+                      Children:
+                    </span>
+                    <div className="flex items-center gap-0 border border-gray-300 rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => {
+                          setLocalPassengerCount((prev) => ({
+                            ...prev,
+                            children: Math.max(0, prev.children - 1),
+                            childAges:
+                              prev.children > 0
+                                ? prev.childAges.slice(0, -1)
+                                : [],
+                          }));
+                        }}
+                        disabled={localPassengerCount.children <= 0}
+                        className="px-3 py-2 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-geograph text-[18px] transition-colors"
+                      >
+                        −
+                      </button>
+                      <span className="px-4 py-2 bg-white font-geograph text-[16px] min-w-[40px] text-center">
+                        {localPassengerCount.children}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setLocalPassengerCount((prev) => ({
+                            ...prev,
+                            children: Math.min(4, prev.children + 1),
+                            childAges: [...prev.childAges, 10],
+                          }));
+                        }}
+                        disabled={localPassengerCount.children >= 4}
+                        className="px-3 py-2 bg-white hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed font-geograph text-[18px] transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Update Prices Button */}
+                  <button
+                    onClick={() => {
                       sessionStorage.setItem(
                         "passengerCount",
-                        JSON.stringify(newPassengerCount),
+                        JSON.stringify(localPassengerCount),
                       );
                       createBookingSessionAndFetchCabins();
                     }}
-                    className="w-64"
-                  />
+                    className="px-5 py-2 bg-[#2f7ddd] text-white rounded-lg hover:bg-[#2f7ddd]/90 font-geograph font-medium text-[14px] transition-colors"
+                  >
+                    Update Prices
+                  </button>
                 </div>
               ) : (
                 <p
@@ -1408,7 +1491,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                             return (
                               <div
                                 key={cabin.code}
-                                className="bg-white rounded-lg border border-[#d9d9d9] overflow-hidden relative"
+                                className="bg-white rounded-lg border border-[#d9d9d9] overflow-hidden relative flex flex-col"
                               >
                                 {/* Best Value Banner */}
                                 {cabin.isGuaranteed && (
@@ -1418,7 +1501,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                 )}
 
                                 {/* Full Bleed Cabin Image */}
-                                <div className="w-full h-48 relative">
+                                <div className="w-full h-48 relative flex-shrink-0">
                                   {cabin.imageUrl ? (
                                     <img
                                       src={cabin.imageUrl}
@@ -1438,7 +1521,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                 </div>
 
                                 {/* Card Content */}
-                                <div className="p-4">
+                                <div className="p-4 flex flex-col flex-grow">
                                   {/* Cabin Title and Code */}
                                   <div className="flex items-center gap-2 mb-2">
                                     <h3 className="font-geograph font-medium text-[18px] text-[#1c1c1c]">
@@ -1455,7 +1538,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
                                   {/* Cabin Description - Truncate to 3 lines */}
                                   <p
-                                    className="font-geograph text-[14px] text-[#777777] mb-4"
+                                    className="font-geograph text-[14px] text-[#777777] mb-4 flex-grow"
                                     style={{
                                       letterSpacing: "-0.02em",
                                       lineHeight: "1.5",
@@ -1469,10 +1552,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                   </p>
 
                                   {/* Horizontal Separator */}
-                                  <div className="border-t border-[#d9d9d9] mb-4"></div>
+                                  <div className="border-t border-[#d9d9d9] mb-4 mt-auto"></div>
 
                                   {/* Pricing and Button Row */}
-                                  <div className="flex items-end justify-between gap-4">
+                                  <div className="flex items-end justify-between gap-4 mt-auto">
                                     {/* Pricing Block */}
                                     <div className="text-left">
                                       <div className="font-geograph font-bold text-[10px] text-[#474747] uppercase tracking-wider -mb-1">
@@ -2125,12 +2208,12 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             setIsSpecificCabinModalOpen(false);
             setSelectedCabinGrade(null);
           }}
+          isReserving={isLoadingCabins}
           onSelect={async (cabinResultNo: string) => {
             // User selected a specific cabin - add to basket
             // cabinResultNo is the specific cabin's resultNo from getCabins API
             try {
               setIsLoadingCabins(true);
-              setIsSpecificCabinModalOpen(false);
 
               console.log("Reserving cabin:", {
                 resultNo: selectedCabinGrade.resultNo,

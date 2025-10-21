@@ -37,6 +37,7 @@ interface SpecificCabinModalProps {
   gradeNo: string;
   rateCode: string;
   cabinGradeName: string;
+  isReserving?: boolean;
 }
 
 export default function SpecificCabinModal({
@@ -49,6 +50,7 @@ export default function SpecificCabinModal({
   gradeNo,
   rateCode,
   cabinGradeName,
+  isReserving = false,
 }: SpecificCabinModalProps) {
   const [cabins, setCabins] = useState<Cabin[]>([]);
   const [deckPlans, setDeckPlans] = useState<DeckPlan[]>([]);
@@ -118,9 +120,9 @@ export default function SpecificCabinModal({
 
     setSelectedCabinNo(cabin.cabinNo);
 
-    // Auto-switch to this cabin's deck
+    // Auto-switch to this cabin's deck (always set to ensure deck plan shows)
     const cabinDeck = cabin.deckCode || cabin.deck;
-    if (cabinDeck && cabinDeck !== selectedDeck) {
+    if (cabinDeck) {
       setSelectedDeck(cabinDeck);
     }
   };
@@ -161,9 +163,9 @@ export default function SpecificCabinModal({
 
       {/* Modal - Full screen on mobile, centered on desktop */}
       <div className="flex min-h-full items-center justify-center md:p-4">
-        <div className="relative w-full h-full md:h-auto md:max-w-7xl bg-white md:rounded-lg shadow-xl flex flex-col">
-          {/* Header - Fixed on mobile */}
-          <div className="sticky md:static top-0 z-10 flex items-center justify-between p-4 md:p-6 border-b flex-shrink-0 bg-white">
+        <div className="relative w-full h-full md:h-[90vh] md:max-w-7xl bg-white md:rounded-lg shadow-xl flex flex-col">
+          {/* Header - Fixed on mobile and desktop */}
+          <div className="sticky top-0 z-10 flex items-center justify-between p-4 md:p-6 border-b flex-shrink-0 bg-white">
             <div>
               <h2 className="text-xl md:text-2xl font-geograph font-semibold text-gray-900">
                 Choose Your Cabin
@@ -246,10 +248,65 @@ export default function SpecificCabinModal({
           {/* Main Content - Tabbed on Mobile, Side by Side on Desktop */}
           {!isLoading && !error && cabins.length > 0 && (
             <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
-              {/* Deck Plans - Hidden on mobile unless active tab */}
+              {/* Cabin List - Hidden on mobile unless active tab - LEFT on desktop */}
+              <div
+                className={`${deckPlans.length > 0 ? "lg:w-1/2" : "w-full"} p-4 md:p-6 lg:border-r border-gray-200 overflow-y-auto ${mobileTab === "cabins" || deckPlans.length === 0 ? "flex-1" : "hidden lg:block"}`}
+              >
+                <h3 className="font-geograph font-semibold text-lg mb-3">
+                  Available Cabins ({cabins.length})
+                </h3>
+
+                <div className="space-y-3">
+                  {cabins.map((cabin) => (
+                    <div
+                      key={cabin.cabinNo}
+                      onClick={() => handleCabinClick(cabin)}
+                      className={`p-4 border rounded-lg cursor-pointer transition-all ${
+                        selectedCabinNo === cabin.cabinNo
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="font-geograph font-semibold text-base">
+                          Cabin {cabin.cabinNo}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          Deck {cabin.deck}
+                        </div>
+                      </div>
+
+                      <div className="text-sm text-gray-600 mb-1">
+                        {cabin.position}
+                      </div>
+
+                      {cabin.features && cabin.features.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {cabin.features.map((feature, idx) => (
+                            <span
+                              key={idx}
+                              className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
+                            >
+                              {feature}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {cabin.obstructed && (
+                        <div className="mt-2 text-xs text-orange-600 font-medium">
+                          ⚠️ Obstructed View
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Deck Plans - Hidden on mobile unless active tab - RIGHT on desktop */}
               {deckPlans.length > 0 && (
                 <div
-                  className={`lg:w-1/2 p-4 md:p-6 lg:border-r border-gray-200 overflow-y-auto ${mobileTab === "deckplans" ? "flex-1" : "hidden lg:block"}`}
+                  className={`lg:w-1/2 p-4 md:p-6 overflow-y-auto ${mobileTab === "deckplans" ? "flex-1" : "hidden lg:block"}`}
                 >
                   <h3 className="font-geograph font-semibold text-lg mb-3">
                     Deck Plans
@@ -325,10 +382,14 @@ export default function SpecificCabinModal({
                                     y={cabin.y1}
                                     width={cabin.x2 - cabin.x1}
                                     height={cabin.y2 - cabin.y1}
-                                    fill="rgba(59, 130, 246, 0.3)"
-                                    stroke="#3b82f6"
-                                    strokeWidth={4}
+                                    fill="rgba(255, 193, 7, 0.4)"
+                                    stroke="#ff6b00"
+                                    strokeWidth={6}
                                     className="transition-all"
+                                    style={{
+                                      filter:
+                                        "drop-shadow(0 0 4px rgba(255, 107, 0, 0.8))",
+                                    }}
                                   />
                                 );
                               })}
@@ -346,87 +407,12 @@ export default function SpecificCabinModal({
                   )}
                 </div>
               )}
-
-              {/* Cabin List - Hidden on mobile unless active tab */}
-              <div
-                className={`${deckPlans.length > 0 ? "lg:w-1/2" : "w-full"} p-4 md:p-6 overflow-y-auto ${mobileTab === "cabins" || deckPlans.length === 0 ? "flex-1" : "hidden lg:block"}`}
-              >
-                <h3 className="font-geograph font-semibold text-lg mb-3">
-                  Available Cabins ({cabins.length})
-                </h3>
-
-                <div className="space-y-3">
-                  {cabins.map((cabin) => (
-                    <div
-                      key={cabin.cabinNo}
-                      onClick={() => handleCabinClick(cabin)}
-                      className={`
-                        border rounded-lg p-4 cursor-pointer transition-all
-                        ${
-                          !cabin.available
-                            ? "opacity-50 cursor-not-allowed bg-gray-50"
-                            : selectedCabinNo === cabin.cabinNo
-                              ? "border-blue-500 bg-blue-50 ring-2 ring-blue-200"
-                              : "border-gray-200 hover:border-blue-300 hover:bg-blue-50"
-                        }
-                      `}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3">
-                            <span className="font-geograph font-semibold text-lg">
-                              Cabin {cabin.cabinNo}
-                            </span>
-                            {cabin.obstructed && (
-                              <span className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded">
-                                Obstructed View
-                              </span>
-                            )}
-                            {!cabin.available && (
-                              <span className="px-2 py-0.5 text-xs bg-gray-200 text-gray-700 rounded">
-                                Unavailable
-                              </span>
-                            )}
-                          </div>
-                          <div className="mt-2 flex gap-4 text-sm text-gray-600">
-                            <span>Deck {cabin.deck}</span>
-                            <span>•</span>
-                            <span>{cabin.position}</span>
-                          </div>
-                          {cabin.features.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {cabin.features.map((feature, idx) => (
-                                <span
-                                  key={idx}
-                                  className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded"
-                                >
-                                  {feature}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        {cabin.available && (
-                          <div className="ml-4">
-                            <input
-                              type="radio"
-                              checked={selectedCabinNo === cabin.cabinNo}
-                              onChange={() => handleCabinClick(cabin)}
-                              className="h-4 w-4 text-blue-600"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
 
-          {/* Footer - Fixed on mobile */}
+          {/* Footer - Fixed on mobile and desktop */}
           {!isLoading && !error && cabins.length > 0 && (
-            <div className="sticky md:static bottom-0 z-10 flex items-center justify-between p-4 md:p-6 border-t bg-gray-50 flex-shrink-0">
+            <div className="sticky bottom-0 z-10 flex items-center justify-between p-4 md:p-6 border-t bg-gray-50 flex-shrink-0">
               <button
                 onClick={onClose}
                 className="px-4 py-2 text-gray-700 hover:text-gray-900 font-geograph"
@@ -435,10 +421,13 @@ export default function SpecificCabinModal({
               </button>
               <button
                 onClick={handleSelect}
-                disabled={!selectedCabinNo}
-                className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-geograph font-medium"
+                disabled={!selectedCabinNo || isReserving}
+                className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-geograph font-medium flex items-center gap-2"
               >
-                Reserve Selected Cabin
+                {isReserving && (
+                  <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
+                )}
+                {isReserving ? "Creating Booking..." : "Reserve Selected Cabin"}
               </button>
             </div>
           )}
