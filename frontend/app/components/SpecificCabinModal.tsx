@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 interface Cabin {
   cabinNo: string;
@@ -59,6 +60,7 @@ export default function SpecificCabinModal({
     width: number;
     height: number;
   } | null>(null);
+  const [mobileTab, setMobileTab] = useState<"cabins" | "deckplans">("cabins");
 
   // Fetch specific cabins when modal opens
   useEffect(() => {
@@ -157,13 +159,13 @@ export default function SpecificCabinModal({
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative w-full max-w-7xl bg-white rounded-lg shadow-xl">
+      {/* Modal - Full screen on mobile, centered on desktop */}
+      <div className="flex min-h-full items-center justify-center md:p-4">
+        <div className="relative w-full h-full md:h-auto md:max-w-7xl bg-white md:rounded-lg shadow-xl flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b">
+          <div className="flex items-center justify-between p-4 md:p-6 border-b flex-shrink-0">
             <div>
-              <h2 className="text-2xl font-geograph font-semibold text-gray-900">
+              <h2 className="text-xl md:text-2xl font-geograph font-semibold text-gray-900">
                 Choose Your Cabin
               </h2>
               <p className="mt-1 text-sm text-gray-500">{cabinGradeName}</p>
@@ -172,21 +174,41 @@ export default function SpecificCabinModal({
               onClick={onClose}
               className="text-gray-400 hover:text-gray-500"
             >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <Image
+                src="/images/close-white.svg"
+                alt="Close"
+                width={24}
+                height={24}
+                className="invert"
+              />
             </button>
           </div>
+
+          {/* Mobile Tabs */}
+          {deckPlans.length > 0 && (
+            <div className="md:hidden flex border-b flex-shrink-0">
+              <button
+                onClick={() => setMobileTab("cabins")}
+                className={`flex-1 py-3 px-4 font-geograph font-medium text-sm transition-colors ${
+                  mobileTab === "cabins"
+                    ? "border-b-2 border-blue-500 text-blue-600"
+                    : "text-gray-500"
+                }`}
+              >
+                Cabins ({cabins.length})
+              </button>
+              <button
+                onClick={() => setMobileTab("deckplans")}
+                className={`flex-1 py-3 px-4 font-geograph font-medium text-sm transition-colors ${
+                  mobileTab === "deckplans"
+                    ? "border-b-2 border-blue-500 text-blue-600"
+                    : "text-gray-500"
+                }`}
+              >
+                Deck Plans
+              </button>
+            </div>
+          )}
 
           {/* Loading State */}
           {isLoading && (
@@ -221,15 +243,14 @@ export default function SpecificCabinModal({
             </div>
           )}
 
-          {/* Main Content - Side by Side Layout */}
+          {/* Main Content - Tabbed on Mobile, Side by Side on Desktop */}
           {!isLoading && !error && cabins.length > 0 && (
-            <div
-              className="flex flex-col lg:flex-row"
-              style={{ maxHeight: "calc(100vh - 240px)" }}
-            >
-              {/* Left Side - Deck Plans */}
+            <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+              {/* Deck Plans - Hidden on mobile unless active tab */}
               {deckPlans.length > 0 && (
-                <div className="lg:w-1/2 p-6 border-r border-gray-200 overflow-y-auto">
+                <div
+                  className={`lg:w-1/2 p-4 md:p-6 lg:border-r border-gray-200 overflow-y-auto ${mobileTab === "deckplans" ? "flex-1" : "hidden lg:block"}`}
+                >
                   <h3 className="font-geograph font-semibold text-lg mb-3">
                     Deck Plans
                   </h3>
@@ -326,9 +347,9 @@ export default function SpecificCabinModal({
                 </div>
               )}
 
-              {/* Right Side - Cabin List */}
+              {/* Cabin List - Hidden on mobile unless active tab */}
               <div
-                className={`${deckPlans.length > 0 ? "lg:w-1/2" : "w-full"} p-6 overflow-y-auto`}
+                className={`${deckPlans.length > 0 ? "lg:w-1/2" : "w-full"} p-4 md:p-6 overflow-y-auto ${mobileTab === "cabins" || deckPlans.length === 0 ? "flex-1" : "hidden lg:block"}`}
               >
                 <h3 className="font-geograph font-semibold text-lg mb-3">
                   Available Cabins ({cabins.length})
@@ -405,10 +426,10 @@ export default function SpecificCabinModal({
 
           {/* Footer */}
           {!isLoading && !error && cabins.length > 0 && (
-            <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
+            <div className="flex items-center justify-end gap-3 p-4 md:p-6 border-t bg-gray-50 flex-shrink-0">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+                className="px-4 py-2 text-gray-700 hover:text-gray-900 font-geograph"
               >
                 Cancel
               </button>

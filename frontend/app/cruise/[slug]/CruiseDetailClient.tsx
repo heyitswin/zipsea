@@ -106,7 +106,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   };
 
   // Helper function to format price with commas
-  const formatPrice = (price: number): string => {
+  const formatPrice = (price: number | null | undefined): string => {
+    if (!price || isNaN(price)) return "0";
     return price.toLocaleString("en-US", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
