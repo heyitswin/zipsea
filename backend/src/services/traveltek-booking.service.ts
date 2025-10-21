@@ -64,7 +64,7 @@ interface BookingParams {
 interface BookingResult {
   bookingId: string;
   traveltekBookingId: string;
-  status: 'confirmed' | 'pending' | 'failed';
+  status: 'confirmed' | 'pending' | 'failed' | 'hold';
   totalAmount: number;
   depositAmount: number;
   paidAmount: number;
