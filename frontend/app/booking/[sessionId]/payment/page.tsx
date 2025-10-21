@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useBooking } from "../../../context/BookingContext";
+import BookingSummary from "../../../components/BookingSummary";
 
 interface BookingSummary {
   options?: {
@@ -10,6 +11,13 @@ interface BookingSummary {
     specialRequests: string;
   };
   passengers?: any[];
+  leadContact?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    address: string;
+  };
   cruise?: any;
   cabin?: any;
 }
@@ -34,10 +42,12 @@ export default function BookingPaymentPage() {
     if (typeof window !== "undefined") {
       const options = localStorage.getItem("bookingOptions");
       const passengers = localStorage.getItem("bookingPassengers");
+      const leadContact = localStorage.getItem("leadContact");
 
       setBookingSummary({
         options: options ? JSON.parse(options) : undefined,
         passengers: passengers ? JSON.parse(passengers) : undefined,
+        leadContact: leadContact ? JSON.parse(leadContact) : undefined,
       });
     }
   }, []);
@@ -98,9 +108,14 @@ export default function BookingPaymentPage() {
     setIsProcessing(true);
 
     try {
-      // Extract lead passenger (first passenger) for contact info
-      const leadPassenger = bookingSummary.passengers?.[0];
-      if (!leadPassenger) {
+      // Get lead contact info from localStorage (entered in options page)
+      if (!bookingSummary.leadContact) {
+        throw new Error("No contact information found");
+      }
+      if (
+        !bookingSummary.passengers ||
+        bookingSummary.passengers.length === 0
+      ) {
         throw new Error("No passenger data found");
       }
 
@@ -115,15 +130,15 @@ export default function BookingPaymentPage() {
       const requestBody = {
         passengers: bookingSummary.passengers,
         contact: {
-          firstName: leadPassenger.firstName,
-          lastName: leadPassenger.lastName,
-          email: leadPassenger.email,
-          phone: leadPassenger.phone,
-          address: leadPassenger.address || "",
-          city: leadPassenger.city || "",
-          state: leadPassenger.state || "",
-          postalCode: leadPassenger.zipCode || "",
-          country: leadPassenger.country || "US",
+          firstName: bookingSummary.leadContact.firstName,
+          lastName: bookingSummary.leadContact.lastName,
+          email: bookingSummary.leadContact.email,
+          phone: bookingSummary.leadContact.phone,
+          address: bookingSummary.leadContact.address,
+          city: "",
+          state: "",
+          postalCode: "",
+          country: "US",
         },
         payment: {
           cardNumber: cardNumber.replace(/\s/g, ""),
@@ -188,57 +203,13 @@ export default function BookingPaymentPage() {
   };
 
   return (
-    <div className="min-h-screen bg-sand">
-      {/* Header */}
-      <div className="bg-purple-obc py-8 px-6">
-        <div className="max-w-5xl mx-auto">
-          <h1 className="font-whitney text-[32px] md:text-[42px] text-dark-blue uppercase mb-2">
-            Review & Payment
-          </h1>
-          <p className="font-geograph text-[16px] text-dark-blue">
-            Step 3 of 3 • Confirm your booking
-          </p>
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center flex-1">
-              <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center font-geograph font-bold text-sm">
-                ✓
-              </div>
-              <div className="flex-1 h-1 bg-green-600 mx-2"></div>
-            </div>
-            <div className="flex items-center flex-1">
-              <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center font-geograph font-bold text-sm">
-                ✓
-              </div>
-              <div className="flex-1 h-1 bg-dark-blue mx-2"></div>
-            </div>
-            <div className="flex items-center">
-              <div className="w-8 h-8 rounded-full bg-dark-blue text-white flex items-center justify-center font-geograph font-bold text-sm">
-                3
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-between mt-2">
-            <span className="font-geograph text-xs text-green-600 font-medium">
-              Options
-            </span>
-            <span className="font-geograph text-xs text-green-600 font-medium">
-              Passengers
-            </span>
-            <span className="font-geograph text-xs text-dark-blue font-medium">
-              Payment
-            </span>
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-sand pt-20">
       {/* Content */}
       <div className="max-w-5xl mx-auto px-6 py-8">
+        {/* Booking Summary */}
+        <div className="mb-6">
+          <BookingSummary sessionId={sessionId} />
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Booking Summary */}
           <div className="lg:col-span-2 space-y-6">

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useBooking } from "../../../context/BookingContext";
+import BookingSummary from "../../../components/BookingSummary";
 
 interface PassengerData {
   title: string;
@@ -46,13 +47,6 @@ export default function BookingPassengersPage() {
         dateOfBirth: "",
         gender: "",
         nationality: "US", // Default to United States
-        email: i === 0 ? "" : undefined, // Only lead passenger needs contact info
-        phone: i === 0 ? "" : undefined,
-        address: i === 0 ? "" : undefined,
-        city: i === 0 ? "" : undefined,
-        state: i === 0 ? "" : undefined,
-        zipCode: i === 0 ? "" : undefined,
-        country: i === 0 ? "US" : undefined,
       });
     }
     setPassengers(initialPassengers);
@@ -108,37 +102,6 @@ export default function BookingPassengersPage() {
         isValid = false;
       }
 
-      // Additional validation for lead passenger (index 0)
-      if (index === 0) {
-        if (!passenger.email?.trim()) {
-          passengerErrors.email = "Email is required";
-          isValid = false;
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(passenger.email)) {
-          passengerErrors.email = "Invalid email address";
-          isValid = false;
-        }
-        if (!passenger.phone?.trim()) {
-          passengerErrors.phone = "Phone number is required";
-          isValid = false;
-        }
-        if (!passenger.address?.trim()) {
-          passengerErrors.address = "Address is required";
-          isValid = false;
-        }
-        if (!passenger.city?.trim()) {
-          passengerErrors.city = "City is required";
-          isValid = false;
-        }
-        if (!passenger.state?.trim()) {
-          passengerErrors.state = "State is required";
-          isValid = false;
-        }
-        if (!passenger.zipCode?.trim()) {
-          passengerErrors.zipCode = "ZIP code is required";
-          isValid = false;
-        }
-      }
-
       if (Object.keys(passengerErrors).length > 0) {
         newErrors[index] = passengerErrors;
       }
@@ -178,55 +141,12 @@ export default function BookingPassengersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-sand">
-      {/* Header */}
-      <div className="bg-purple-obc py-8 px-6">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="font-whitney text-[32px] md:text-[42px] text-dark-blue uppercase mb-2">
-            Passenger Details
-          </h1>
-          <p className="font-geograph text-[16px] text-dark-blue">
-            Step 2 of 3 • Enter passenger information
-          </p>
-        </div>
-      </div>
-
-      {/* Progress Bar */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-3xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center flex-1">
-              <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center font-geograph font-bold text-sm">
-                ✓
-              </div>
-              <div className="flex-1 h-1 bg-dark-blue mx-2"></div>
-            </div>
-            <div className="flex items-center flex-1">
-              <div className="w-8 h-8 rounded-full bg-dark-blue text-white flex items-center justify-center font-geograph font-bold text-sm">
-                2
-              </div>
-              <div className="flex-1 h-1 bg-gray-300 mx-2"></div>
-            </div>
-            <div className="flex items-center">
-              <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-geograph font-bold text-sm">
-                3
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-between mt-2">
-            <span className="font-geograph text-xs text-green-600 font-medium">
-              Options
-            </span>
-            <span className="font-geograph text-xs text-dark-blue font-medium">
-              Passengers
-            </span>
-            <span className="font-geograph text-xs text-gray-500">Payment</span>
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-screen bg-sand pt-20">
       {/* Form Content */}
       <div className="max-w-3xl mx-auto px-6 py-8">
+        {/* Booking Summary */}
+        <BookingSummary sessionId={sessionId} />
+
         {passengers.map((passenger, index) => (
           <div
             key={index}
@@ -418,167 +338,6 @@ export default function BookingPassengersPage() {
                 )}
               </div>
             </div>
-
-            {/* Lead Passenger Contact Info */}
-            {index === 0 && (
-              <>
-                <h4 className="font-geograph font-bold text-[16px] text-dark-blue mb-4 mt-6">
-                  Contact Information
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      value={passenger.email || ""}
-                      onChange={(e) =>
-                        updatePassenger(index, "email", e.target.value)
-                      }
-                      className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                        errors[index]?.email
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
-                      placeholder="john@example.com"
-                    />
-                    {errors[index]?.email && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors[index].email}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                      Phone Number *
-                    </label>
-                    <input
-                      type="tel"
-                      value={passenger.phone || ""}
-                      onChange={(e) =>
-                        updatePassenger(index, "phone", e.target.value)
-                      }
-                      className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                        errors[index]?.phone
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
-                      placeholder="(555) 123-4567"
-                    />
-                    {errors[index]?.phone && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors[index].phone}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <h4 className="font-geograph font-bold text-[16px] text-dark-blue mb-4 mt-6">
-                  Billing Address
-                </h4>
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                      Street Address *
-                    </label>
-                    <input
-                      type="text"
-                      value={passenger.address || ""}
-                      onChange={(e) =>
-                        updatePassenger(index, "address", e.target.value)
-                      }
-                      className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                        errors[index]?.address
-                          ? "border-red-500"
-                          : "border-gray-300"
-                      }`}
-                      placeholder="123 Main St"
-                    />
-                    {errors[index]?.address && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors[index].address}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                        City *
-                      </label>
-                      <input
-                        type="text"
-                        value={passenger.city || ""}
-                        onChange={(e) =>
-                          updatePassenger(index, "city", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                          errors[index]?.city
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
-                        placeholder="New York"
-                      />
-                      {errors[index]?.city && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors[index].city}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                        State *
-                      </label>
-                      <input
-                        type="text"
-                        value={passenger.state || ""}
-                        onChange={(e) =>
-                          updatePassenger(index, "state", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                          errors[index]?.state
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
-                        placeholder="NY"
-                      />
-                      {errors[index]?.state && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors[index].state}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                        ZIP Code *
-                      </label>
-                      <input
-                        type="text"
-                        value={passenger.zipCode || ""}
-                        onChange={(e) =>
-                          updatePassenger(index, "zipCode", e.target.value)
-                        }
-                        className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                          errors[index]?.zipCode
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
-                        placeholder="10001"
-                      />
-                      {errors[index]?.zipCode && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors[index].zipCode}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
           </div>
         ))}
 
