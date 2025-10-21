@@ -11,15 +11,20 @@ interface PassengerCount {
 interface PassengerSelectorProps {
   value: PassengerCount;
   onChange: (value: PassengerCount) => void;
+  onUpdatePrices?: () => Promise<void>;
   className?: string;
 }
 
 export default function PassengerSelector({
   value,
   onChange,
+  onUpdatePrices,
   className = "",
 }: PassengerSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isUpdatingPrices, setIsUpdatingPrices] = useState(false);
+  const [initialValue, setInitialValue] = useState<PassengerCount>(value);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -44,7 +49,9 @@ export default function PassengerSelector({
     // Min 1, max 4 adults (cabin occupancy limit)
     const maxAdults = Math.min(4, 4 - value.children); // Ensure total doesn't exceed 4
     const adults = Math.max(1, Math.min(maxAdults, newCount));
-    onChange({ ...value, adults });
+    const newValue = { ...value, adults };
+    onChange(newValue);
+    setHasChanges(true);
   };
 
   const updateChildren = (newCount: number) => {
@@ -64,14 +71,40 @@ export default function PassengerSelector({
       childAges = childAges.slice(0, children);
     }
 
-    onChange({ ...value, children, childAges });
+    const newValue = { ...value, children, childAges };
+    onChange(newValue);
+    setHasChanges(true);
   };
 
   const updateChildAge = (index: number, age: number) => {
     const childAges = [...value.childAges];
     // Min 0, max 17 years
     childAges[index] = Math.max(0, Math.min(17, age));
-    onChange({ ...value, childAges });
+    const newValue = { ...value, childAges };
+    onChange(newValue);
+    setHasChanges(true);
+  };
+
+  const handleUpdatePrices = async () => {
+    if (!onUpdatePrices || !hasChanges) return;
+
+    setIsUpdatingPrices(true);
+    try {
+      await onUpdatePrices();
+      setHasChanges(false);
+      setInitialValue(value);
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Error updating prices:", error);
+    } finally {
+      setIsUpdatingPrices(false);
+    }
+  };
+
+  const handleDone = () => {
+    setIsOpen(false);
+    setHasChanges(false);
+    setInitialValue(value);
   };
 
   const totalPassengers = value.adults + value.children;
@@ -272,13 +305,50 @@ export default function PassengerSelector({
             </div>
           )}
 
-          {/* Done Button */}
+          {/* Done / Update Prices Button */}
           <button
             type="button"
-            onClick={() => setIsOpen(false)}
-            className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors"
+            onClick={
+              hasChanges && onUpdatePrices ? handleUpdatePrices : handleDone
+            }
+            disabled={isUpdatingPrices}
+            className={`w-full mt-4 font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${
+              isUpdatingPrices
+                ? "bg-gray-400 cursor-not-allowed"
+                : hasChanges && onUpdatePrices
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-blue-600 hover:bg-blue-700"
+            } text-white`}
           >
-            Done
+            {isUpdatingPrices ? (
+              <>
+                <svg
+                  className="animate-spin h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Updating Prices...
+              </>
+            ) : hasChanges && onUpdatePrices ? (
+              "Update Prices"
+            ) : (
+              "Done"
+            )}
           </button>
         </div>
       )}

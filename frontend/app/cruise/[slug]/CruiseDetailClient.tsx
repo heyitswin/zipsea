@@ -1207,12 +1207,15 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     }
 
                     setLocalPassengerCount(newPassengerCount);
-                    // Update session storage and refetch prices
+                    // Update session storage (don't refetch yet - wait for Update Prices button)
                     sessionStorage.setItem(
                       "passengerCount",
                       JSON.stringify(newPassengerCount),
                     );
-                    createBookingSessionAndFetchCabins();
+                  }}
+                  onUpdatePrices={async () => {
+                    // Refetch prices when user clicks Update Prices
+                    await createBookingSessionAndFetchCabins();
                   }}
                   className="w-full md:w-96"
                 />
