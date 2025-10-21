@@ -17,6 +17,7 @@ import LoginSignupModal from "./LoginSignupModal";
 import { createSlugFromCruise } from "../../lib/slug";
 import { trackSearch } from "../../lib/analytics";
 import SearchResultsModal from "./SearchResultsModal";
+import BookingProgressBar from "./BookingProgressBar";
 
 interface NavigationProps {
   showMinimizedSearch?: boolean;
@@ -48,6 +49,18 @@ export default function Navigation({
   const isCruisesPage = pathname === "/cruises";
   const isFirstTimeCruisersPage = pathname === "/first-time-cruisers-guide";
   const isAdminPage = pathname?.startsWith("/admin") || false;
+  const isBookingPage = pathname?.startsWith("/booking/") || false;
+
+  // Determine booking step
+  const bookingStep = isBookingPage
+    ? pathname?.includes("/options")
+      ? 1
+      : pathname?.includes("/passengers")
+        ? 2
+        : pathname?.includes("/payment")
+          ? 3
+          : 0
+    : 0;
   const [ships, setShips] = useState<Ship[]>([]);
   const [filteredShips, setFilteredShips] = useState<Ship[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -539,7 +552,7 @@ export default function Navigation({
     <>
       <nav
         className={`fixed top-0 left-0 right-0 z-50 py-[14px] md:py-[20px] px-[30px] md:px-[28px] transition-all duration-300 ease-in-out h-[64px] md:h-auto ${
-          isScrolled ? "bg-white shadow-lg" : "bg-transparent"
+          isScrolled || isBookingPage ? "bg-white shadow-lg" : "bg-transparent"
         }`}
       >
         <div className="flex items-center justify-between h-[40px] md:h-[44px]">
@@ -552,14 +565,15 @@ export default function Navigation({
                   (isCruiseDetailPage && !isScrolled) ||
                   (isCruisesPage && !isScrolled) ||
                   (isFirstTimeCruisersPage && !isScrolled) ||
-                  (isAdminPage && !isScrolled)
+                  (isAdminPage && !isScrolled) ||
+                  isBookingPage
                     ? "/images/zipsea-logo-blue.svg"
                     : "/images/zipsea-logo.svg"
                 }
                 alt="Zipsea"
                 width={110}
                 height={40}
-                className={`${isScrolled || (isCruiseDetailPage && !isScrolled) || (isCruisesPage && !isScrolled) || (isFirstTimeCruisersPage && !isScrolled) || (isAdminPage && !isScrolled) ? "" : "brightness-0 invert"} w-[83px] md:w-[110px] h-auto`}
+                className={`${isScrolled || (isCruiseDetailPage && !isScrolled) || (isCruisesPage && !isScrolled) || (isFirstTimeCruisersPage && !isScrolled) || (isAdminPage && !isScrolled) || isBookingPage ? "" : "brightness-0 invert"} w-[83px] md:w-[110px] h-auto`}
                 priority
               />
             </a>
@@ -567,154 +581,179 @@ export default function Navigation({
 
           {/* Mobile Right Section - Browse button and hamburger */}
           <div className="flex items-center gap-3 md:hidden">
-            {/* Browse Cruises Button (Mobile Only) */}
-            <a
-              href="/cruises"
-              className="px-4 py-1.5 bg-[#2238C3] text-white rounded-full text-[14px] font-medium font-geograph"
-            >
-              Browse Cruises
-            </a>
-
-            {/* Hamburger Menu Button (Mobile Only) */}
-            <button
-              className="flex flex-col items-center justify-center w-6 h-6 space-y-1"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              <span
-                className={`block w-6 h-0.5 transition-all duration-300 ${
-                  isScrolled ||
-                  (isCruiseDetailPage && !isScrolled) ||
-                  (isCruisesPage && !isScrolled) ||
-                  (isFirstTimeCruisersPage && !isScrolled) ||
-                  (isAdminPage && !isScrolled)
-                    ? "bg-[#0E1B4D]"
-                    : "bg-white"
-                } ${isMobileMenuOpen ? "rotate-45 translate-y-2" : ""}`}
+            {/* Booking Progress on Mobile */}
+            {isBookingPage && bookingStep > 0 ? (
+              <BookingProgressBar
+                currentStep={bookingStep as 1 | 2 | 3}
+                compact={true}
               />
-              <span
-                className={`block w-6 h-0.5 transition-all duration-300 ${
-                  isScrolled ||
-                  (isCruiseDetailPage && !isScrolled) ||
-                  (isCruisesPage && !isScrolled) ||
-                  (isFirstTimeCruisersPage && !isScrolled) ||
-                  (isAdminPage && !isScrolled)
-                    ? "bg-[#0E1B4D]"
-                    : "bg-white"
-                } ${isMobileMenuOpen ? "opacity-0" : ""}`}
-              />
-              <span
-                className={`block w-6 h-0.5 transition-all duration-300 ${
-                  isScrolled ||
-                  (isCruiseDetailPage && !isScrolled) ||
-                  (isCruisesPage && !isScrolled) ||
-                  (isFirstTimeCruisersPage && !isScrolled) ||
-                  (isAdminPage && !isScrolled)
-                    ? "bg-[#0E1B4D]"
-                    : "bg-white"
-                } ${isMobileMenuOpen ? "-rotate-45 -translate-y-2" : ""}`}
-              />
-            </button>
-          </div>
-
-          {/* Navigation Links and Button (Desktop Only) */}
-          <div className="hidden md:flex items-center gap-8">
-            {/* User Authentication Area */}
-            {isLoaded && (
+            ) : (
               <>
-                {isSignedIn && user ? (
-                  // User Menu
-                  <div className="relative" ref={userDropdownRef}>
-                    <button
-                      onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                      className="flex items-center gap-3 hover:opacity-80 transition-all duration-300"
-                    >
-                      {/* User Avatar */}
-                      <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
-                        {getUserAvatarSrc() ? (
-                          <img
-                            src={getUserAvatarSrc()!}
-                            alt={getUserDisplayName()}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div
-                            className={`w-full h-full flex items-center justify-center text-[12px] font-medium ${
-                              isScrolled ||
-                              (isCruiseDetailPage && !isScrolled) ||
-                              (isCruisesPage && !isScrolled) ||
-                              (isFirstTimeCruisersPage && !isScrolled) ||
-                              (isAdminPage && !isScrolled)
-                                ? "text-[#0E1B4D]"
-                                : "text-white"
-                            }`}
-                          >
-                            {getUserDisplayName().charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
+                {/* Browse Cruises Button (Mobile Only) */}
+                <a
+                  href="/cruises"
+                  className="px-4 py-1.5 bg-[#2238C3] text-white rounded-full text-[14px] font-medium font-geograph"
+                >
+                  Browse Cruises
+                </a>
 
-                      {/* User Display Name */}
-                      <span
-                        className={`text-[16px] font-medium font-geograph ${
-                          isScrolled ||
-                          (isCruiseDetailPage && !isScrolled) ||
-                          (isCruisesPage && !isScrolled) ||
-                          (isFirstTimeCruisersPage && !isScrolled) ||
-                          (isAdminPage && !isScrolled)
-                            ? "text-[#3B82F6]"
-                            : "text-white"
-                        }`}
-                      >
-                        {getUserDisplayName()}
-                      </span>
-                    </button>
-
-                    {/* User Dropdown Menu */}
-                    {isUserDropdownOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[10000]">
-                        {isAdmin && (
-                          <a
-                            href="/admin"
-                            onClick={() => setIsUserDropdownOpen(false)}
-                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-geograph"
-                          >
-                            Admin Dashboard
-                          </a>
-                        )}
-                        <SignOutButton redirectUrl="/">
-                          <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-geograph">
-                            Log out
-                          </button>
-                        </SignOutButton>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  // Sign in Link - no border, just text
-                  <button
-                    onClick={() => setIsLoginModalOpen(true)}
-                    className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
+                {/* Hamburger Menu Button (Mobile Only) */}
+                <button
+                  className="flex flex-col items-center justify-center w-6 h-6 space-y-1"
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  aria-label="Toggle menu"
+                >
+                  <span
+                    className={`block w-6 h-0.5 transition-all duration-300 ${
                       isScrolled ||
                       (isCruiseDetailPage && !isScrolled) ||
                       (isCruisesPage && !isScrolled) ||
                       (isFirstTimeCruisersPage && !isScrolled) ||
                       (isAdminPage && !isScrolled)
-                        ? "text-[#0E1B4D]"
-                        : "text-white"
-                    }`}
-                  >
-                    Sign in
-                  </button>
-                )}
+                        ? "bg-[#0E1B4D]"
+                        : "bg-white"
+                    } ${isMobileMenuOpen ? "rotate-45 translate-y-2" : ""}`}
+                  />
+                  <span
+                    className={`block w-6 h-0.5 transition-all duration-300 ${
+                      isScrolled ||
+                      (isCruiseDetailPage && !isScrolled) ||
+                      (isCruisesPage && !isScrolled) ||
+                      (isFirstTimeCruisersPage && !isScrolled) ||
+                      (isAdminPage && !isScrolled)
+                        ? "bg-[#0E1B4D]"
+                        : "bg-white"
+                    } ${isMobileMenuOpen ? "opacity-0" : ""}`}
+                  />
+                  <span
+                    className={`block w-6 h-0.5 transition-all duration-300 ${
+                      isScrolled ||
+                      (isCruiseDetailPage && !isScrolled) ||
+                      (isCruisesPage && !isScrolled) ||
+                      (isFirstTimeCruisersPage && !isScrolled) ||
+                      (isAdminPage && !isScrolled)
+                        ? "bg-[#0E1B4D]"
+                        : "bg-white"
+                    } ${isMobileMenuOpen ? "-rotate-45 -translate-y-2" : ""}`}
+                  />
+                </button>
+              </>
+            )}
+          </div>
 
-                {/* Browse Cruises Button - After Sign in */}
-                <a
-                  href="/cruises"
-                  className="px-4 py-1.5 bg-[#2238C3] text-white rounded-full text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300"
-                >
-                  Browse Cruises
-                </a>
+          {/* Navigation Links and Button (Desktop Only) */}
+          <div className="hidden md:flex items-center gap-8">
+            {/* Booking Progress Bar - Show on booking pages */}
+            {isBookingPage && bookingStep > 0 && (
+              <BookingProgressBar
+                currentStep={bookingStep as 1 | 2 | 3}
+                compact={true}
+              />
+            )}
+
+            {/* Hide regular nav on booking pages */}
+            {!isBookingPage && (
+              <>
+                {/* User Authentication Area */}
+                {isLoaded && (
+                  <>
+                    {isSignedIn && user ? (
+                      // User Menu
+                      <div className="relative" ref={userDropdownRef}>
+                        <button
+                          onClick={() =>
+                            setIsUserDropdownOpen(!isUserDropdownOpen)
+                          }
+                          className="flex items-center gap-3 hover:opacity-80 transition-all duration-300"
+                        >
+                          {/* User Avatar */}
+                          <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                            {getUserAvatarSrc() ? (
+                              <img
+                                src={getUserAvatarSrc()!}
+                                alt={getUserDisplayName()}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div
+                                className={`w-full h-full flex items-center justify-center text-[12px] font-medium ${
+                                  isScrolled ||
+                                  (isCruiseDetailPage && !isScrolled) ||
+                                  (isCruisesPage && !isScrolled) ||
+                                  (isFirstTimeCruisersPage && !isScrolled) ||
+                                  (isAdminPage && !isScrolled)
+                                    ? "text-[#0E1B4D]"
+                                    : "text-white"
+                                }`}
+                              >
+                                {getUserDisplayName().charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* User Display Name */}
+                          <span
+                            className={`text-[16px] font-medium font-geograph ${
+                              isScrolled ||
+                              (isCruiseDetailPage && !isScrolled) ||
+                              (isCruisesPage && !isScrolled) ||
+                              (isFirstTimeCruisersPage && !isScrolled) ||
+                              (isAdminPage && !isScrolled)
+                                ? "text-[#3B82F6]"
+                                : "text-white"
+                            }`}
+                          >
+                            {getUserDisplayName()}
+                          </span>
+                        </button>
+
+                        {/* User Dropdown Menu */}
+                        {isUserDropdownOpen && (
+                          <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[10000]">
+                            {isAdmin && (
+                              <a
+                                href="/admin"
+                                onClick={() => setIsUserDropdownOpen(false)}
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-geograph"
+                              >
+                                Admin Dashboard
+                              </a>
+                            )}
+                            <SignOutButton redirectUrl="/">
+                              <button className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 font-geograph">
+                                Log out
+                              </button>
+                            </SignOutButton>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      // Sign in Link - no border, just text
+                      <button
+                        onClick={() => setIsLoginModalOpen(true)}
+                        className={`text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 ${
+                          isScrolled ||
+                          (isCruiseDetailPage && !isScrolled) ||
+                          (isCruisesPage && !isScrolled) ||
+                          (isFirstTimeCruisersPage && !isScrolled) ||
+                          (isAdminPage && !isScrolled)
+                            ? "text-[#0E1B4D]"
+                            : "text-white"
+                        }`}
+                      >
+                        Sign in
+                      </button>
+                    )}
+
+                    {/* Browse Cruises Button - After Sign in */}
+                    <a
+                      href="/cruises"
+                      className="px-4 py-1.5 bg-[#2238C3] text-white rounded-full text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300"
+                    >
+                      Browse Cruises
+                    </a>
+                  </>
+                )}
               </>
             )}
           </div>
