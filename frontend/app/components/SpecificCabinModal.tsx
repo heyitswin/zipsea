@@ -162,8 +162,8 @@ export default function SpecificCabinModal({
       {/* Modal - Full screen on mobile, centered on desktop */}
       <div className="flex min-h-full items-center justify-center md:p-4">
         <div className="relative w-full h-full md:h-auto md:max-w-7xl bg-white md:rounded-lg shadow-xl flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 md:p-6 border-b flex-shrink-0">
+          {/* Header - Fixed on mobile */}
+          <div className="sticky md:static top-0 z-10 flex items-center justify-between p-4 md:p-6 border-b flex-shrink-0 bg-white">
             <div>
               <h2 className="text-xl md:text-2xl font-geograph font-semibold text-gray-900">
                 Choose Your Cabin
@@ -184,9 +184,9 @@ export default function SpecificCabinModal({
             </button>
           </div>
 
-          {/* Mobile Tabs */}
+          {/* Mobile Tabs - Fixed on mobile */}
           {deckPlans.length > 0 && (
-            <div className="md:hidden flex border-b flex-shrink-0">
+            <div className="md:hidden sticky top-[73px] z-10 flex border-b flex-shrink-0 bg-white">
               <button
                 onClick={() => setMobileTab("cabins")}
                 className={`flex-1 py-3 px-4 font-geograph font-medium text-sm transition-colors ${
@@ -424,9 +424,9 @@ export default function SpecificCabinModal({
             </div>
           )}
 
-          {/* Footer */}
+          {/* Footer - Fixed on mobile */}
           {!isLoading && !error && cabins.length > 0 && (
-            <div className="flex items-center justify-end gap-3 p-4 md:p-6 border-t bg-gray-50 flex-shrink-0">
+            <div className="sticky md:static bottom-0 z-10 flex items-center justify-between p-4 md:p-6 border-t bg-gray-50 flex-shrink-0">
               <button
                 onClick={onClose}
                 className="px-4 py-2 text-gray-700 hover:text-gray-900 font-geograph"

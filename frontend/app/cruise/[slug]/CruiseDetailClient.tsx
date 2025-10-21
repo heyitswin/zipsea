@@ -21,6 +21,7 @@ import {
 import { useAdmin } from "../../hooks/useAdmin";
 import { useBooking } from "../../context/BookingContext";
 import SpecificCabinModal from "../../components/SpecificCabinModal";
+import PassengerSelector from "../../components/PassengerSelector";
 import dynamic from "next/dynamic";
 
 const PriceHistoryChart = dynamic(
@@ -405,8 +406,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     if (!isPriceAvailable(price)) return 0;
     const numPrice = typeof price === "string" ? parseFloat(price) : price;
     if (!numPrice || isNaN(numPrice)) return 0;
-    // Calculate 20% of the price as onboard credit, rounded down to nearest $10
-    const creditPercent = 0.2; // 20%
+    // Calculate 8% of the price as onboard credit, rounded down to nearest $10
+    const creditPercent = 0.08; // 8%
     const rawCredit = numPrice * creditPercent;
     return Math.floor(rawCredit / 10) * 10; // Round down to nearest $10
   };
@@ -1174,29 +1175,98 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               >
                 CHOOSE YOUR ROOM
               </h2>
-              <p
-                className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5]"
-                style={{ letterSpacing: "-0.02em" }}
-              >
-                {isLiveBookable && liveCabinGrades
-                  ? `Prices for ${passengerCount?.adults || 2} ${passengerCount?.adults === 1 ? "adult" : "adults"}${passengerCount?.children ? ` and ${passengerCount.children} ${passengerCount.children === 1 ? "child" : "children"}` : ""}`
-                  : "Prices shown are per person based on double occupancy and subject to availability"}
-              </p>
+              {isLiveBookable && liveCabinGrades ? (
+                <div className="flex items-center gap-4">
+                  <span
+                    className="font-geograph text-[18px] text-[#2f2f2f]"
+                    style={{ letterSpacing: "-0.02em" }}
+                  >
+                    Passengers:
+                  </span>
+                  <PassengerSelector
+                    value={{
+                      adults: passengerCount?.adults || 2,
+                      children: passengerCount?.children || 0,
+                      childAges: passengerCount?.childAges || [],
+                    }}
+                    onChange={(newPassengerCount) => {
+                      // Update passenger count in context and refetch pricing
+                      sessionStorage.setItem(
+                        "passengerCount",
+                        JSON.stringify(newPassengerCount),
+                      );
+                      createBookingSessionAndFetchCabins();
+                    }}
+                    className="w-64"
+                  />
+                </div>
+              ) : (
+                <p
+                  className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5]"
+                  style={{ letterSpacing: "-0.02em" }}
+                >
+                  Prices shown are per person based on double occupancy and
+                  subject to availability
+                </p>
+              )}
             </div>
 
-            {/* Loading State for Live Bookable Cruises */}
+            {/* Loading State for Live Bookable Cruises - Skeleton Shimmer */}
             {isLiveBookable && isLoadingCabins && (
-              <div className="text-center py-8">
-                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-dark-blue"></div>
-                <p className="font-geograph text-dark-blue mt-4">
-                  Loading live pricing...
-                </p>
+              <div>
+                {/* Skeleton Category Tabs */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="h-10 w-24 bg-gray-200 rounded-[5px] animate-pulse"
+                    ></div>
+                  ))}
+                </div>
+
+                {/* Skeleton Cabin Cards - 3 column grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div
+                      key={i}
+                      className="bg-white rounded-lg border border-[#d9d9d9] overflow-hidden"
+                    >
+                      {/* Skeleton Image */}
+                      <div className="w-full h-48 bg-gray-200 animate-pulse"></div>
+
+                      {/* Skeleton Content */}
+                      <div className="p-4">
+                        {/* Skeleton Title */}
+                        <div className="h-6 bg-gray-200 rounded w-3/4 mb-4 animate-pulse"></div>
+
+                        {/* Skeleton Description Lines */}
+                        <div className="space-y-2 mb-4">
+                          <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                          <div className="h-4 bg-gray-200 rounded w-5/6 animate-pulse"></div>
+                          <div className="h-4 bg-gray-200 rounded w-4/6 animate-pulse"></div>
+                        </div>
+
+                        {/* Skeleton Separator */}
+                        <div className="border-t border-[#d9d9d9] mb-4"></div>
+
+                        {/* Skeleton Pricing Row */}
+                        <div className="flex items-end justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="h-4 bg-gray-200 rounded w-20 mb-2 animate-pulse"></div>
+                            <div className="h-8 bg-gray-200 rounded w-28 animate-pulse"></div>
+                          </div>
+                          <div className="h-10 w-24 bg-gray-200 rounded-[5px] animate-pulse"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
             {/* Live Cabin Categories - Show tabs for live bookable cruises */}
             {isLiveBookable && liveCabinGrades && !isLoadingCabins && (
-              <div className="mb-6">
+              <div>
                 {/* Rate Code Selector */}
                 {liveCabinGrades.availableRateCodes &&
                   liveCabinGrades.availableRateCodes.length > 0 && (
@@ -1522,10 +1592,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                           }
                                         }}
                                         disabled={isLoadingCabins}
-                                        className="font-geograph font-medium text-[16px] px-[18px] py-[10px] rounded-[5px] bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="font-geograph font-medium text-[16px] px-[18px] py-[10px] rounded-[5px] bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                       >
+                                        {isLoadingCabins && (
+                                          <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
+                                        )}
                                         {isLoadingCabins
-                                          ? "Reserving..."
+                                          ? "Creating Booking..."
                                           : "Reserve"}
                                       </button>
                                     </div>
