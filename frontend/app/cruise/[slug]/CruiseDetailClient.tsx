@@ -64,6 +64,12 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const [selectedCabinCategory, setSelectedCabinCategory] =
     useState<string>("interior"); // Tab state
   const [selectedRateCode, setSelectedRateCode] = useState<string | null>(null); // Rate code selector
+  const [showAllCabins, setShowAllCabins] = useState<Record<string, boolean>>({
+    interior: false,
+    oceanview: false,
+    balcony: false,
+    suite: false,
+  }); // Load more state per category
 
   // Specific cabin modal state
   const [isSpecificCabinModalOpen, setIsSpecificCabinModalOpen] =
@@ -97,6 +103,14 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const handleImageClick = (imageUrl: string) => {
     setSelectedImage(imageUrl);
     setImageModalOpen(true);
+  };
+
+  // Helper function to format price with commas
+  const formatPrice = (price: number): string => {
+    return price.toLocaleString("en-US", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
   };
 
   // Helper function to get cabin pricing for selected rate code
@@ -1129,7 +1143,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         cruise?.balconyPrice ||
         cruise?.suitePrice ||
         isLiveBookable) && (
-        <div className="bg-sand">
+        <div className="bg-sand pb-0">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <div className="mb-6 px-0 md:px-0">
               <h2
@@ -1206,7 +1220,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   ).length > 0 && (
                     <button
                       onClick={() => setSelectedCabinCategory("interior")}
-                      className={`px-6 py-3 rounded-full font-geograph font-medium text-[16px] transition-colors ${
+                      className={`px-5 py-2 rounded-[5px] font-geograph font-medium text-[16px] transition-colors ${
                         selectedCabinCategory === "interior"
                           ? "bg-dark-blue text-white"
                           : "bg-white text-dark-blue border border-gray-300 hover:border-dark-blue"
@@ -1220,7 +1234,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   ).length > 0 && (
                     <button
                       onClick={() => setSelectedCabinCategory("oceanview")}
-                      className={`px-6 py-3 rounded-full font-geograph font-medium text-[16px] transition-colors ${
+                      className={`px-5 py-2 rounded-[5px] font-geograph font-medium text-[16px] transition-colors ${
                         selectedCabinCategory === "oceanview"
                           ? "bg-dark-blue text-white"
                           : "bg-white text-dark-blue border border-gray-300 hover:border-dark-blue"
@@ -1234,7 +1248,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   ).length > 0 && (
                     <button
                       onClick={() => setSelectedCabinCategory("balcony")}
-                      className={`px-6 py-3 rounded-full font-geograph font-medium text-[16px] transition-colors ${
+                      className={`px-5 py-2 rounded-[5px] font-geograph font-medium text-[16px] transition-colors ${
                         selectedCabinCategory === "balcony"
                           ? "bg-dark-blue text-white"
                           : "bg-white text-dark-blue border border-gray-300 hover:border-dark-blue"
@@ -1248,7 +1262,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   ).length > 0 && (
                     <button
                       onClick={() => setSelectedCabinCategory("suite")}
-                      className={`px-6 py-3 rounded-full font-geograph font-medium text-[16px] transition-colors ${
+                      className={`px-5 py-2 rounded-[5px] font-geograph font-medium text-[16px] transition-colors ${
                         selectedCabinCategory === "suite"
                           ? "bg-dark-blue text-white"
                           : "bg-white text-dark-blue border border-gray-300 hover:border-dark-blue"
@@ -1260,199 +1274,264 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 </div>
 
                 {/* Cabin Cards for Selected Category */}
-                <div className="space-y-4">
-                  {liveCabinGrades.cabins
-                    ?.filter((cabin: any) => {
-                      const categoryMap: Record<string, string> = {
-                        interior: "inside",
-                        oceanview: "outside",
-                        balcony: "balcony",
-                        suite: "suite",
-                      };
-                      return (
-                        cabin.category === categoryMap[selectedCabinCategory]
-                      );
-                    })
-                    .map((cabin: any, index: number) => {
-                      // Get pricing for selected rate code (or default)
-                      const cabinPricing = getCabinPricingForRate(cabin);
+                <div>
+                  {(() => {
+                    // Filter cabins by category
+                    const categoryMap: Record<string, string> = {
+                      interior: "inside",
+                      oceanview: "outside",
+                      balcony: "balcony",
+                      suite: "suite",
+                    };
 
-                      return (
-                        <div
-                          key={cabin.code}
-                          className="bg-white rounded-lg border border-gray-200 overflow-hidden mx-4 md:mx-0 px-4 md:px-4"
-                          style={{ paddingTop: "16px", paddingBottom: "16px" }}
-                        >
-                          <div className="flex flex-col md:flex-row md:items-center">
-                            {/* Cabin Image */}
-                            <div className="md:w-48 h-32 md:h-24 flex-shrink-0">
-                              {cabin.imageUrl ? (
-                                <img
-                                  src={cabin.imageUrl}
-                                  alt={cabin.name}
-                                  className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                  onClick={() =>
-                                    handleImageClick(cabin.imageUrl)
-                                  }
-                                />
-                              ) : (
-                                <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
-                                  <span className="text-sm">{cabin.name}</span>
-                                </div>
-                              )}
-                            </div>
+                    const filteredCabins =
+                      liveCabinGrades.cabins
+                        ?.filter(
+                          (cabin: any) =>
+                            cabin.category ===
+                            categoryMap[selectedCabinCategory],
+                        )
+                        ?.sort((a: any, b: any) => {
+                          // Sort: guaranteed first, then by lowest price
+                          if (a.isGuaranteed && !b.isGuaranteed) return -1;
+                          if (!a.isGuaranteed && b.isGuaranteed) return 1;
 
-                            {/* Title and Description */}
-                            <div className="px-0 md:px-5 py-4 md:py-3 flex-1 min-w-0 md:min-w-[400px] max-w-full md:max-w-[480px]">
-                              <h3 className="font-geograph font-medium text-[18px] text-dark-blue mb-1">
-                                {cabin.name}
-                                {cabin.code && (
-                                  <span className="ml-2 text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded font-mono">
-                                    {cabin.code}
-                                  </span>
-                                )}
-                                {cabin.isGuaranteed && (
-                                  <span className="ml-2 text-xs bg-purple-obc text-dark-blue px-2 py-1 rounded-full">
-                                    Best Value
-                                  </span>
-                                )}
-                              </h3>
-                              <p className="font-geograph text-[14px] text-gray-600 leading-relaxed break-words">
-                                {cabin.description
-                                  ? cabin.description.length > 120
-                                    ? cabin.description.substring(0, 120) +
-                                      "..."
-                                    : cabin.description
-                                  : ""}
-                              </p>
-                            </div>
+                          const priceA = getCabinPricingForRate(a).price || 0;
+                          const priceB = getCabinPricingForRate(b).price || 0;
+                          return priceA - priceB;
+                        }) || [];
 
-                            {/* Pricing Block and Button */}
-                            <div className="flex flex-row items-end justify-between flex-1 px-0 md:px-8">
-                              <div className="text-left">
-                                <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                                  {cabin.isGuaranteed
-                                    ? "STARTING FROM"
-                                    : "FROM"}
-                                </div>
-                                <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
-                                  ${cabinPricing.price?.toFixed(0)}
-                                </div>
-                                {cabinPricing.price && (
-                                  <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                                    +$
-                                    {Math.floor(
-                                      (cabinPricing.price * 0.2) / 10,
-                                    ) * 10}{" "}
-                                    onboard credit
-                                  </div>
-                                )}
-                                {selectedRateCode && (
-                                  <div className="font-geograph text-[10px] text-gray-500 mt-1">
-                                    Rate: {cabinPricing.rateCode}
-                                  </div>
-                                )}
-                              </div>
+                    const visibleCabins = showAllCabins[selectedCabinCategory]
+                      ? filteredCabins
+                      : filteredCabins.slice(0, 6);
 
-                              {/* Reserve Button - Changes based on if it's guaranteed or not */}
-                              <button
-                                onClick={async () => {
-                                  if (cabin.isGuaranteed || index === 0) {
-                                    // For guaranteed cabins, add to basket then proceed to booking
-                                    if (!cruiseData?.cruise?.id) {
-                                      showAlert("Cruise data not available");
-                                      return;
-                                    }
+                    return (
+                      <>
+                        {/* 3-column grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {visibleCabins.map((cabin: any, index: number) => {
+                            // Get pricing for selected rate code (or default)
+                            const cabinPricing = getCabinPricingForRate(cabin);
 
-                                    try {
-                                      setIsLoadingCabins(true);
-
-                                      // Debug: Log cabin data being sent (using selected rate)
-                                      console.log("Reserving cabin:", {
-                                        resultNo: cabin.resultNo,
-                                        gradeNo: cabinPricing.gradeNo,
-                                        rateCode: cabinPricing.rateCode,
-                                        selectedRateCode: selectedRateCode,
-                                        fullCabin: cabin,
-                                      });
-
-                                      // Add cabin to Traveltek basket (using selected rate pricing)
-                                      const basketResponse = await fetch(
-                                        `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/select-cabin`,
-                                        {
-                                          method: "POST",
-                                          headers: {
-                                            "Content-Type": "application/json",
-                                          },
-                                          body: JSON.stringify({
-                                            cruiseId:
-                                              cruiseData.cruise.id.toString(),
-                                            resultNo: cabinPricing.resultNo,
-                                            gradeNo: cabinPricing.gradeNo,
-                                            rateCode: cabinPricing.rateCode,
-                                          }),
-                                        },
-                                      );
-
-                                      if (!basketResponse.ok) {
-                                        throw new Error(
-                                          "Failed to reserve cabin",
-                                        );
-                                      }
-
-                                      // Success! Proceed to options page
-                                      router.push(
-                                        `/booking/${sessionId}/options`,
-                                      );
-                                    } catch (err) {
-                                      console.error(
-                                        "Failed to add cabin to basket:",
-                                        err,
-                                      );
-                                      showAlert(
-                                        "Unable to reserve cabin. Please try again.",
-                                      );
-                                      setIsLoadingCabins(false);
-                                    }
-                                  } else {
-                                    // For specific cabins, open modal (using selected rate)
-                                    console.log(
-                                      "Opening specific cabin modal with data:",
-                                      {
-                                        resultNo: cabinPricing.resultNo,
-                                        gradeNo: cabinPricing.gradeNo,
-                                        rateCode: cabinPricing.rateCode,
-                                        selectedRateCode: selectedRateCode,
-                                        fullCabin: cabin,
-                                      },
-                                    );
-
-                                    setSelectedCabinGrade({
-                                      resultNo: cabinPricing.resultNo,
-                                      gradeNo: cabinPricing.gradeNo,
-                                      rateCode: cabinPricing.rateCode,
-                                      gradeName:
-                                        cabin.name ||
-                                        cabin.gradeName ||
-                                        cabin.category,
-                                    });
-                                    setIsSpecificCabinModalOpen(true);
-                                  }
-                                }}
-                                disabled={isLoadingCabins}
-                                className="font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer transition-colors self-end disabled:opacity-50 disabled:cursor-not-allowed"
+                            return (
+                              <div
+                                key={cabin.code}
+                                className="bg-white rounded-lg border border-[#d9d9d9] overflow-hidden relative"
                               >
-                                {isLoadingCabins
-                                  ? "Reserving..."
-                                  : cabin.isGuaranteed || index === 0
-                                    ? "Reserve This Cabin"
-                                    : "Choose Specific Cabin"}
-                              </button>
-                            </div>
-                          </div>
+                                {/* Best Value Banner */}
+                                {cabin.isGuaranteed && (
+                                  <div className="absolute top-0 left-0 right-0 bg-purple-obc text-dark-blue text-center font-geograph font-medium text-[12px] py-1 z-10">
+                                    Best Value
+                                  </div>
+                                )}
+
+                                {/* Full Bleed Cabin Image */}
+                                <div className="w-full h-48 relative">
+                                  {cabin.imageUrl ? (
+                                    <img
+                                      src={cabin.imageUrl}
+                                      alt={cabin.name}
+                                      className="w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                      onClick={() =>
+                                        handleImageClick(cabin.imageUrl)
+                                      }
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500">
+                                      <span className="text-sm">
+                                        {cabin.name}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Card Content */}
+                                <div className="p-4">
+                                  {/* Cabin Title and Code */}
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <h3 className="font-geograph font-medium text-[18px] text-[#1c1c1c]">
+                                      {cabin.name}
+                                    </h3>
+                                    {cabin.code && (
+                                      <div className="flex items-center justify-center w-[32px] h-[27px] border border-[#d9d9d9] rounded">
+                                        <span className="font-geograph text-[12px] text-[#2f2f2f]">
+                                          {cabin.code}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Cabin Description - Truncate to 3 lines */}
+                                  <p
+                                    className="font-geograph text-[14px] text-[#777777] mb-4"
+                                    style={{
+                                      letterSpacing: "-0.02em",
+                                      lineHeight: "1.5",
+                                      display: "-webkit-box",
+                                      WebkitLineClamp: 3,
+                                      WebkitBoxOrient: "vertical",
+                                      overflow: "hidden",
+                                    }}
+                                  >
+                                    {cabin.description || ""}
+                                  </p>
+
+                                  {/* Horizontal Separator */}
+                                  <div className="border-t border-[#d9d9d9] mb-4"></div>
+
+                                  {/* Pricing and Button Row */}
+                                  <div className="flex items-end justify-between gap-4">
+                                    {/* Pricing Block */}
+                                    <div className="text-left">
+                                      <div className="font-geograph font-bold text-[10px] text-[#474747] uppercase tracking-wider -mb-1">
+                                        Total Price
+                                      </div>
+                                      <div className="font-geograph font-medium text-[24px] text-[#1c1c1c]">
+                                        ${formatPrice(cabinPricing.price || 0)}
+                                      </div>
+                                      <div className="font-geograph text-[12px] text-[#777777]">
+                                        Including taxes & fees
+                                      </div>
+                                    </div>
+
+                                    {/* Reserve Button with Availability Warning */}
+                                    <div className="flex flex-col items-end gap-1">
+                                      {cabin.totalCabinsLeft &&
+                                        cabin.totalCabinsLeft < 10 && (
+                                          <div className="font-geograph text-[11px] text-[#777777]">
+                                            {cabin.totalCabinsLeft} left at this
+                                            price
+                                          </div>
+                                        )}
+                                      <button
+                                        onClick={async () => {
+                                          if (
+                                            cabin.isGuaranteed ||
+                                            index === 0
+                                          ) {
+                                            // For guaranteed cabins, add to basket then proceed to booking
+                                            if (!cruiseData?.cruise?.id) {
+                                              showAlert(
+                                                "Cruise data not available",
+                                              );
+                                              return;
+                                            }
+
+                                            try {
+                                              setIsLoadingCabins(true);
+
+                                              // Debug: Log cabin data being sent (using selected rate)
+                                              console.log("Reserving cabin:", {
+                                                resultNo: cabin.resultNo,
+                                                gradeNo: cabinPricing.gradeNo,
+                                                rateCode: cabinPricing.rateCode,
+                                                selectedRateCode:
+                                                  selectedRateCode,
+                                                fullCabin: cabin,
+                                              });
+
+                                              // Add cabin to Traveltek basket (using selected rate pricing)
+                                              const basketResponse =
+                                                await fetch(
+                                                  `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/select-cabin`,
+                                                  {
+                                                    method: "POST",
+                                                    headers: {
+                                                      "Content-Type":
+                                                        "application/json",
+                                                    },
+                                                    body: JSON.stringify({
+                                                      cruiseId:
+                                                        cruiseData.cruise.id.toString(),
+                                                      resultNo:
+                                                        cabinPricing.resultNo,
+                                                      gradeNo:
+                                                        cabinPricing.gradeNo,
+                                                      rateCode:
+                                                        cabinPricing.rateCode,
+                                                    }),
+                                                  },
+                                                );
+
+                                              if (!basketResponse.ok) {
+                                                throw new Error(
+                                                  "Failed to reserve cabin",
+                                                );
+                                              }
+
+                                              // Success! Proceed to options page
+                                              router.push(
+                                                `/booking/${sessionId}/options`,
+                                              );
+                                            } catch (err) {
+                                              console.error(
+                                                "Failed to add cabin to basket:",
+                                                err,
+                                              );
+                                              showAlert(
+                                                "Unable to reserve cabin. Please try again.",
+                                              );
+                                              setIsLoadingCabins(false);
+                                            }
+                                          } else {
+                                            // For specific cabins, open modal (using selected rate)
+                                            console.log(
+                                              "Opening specific cabin modal with data:",
+                                              {
+                                                resultNo: cabinPricing.resultNo,
+                                                gradeNo: cabinPricing.gradeNo,
+                                                rateCode: cabinPricing.rateCode,
+                                                selectedRateCode:
+                                                  selectedRateCode,
+                                                fullCabin: cabin,
+                                              },
+                                            );
+
+                                            setSelectedCabinGrade({
+                                              resultNo: cabinPricing.resultNo,
+                                              gradeNo: cabinPricing.gradeNo,
+                                              rateCode: cabinPricing.rateCode,
+                                              gradeName:
+                                                cabin.name ||
+                                                cabin.gradeName ||
+                                                cabin.category,
+                                            });
+                                            setIsSpecificCabinModalOpen(true);
+                                          }
+                                        }}
+                                        disabled={isLoadingCabins}
+                                        className="font-geograph font-medium text-[16px] px-[18px] py-[10px] rounded-[5px] bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        {isLoadingCabins
+                                          ? "Reserving..."
+                                          : "Reserve"}
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      );
-                    })}
+
+                        {/* Load More Button */}
+                        {filteredCabins.length > 6 &&
+                          !showAllCabins[selectedCabinCategory] && (
+                            <button
+                              onClick={() =>
+                                setShowAllCabins((prev) => ({
+                                  ...prev,
+                                  [selectedCabinCategory]: true,
+                                }))
+                              }
+                              className="w-full mt-4 py-3 bg-white border border-[#d9d9d9] rounded-[5px] font-geograph font-medium text-[16px] text-[#1c1c1c] hover:bg-gray-50 transition-colors"
+                            >
+                              Load More ({filteredCabins.length - 6} more)
+                            </button>
+                          )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             )}
