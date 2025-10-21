@@ -307,18 +307,6 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     }
   }, [isLiveBookable, passengerCount, cruiseData?.cruise?.id, isLoadingCabins]);
 
-  const formatPrice = (price: string | number | undefined) => {
-    if (!price) return "Unavailable";
-    const numPrice = typeof price === "string" ? parseFloat(price) : price;
-    if (isNaN(numPrice)) return "Unavailable";
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(numPrice);
-  };
-
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return "N/A";
     try {
@@ -1083,6 +1071,39 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       {/* Body Section - Updated background and styling */}
       <div className="bg-sand py-8 md:py-16">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
+          {/* Lowest Price Guarantee Box */}
+          <div className="mb-6 bg-white rounded-[5px] border border-[#d9d9d9] p-4 md:py-[22px] md:px-[15px]">
+            <div className="flex items-center gap-4">
+              {/* Icon */}
+              <div className="flex-shrink-0">
+                <img
+                  src="/images/best-price.svg"
+                  alt="Best Price"
+                  width={55}
+                  height={55}
+                  className="w-[55px] h-[55px]"
+                />
+              </div>
+
+              {/* Text Content */}
+              <div>
+                <h3
+                  className="font-whitney font-black text-[20px] text-[#1c1c1c] uppercase mb-1"
+                  style={{ letterSpacing: "-0.02em" }}
+                >
+                  Lowest Price Guarantee
+                </h3>
+                <p
+                  className="font-geograph text-[16px] text-[#2f2f2f] leading-[1.5]"
+                  style={{ letterSpacing: "-0.02em" }}
+                >
+                  Fare prices shown come directly from cruise lines, never any
+                  added fees or markups
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Description Section */}
           {(ship?.description || ship?.shortDescription) && (
             <div className="mb-6">
