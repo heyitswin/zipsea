@@ -1716,11 +1716,337 @@ export default function CruisesContent() {
                 </div>
               )}
 
-              {/* All Filter Options - Copy from Desktop Sidebar */}
+              {/* All Filter Options */}
               <div className="space-y-6">
-                {/* This will be populated with the same filter content as desktop */}
-                <div className="text-center text-gray-500 py-8">
-                  Filter options will be added here
+                {/* Cruise Lines Filter */}
+                <div>
+                  <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
+                    Cruise Lines
+                  </h3>
+                  <div className="mb-3">
+                    <input
+                      type="text"
+                      value={cruiseLineSearch}
+                      onChange={(e) => setCruiseLineSearch(e.target.value)}
+                      placeholder="Search cruise lines..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                    />
+                  </div>
+                  <div
+                    className="space-y-2 max-h-64 overflow-y-auto pr-2"
+                    style={{
+                      scrollbarWidth: "thin",
+                      scrollbarColor: "#d9d9d9 #f6f3ed",
+                    }}
+                  >
+                    {cruiseLines
+                      .filter((line) =>
+                        line.name
+                          .toLowerCase()
+                          .includes(cruiseLineSearch.toLowerCase()),
+                      )
+                      .map((line) => (
+                        <label
+                          key={line.id}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedCruiseLines.includes(
+                              line.id as number,
+                            )}
+                            onChange={() => {
+                              const lineId = line.id as number;
+                              const urlParams = new URLSearchParams(
+                                window.location.search,
+                              );
+                              const currentParam = urlParams.get("cruiseLines");
+                              const currentLines = currentParam
+                                ? currentParam
+                                    .split(",")
+                                    .map(Number)
+                                    .filter((n) => !isNaN(n))
+                                : [];
+                              const newSelection = currentLines.includes(lineId)
+                                ? currentLines.filter((id) => id !== lineId)
+                                : [...currentLines, lineId];
+                              updateURLParams({
+                                cruiseLines:
+                                  newSelection.length > 0 ? newSelection : null,
+                                page: 1,
+                              });
+                            }}
+                            className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                          />
+                          <span className="font-geograph text-[14px] text-[#2F2F2F]">
+                            {line.name}
+                          </span>
+                        </label>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Cruise Dates Filter */}
+                <div>
+                  <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
+                    Cruise Dates
+                  </h3>
+                  <div className="space-y-3">
+                    {[2025, 2026].map((year) => {
+                      const currentDate = new Date();
+                      const currentYear = currentDate.getFullYear();
+                      const currentMonth = currentDate.getMonth();
+                      return (
+                        <div key={year}>
+                          <div className="font-geograph font-bold text-[12px] text-gray-600 mb-2">
+                            {year}
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              "Jan",
+                              "Feb",
+                              "Mar",
+                              "Apr",
+                              "May",
+                              "Jun",
+                              "Jul",
+                              "Aug",
+                              "Sep",
+                              "Oct",
+                              "Nov",
+                              "Dec",
+                            ].map((month, index) => {
+                              const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
+                              const isSelected =
+                                selectedMonths.includes(monthStr);
+                              const isPast =
+                                year < currentYear ||
+                                (year === currentYear && index < currentMonth);
+                              return (
+                                <button
+                                  key={monthStr}
+                                  onClick={() => {
+                                    if (!isPast) {
+                                      const urlParams = new URLSearchParams(
+                                        window.location.search,
+                                      );
+                                      const currentParam =
+                                        urlParams.get("months");
+                                      const currentMonths = currentParam
+                                        ? currentParam.split(",")
+                                        : [];
+                                      const newSelection =
+                                        currentMonths.includes(monthStr)
+                                          ? currentMonths.filter(
+                                              (m) => m !== monthStr,
+                                            )
+                                          : [...currentMonths, monthStr];
+                                      updateURLParams({
+                                        months:
+                                          newSelection.length > 0
+                                            ? newSelection
+                                            : null,
+                                        page: 1,
+                                      });
+                                    }
+                                  }}
+                                  disabled={isPast}
+                                  className={`px-2 py-1 rounded text-[12px] font-geograph transition-colors ${
+                                    isPast
+                                      ? "bg-gray-50 text-gray-400 cursor-not-allowed"
+                                      : isSelected
+                                        ? "bg-[#0E1B4D] text-white"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                  }`}
+                                >
+                                  {month}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Number of Nights Filter */}
+                <div>
+                  <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
+                    Number of Nights
+                  </h3>
+                  <div className="space-y-2">
+                    {["2-5", "6-8", "9-11", "12+"].map((range) => (
+                      <label
+                        key={range}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedNightRanges.includes(range)}
+                          onChange={() => {
+                            const urlParams = new URLSearchParams(
+                              window.location.search,
+                            );
+                            const currentParam = urlParams.get("nights");
+                            const currentNights = currentParam
+                              ? currentParam.split(",")
+                              : [];
+                            const newSelection = currentNights.includes(range)
+                              ? currentNights.filter((r) => r !== range)
+                              : [...currentNights, range];
+                            updateURLParams({
+                              nights:
+                                newSelection.length > 0 ? newSelection : null,
+                              page: 1,
+                            });
+                          }}
+                          className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                        />
+                        <span className="font-geograph text-[14px] text-[#2F2F2F]">
+                          {range === "12+" ? "12+ nights" : `${range} nights`}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Departure Port Filter */}
+                <div>
+                  <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
+                    Departure Port
+                  </h3>
+                  <div className="mb-3">
+                    <input
+                      type="text"
+                      value={departurePortSearch}
+                      onChange={(e) => setDeparturePortSearch(e.target.value)}
+                      placeholder="Search ports..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                    />
+                  </div>
+                  <div
+                    className="space-y-2 max-h-64 overflow-y-auto pr-2"
+                    style={{
+                      scrollbarWidth: "thin",
+                      scrollbarColor: "#d9d9d9 #f6f3ed",
+                    }}
+                  >
+                    {departurePorts
+                      .filter((port) =>
+                        port.name
+                          .toLowerCase()
+                          .includes(departurePortSearch.toLowerCase()),
+                      )
+                      .map((port) => (
+                        <label
+                          key={port.id}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedDeparturePorts.includes(
+                              port.id as number,
+                            )}
+                            onChange={() => {
+                              const portId = port.id as number;
+                              const urlParams = new URLSearchParams(
+                                window.location.search,
+                              );
+                              const currentParam = urlParams.get("ports");
+                              const currentPorts = currentParam
+                                ? currentParam
+                                    .split(",")
+                                    .map(Number)
+                                    .filter((n) => !isNaN(n))
+                                : [];
+                              const newSelection = currentPorts.includes(portId)
+                                ? currentPorts.filter((id) => id !== portId)
+                                : [...currentPorts, portId];
+                              updateURLParams({
+                                ports:
+                                  newSelection.length > 0 ? newSelection : null,
+                                page: 1,
+                              });
+                            }}
+                            className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                          />
+                          <span className="font-geograph text-[14px] text-[#2F2F2F]">
+                            {port.name}
+                          </span>
+                        </label>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Region Filter */}
+                <div>
+                  <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
+                    Region
+                  </h3>
+                  <div className="mb-3">
+                    <input
+                      type="text"
+                      value={regionSearch}
+                      onChange={(e) => setRegionSearch(e.target.value)}
+                      placeholder="Search regions..."
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                    />
+                  </div>
+                  <div
+                    className="space-y-2 max-h-64 overflow-y-auto pr-2"
+                    style={{
+                      scrollbarWidth: "thin",
+                      scrollbarColor: "#d9d9d9 #f6f3ed",
+                    }}
+                  >
+                    {regions
+                      .filter((region) =>
+                        region.name
+                          .toLowerCase()
+                          .includes(regionSearch.toLowerCase()),
+                      )
+                      .map((region) => (
+                        <label
+                          key={region.id}
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedRegions.includes(
+                              region.id as number,
+                            )}
+                            onChange={() => {
+                              const regionId = region.id as number;
+                              const urlParams = new URLSearchParams(
+                                window.location.search,
+                              );
+                              const currentParam = urlParams.get("regions");
+                              const currentRegions = currentParam
+                                ? currentParam
+                                    .split(",")
+                                    .map(Number)
+                                    .filter((n) => !isNaN(n))
+                                : [];
+                              const newSelection = currentRegions.includes(
+                                regionId,
+                              )
+                                ? currentRegions.filter((id) => id !== regionId)
+                                : [...currentRegions, regionId];
+                              updateURLParams({
+                                regions:
+                                  newSelection.length > 0 ? newSelection : null,
+                                page: 1,
+                              });
+                            }}
+                            className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                          />
+                          <span className="font-geograph text-[14px] text-[#2F2F2F]">
+                            {region.name}
+                          </span>
+                        </label>
+                      ))}
+                  </div>
                 </div>
               </div>
             </div>
