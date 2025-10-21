@@ -7,7 +7,7 @@ interface BookingProgressBarProps {
 
 export default function BookingProgressBar({
   currentStep,
-  compact = false
+  compact = false,
 }: BookingProgressBarProps) {
   const steps = [
     { number: 1, label: "Options" },
@@ -20,9 +20,10 @@ export default function BookingProgressBar({
     return (
       <div className="flex items-center gap-1">
         {steps.map((step, index) => (
-          <div key={step.number} className="flex items-center">
+          <div key={step.number} className="flex items-center gap-1">
+            {/* Step circle */}
             <div
-              className={`w-6 h-6 rounded-full flex items-center justify-center font-geograph font-bold text-xs transition-colors ${
+              className={`w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center font-geograph font-bold text-xs md:text-sm transition-colors ${
                 step.number <= currentStep
                   ? "bg-dark-blue text-white"
                   : "bg-gray-300 text-gray-600"
@@ -30,9 +31,24 @@ export default function BookingProgressBar({
             >
               {step.number}
             </div>
+
+            {/* Label - only on desktop */}
+            <span
+              className={`hidden md:inline-block font-geograph text-[13px] font-medium transition-colors ${
+                step.number === currentStep
+                  ? "text-dark-blue"
+                  : step.number < currentStep
+                    ? "text-gray-500"
+                    : "text-gray-400"
+              }`}
+            >
+              {step.label}
+            </span>
+
+            {/* Connector line */}
             {index < steps.length - 1 && (
               <div
-                className={`w-8 h-0.5 mx-1 transition-colors ${
+                className={`w-6 md:w-12 h-0.5 mx-1 transition-colors ${
                   step.number < currentStep ? "bg-dark-blue" : "bg-gray-300"
                 }`}
               />

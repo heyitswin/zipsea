@@ -29,18 +29,24 @@ export default function BookingSummary({ sessionId }: BookingSummaryProps) {
   useEffect(() => {
     const fetchBookingData = async () => {
       try {
+        console.log("📊 BookingSummary: Fetching session data for:", sessionId);
+
         // Fetch session data which includes cruise and cabin info
         const sessionResponse = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/booking/session/${sessionId}`,
         );
 
         if (!sessionResponse.ok) {
-          console.error("Failed to fetch session data");
+          console.error(
+            "❌ Failed to fetch session data:",
+            sessionResponse.status,
+          );
           setIsLoading(false);
           return;
         }
 
         const sessionData = await sessionResponse.json();
+        console.log("✅ Session data received:", sessionData);
 
         // Fetch full cruise details using the cruiseId from session
         if (sessionData.cruiseId) {
@@ -50,30 +56,44 @@ export default function BookingSummary({ sessionId }: BookingSummaryProps) {
 
           if (cruiseResponse.ok) {
             const cruise = await cruiseResponse.json();
+            console.log("🚢 Cruise data received:", cruise);
 
             setCruiseData({
-              name: cruise.name || cruise.title,
+              name: cruise.name || cruise.title || cruise.voyageName,
               shipName: cruise.shipName || cruise.ship?.name,
-              departureDate: cruise.departureDate || cruise.startDate,
-              arrivalDate: cruise.arrivalDate || cruise.endDate,
+              departureDate:
+                cruise.departureDate || cruise.startDate || cruise.sailingDate,
+              arrivalDate:
+                cruise.arrivalDate || cruise.endDate || cruise.returnDate,
               nights: cruise.nights || cruise.duration,
-              ports: cruise.ports || cruise.portsOfCall || [],
+              ports:
+                cruise.ports || cruise.portsOfCall || cruise.portNames || [],
             });
+          } else {
+            console.error(
+              "❌ Failed to fetch cruise data:",
+              cruiseResponse.status,
+            );
           }
+        } else {
+          console.warn("⚠️ No cruiseId in session data");
         }
 
         // Set cabin data from session
         if (sessionData.selectedCabinGrade) {
+          console.log("🛏️ Cabin data:", sessionData.selectedCabinGrade);
           setCabinData({
             cabinType: sessionData.selectedCabinGrade.cabinType,
             description: sessionData.selectedCabinGrade.description,
             gradeno: sessionData.selectedCabinGrade.gradeno,
           });
+        } else {
+          console.warn("⚠️ No selectedCabinGrade in session data");
         }
 
         setIsLoading(false);
       } catch (error) {
-        console.error("Error fetching booking data:", error);
+        console.error("💥 Error fetching booking data:", error);
         setIsLoading(false);
       }
     };

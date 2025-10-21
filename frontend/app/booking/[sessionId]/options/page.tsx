@@ -93,7 +93,7 @@ export default function BookingOptionsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="block font-geograph text-[14px] text-dark-blue mb-2">
+              <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
                 First Name *
               </label>
               <input
@@ -108,14 +108,12 @@ export default function BookingOptionsPage() {
                 placeholder="John"
               />
               {errors.firstName && (
-                <p className="text-red-500 text-[12px] mt-1 font-geograph">
-                  {errors.firstName}
-                </p>
+                <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>
               )}
             </div>
 
             <div>
-              <label className="block font-geograph text-[14px] text-dark-blue mb-2">
+              <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
                 Last Name *
               </label>
               <input
@@ -130,15 +128,13 @@ export default function BookingOptionsPage() {
                 placeholder="Doe"
               />
               {errors.lastName && (
-                <p className="text-red-500 text-[12px] mt-1 font-geograph">
-                  {errors.lastName}
-                </p>
+                <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>
               )}
             </div>
           </div>
 
           <div className="mb-4">
-            <label className="block font-geograph text-[14px] text-dark-blue mb-2">
+            <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
               Email Address *
             </label>
             <input
@@ -153,14 +149,12 @@ export default function BookingOptionsPage() {
               placeholder="john.doe@example.com"
             />
             {errors.email && (
-              <p className="text-red-500 text-[12px] mt-1 font-geograph">
-                {errors.email}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.email}</p>
             )}
           </div>
 
           <div className="mb-4">
-            <label className="block font-geograph text-[14px] text-dark-blue mb-2">
+            <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
               Phone Number *
             </label>
             <input
@@ -175,14 +169,12 @@ export default function BookingOptionsPage() {
               placeholder="(555) 123-4567"
             />
             {errors.phone && (
-              <p className="text-red-500 text-[12px] mt-1 font-geograph">
-                {errors.phone}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
             )}
           </div>
 
           <div>
-            <label className="block font-geograph text-[14px] text-dark-blue mb-2">
+            <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
               Billing Address *
             </label>
             <input
@@ -197,9 +189,7 @@ export default function BookingOptionsPage() {
               placeholder="123 Main St, City, State, ZIP"
             />
             {errors.address && (
-              <p className="text-red-500 text-[12px] mt-1 font-geograph">
-                {errors.address}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.address}</p>
             )}
           </div>
         </div>
@@ -302,14 +292,14 @@ export default function BookingOptionsPage() {
         <div className="flex justify-between items-center">
           <button
             onClick={() => router.back()}
-            className="font-geograph font-medium text-[16px] px-6 py-3 rounded-full bg-white text-dark-blue border border-gray-300 hover:border-dark-blue transition-colors"
+            className="font-geograph font-medium text-[16px] px-6 py-3 rounded-[5px] bg-white text-dark-blue border border-gray-300 hover:border-dark-blue transition-colors"
           >
             Back
           </button>
           <button
             onClick={handleContinue}
             disabled={isSubmitting}
-            className={`font-geograph font-medium text-[16px] px-8 py-3 rounded-full transition-colors ${
+            className={`font-geograph font-medium text-[16px] px-8 py-3 rounded-[5px] transition-colors ${
               isSubmitting
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90"

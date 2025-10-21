@@ -141,7 +141,15 @@ export default function SpecificCabinModal({
     // Auto-switch to this cabin's deck (always set to ensure deck plan shows)
     const cabinDeck = cabin.deckCode || cabin.deck;
     if (cabinDeck) {
+      console.log(
+        "🔄 Switching deck to:",
+        cabinDeck,
+        "from cabin:",
+        cabin.cabinNo,
+      );
       setSelectedDeck(cabinDeck);
+      // Switch to deckplans tab on mobile when selecting a cabin
+      setMobileTab("deckplans");
     }
   };
 

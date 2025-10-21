@@ -1484,7 +1484,7 @@ export default function CruisesContent() {
                                 "Cruise ship"
                               }
                               fill
-                              sizes="(max-width: 768px) 160px, (max-width: 1024px) 208px, 224px"
+                              sizes="(max-width: 768px) 160px, (max-width: 1024px) 416px, 448px"
                               className="object-cover"
                               loading="lazy"
                               quality={90}

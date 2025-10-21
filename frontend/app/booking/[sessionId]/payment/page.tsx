@@ -494,7 +494,7 @@ export default function BookingPaymentPage() {
               <button
                 onClick={handleConfirmBooking}
                 disabled={isProcessing}
-                className={`w-full font-geograph font-medium text-[16px] px-6 py-4 rounded-full transition-colors ${
+                className={`w-full font-geograph font-medium text-[16px] px-6 py-4 rounded-[5px] transition-colors ${
                   isProcessing
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90"
@@ -514,7 +514,7 @@ export default function BookingPaymentPage() {
         <div className="mt-6">
           <button
             onClick={() => router.push(`/booking/${sessionId}/passengers`)}
-            className="font-geograph font-medium text-[16px] px-6 py-3 rounded-full bg-white text-dark-blue border border-gray-300 hover:border-dark-blue transition-colors"
+            className="font-geograph font-medium text-[16px] px-6 py-3 rounded-[5px] bg-white text-dark-blue border border-gray-300 hover:border-dark-blue transition-colors"
           >
             Back to Passengers
           </button>
