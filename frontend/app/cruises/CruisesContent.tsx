@@ -751,6 +751,23 @@ export default function CruisesContent() {
     }
   };
 
+  // Helper function to format date without year (for mobile end dates)
+  const formatDateNoYear = (dateString: string | undefined): string => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date
+        .toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          timeZone: "UTC",
+        })
+        .replace(/,/g, "");
+    } catch {
+      return "N/A";
+    }
+  };
+
   // Helper function to calculate return date
   const getReturnDate = (cruise: Cruise): string => {
     // First check if we have return_date from the API
@@ -767,6 +784,27 @@ export default function CruisesContent() {
       const returnDate = new Date(departDate);
       returnDate.setUTCDate(departDate.getUTCDate() + cruise.nights);
       return formatDate(returnDate.toISOString().split("T")[0]);
+    } catch {
+      return "N/A";
+    }
+  };
+
+  // Helper function to calculate return date without year (for mobile)
+  const getReturnDateNoYear = (cruise: Cruise): string => {
+    // First check if we have return_date from the API
+    if (cruise.returnDate) {
+      return formatDateNoYear(cruise.returnDate);
+    }
+
+    // Otherwise calculate it
+    const dateString = cruise.sailingDate || cruise.departureDate;
+    if (!dateString || !cruise.nights) return "N/A";
+
+    try {
+      const departDate = new Date(dateString);
+      const returnDate = new Date(departDate);
+      returnDate.setUTCDate(departDate.getUTCDate() + cruise.nights);
+      return formatDateNoYear(returnDate.toISOString().split("T")[0]);
     } catch {
       return "N/A";
     }
@@ -1134,20 +1172,21 @@ export default function CruisesContent() {
 
           {/* Main Content - Cruise Cards */}
           <div className="flex-1">
-            {/* Mobile Filters Button */}
-            <div className="md:hidden mb-4">
+            {/* Mobile Filters Button - Fixed at Bottom */}
+            <div className="md:hidden fixed bottom-[10px] left-0 right-0 px-4 z-40">
               <button
                 onClick={() => setIsFilterModalOpen(true)}
-                className="w-full px-6 py-3 bg-white border border-gray-300 rounded-full font-geograph font-medium text-[16px] text-dark-blue hover:border-gray-400 transition-colors"
+                className="w-full px-6 py-3 bg-white border border-gray-300 rounded-full font-geograph font-medium text-[16px] text-dark-blue hover:border-gray-400 transition-colors shadow-lg"
               >
-                Filters
+                Filters{" "}
+                {appliedFilters.length > 0 && `(${appliedFilters.length})`}
               </button>
             </div>
 
             {/* Applied Filters and Sort */}
             <div className="mb-6 flex justify-between items-center gap-4">
-              {/* Applied Filters */}
-              <div className="flex items-center gap-2 flex-wrap flex-1">
+              {/* Applied Filters - Hidden on Mobile */}
+              <div className="hidden md:flex items-center gap-2 flex-wrap flex-1">
                 {appliedFilters.map((filter, index) => (
                   <div
                     key={index}
@@ -1368,7 +1407,7 @@ export default function CruisesContent() {
                                   {formatDate(
                                     cruise.sailingDate || cruise.departureDate,
                                   )}{" "}
-                                  - {getReturnDate(cruise)}
+                                  - {getReturnDateNoYear(cruise)}
                                 </span>
                               </div>
 
@@ -1407,7 +1446,7 @@ export default function CruisesContent() {
                                   : "Call for price"}
                               </div>
                               {lowestPrice && (
-                                <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[5px] mt-2 inline-block">
+                                <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[5px] inline-block">
                                   +${Math.floor((lowestPrice * 0.2) / 10) * 10}{" "}
                                   onboard credit
                                 </div>
@@ -1614,6 +1653,90 @@ export default function CruisesContent() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Filter Modal */}
+      {isFilterModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 md:hidden">
+          <div className="absolute inset-0 flex flex-col">
+            {/* Modal Header */}
+            <div className="bg-white px-4 py-4 flex items-center justify-between border-b">
+              <h2 className="font-geograph font-bold text-[20px] text-[#0E1B4D]">
+                Filters
+              </h2>
+              <button onClick={() => setIsFilterModalOpen(false)}>
+                <Image
+                  src="/images/close-white.svg"
+                  alt="Close"
+                  width={24}
+                  height={24}
+                  className="invert"
+                />
+              </button>
+            </div>
+
+            {/* Modal Content - Scrollable */}
+            <div className="flex-1 bg-white overflow-y-auto px-4 py-4">
+              {/* Applied Filters */}
+              {appliedFilters.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
+                    Active Filters ({appliedFilters.length})
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {appliedFilters.map((filter, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 px-3 py-1 bg-[#0E1B4D] rounded-full"
+                      >
+                        <span className="font-geograph font-medium text-[14px] text-white">
+                          {filter.label}
+                        </span>
+                        <button
+                          onClick={() => removeFilter(filter)}
+                          className="flex items-center justify-center"
+                        >
+                          <Image
+                            src="/images/close-white.svg"
+                            alt="Remove"
+                            width={12}
+                            height={12}
+                          />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {appliedFilters.length > 0 && (
+                    <button
+                      onClick={clearAllFilters}
+                      className="mt-3 text-[#0E1B4D] font-geograph font-medium text-[14px] underline"
+                    >
+                      Clear all filters
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* All Filter Options - Copy from Desktop Sidebar */}
+              <div className="space-y-6">
+                {/* This will be populated with the same filter content as desktop */}
+                <div className="text-center text-gray-500 py-8">
+                  Filter options will be added here
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-white px-4 py-4 border-t">
+              <button
+                onClick={() => setIsFilterModalOpen(false)}
+                className="w-full px-6 py-3 bg-[#0E1B4D] text-white font-geograph font-medium text-[16px] rounded-full hover:bg-[#0E1B4D]/90 transition-colors"
+              >
+                Show Results
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
