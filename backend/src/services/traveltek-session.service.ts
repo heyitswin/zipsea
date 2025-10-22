@@ -20,6 +20,7 @@ interface SessionData {
   userId?: string;
   cruiseResultNo?: string; // Cruise result number from getCabinGrades for addToBasket API
   itemkey?: string; // Item key from basket response, required for booking creation
+  isHoldBooking?: boolean; // Flag for hold booking vs full payment
 }
 
 interface CreateSessionParams {
@@ -34,6 +35,7 @@ interface UpdateSessionParams {
   basketData?: any;
   cruiseResultNo?: string; // Allow updating cruise result number
   itemkey?: string; // Item key from basket response
+  isHoldBooking?: boolean; // Flag for hold booking vs full payment
 }
 
 /**
@@ -227,6 +229,7 @@ class TraveltekSessionService {
         userId: dbSession.userId || undefined,
         itemkey: dbSession.itemkey || undefined,
         cruiseResultNo: dbSession.selectedCabinGrade || undefined, // Store cruise result number
+        isHoldBooking: dbSession.isHoldBooking || false,
       };
 
       // Restore to Redis
@@ -267,7 +270,10 @@ class TraveltekSessionService {
    * @param sessionId - The booking session ID
    * @param updates - Fields to update
    */
-  async updateSession(sessionId: string, updates: UpdateSessionParams): Promise<void> {
+  async updateSession(
+    sessionId: string,
+    updates: UpdateSessionParams
+  ): Promise<SessionData | null> {
     try {
       // Prepare update data - only include defined values
       const updateData: any = {
@@ -298,6 +304,10 @@ class TraveltekSessionService {
         updateData.itemkey = updates.itemkey;
       }
 
+      if (updates.isHoldBooking !== undefined) {
+        updateData.isHoldBooking = updates.isHoldBooking;
+      }
+
       // Update database
       await db.update(bookingSessions).set(updateData).where(eq(bookingSessions.id, sessionId));
 
@@ -306,6 +316,9 @@ class TraveltekSessionService {
       await this.redis.del(`${this.REDIS_KEY_PREFIX}${sessionId}`);
 
       console.log(`[TraveltekSession] Updated session ${sessionId}`);
+
+      // Return updated session data
+      return await this.getSession(sessionId);
     } catch (error) {
       console.error(`[TraveltekSession] Failed to update session ${sessionId}:`, error);
       throw error;
