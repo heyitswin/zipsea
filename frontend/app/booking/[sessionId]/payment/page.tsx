@@ -13,6 +13,9 @@ interface BookingSummary {
     email: string;
     phone: string;
     address: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
   };
   cruise?: any;
   cabin?: any;
@@ -32,7 +35,8 @@ export default function BookingPaymentPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [specialRequests, setSpecialRequests] = useState<string>("");
+  // Special requests removed from UI - keeping backend support for future use
+  // const [specialRequests, setSpecialRequests] = useState<string>("");
   const [selectedPerk, setSelectedPerk] = useState<string>("wifi");
   const [cancellationPolicyUrl, setCancellationPolicyUrl] = useState<
     string | null
@@ -180,9 +184,9 @@ export default function BookingPaymentPage() {
           email: bookingSummary.leadContact.email,
           phone: bookingSummary.leadContact.phone,
           address: bookingSummary.leadContact.address,
-          city: "",
-          state: "",
-          postalCode: "",
+          city: bookingSummary.leadContact.city || "",
+          state: bookingSummary.leadContact.state || "",
+          postalCode: bookingSummary.leadContact.postalCode || "",
           country: "US",
         },
         payment: {
@@ -194,7 +198,7 @@ export default function BookingPaymentPage() {
           amount: totalAmount,
         },
         dining: "anytime", // Hardcoded to anytime dining
-        specialRequests: specialRequests || undefined,
+        // specialRequests removed from UI - backend still supports it for future use
       };
 
       // Call booking API
@@ -504,31 +508,6 @@ export default function BookingPaymentPage() {
                     </div>
                   </div>
                 </label>
-              </div>
-            </div>
-
-            {/* Special Requests */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-3">
-                Special Requests{" "}
-                <span className="text-gray-500 font-normal text-[14px]">
-                  (Optional)
-                </span>
-              </h3>
-              <p className="font-geograph text-[14px] text-gray-600 mb-4">
-                Let us know if you have any dietary restrictions, accessibility
-                needs, or special occasions
-              </p>
-              <textarea
-                value={specialRequests}
-                onChange={(e) => setSpecialRequests(e.target.value)}
-                placeholder="E.g., Celebrating our anniversary, need wheelchair accessible cabin, vegetarian diet..."
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue resize-none"
-                maxLength={500}
-              />
-              <div className="font-geograph text-[12px] text-gray-500 mt-1 text-right">
-                {specialRequests.length}/500 characters
               </div>
             </div>
 

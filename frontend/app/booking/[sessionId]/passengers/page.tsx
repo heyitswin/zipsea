@@ -13,6 +13,7 @@ interface PassengerData {
   dateOfBirth: string;
   gender: string;
   nationality: string;
+  passengerType?: string; // 'adult' or 'child'
   email?: string;
   phone?: string;
   address?: string;
@@ -41,6 +42,9 @@ export default function BookingPassengersPage() {
     // Initialize empty passenger forms
     const initialPassengers: PassengerData[] = [];
     for (let i = 0; i < totalPassengers; i++) {
+      // Determine if this passenger is an adult or child based on index
+      const isAdult = i < passengerCount.adults;
+
       initialPassengers.push({
         title: "",
         firstName: "",
@@ -48,10 +52,11 @@ export default function BookingPassengersPage() {
         dateOfBirth: "",
         gender: "",
         nationality: "US", // Default to United States
+        passengerType: isAdult ? "adult" : "child",
       });
     }
     setPassengers(initialPassengers);
-  }, [totalPassengers]);
+  }, [totalPassengers, passengerCount.adults]);
 
   const updatePassenger = (
     index: number,
