@@ -37,7 +37,7 @@ export default function HoldBookingModal({
           {/* Header - Fixed on mobile and desktop */}
           <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0 bg-white">
             <h2 className="font-geograph font-bold text-[24px] text-dark-blue">
-              Hold This Cabin
+              Reserve Your Cabin
             </h2>
             <button
               onClick={onClose}
@@ -88,6 +88,7 @@ export default function HoldBookingModal({
             </p>
 
             {/* Option Cards */}
+            <div className="space-y-4">
               {/* Hold Option */}
               <button
                 onClick={onHoldBooking}
@@ -106,7 +107,9 @@ export default function HoldBookingModal({
                         strokeLinejoin="round"
                         strokeWidth={2}
                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
                     </svg>
+                  </div>
                   <div className="flex-1">
                     <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-2">
                       Hold This Cabin (Free)
@@ -114,10 +117,12 @@ export default function HoldBookingModal({
                     <p className="font-geograph text-[14px] text-gray-600 mb-3">
                       Reserve your cabin now and complete payment later. No
                       credit card required.
+                    </p>
                     <ul className="space-y-1">
                       <li className="font-geograph text-[14px] text-gray-700 flex items-center gap-2">
                         <svg
                           className="w-4 h-4 text-green-600 flex-shrink-0"
+                          fill="currentColor"
                           viewBox="0 0 20 20"
                         >
                           <path
