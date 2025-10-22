@@ -2423,6 +2423,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           setPendingReservation(null);
         }}
         onHoldBooking={handleHoldBookingFlow}
+        onPayNow={handlePayNow}
         cruiseName={cruiseData?.cruise?.name}
         cabinType={pendingReservation?.cabinName}
         price={pendingReservation?.price}

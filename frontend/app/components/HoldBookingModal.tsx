@@ -5,7 +5,8 @@ import Image from "next/image";
 interface HoldBookingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onHoldBooking: () => void; // Simplified - just route to booking flow
+  onHoldBooking: () => void; // Route to booking flow with hold flag
+  onPayNow: () => void; // Route to booking flow without hold flag
   cruiseName?: string;
   cabinType?: string;
   price?: number;
@@ -15,6 +16,7 @@ export default function HoldBookingModal({
   isOpen,
   onClose,
   onHoldBooking,
+  onPayNow,
   cruiseName,
   cabinType,
   price,
@@ -82,81 +84,160 @@ export default function HoldBookingModal({
             )}
 
             <p className="font-geograph text-[16px] text-gray-700 mb-6">
-              Reserve this cabin now and complete payment later. We'll collect
-              your passenger details and travel preferences, then give you 7
-              days to finalize payment.
+              Choose how you'd like to proceed with your booking:
             </p>
 
-            {/* Benefits List */}
-            <div className="mb-6 space-y-3">
-              <div className="flex items-center gap-3">
-                <svg
-                  className="w-5 h-5 text-green-600 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <p className="font-geograph text-[15px] text-gray-700">
-                  7-day free hold period
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <svg
-                  className="w-5 h-5 text-green-600 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <p className="font-geograph text-[15px] text-gray-700">
-                  No credit card required now
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <svg
-                  className="w-5 h-5 text-green-600 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <p className="font-geograph text-[15px] text-gray-700">
-                  Price locked in during hold period
-                </p>
-              </div>
-            </div>
+            {/* Option Cards */}
+              {/* Hold Option */}
+              <button
+                onClick={onHoldBooking}
+                className="w-full text-left p-6 border-2 border-gray-300 hover:border-blue-600 rounded-lg transition-all group"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                    <svg
+                      className="w-6 h-6 text-blue-600 group-hover:text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    </svg>
+                  <div className="flex-1">
+                    <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-2">
+                      Hold This Cabin (Free)
+                    </h3>
+                    <p className="font-geograph text-[14px] text-gray-600 mb-3">
+                      Reserve your cabin now and complete payment later. No
+                      credit card required.
+                    <ul className="space-y-1">
+                      <li className="font-geograph text-[14px] text-gray-700 flex items-center gap-2">
+                        <svg
+                          className="w-4 h-4 text-green-600 flex-shrink-0"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        7-day free hold period
+                      </li>
+                      <li className="font-geograph text-[14px] text-gray-700 flex items-center gap-2">
+                        <svg
+                          className="w-4 h-4 text-green-600 flex-shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Complete booking flow without payment
+                      </li>
+                      <li className="font-geograph text-[14px] text-gray-700 flex items-center gap-2">
+                        <svg
+                          className="w-4 h-4 text-green-600 flex-shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Price locked during hold period
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
 
-            {/* Info Box */}
-            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="font-geograph text-[14px] text-blue-900">
-                <strong>What happens next?</strong>
-                <br />
-                We'll collect your passenger information and travel preferences.
-                You'll receive an email with a link to complete payment within 7
-                days.
-              </p>
+              {/* Pay Now Option */}
+              <button
+                onClick={onPayNow}
+                className="w-full text-left p-6 border-2 border-gray-300 hover:border-blue-600 rounded-lg transition-all group"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-12 h-12 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                    <svg
+                      className="w-6 h-6 text-green-600 group-hover:text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-2">
+                      Book & Pay Now
+                    </h3>
+                    <p className="font-geograph text-[14px] text-gray-600 mb-3">
+                      Complete your booking immediately with full passenger
+                      details and payment.
+                    </p>
+                    <ul className="space-y-1">
+                      <li className="font-geograph text-[14px] text-gray-700 flex items-center gap-2">
+                        <svg
+                          className="w-4 h-4 text-green-600 flex-shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Instant confirmation
+                      </li>
+                      <li className="font-geograph text-[14px] text-gray-700 flex items-center gap-2">
+                        <svg
+                          className="w-4 h-4 text-green-600 flex-shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Cabin guaranteed immediately
+                      </li>
+                      <li className="font-geograph text-[14px] text-gray-700 flex items-center gap-2">
+                        <svg
+                          className="w-4 h-4 text-green-600 flex-shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Booking complete in one session
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </button>
             </div>
-
-            {/* Action Button */}
-            <button
-              onClick={onHoldBooking}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-geograph font-bold text-[16px] py-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              Continue to Hold Booking
-            </button>
           </div>
         </div>
       </div>
