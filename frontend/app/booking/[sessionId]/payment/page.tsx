@@ -508,64 +508,66 @@ export default function BookingPaymentPage() {
               )}
             </div>
 
-            {/* Choose Your Free Perk */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-3">
-                Choose Your Free Perk
-              </h3>
-              <p className="font-geograph text-[14px] text-gray-600 mb-4">
-                Zipsea is providing a free gift to you for booking with us
-              </p>
-              <div className="space-y-3">
-                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
-                  <input
-                    type="radio"
-                    name="perk"
-                    value="wifi"
-                    checked={selectedPerk === "wifi"}
-                    onChange={(e) => setSelectedPerk(e.target.value)}
-                    className="mr-3 w-4 h-4"
-                  />
-                  <div>
-                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
-                      Free WiFi for 1 Passenger
+            {/* Choose Your Free Perk - Hide for hold bookings */}
+            {!isHoldBooking && (
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-3">
+                  Choose Your Free Perk
+                </h3>
+                <p className="font-geograph text-[14px] text-gray-600 mb-4">
+                  Zipsea is providing a free gift to you for booking with us
+                </p>
+                <div className="space-y-3">
+                  <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
+                    <input
+                      type="radio"
+                      name="perk"
+                      value="wifi"
+                      checked={selectedPerk === "wifi"}
+                      onChange={(e) => setSelectedPerk(e.target.value)}
+                      className="mr-3 w-4 h-4"
+                    />
+                    <div>
+                      <div className="font-geograph font-medium text-[16px] text-dark-blue">
+                        Free WiFi for 1 Passenger
+                      </div>
                     </div>
-                  </div>
-                </label>
+                  </label>
 
-                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
-                  <input
-                    type="radio"
-                    name="perk"
-                    value="drinks"
-                    checked={selectedPerk === "drinks"}
-                    onChange={(e) => setSelectedPerk(e.target.value)}
-                    className="mr-3 w-4 h-4"
-                  />
-                  <div>
-                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
-                      Free Drink Package for 1 Passenger
+                  <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
+                    <input
+                      type="radio"
+                      name="perk"
+                      value="drinks"
+                      checked={selectedPerk === "drinks"}
+                      onChange={(e) => setSelectedPerk(e.target.value)}
+                      className="mr-3 w-4 h-4"
+                    />
+                    <div>
+                      <div className="font-geograph font-medium text-[16px] text-dark-blue">
+                        Free Drink Package for 1 Passenger
+                      </div>
                     </div>
-                  </div>
-                </label>
+                  </label>
 
-                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
-                  <input
-                    type="radio"
-                    name="perk"
-                    value="dining"
-                    checked={selectedPerk === "dining"}
-                    onChange={(e) => setSelectedPerk(e.target.value)}
-                    className="mr-3 w-4 h-4"
-                  />
-                  <div>
-                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
-                      2 Specialty Dining Credits
+                  <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
+                    <input
+                      type="radio"
+                      name="perk"
+                      value="dining"
+                      checked={selectedPerk === "dining"}
+                      onChange={(e) => setSelectedPerk(e.target.value)}
+                      className="mr-3 w-4 h-4"
+                    />
+                    <div>
+                      <div className="font-geograph font-medium text-[16px] text-dark-blue">
+                        2 Specialty Dining Credits
+                      </div>
                     </div>
-                  </div>
-                </label>
+                  </label>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Cancellation Policy */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">

@@ -981,6 +981,24 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         throw new Error("Failed to reserve cabin");
       }
 
+      // Reset isHoldBooking flag in session for full payment flow
+      const updateSessionResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/booking/session/${sessionId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            isHoldBooking: false,
+          }),
+        },
+      );
+
+      if (!updateSessionResponse.ok) {
+        console.warn("Failed to reset hold booking flag, but continuing");
+      }
+
       // Success! Proceed to normal booking flow (options page)
       router.push(`/booking/${sessionId}/options`);
     } catch (err) {

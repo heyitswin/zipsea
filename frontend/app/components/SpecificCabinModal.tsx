@@ -144,17 +144,26 @@ export default function SpecificCabinModal({
 
     setSelectedCabinNo(cabin.cabinNo);
 
-    // Auto-switch to this cabin's deck (always set to ensure deck plan shows)
-    const cabinDeck = cabin.deckCode || cabin.deck;
-    if (cabinDeck) {
+    // Auto-switch to this cabin's deck - find matching deck plan
+    const matchingDeckPlan = deckPlans.find(
+      (d) =>
+        d.deckCode === cabin.deckCode ||
+        d.deckCode === cabin.deck ||
+        d.name === cabin.deck ||
+        d.name === cabin.deckCode,
+    );
+
+    if (matchingDeckPlan) {
+      const targetDeck = matchingDeckPlan.deckCode || matchingDeckPlan.name;
       console.log(
         "🔄 Switching deck to:",
-        cabinDeck,
+        targetDeck,
         "from cabin:",
         cabin.cabinNo,
+        "Current deck:",
+        selectedDeck,
       );
-      setSelectedDeck(cabinDeck);
-      // Don't auto-switch to deck plans on mobile - let user navigate manually
+      setSelectedDeck(targetDeck);
     }
   };
 
@@ -199,7 +208,7 @@ export default function SpecificCabinModal({
 
       {/* Modal - Full screen on mobile, centered on desktop */}
       <div className="flex min-h-full items-center justify-center md:p-4">
-        <div className="relative w-full h-full md:h-[90vh] md:max-w-7xl bg-white md:rounded-lg shadow-xl flex flex-col">
+        <div className="relative w-full h-full md:h-[90vh] md:max-w-7xl bg-white md:rounded-xl shadow-xl flex flex-col">
           {/* Header - Fixed on mobile and desktop */}
           <div className="sticky top-0 z-10 flex items-center justify-between p-4 md:p-6 border-b flex-shrink-0 bg-white">
             <div>
