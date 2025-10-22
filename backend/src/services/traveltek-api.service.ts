@@ -765,12 +765,20 @@ export class TraveltekApiService {
       console.log('   Response status:', response.status);
       console.log('   Response data keys:', Object.keys(response.data));
 
-      // Log any errors or warnings
+      // Log any errors or warnings with full details
       if (response.data.errors && response.data.errors.length > 0) {
-        console.error('⚠️  Traveltek API: createBooking returned errors:', response.data.errors);
+        console.error('⚠️  Traveltek API: createBooking returned errors:');
+        console.error(JSON.stringify(response.data.errors, null, 2));
       }
       if (response.data.warnings && response.data.warnings.length > 0) {
-        console.warn('⚠️  Traveltek API: createBooking returned warnings:', response.data.warnings);
+        console.warn('⚠️  Traveltek API: createBooking returned warnings:');
+        console.warn(JSON.stringify(response.data.warnings, null, 2));
+      }
+
+      // Also log if no booking ID but no obvious errors
+      if (!response.data.results?.bookingid && !response.data.bookingid) {
+        console.error('⚠️  Traveltek API: No booking ID in response');
+        console.error('Full response:', JSON.stringify(response.data, null, 2));
       }
 
       return response.data;
