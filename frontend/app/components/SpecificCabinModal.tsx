@@ -148,8 +148,7 @@ export default function SpecificCabinModal({
         cabin.cabinNo,
       );
       setSelectedDeck(cabinDeck);
-      // Switch to deckplans tab on mobile when selecting a cabin
-      setMobileTab("deckplans");
+      // Don't auto-switch to deck plans on mobile - let user navigate manually
     }
   };
 

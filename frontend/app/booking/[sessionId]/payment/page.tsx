@@ -34,6 +34,10 @@ export default function BookingPaymentPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [specialRequests, setSpecialRequests] = useState<string>("");
   const [selectedPerk, setSelectedPerk] = useState<string>("wifi");
+  const [cancellationPolicyUrl, setCancellationPolicyUrl] = useState<
+    string | null
+  >(null);
+  const [cruiseLineName, setCruiseLineName] = useState<string>("");
 
   useEffect(() => {
     // Load booking data from localStorage
@@ -47,6 +51,51 @@ export default function BookingPaymentPage() {
       });
     }
   }, []);
+
+  useEffect(() => {
+    // Fetch cruise line cancellation policy URL
+    const fetchCancellationPolicy = async () => {
+      try {
+        // First get session data to get cruise ID
+        const sessionResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/booking/session/${sessionId}`,
+        );
+        if (!sessionResponse.ok) return;
+
+        const sessionData = await sessionResponse.json();
+        if (!sessionData.cruiseId) return;
+
+        // Get cruise data to get cruise line ID
+        const cruiseResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/cruises/${sessionData.cruiseId}`,
+        );
+        if (!cruiseResponse.ok) return;
+
+        const cruiseData = await cruiseResponse.json();
+        const cruise = cruiseData.data || cruiseData;
+
+        if (cruise.cruiseLineId || cruise.lineid) {
+          const lineId = cruise.cruiseLineId || cruise.lineid;
+
+          // Get cruise line data
+          const lineResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/cruise-lines/${lineId}`,
+          );
+          if (!lineResponse.ok) return;
+
+          const lineData = await lineResponse.json();
+          setCruiseLineName(lineData.name || "");
+          if (lineData.cancellationPolicyUrl) {
+            setCancellationPolicyUrl(lineData.cancellationPolicyUrl);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching cancellation policy:", error);
+      }
+    };
+
+    fetchCancellationPolicy();
+  }, [sessionId]);
 
   const formatCardNumber = (value: string) => {
     const cleaned = value.replace(/\s/g, "");
@@ -194,13 +243,11 @@ export default function BookingPaymentPage() {
     <div className="min-h-screen bg-sand pt-20">
       {/* Content */}
       <div className="max-w-5xl mx-auto px-6 py-8">
-        {/* Booking Summary */}
-        <div className="mb-6">
-          <BookingSummary sessionId={sessionId} />
-        </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Booking Summary */}
+          {/* Left Column - Booking Summary and Forms */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Booking Summary */}
+            <BookingSummary sessionId={sessionId} />
             {/* Passengers Summary */}
             {bookingSummary.passengers && (
               <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -235,102 +282,6 @@ export default function BookingPaymentPage() {
                 </div>
               </div>
             )}
-
-            {/* Special Requests */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-3">
-                Special Requests{" "}
-                <span className="text-gray-500 font-normal text-[14px]">
-                  (Optional)
-                </span>
-              </h3>
-              <p className="font-geograph text-[14px] text-gray-600 mb-4">
-                Let us know if you have any dietary restrictions, accessibility
-                needs, or special occasions
-              </p>
-              <textarea
-                value={specialRequests}
-                onChange={(e) => setSpecialRequests(e.target.value)}
-                placeholder="E.g., Celebrating our anniversary, need wheelchair accessible cabin, vegetarian diet..."
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue resize-none"
-                maxLength={500}
-              />
-              <div className="font-geograph text-[12px] text-gray-500 mt-1 text-right">
-                {specialRequests.length}/500 characters
-              </div>
-            </div>
-
-            {/* Choose Your Free Perk */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-3">
-                Choose Your Free Perk
-              </h3>
-              <p className="font-geograph text-[14px] text-gray-600 mb-4">
-                Zipsea is providing a free gift to you for booking with us
-              </p>
-              <div className="space-y-3">
-                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
-                  <input
-                    type="radio"
-                    name="perk"
-                    value="wifi"
-                    checked={selectedPerk === "wifi"}
-                    onChange={(e) => setSelectedPerk(e.target.value)}
-                    className="mr-3 w-4 h-4"
-                  />
-                  <div>
-                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
-                      Free WiFi for 1 Passenger
-                    </div>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
-                  <input
-                    type="radio"
-                    name="perk"
-                    value="drinks"
-                    checked={selectedPerk === "drinks"}
-                    onChange={(e) => setSelectedPerk(e.target.value)}
-                    className="mr-3 w-4 h-4"
-                  />
-                  <div>
-                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
-                      Free Drink Package for 1 Passenger
-                    </div>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
-                  <input
-                    type="radio"
-                    name="perk"
-                    value="dining"
-                    checked={selectedPerk === "dining"}
-                    onChange={(e) => setSelectedPerk(e.target.value)}
-                    className="mr-3 w-4 h-4"
-                  />
-                  <div>
-                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
-                      2 Specialty Dining Credits
-                    </div>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-            {/* Cancellation Policy */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
-                Cancellation Policy
-              </h3>
-              <p className="font-geograph text-[14px] text-gray-700">
-                This cancellation policy is set by the cruise line. Please refer
-                to the cruise line's cancellation policy. Zipsea does not add,
-                remove, change, or modify policies.
-              </p>
-            </div>
 
             {/* Payment Form */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -496,11 +447,152 @@ export default function BookingPaymentPage() {
                 </div>
               </div>
             </div>
+
+            {/* Choose Your Free Perk */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-3">
+                Choose Your Free Perk
+              </h3>
+              <p className="font-geograph text-[14px] text-gray-600 mb-4">
+                Zipsea is providing a free gift to you for booking with us
+              </p>
+              <div className="space-y-3">
+                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="perk"
+                    value="wifi"
+                    checked={selectedPerk === "wifi"}
+                    onChange={(e) => setSelectedPerk(e.target.value)}
+                    className="mr-3 w-4 h-4"
+                  />
+                  <div>
+                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
+                      Free WiFi for 1 Passenger
+                    </div>
+                  </div>
+                </label>
+
+                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="perk"
+                    value="drinks"
+                    checked={selectedPerk === "drinks"}
+                    onChange={(e) => setSelectedPerk(e.target.value)}
+                    className="mr-3 w-4 h-4"
+                  />
+                  <div>
+                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
+                      Free Drink Package for 1 Passenger
+                    </div>
+                  </div>
+                </label>
+
+                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="perk"
+                    value="dining"
+                    checked={selectedPerk === "dining"}
+                    onChange={(e) => setSelectedPerk(e.target.value)}
+                    className="mr-3 w-4 h-4"
+                  />
+                  <div>
+                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
+                      2 Specialty Dining Credits
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Special Requests */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-3">
+                Special Requests{" "}
+                <span className="text-gray-500 font-normal text-[14px]">
+                  (Optional)
+                </span>
+              </h3>
+              <p className="font-geograph text-[14px] text-gray-600 mb-4">
+                Let us know if you have any dietary restrictions, accessibility
+                needs, or special occasions
+              </p>
+              <textarea
+                value={specialRequests}
+                onChange={(e) => setSpecialRequests(e.target.value)}
+                placeholder="E.g., Celebrating our anniversary, need wheelchair accessible cabin, vegetarian diet..."
+                rows={4}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue resize-none"
+                maxLength={500}
+              />
+              <div className="font-geograph text-[12px] text-gray-500 mt-1 text-right">
+                {specialRequests.length}/500 characters
+              </div>
+            </div>
+
+            {/* Cancellation Policy */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
+                Cancellation Policy
+              </h3>
+              <p className="font-geograph text-[14px] text-gray-700 mb-3">
+                This cancellation policy is set by the cruise line. Zipsea does
+                not add, remove, change, or modify policies.
+              </p>
+              {cancellationPolicyUrl ? (
+                <a
+                  href={cancellationPolicyUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 font-geograph text-[14px] text-blue-600 hover:text-blue-800 underline"
+                >
+                  View{" "}
+                  {cruiseLineName ? `${cruiseLineName}'s` : "Cruise Line's"}{" "}
+                  Cancellation Policy
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M12 8.66667V12.6667C12 13.0203 11.8595 13.3594 11.6095 13.6095C11.3594 13.8595 11.0203 14 10.6667 14H3.33333C2.97971 14 2.64057 13.8595 2.39052 13.6095C2.14048 13.3594 2 13.0203 2 12.6667V5.33333C2 4.97971 2.14048 4.64057 2.39052 4.39052C2.64057 4.14048 2.97971 4 3.33333 4H7.33333"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M10 2H14V6"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M6.66667 9.33333L14 2"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </a>
+              ) : (
+                <p className="font-geograph text-[14px] text-gray-600 italic">
+                  Please contact the cruise line directly for their cancellation
+                  policy.
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Right Column - Price Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-6">
+            <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-[100px]">
               <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
                 Price Summary
               </h3>

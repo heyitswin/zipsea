@@ -172,7 +172,7 @@ export default function BookingPassengersPage() {
                     onChange={(e) =>
                       updatePassenger(index, "title", e.target.value)
                     }
-                    className={`w-full px-4 py-3 pr-10 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none ${
+                    className={`w-full px-4 py-3 pr-10 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none bg-white ${
                       errors[index]?.title
                         ? "border-red-500"
                         : "border-gray-300"
@@ -259,7 +259,7 @@ export default function BookingPassengersPage() {
                   onChange={(e) =>
                     updatePassenger(index, "dateOfBirth", e.target.value)
                   }
-                  className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
+                  className={`w-full max-w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
                     errors[index]?.dateOfBirth
                       ? "border-red-500"
                       : "border-gray-300"
@@ -282,7 +282,7 @@ export default function BookingPassengersPage() {
                     onChange={(e) =>
                       updatePassenger(index, "gender", e.target.value)
                     }
-                    className={`w-full px-4 py-3 pr-10 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none ${
+                    className={`w-full px-4 py-3 pr-10 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none bg-white ${
                       errors[index]?.gender
                         ? "border-red-500"
                         : "border-gray-300"
@@ -318,7 +318,7 @@ export default function BookingPassengersPage() {
                     onChange={(e) =>
                       updatePassenger(index, "nationality", e.target.value)
                     }
-                    className={`w-full px-4 py-3 pr-10 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none ${
+                    className={`w-full px-4 py-3 pr-10 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none bg-white ${
                       errors[index]?.nationality
                         ? "border-red-500"
                         : "border-gray-300"

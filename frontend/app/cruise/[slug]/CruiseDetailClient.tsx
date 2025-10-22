@@ -40,7 +40,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const slug = params.slug as string;
   const { showAlert } = useAlert();
   const { isAdmin, isLoading: adminLoading } = useAdmin();
-  const { sessionId, passengerCount, createSession } = useBooking();
+  const { sessionId, passengerCount, setPassengerCount, createSession } =
+    useBooking();
 
   const [cruiseData, setCruiseData] = useState<ComprehensiveCruiseData | null>(
     null,
@@ -64,6 +65,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   const [liveCabinGrades, setLiveCabinGrades] = useState<any>(null);
   const [isLoadingCabins, setIsLoadingCabins] = useState(false);
   const [isReserving, setIsReserving] = useState(false);
+  const [reservingCabinId, setReservingCabinId] = useState<string | null>(null); // Track which cabin is being reserved
   const [selectedCabinCategory, setSelectedCabinCategory] =
     useState<string>("interior"); // Tab state
   const [selectedRateCode, setSelectedRateCode] = useState<string | null>(null); // Rate code selector
@@ -1009,7 +1011,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       setPendingReservation(null);
 
       // Redirect to hold confirmation page
-      router.push(`/booking/${holdResult.bookingId}/hold-confirmation`);
+      router.push(`/hold-confirmation/${holdResult.bookingId}`);
     } catch (error) {
       console.error("Hold booking error:", error);
       throw error; // Re-throw to let modal handle error display
@@ -1024,7 +1026,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     }
 
     try {
-      setIsReserving(true);
+      const cabinId = `${pendingReservation.resultNo}-${pendingReservation.gradeNo}-${pendingReservation.rateCode}`;
+      setReservingCabinId(cabinId);
       setIsHoldModalOpen(false);
 
       // Add cabin to basket
@@ -1056,7 +1059,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     } catch (err) {
       console.error("Failed to reserve cabin:", err);
       showAlert("Unable to reserve cabin. Please try again.");
-      setIsReserving(false);
+      setReservingCabinId(null);
       setPendingReservation(null);
     }
   };
@@ -1100,7 +1103,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
               {/* Cruise Line | Ship Name */}
               <div
-                className="text-dark-blue text-[18px] font-geograph font-medium mb-12"
+                className="text-dark-blue text-[18px] md:text-[18px] text-[16px] font-geograph font-medium mb-12"
                 style={{ letterSpacing: "-0.02em" }}
               >
                 {cruiseLine?.name || "Unknown Cruise Line"} |{" "}
@@ -1115,7 +1118,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     DEPART
                   </div>
                   <div
-                    className="text-[24px] font-whitney text-dark-blue uppercase md:leading-normal leading-[1]"
+                    className="text-[22px] md:text-[24px] font-whitney text-dark-blue uppercase md:leading-normal leading-[1]"
                     style={{ letterSpacing: "-0.02em" }}
                   >
                     {formatDate(cruise?.sailingDate || cruise?.departureDate)}
@@ -1128,7 +1131,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     RETURN
                   </div>
                   <div
-                    className="text-[24px] font-whitney text-dark-blue uppercase md:leading-normal leading-[1]"
+                    className="text-[22px] md:text-[24px] font-whitney text-dark-blue uppercase md:leading-normal leading-[1]"
                     style={{ letterSpacing: "-0.02em" }}
                   >
                     {(() => {
@@ -1153,7 +1156,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     DEPARTURE PORT
                   </div>
                   <div
-                    className="text-[24px] font-whitney text-dark-blue uppercase md:leading-normal leading-[1]"
+                    className="text-[22px] md:text-[24px] font-whitney text-dark-blue uppercase md:leading-normal leading-[1]"
                     style={{ letterSpacing: "-0.02em" }}
                   >
                     {embarkPort?.name || "N/A"}
@@ -1166,7 +1169,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     NIGHTS
                   </div>
                   <div
-                    className="text-[24px] font-whitney text-dark-blue uppercase md:leading-normal leading-[1]"
+                    className="text-[22px] md:text-[24px] font-whitney text-dark-blue uppercase md:leading-normal leading-[1]"
                     style={{ letterSpacing: "-0.02em" }}
                   >
                     {cruise?.nights || cruise?.duration} NIGHTS
@@ -1185,8 +1188,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     ship.defaultShipImage2k
                   }
                   alt={`${ship.name} - Ship`}
-                  className="w-full rounded-[10px] object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                  style={{ height: "400px", aspectRatio: "3/2" }}
+                  className="w-full rounded-[10px] object-cover cursor-pointer hover:opacity-90 transition-opacity h-[200px] md:h-[400px]"
+                  style={{ aspectRatio: "3/2" }}
                   onClick={() => {
                     const imageUrl =
                       ship.defaultShipImage ||
@@ -1197,8 +1200,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 />
               ) : (
                 <div
-                  className="w-full bg-gray-200 rounded-[10px] flex items-center justify-center text-gray-500"
-                  style={{ height: "400px", aspectRatio: "3/2" }}
+                  className="w-full bg-gray-200 rounded-[10px] flex items-center justify-center text-gray-500 h-[200px] md:h-[400px]"
+                  style={{ aspectRatio: "3/2" }}
                 >
                   No Ship Image Available
                 </div>
@@ -1338,11 +1341,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                     }
 
                     setLocalPassengerCount(newPassengerCount);
-                    // Update session storage (don't refetch yet - wait for Update Prices button)
-                    sessionStorage.setItem(
-                      "passengerCount",
-                      JSON.stringify(newPassengerCount),
-                    );
+                    // Update context - this will trigger price refetch when Update Prices is clicked
+                    setPassengerCount(newPassengerCount);
                   }}
                   onUpdatePrices={async () => {
                     // Refetch prices when user clicks Update Prices
@@ -1661,6 +1661,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                         )}
                                       <button
                                         onClick={async () => {
+                                          const cabinId = `${cabinPricing.resultNo}-${cabinPricing.gradeNo}-${cabinPricing.rateCode}`;
+
                                           if (
                                             cabin.isGuaranteed ||
                                             index === 0
@@ -1709,13 +1711,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                             setIsSpecificCabinModalOpen(true);
                                           }
                                         }}
-                                        disabled={isReserving}
+                                        disabled={
+                                          reservingCabinId ===
+                                          `${cabinPricing.resultNo}-${cabinPricing.gradeNo}-${cabinPricing.rateCode}`
+                                        }
                                         className="font-geograph font-medium text-[16px] px-[18px] py-[10px] rounded-[5px] bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                       >
-                                        {isReserving && (
+                                        {reservingCabinId ===
+                                          `${cabinPricing.resultNo}-${cabinPricing.gradeNo}-${cabinPricing.rateCode}` && (
                                           <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
                                         )}
-                                        {isReserving
+                                        {reservingCabinId ===
+                                        `${cabinPricing.resultNo}-${cabinPricing.gradeNo}-${cabinPricing.rateCode}`
                                           ? "Creating Booking..."
                                           : "Reserve"}
                                       </button>
@@ -2077,7 +2084,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
       {/* Itinerary Section */}
       {cruiseData?.itinerary && cruiseData.itinerary.length > 0 && (
-        <div className="bg-sand py-8 md:py-16">
+        <div className="bg-sand py-8 md:py-16 pb-[100px] md:pb-16">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <div className="mb-6">
               <h2

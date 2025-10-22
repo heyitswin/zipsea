@@ -20,6 +20,9 @@ export default function BookingOptionsPage() {
     email: "",
     phone: "",
     address: "",
+    city: "",
+    state: "",
+    postalCode: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -42,7 +45,16 @@ export default function BookingOptionsPage() {
       newErrors.phone = "Phone number is required";
     }
     if (!leadContact.address.trim()) {
-      newErrors.address = "Address is required";
+      newErrors.address = "Street address is required";
+    }
+    if (!leadContact.city.trim()) {
+      newErrors.city = "City is required";
+    }
+    if (!leadContact.state.trim()) {
+      newErrors.state = "State is required";
+    }
+    if (!leadContact.postalCode.trim()) {
+      newErrors.postalCode = "Postal code is required";
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -164,9 +176,9 @@ export default function BookingOptionsPage() {
             )}
           </div>
 
-          <div>
+          <div className="mb-4">
             <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-              Billing Address *
+              Street Address *
             </label>
             <input
               type="text"
@@ -177,11 +189,73 @@ export default function BookingOptionsPage() {
               className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
                 errors.address ? "border-red-500" : "border-gray-300"
               }`}
-              placeholder="123 Main St, City, State, ZIP"
+              placeholder="123 Main St"
             />
             {errors.address && (
               <p className="text-red-500 text-sm mt-1">{errors.address}</p>
             )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                City *
+              </label>
+              <input
+                type="text"
+                value={leadContact.city}
+                onChange={(e) =>
+                  setLeadContact({ ...leadContact, city: e.target.value })
+                }
+                className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
+                  errors.city ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="New York"
+              />
+              {errors.city && (
+                <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                State *
+              </label>
+              <input
+                type="text"
+                value={leadContact.state}
+                onChange={(e) =>
+                  setLeadContact({ ...leadContact, state: e.target.value })
+                }
+                className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
+                  errors.state ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="NY"
+              />
+              {errors.state && (
+                <p className="text-red-500 text-sm mt-1">{errors.state}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                Postal Code *
+              </label>
+              <input
+                type="text"
+                value={leadContact.postalCode}
+                onChange={(e) =>
+                  setLeadContact({ ...leadContact, postalCode: e.target.value })
+                }
+                className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
+                  errors.postalCode ? "border-red-500" : "border-gray-300"
+                }`}
+                placeholder="10001"
+              />
+              {errors.postalCode && (
+                <p className="text-red-500 text-sm mt-1">{errors.postalCode}</p>
+              )}
+            </div>
           </div>
         </div>
 
