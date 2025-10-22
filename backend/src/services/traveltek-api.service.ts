@@ -652,10 +652,12 @@ export class TraveltekApiService {
       country: string;
     };
     passengers: Array<{
+      title: string; // Mr, Mrs, Ms, Miss, Dr, etc.
       firstname: string;
       lastname: string;
       dob: string; // YYYY-MM-DD
       gender: string; // M, F, X
+      nationality: string; // ISO country code (e.g., US, GB, CA)
       paxtype: 'adult' | 'child' | 'infant';
       age: number;
     }>;
