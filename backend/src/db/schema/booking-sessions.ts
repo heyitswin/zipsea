@@ -54,6 +54,9 @@ export const bookingSessions = pgTable('booking_sessions', {
   // Item key for booking (extracted from basket for easy access)
   itemkey: varchar('itemkey', { length: 255 }),
 
+  // Hold booking flag
+  isHoldBooking: boolean('is_hold_booking').default(false),
+
   // Session management
   expiresAt: timestamp('expires_at').notNull(), // 2 hours from creation
   status: varchar('status', { length: 20 })

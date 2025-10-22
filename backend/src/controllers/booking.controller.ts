@@ -100,11 +100,49 @@ class BookingController {
         expiresAt: sessionData.expiresAt,
         passengerCount: sessionData.passengerCount,
         cruiseId: sessionData.cruiseId,
+        isHoldBooking: sessionData.isHoldBooking,
       });
     } catch (error) {
       console.error('[BookingController] Get session error:', error);
       res.status(500).json({
         error: 'Failed to get session',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  /**
+   * PATCH /api/booking/session/:sessionId
+   * Update session data (e.g., set isHoldBooking flag)
+   */
+  async updateSession(req: Request, res: Response): Promise<void> {
+    try {
+      const { sessionId } = req.params;
+      const updates = req.body;
+
+      // Validate that we have at least one field to update
+      if (!updates || Object.keys(updates).length === 0) {
+        res.status(400).json({ error: 'No updates provided' });
+        return;
+      }
+
+      // Update session
+      const updatedSession = await traveltekSessionService.updateSession(sessionId, updates);
+
+      if (!updatedSession) {
+        res.status(404).json({ error: 'Session not found or expired' });
+        return;
+      }
+
+      res.json({
+        sessionId,
+        isHoldBooking: updatedSession.isHoldBooking,
+        message: 'Session updated successfully',
+      });
+    } catch (error) {
+      console.error('[BookingController] Update session error:', error);
+      res.status(500).json({
+        error: 'Failed to update session',
         message: error instanceof Error ? error.message : 'Unknown error',
       });
     }

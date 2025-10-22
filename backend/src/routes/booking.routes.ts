@@ -37,6 +37,17 @@ router.post('/session', authenticateTokenOptional, bookingController.createSessi
  */
 router.get('/session/:sessionId', bookingController.getSession);
 
+/**
+ * PATCH /api/booking/session/:sessionId
+ * Update session data (e.g., set isHoldBooking flag)
+ *
+ * Body:
+ * - isHoldBooking: boolean (optional)
+ *
+ * Auth: Optional
+ */
+router.patch('/session/:sessionId', bookingController.updateSession);
+
 // Cabin Pricing & Selection
 /**
  * GET /api/booking/:sessionId/pricing
