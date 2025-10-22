@@ -762,6 +762,10 @@ class TraveltekBookingService {
       const cardType = this.determineCardType(params.payment.cardNumber);
       console.log(`💳 [TraveltekBooking] Detected card type: ${cardType}`);
 
+      // Get title from lead passenger or first passenger for cardholder
+      const leadPassenger = params.passengers.find(p => p.isLeadPassenger) || params.passengers[0];
+      const cardholderTitle = leadPassenger.title;
+
       const bookingResponse = await traveltekApiService.createBooking({
         sessionkey: sessionData.sessionKey,
         sid: sessionData.sid,
@@ -798,6 +802,7 @@ class TraveltekBookingService {
           expirymonth: params.payment.expiryMonth,
           expiryyear: params.payment.expiryYear,
           signature: params.payment.cvv,
+          title: cardholderTitle,
           firstname: params.contact.firstName,
           lastname: params.contact.lastName,
           postcode: params.contact.postalCode,
