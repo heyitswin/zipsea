@@ -661,6 +661,26 @@ export class TraveltekApiService {
     }>;
     dining: string;
     depositBooking?: boolean; // true = deposit only, false = full payment
+    ccard?: {
+      // Optional: Include for full payment, omit for hold bookings
+      passthroughitem?: number;
+      amount: number;
+      nameoncard: string;
+      cardtype: string; // VIS, MSC, AMX, etc.
+      cardnumber: string;
+      expirymonth: string;
+      expiryyear: string;
+      signature: string; // CVV
+      title?: string;
+      firstname: string;
+      lastname: string;
+      postcode: string;
+      address1: string;
+      address2?: string;
+      homecity: string;
+      county: string;
+      country: string;
+    };
   }): Promise<ApiResponse> {
     try {
       console.log('🔍 Traveltek API: createBooking called with:', {
@@ -700,7 +720,7 @@ export class TraveltekApiService {
       });
 
       // Build JSON request body per Traveltek documentation
-      const requestBody = {
+      const requestBody: any = {
         sessionkey: params.sessionkey,
         sid: params.sid,
         depositbooking: params.depositBooking ? 1 : 0, // 1 for deposit, 0 for full payment
@@ -715,6 +735,15 @@ export class TraveltekApiService {
           },
         },
       };
+
+      // Include payment card if provided (for full payment bookings)
+      // Omit for hold bookings (per Traveltek docs)
+      if (params.ccard) {
+        requestBody.ccard = params.ccard;
+        console.log('💳 Including payment card in booking request');
+      } else {
+        console.log('🏗️ No payment card - creating hold booking');
+      }
 
       console.log('🔍 Traveltek API: createBooking JSON request body:');
       console.log(JSON.stringify(requestBody, null, 2));

@@ -751,12 +751,16 @@ class TraveltekBookingService {
         throw new Error('No itemkey found in session. Please select a cabin before booking.');
       }
 
-      // Step 4: Create booking with Traveltek
-      // Using JSON format per Traveltek API documentation
+      // Step 4: Create booking with Traveltek INCLUDING payment
+      // Per Traveltek docs: Include ccard object for full payment bookings
       console.log(
         '🔍 [TraveltekBooking] Raw passengers received from frontend:',
         JSON.stringify(params.passengers, null, 2)
       );
+
+      // Determine card type from card number
+      const cardType = this.determineCardType(params.payment.cardNumber);
+      console.log(`💳 [TraveltekBooking] Detected card type: ${cardType}`);
 
       const bookingResponse = await traveltekApiService.createBooking({
         sessionkey: sessionData.sessionKey,
@@ -785,29 +789,36 @@ class TraveltekBookingService {
         })),
         dining: params.dining, // Dining seating preference passed to API service
         depositBooking: false, // Full payment for now
+        // Include payment card in booking request (per Traveltek docs)
+        ccard: {
+          amount: params.payment.amount,
+          nameoncard: params.payment.cardholderName,
+          cardtype: cardType,
+          cardnumber: params.payment.cardNumber,
+          expirymonth: params.payment.expiryMonth,
+          expiryyear: params.payment.expiryYear,
+          signature: params.payment.cvv,
+          firstname: params.contact.firstName,
+          lastname: params.contact.lastName,
+          postcode: params.contact.postalCode,
+          address1: params.contact.address,
+          homecity: params.contact.city,
+          county: params.contact.state,
+          country: params.contact.country,
+        },
       });
 
       if (!bookingResponse.bookingid) {
         throw new Error('Booking creation failed: no booking ID returned');
       }
 
-      // Step 4: Process payment
-      const paymentResponse = await traveltekApiService.processPayment({
-        sessionkey: sessionData.sessionKey,
-        cardtype: 'VIS', // TODO: Determine from card number
-        cardnumber: params.payment.cardNumber,
-        expirymonth: params.payment.expiryMonth,
-        expiryyear: params.payment.expiryYear,
-        nameoncard: params.payment.cardholderName,
-        cvv: params.payment.cvv,
-        amount: params.payment.amount.toString(),
-        address1: params.contact.address,
-        city: params.contact.city,
-        postcode: params.contact.postalCode,
-        country: params.contact.country,
-      });
+      console.log('✅ [TraveltekBooking] Booking created with payment included');
 
       // Step 5: Store booking in our database
+      // Extract transaction ID from booking response
+      const transactionId =
+        bookingResponse.transactions?.[0]?.transactionid || bookingResponse.transactionid;
+
       const bookingId = await this.storeBooking({
         sessionId: params.sessionId,
         traveltekBookingId: bookingResponse.bookingid,
@@ -815,7 +826,7 @@ class TraveltekBookingService {
         passengers: params.passengers,
         payment: {
           ...params.payment,
-          transactionId: paymentResponse.transactionid,
+          transactionId: transactionId,
           last4: params.payment.cardNumber.slice(-4),
         },
       });
@@ -825,7 +836,17 @@ class TraveltekBookingService {
 
       console.log(`[TraveltekBooking] Successfully created booking ${bookingId}`);
 
-      // Step 7: Send Slack notification
+      // Step 7: Determine payment status from booking response
+      // Check if payment was successful by looking at transaction authcode
+      const hasAuthCode = bookingResponse.transactions?.[0]?.authcode;
+      const paymentStatus = hasAuthCode ? 'confirmed' : 'pending';
+
+      console.log(`💳 [TraveltekBooking] Payment status: ${paymentStatus}`, {
+        hasAuthCode: !!hasAuthCode,
+        authcode: hasAuthCode || '(empty)',
+      });
+
+      // Step 8: Send Slack notification
       try {
         // Get cruise details for the notification
         const cruiseDetails = await this.getCruiseDetailsForNotification(sessionData.cruiseId);
@@ -856,18 +877,18 @@ class TraveltekBookingService {
           },
           cabinGrade: bookingResponse.cabingrade || bookingResponse.cabintype,
           rateCode: bookingResponse.ratecode,
-          status: paymentResponse.status === 'success' ? 'confirmed' : 'pending',
+          status: paymentStatus,
         });
       } catch (slackError) {
         // Don't fail the booking if Slack notification fails
         console.error('[TraveltekBooking] Failed to send Slack notification:', slackError);
       }
 
-      // Step 8: Return booking result
+      // Step 9: Return booking result
       return {
         bookingId,
         traveltekBookingId: bookingResponse.bookingid,
-        status: paymentResponse.status === 'success' ? 'confirmed' : 'pending',
+        status: paymentStatus,
         totalAmount: bookingResponse.totalcost,
         depositAmount: bookingResponse.depositamount,
         paidAmount: params.payment.amount,
@@ -902,6 +923,43 @@ class TraveltekBookingService {
     }
 
     return age;
+  }
+
+  /**
+   * Determine card type from card number
+   *
+   * @param cardNumber - Credit card number
+   * @returns Traveltek card type code (VIS, MSC, AMX, etc.)
+   */
+  private determineCardType(cardNumber: string): string {
+    // Remove spaces and dashes
+    const cleanedNumber = cardNumber.replace(/[\s-]/g, '');
+
+    // Visa: starts with 4
+    if (/^4/.test(cleanedNumber)) {
+      return 'VIS';
+    }
+
+    // Mastercard: starts with 51-55 or 2221-2720
+    if (/^5[1-5]/.test(cleanedNumber) || /^2[2-7]/.test(cleanedNumber)) {
+      return 'MSC';
+    }
+
+    // American Express: starts with 34 or 37
+    if (/^3[47]/.test(cleanedNumber)) {
+      return 'AMX';
+    }
+
+    // Discover: starts with 6011, 622126-622925, 644-649, or 65
+    if (/^(6011|65|64[4-9]|622)/.test(cleanedNumber)) {
+      return 'DEL';
+    }
+
+    // Default to Visa if unknown
+    console.warn(
+      `[TraveltekBooking] Unknown card type for number starting with ${cleanedNumber.substring(0, 4)}, defaulting to VIS`
+    );
+    return 'VIS';
   }
 
   /**
