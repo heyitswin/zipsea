@@ -1733,7 +1733,7 @@ export default function CruisesContent() {
                     />
                   </div>
                   <div
-                    className="space-y-2 max-h-64 overflow-y-auto pr-2"
+                    className="space-y-3 max-h-64 overflow-y-auto pr-2"
                     style={{
                       scrollbarWidth: "thin",
                       scrollbarColor: "#d9d9d9 #f6f3ed",
@@ -1778,7 +1778,7 @@ export default function CruisesContent() {
                             }}
                             className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
                           />
-                          <span className="font-geograph text-[14px] text-[#2F2F2F]">
+                          <span className="font-geograph text-[18px] text-[#2F2F2F]">
                             {line.name}
                           </span>
                         </label>
@@ -1926,7 +1926,7 @@ export default function CruisesContent() {
                     />
                   </div>
                   <div
-                    className="space-y-2 max-h-64 overflow-y-auto pr-2"
+                    className="space-y-3 max-h-64 overflow-y-auto pr-2"
                     style={{
                       scrollbarWidth: "thin",
                       scrollbarColor: "#d9d9d9 #f6f3ed",
@@ -1971,7 +1971,7 @@ export default function CruisesContent() {
                             }}
                             className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
                           />
-                          <span className="font-geograph text-[14px] text-[#2F2F2F]">
+                          <span className="font-geograph text-[18px] text-[#2F2F2F]">
                             {port.name}
                           </span>
                         </label>
@@ -1994,7 +1994,7 @@ export default function CruisesContent() {
                     />
                   </div>
                   <div
-                    className="space-y-2 max-h-64 overflow-y-auto pr-2"
+                    className="space-y-3 max-h-64 overflow-y-auto pr-2"
                     style={{
                       scrollbarWidth: "thin",
                       scrollbarColor: "#d9d9d9 #f6f3ed",
@@ -2041,7 +2041,7 @@ export default function CruisesContent() {
                             }}
                             className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
                           />
-                          <span className="font-geograph text-[14px] text-[#2F2F2F]">
+                          <span className="font-geograph text-[18px] text-[#2F2F2F]">
                             {region.name}
                           </span>
                         </label>

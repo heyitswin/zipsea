@@ -37,6 +37,27 @@ export default function BookingPassengersPage() {
   const [errors, setErrors] = useState<Record<number, Record<string, string>>>(
     {},
   );
+  const [isHoldBooking, setIsHoldBooking] = useState(false);
+
+  // Fetch session to check if this is a hold booking
+  useEffect(() => {
+    const fetchSessionData = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/booking/session/${sessionId}`,
+        );
+        if (response.ok) {
+          const sessionData = await response.json();
+          setIsHoldBooking(sessionData.isHoldBooking === true);
+        }
+      } catch (error) {
+        console.error("Error fetching session data:", error);
+      }
+    };
+    if (sessionId) {
+      fetchSessionData();
+    }
+  }, [sessionId]);
 
   useEffect(() => {
     // Initialize empty passenger forms
@@ -264,11 +285,16 @@ export default function BookingPassengersPage() {
                   onChange={(e) =>
                     updatePassenger(index, "dateOfBirth", e.target.value)
                   }
-                  className={`w-full max-w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
+                  className={`w-full max-w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none bg-white text-dark-blue ${
                     errors[index]?.dateOfBirth
                       ? "border-red-500"
                       : "border-gray-300"
                   }`}
+                  style={{
+                    colorScheme: "light",
+                    WebkitAppearance: "none",
+                    MozAppearance: "textfield",
+                  }}
                 />
                 {errors[index]?.dateOfBirth && (
                   <p className="text-red-500 text-sm mt-1">
@@ -396,7 +422,11 @@ export default function BookingPassengersPage() {
                 : "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90"
             }`}
           >
-            {isSubmitting ? "Saving..." : "Continue to Payment"}
+            {isSubmitting
+              ? "Saving..."
+              : isHoldBooking
+                ? "Continue to Review"
+                : "Continue to Payment"}
           </button>
         </div>
       </div>

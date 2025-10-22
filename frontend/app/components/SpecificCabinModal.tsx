@@ -56,6 +56,7 @@ export default function SpecificCabinModal({
   const [cabins, setCabins] = useState<Cabin[]>([]);
   const [deckPlans, setDeckPlans] = useState<DeckPlan[]>([]);
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
+  const [previousDeck, setPreviousDeck] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedCabinNo, setSelectedCabinNo] = useState<string | null>(null);
@@ -64,11 +65,15 @@ export default function SpecificCabinModal({
     height: number;
   } | null>(null);
   const [mobileTab, setMobileTab] = useState<"cabins" | "deckplans">("cabins");
+  const [showAccessibleOnly, setShowAccessibleOnly] = useState(false);
 
-  // Reset deck plan dimensions when deck changes
+  // Reset deck plan dimensions only when deck actually changes (not when set to same deck)
   useEffect(() => {
-    setDeckPlanDimensions(null);
-  }, [selectedDeck]);
+    if (selectedDeck !== previousDeck) {
+      setDeckPlanDimensions(null);
+      setPreviousDeck(selectedDeck);
+    }
+  }, [selectedDeck, previousDeck]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -179,6 +184,11 @@ export default function SpecificCabinModal({
     (c) => c.deckCode === selectedDeck || c.deck === selectedDeck,
   );
 
+  // Filter cabins based on accessible checkbox
+  const filteredCabins = showAccessibleOnly
+    ? cabins.filter((c) => c.accessible)
+    : cabins;
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
@@ -279,11 +289,27 @@ export default function SpecificCabinModal({
                 className={`${deckPlans.length > 0 ? "lg:w-1/2" : "w-full"} p-4 md:p-6 lg:border-r border-gray-200 overflow-y-auto ${mobileTab === "cabins" || deckPlans.length === 0 ? "flex-1" : "hidden lg:block"}`}
               >
                 <h3 className="font-geograph font-semibold text-lg mb-3">
-                  Available Cabins ({cabins.length})
+                  Available Cabins ({filteredCabins.length})
                 </h3>
 
+                {/* Accessible Filter Checkbox */}
+                <div className="mb-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showAccessibleOnly}
+                      onChange={(e) => setShowAccessibleOnly(e.target.checked)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="font-geograph text-sm text-gray-700 flex items-center gap-1">
+                      <span className="text-base">♿</span>
+                      Show accessible cabins only
+                    </span>
+                  </label>
+                </div>
+
                 <div className="space-y-3">
-                  {cabins.map((cabin) => (
+                  {filteredCabins.map((cabin) => (
                     <div
                       key={cabin.cabinNo}
                       onClick={() => handleCabinClick(cabin)}
