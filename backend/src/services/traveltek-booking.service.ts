@@ -815,20 +815,24 @@ class TraveltekBookingService {
         },
       });
 
-      if (!bookingResponse.bookingid) {
+      // Extract booking ID from the response structure
+      const traveltekBookingId = bookingResponse.results?.[0]?.bookingdetails?.bookingid;
+
+      if (!traveltekBookingId) {
         throw new Error('Booking creation failed: no booking ID returned');
       }
 
       console.log('✅ [TraveltekBooking] Booking created with payment included');
+      console.log(`   Traveltek Booking ID: ${traveltekBookingId}`);
 
       // Step 5: Store booking in our database
       // Extract transaction ID from booking response
       const transactionId =
-        bookingResponse.transactions?.[0]?.transactionid || bookingResponse.transactionid;
+        bookingResponse.results?.[0]?.bookingdetails?.transactions?.[0]?.transactionid;
 
       const bookingId = await this.storeBooking({
         sessionId: params.sessionId,
-        traveltekBookingId: bookingResponse.bookingid,
+        traveltekBookingId: traveltekBookingId,
         bookingDetails: bookingResponse,
         passengers: params.passengers,
         payment: {
@@ -845,7 +849,8 @@ class TraveltekBookingService {
 
       // Step 7: Determine payment status from booking response
       // Check if payment was successful by looking at transaction authcode
-      const hasAuthCode = bookingResponse.transactions?.[0]?.authcode;
+      const bookingDetails = bookingResponse.results?.[0]?.bookingdetails;
+      const hasAuthCode = bookingDetails?.transactions?.[0]?.authcode;
       const paymentStatus = hasAuthCode ? 'confirmed' : 'pending';
 
       console.log(`💳 [TraveltekBooking] Payment status: ${paymentStatus}`, {
@@ -864,26 +869,26 @@ class TraveltekBookingService {
 
         await slackService.notifyBookingCreated({
           bookingId,
-          confirmationNumber: bookingResponse.confirmationnumber,
-          traveltekBookingId: bookingResponse.bookingid,
+          confirmationNumber: bookingDetails?.confirmationnumber,
+          traveltekBookingId: traveltekBookingId,
           cruiseName: cruiseDetails?.cruiseName,
           cruiseLine: cruiseDetails?.cruiseLine,
           shipName: cruiseDetails?.shipName,
           sailingDate: cruiseDetails?.sailingDate,
           nights: cruiseDetails?.nights,
           passengerCount: params.passengers.length,
-          totalAmount: bookingResponse.totalcost,
+          totalAmount: bookingDetails?.totalcost,
           paidAmount: params.payment.amount,
-          depositAmount: bookingResponse.depositamount,
-          balanceDueDate: bookingResponse.balanceduedate,
+          depositAmount: bookingDetails?.depositamount,
+          balanceDueDate: bookingDetails?.balanceduedate,
           leadPassenger: {
             firstName: leadPassenger.firstName,
             lastName: leadPassenger.lastName,
             email: leadPassenger.email || params.contact.email,
             phone: leadPassenger.phone || params.contact.phone,
           },
-          cabinGrade: bookingResponse.cabingrade || bookingResponse.cabintype,
-          rateCode: bookingResponse.ratecode,
+          cabinGrade: bookingDetails?.cabingrade || bookingDetails?.cabintype,
+          rateCode: bookingDetails?.ratecode,
           status: paymentStatus,
         });
       } catch (slackError) {
@@ -894,13 +899,13 @@ class TraveltekBookingService {
       // Step 9: Return booking result
       return {
         bookingId,
-        traveltekBookingId: bookingResponse.bookingid,
+        traveltekBookingId: traveltekBookingId,
         status: paymentStatus,
-        totalAmount: bookingResponse.totalcost,
-        depositAmount: bookingResponse.depositamount,
+        totalAmount: bookingDetails?.totalcost,
+        depositAmount: bookingDetails?.depositamount,
         paidAmount: params.payment.amount,
-        balanceDueDate: bookingResponse.balanceduedate,
-        confirmationNumber: bookingResponse.confirmationnumber,
+        balanceDueDate: bookingDetails?.balanceduedate,
+        confirmationNumber: bookingDetails?.confirmationnumber,
         bookingDetails: bookingResponse,
       };
     } catch (error) {
@@ -1240,9 +1245,14 @@ class TraveltekBookingService {
         // IMPORTANT: No ccard object = booking created without payment
       });
 
-      if (!bookingResponse.bookingid) {
+      // Extract booking ID from the response structure
+      const traveltekBookingId = bookingResponse.results?.[0]?.bookingdetails?.bookingid;
+
+      if (!traveltekBookingId) {
         throw new Error('Hold booking creation failed: no booking ID returned');
       }
+
+      console.log(`   Traveltek Booking ID: ${traveltekBookingId}`);
 
       // Step 5: Calculate hold expiration (default 7 days)
       const holdDays = params.holdDurationDays || 7;
@@ -1252,7 +1262,7 @@ class TraveltekBookingService {
       // Step 6: Store booking in our database with hold status
       const bookingId = await this.storeHoldBooking({
         sessionId: params.sessionId,
-        traveltekBookingId: bookingResponse.bookingid,
+        traveltekBookingId: traveltekBookingId,
         bookingDetails: bookingResponse,
         leadPassenger: params.leadPassenger,
         holdExpiresAt,
@@ -1266,24 +1276,25 @@ class TraveltekBookingService {
       // Step 8: Send Slack notification for hold booking
       try {
         const cruiseDetails = await this.getCruiseDetailsForNotification(sessionData.cruiseId);
+        const bookingDetails = bookingResponse.results?.[0]?.bookingdetails;
 
         await slackService.notifyBookingCreated({
           bookingId,
-          confirmationNumber: bookingResponse.confirmationnumber,
-          traveltekBookingId: bookingResponse.bookingid,
+          confirmationNumber: bookingDetails?.confirmationnumber,
+          traveltekBookingId: traveltekBookingId,
           cruiseName: cruiseDetails?.cruiseName,
           cruiseLine: cruiseDetails?.cruiseLine,
           shipName: cruiseDetails?.shipName,
           sailingDate: cruiseDetails?.sailingDate,
           nights: cruiseDetails?.nights,
           passengerCount,
-          totalAmount: bookingResponse.totalcost,
+          totalAmount: bookingDetails?.totalcost,
           paidAmount: 0, // No payment yet
-          depositAmount: bookingResponse.depositamount,
-          balanceDueDate: bookingResponse.balanceduedate,
+          depositAmount: bookingDetails?.depositamount,
+          balanceDueDate: bookingDetails?.balanceduedate,
           leadPassenger: params.leadPassenger,
-          cabinGrade: bookingResponse.cabingrade || bookingResponse.cabintype,
-          rateCode: bookingResponse.ratecode,
+          cabinGrade: bookingDetails?.cabingrade || bookingDetails?.cabintype,
+          rateCode: bookingDetails?.ratecode,
           status: 'hold',
         });
       } catch (slackError) {
@@ -1291,15 +1302,16 @@ class TraveltekBookingService {
       }
 
       // Step 9: Return booking result
+      const bookingDetails = bookingResponse.results?.[0]?.bookingdetails;
       return {
         bookingId,
-        traveltekBookingId: bookingResponse.bookingid,
+        traveltekBookingId: traveltekBookingId,
         status: 'hold' as const,
-        totalAmount: bookingResponse.totalcost,
-        depositAmount: bookingResponse.depositamount,
+        totalAmount: bookingDetails?.totalcost,
+        depositAmount: bookingDetails?.depositamount,
         paidAmount: 0,
         balanceDueDate: holdExpiresAt.toISOString(),
-        confirmationNumber: bookingResponse.confirmationnumber,
+        confirmationNumber: bookingDetails?.confirmationnumber,
         bookingDetails: bookingResponse,
       };
     } catch (error) {
