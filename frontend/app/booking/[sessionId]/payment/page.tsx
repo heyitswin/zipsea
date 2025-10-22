@@ -28,6 +28,7 @@ export default function BookingPaymentPage() {
   const { passengerCount, clearSession } = useBooking();
 
   const [bookingSummary, setBookingSummary] = useState<BookingSummary>({});
+  const [isHoldBooking, setIsHoldBooking] = useState(false);
   const [cardNumber, setCardNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [cvv, setCvv] = useState("");
@@ -54,7 +55,26 @@ export default function BookingPaymentPage() {
         leadContact: leadContact ? JSON.parse(leadContact) : undefined,
       });
     }
-  }, []);
+
+    // Check if this is a hold booking
+    const fetchSessionData = async () => {
+      try {
+        const sessionResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/booking/session/${sessionId}`,
+        );
+        if (sessionResponse.ok) {
+          const sessionData = await sessionResponse.json();
+          setIsHoldBooking(sessionData.isHoldBooking === true);
+        }
+      } catch (error) {
+        console.error("Error fetching session data:", error);
+      }
+    };
+
+    if (sessionId) {
+      fetchSessionData();
+    }
+  }, [sessionId]);
 
   useEffect(() => {
     // Fetch cruise line cancellation policy URL
@@ -118,26 +138,29 @@ export default function BookingPaymentPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!cardNumber.replace(/\s/g, "")) {
-      newErrors.cardNumber = "Card number is required";
-    } else if (cardNumber.replace(/\s/g, "").length !== 16) {
-      newErrors.cardNumber = "Card number must be 16 digits";
-    }
+    // Skip payment validation for hold bookings
+    if (!isHoldBooking) {
+      if (!cardNumber.replace(/\s/g, "")) {
+        newErrors.cardNumber = "Card number is required";
+      } else if (cardNumber.replace(/\s/g, "").length !== 16) {
+        newErrors.cardNumber = "Card number must be 16 digits";
+      }
 
-    if (!expiryDate) {
-      newErrors.expiryDate = "Expiry date is required";
-    } else if (!/^\d{2}\/\d{2}$/.test(expiryDate)) {
-      newErrors.expiryDate = "Invalid format (MM/YY)";
-    }
+      if (!expiryDate) {
+        newErrors.expiryDate = "Expiry date is required";
+      } else if (!/^\d{2}\/\d{2}$/.test(expiryDate)) {
+        newErrors.expiryDate = "Invalid format (MM/YY)";
+      }
 
-    if (!cvv) {
-      newErrors.cvv = "CVV is required";
-    } else if (!/^\d{3,4}$/.test(cvv)) {
-      newErrors.cvv = "CVV must be 3 or 4 digits";
-    }
+      if (!cvv) {
+        newErrors.cvv = "CVV is required";
+      } else if (!/^\d{3,4}$/.test(cvv)) {
+        newErrors.cvv = "CVV must be 3 or 4 digits";
+      }
 
-    if (!cardName.trim()) {
-      newErrors.cardName = "Cardholder name is required";
+      if (!cardName.trim()) {
+        newErrors.cardName = "Cardholder name is required";
+      }
     }
 
     if (!agreedToTerms) {
@@ -168,6 +191,46 @@ export default function BookingPaymentPage() {
         throw new Error("No passenger data found");
       }
 
+      // Handle hold booking differently
+      if (isHoldBooking) {
+        // Create hold booking
+        const holdResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/hold`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              firstName: bookingSummary.leadContact.firstName,
+              lastName: bookingSummary.leadContact.lastName,
+              email: bookingSummary.leadContact.email,
+              phone: bookingSummary.leadContact.phone,
+              holdDurationDays: 7,
+            }),
+          },
+        );
+
+        if (!holdResponse.ok) {
+          const errorData = await holdResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || "Failed to create hold booking");
+        }
+
+        const holdResult = await holdResponse.json();
+
+        // Clear session and booking data
+        clearSession();
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("bookingPassengers");
+          localStorage.removeItem("leadContact");
+        }
+
+        // Redirect to hold confirmation page
+        router.push(`/hold-confirmation/${holdResult.bookingId}`);
+        return;
+      }
+
+      // Regular payment booking
       // Parse expiry date (MM/YY format)
       const [expiryMonth, expiryYear] = expiryDate.split("/");
 
@@ -250,47 +313,17 @@ export default function BookingPaymentPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Booking Summary and Forms */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Booking Summary */}
-            <BookingSummary sessionId={sessionId} />
-            {/* Passengers Summary */}
-            {bookingSummary.passengers && (
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
-                  Passengers ({bookingSummary.passengers.length})
-                </h3>
-                <div className="space-y-3">
-                  {bookingSummary.passengers.map(
-                    (passenger: any, index: number) => (
-                      <div
-                        key={index}
-                        className="flex justify-between items-center pb-3 border-b border-gray-200 last:border-0"
-                      >
-                        <div>
-                          <p className="font-geograph font-medium text-[16px] text-dark-blue">
-                            {passenger.firstName} {passenger.lastName}
-                          </p>
-                          <p className="font-geograph text-[14px] text-gray-600">
-                            {index === 0
-                              ? "Lead Passenger"
-                              : `Guest ${index + 1}`}
-                          </p>
-                        </div>
-                        {index === 0 && passenger.email && (
-                          <p className="font-geograph text-[14px] text-gray-600">
-                            {passenger.email}
-                          </p>
-                        )}
-                      </div>
-                    ),
-                  )}
-                </div>
-              </div>
-            )}
+            {/* Booking Summary with Passengers */}
+            <BookingSummary
+              sessionId={sessionId}
+              passengers={bookingSummary.passengers}
+              showPassengers={true}
+            />
 
-            {/* Payment Form */}
+            {/* Payment Form or Hold Booking Info */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
-                Payment Information
+                {isHoldBooking ? "Hold Booking" : "Payment Information"}
               </h3>
 
               {errors.submit && (
@@ -299,157 +332,180 @@ export default function BookingPaymentPage() {
                 </div>
               )}
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                    Card Number *
-                  </label>
-                  <input
-                    type="text"
-                    value={cardNumber}
-                    onChange={(e) => {
-                      const formatted = formatCardNumber(
-                        e.target.value.slice(0, 19),
-                      );
-                      setCardNumber(formatted);
-                      if (errors.cardNumber) {
-                        const newErrors = { ...errors };
-                        delete newErrors.cardNumber;
-                        setErrors(newErrors);
-                      }
-                    }}
-                    className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                      errors.cardNumber ? "border-red-500" : "border-gray-300"
-                    }`}
-                    placeholder="1234 5678 9012 3456"
-                    maxLength={19}
-                  />
-                  {errors.cardNumber && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {errors.cardNumber}
+              {isHoldBooking ? (
+                // Hold Booking Info
+                <div className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="font-geograph text-[15px] text-blue-900 mb-3">
+                      <strong>Your cabin will be held for 7 days</strong>
                     </p>
-                  )}
+                    <p className="font-geograph text-[14px] text-blue-800">
+                      No payment required now. You'll receive an email with
+                      instructions to complete your booking and payment within 7
+                      days. The price will remain locked during this period.
+                    </p>
+                  </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
+              ) : (
+                // Payment Form
+                <div className="space-y-4">
                   <div>
                     <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                      Expiry Date *
+                      Card Number *
                     </label>
                     <input
                       type="text"
-                      value={expiryDate}
+                      value={cardNumber}
                       onChange={(e) => {
-                        const formatted = formatExpiryDate(e.target.value);
-                        setExpiryDate(formatted);
-                        if (errors.expiryDate) {
+                        const formatted = formatCardNumber(
+                          e.target.value.slice(0, 19),
+                        );
+                        setCardNumber(formatted);
+                        if (errors.cardNumber) {
                           const newErrors = { ...errors };
-                          delete newErrors.expiryDate;
+                          delete newErrors.cardNumber;
                           setErrors(newErrors);
                         }
                       }}
                       className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                        errors.expiryDate ? "border-red-500" : "border-gray-300"
+                        errors.cardNumber ? "border-red-500" : "border-gray-300"
                       }`}
-                      placeholder="MM/YY"
-                      maxLength={5}
+                      placeholder="1234 5678 9012 3456"
+                      maxLength={19}
                     />
-                    {errors.expiryDate && (
+                    {errors.cardNumber && (
                       <p className="text-red-500 text-sm mt-1">
-                        {errors.expiryDate}
+                        {errors.cardNumber}
                       </p>
                     )}
                   </div>
 
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                        Expiry Date *
+                      </label>
+                      <input
+                        type="text"
+                        value={expiryDate}
+                        onChange={(e) => {
+                          const formatted = formatExpiryDate(e.target.value);
+                          setExpiryDate(formatted);
+                          if (errors.expiryDate) {
+                            const newErrors = { ...errors };
+                            delete newErrors.expiryDate;
+                            setErrors(newErrors);
+                          }
+                        }}
+                        className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
+                          errors.expiryDate
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                        placeholder="MM/YY"
+                        maxLength={5}
+                      />
+                      {errors.expiryDate && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.expiryDate}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                        CVV *
+                      </label>
+                      <input
+                        type="text"
+                        value={cvv}
+                        onChange={(e) => {
+                          const value = e.target.value
+                            .replace(/\D/g, "")
+                            .slice(0, 4);
+                          setCvv(value);
+                          if (errors.cvv) {
+                            const newErrors = { ...errors };
+                            delete newErrors.cvv;
+                            setErrors(newErrors);
+                          }
+                        }}
+                        className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
+                          errors.cvv ? "border-red-500" : "border-gray-300"
+                        }`}
+                        placeholder="123"
+                        maxLength={4}
+                      />
+                      {errors.cvv && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.cvv}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                      CVV *
+                      Cardholder Name *
                     </label>
                     <input
                       type="text"
-                      value={cvv}
+                      value={cardName}
                       onChange={(e) => {
-                        const value = e.target.value
-                          .replace(/\D/g, "")
-                          .slice(0, 4);
-                        setCvv(value);
-                        if (errors.cvv) {
+                        setCardName(e.target.value);
+                        if (errors.cardName) {
                           const newErrors = { ...errors };
-                          delete newErrors.cvv;
+                          delete newErrors.cardName;
                           setErrors(newErrors);
                         }
                       }}
                       className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                        errors.cvv ? "border-red-500" : "border-gray-300"
+                        errors.cardName ? "border-red-500" : "border-gray-300"
                       }`}
-                      placeholder="123"
-                      maxLength={4}
+                      placeholder="John Doe"
                     />
-                    {errors.cvv && (
-                      <p className="text-red-500 text-sm mt-1">{errors.cvv}</p>
+                    {errors.cardName && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.cardName}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Terms & Conditions */}
+                  <div className="pt-4">
+                    <label className="flex items-start">
+                      <input
+                        type="checkbox"
+                        checked={agreedToTerms}
+                        onChange={(e) => {
+                          setAgreedToTerms(e.target.checked);
+                          if (errors.terms) {
+                            const newErrors = { ...errors };
+                            delete newErrors.terms;
+                            setErrors(newErrors);
+                          }
+                        }}
+                        className="mt-1 mr-3 w-4 h-4"
+                      />
+                      <span className="font-geograph text-[14px] text-dark-blue">
+                        I agree to the{" "}
+                        <a href="/terms" className="text-blue-600 underline">
+                          terms and conditions
+                        </a>{" "}
+                        and{" "}
+                        <a href="/privacy" className="text-blue-600 underline">
+                          privacy policy
+                        </a>
+                      </span>
+                    </label>
+                    {errors.terms && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.terms}
+                      </p>
                     )}
                   </div>
                 </div>
-
-                <div>
-                  <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                    Cardholder Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={cardName}
-                    onChange={(e) => {
-                      setCardName(e.target.value);
-                      if (errors.cardName) {
-                        const newErrors = { ...errors };
-                        delete newErrors.cardName;
-                        setErrors(newErrors);
-                      }
-                    }}
-                    className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                      errors.cardName ? "border-red-500" : "border-gray-300"
-                    }`}
-                    placeholder="John Doe"
-                  />
-                  {errors.cardName && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {errors.cardName}
-                    </p>
-                  )}
-                </div>
-
-                {/* Terms & Conditions */}
-                <div className="pt-4">
-                  <label className="flex items-start">
-                    <input
-                      type="checkbox"
-                      checked={agreedToTerms}
-                      onChange={(e) => {
-                        setAgreedToTerms(e.target.checked);
-                        if (errors.terms) {
-                          const newErrors = { ...errors };
-                          delete newErrors.terms;
-                          setErrors(newErrors);
-                        }
-                      }}
-                      className="mt-1 mr-3 w-4 h-4"
-                    />
-                    <span className="font-geograph text-[14px] text-dark-blue">
-                      I agree to the{" "}
-                      <a href="/terms" className="text-blue-600 underline">
-                        terms and conditions
-                      </a>{" "}
-                      and{" "}
-                      <a href="/privacy" className="text-blue-600 underline">
-                        privacy policy
-                      </a>
-                    </span>
-                  </label>
-                  {errors.terms && (
-                    <p className="text-red-500 text-sm mt-1">{errors.terms}</p>
-                  )}
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Choose Your Free Perk */}
@@ -626,12 +682,20 @@ export default function BookingPaymentPage() {
                     : "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90"
                 }`}
               >
-                {isProcessing ? "Processing..." : "Confirm & Pay $2,487.36"}
+                {isProcessing
+                  ? isHoldBooking
+                    ? "Creating Hold..."
+                    : "Processing..."
+                  : isHoldBooking
+                    ? "Confirm Hold Booking"
+                    : "Confirm & Pay $2,487.36"}
               </button>
 
-              <p className="font-geograph text-[12px] text-gray-600 text-center mt-4">
-                Your payment is secure and encrypted
-              </p>
+              {!isHoldBooking && (
+                <p className="font-geograph text-[12px] text-gray-600 text-center mt-4">
+                  Your payment is secure and encrypted
+                </p>
+              )}
             </div>
           </div>
         </div>

@@ -945,79 +945,6 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     );
   }
 
-  // Handle hold booking submission
-  const handleHoldBooking = async (data: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-  }) => {
-    if (!pendingReservation || !sessionId) {
-      throw new Error("Missing reservation or session data");
-    }
-
-    try {
-      // Step 1: Add cabin to basket first
-      const basketResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/select-cabin`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            cruiseId: cruiseData?.cruise.id.toString(),
-            resultNo: pendingReservation.resultNo,
-            gradeNo: pendingReservation.gradeNo,
-            rateCode: pendingReservation.rateCode,
-            ...(pendingReservation.cabinResultNo && {
-              cabinResult: pendingReservation.cabinResultNo,
-            }),
-          }),
-        },
-      );
-
-      if (!basketResponse.ok) {
-        throw new Error("Failed to add cabin to basket");
-      }
-
-      // Step 2: Create hold booking
-      const holdResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/hold`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            firstName: data.firstName,
-            lastName: data.lastName,
-            email: data.email,
-            phone: data.phone,
-            holdDurationDays: 7,
-          }),
-        },
-      );
-
-      if (!holdResponse.ok) {
-        const errorData = await holdResponse.json();
-        throw new Error(errorData.error || "Failed to create hold booking");
-      }
-
-      const holdResult = await holdResponse.json();
-
-      // Success! Close modal and redirect to confirmation
-      setIsHoldModalOpen(false);
-      setPendingReservation(null);
-
-      // Redirect to hold confirmation page
-      router.push(`/hold-confirmation/${holdResult.bookingId}`);
-    } catch (error) {
-      console.error("Hold booking error:", error);
-      throw error; // Re-throw to let modal handle error display
-    }
-  };
-
   // Handle "Pay Now" option - proceed with normal flow
   const handlePayNow = async () => {
     if (!pendingReservation || !sessionId) {
@@ -1059,6 +986,70 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     } catch (err) {
       console.error("Failed to reserve cabin:", err);
       showAlert("Unable to reserve cabin. Please try again.");
+      setReservingCabinId(null);
+      setPendingReservation(null);
+    }
+  };
+
+  // Handle hold booking flow - same as pay now but sets isHoldBooking flag
+  const handleHoldBookingFlow = async () => {
+    if (!pendingReservation || !sessionId) {
+      showAlert("Missing reservation data");
+      return;
+    }
+
+    try {
+      const cabinId = `${pendingReservation.resultNo}-${pendingReservation.gradeNo}-${pendingReservation.rateCode}`;
+      setReservingCabinId(cabinId);
+      setIsHoldModalOpen(false);
+
+      // Add cabin to basket
+      const basketResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/select-cabin`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            cruiseId: cruiseData?.cruise.id.toString(),
+            resultNo: pendingReservation.resultNo,
+            gradeNo: pendingReservation.gradeNo,
+            rateCode: pendingReservation.rateCode,
+            ...(pendingReservation.cabinResultNo && {
+              cabinResult: pendingReservation.cabinResultNo,
+            }),
+          }),
+        },
+      );
+
+      if (!basketResponse.ok) {
+        throw new Error("Failed to reserve cabin");
+      }
+
+      // Set isHoldBooking flag in session
+      const updateSessionResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/booking/session/${sessionId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            isHoldBooking: true,
+          }),
+        },
+      );
+
+      if (!updateSessionResponse.ok) {
+        console.warn("Failed to set hold booking flag, but continuing");
+      }
+
+      // Success! Proceed to booking flow for hold (will skip payment)
+      router.push(`/booking/${sessionId}/options`);
+    } catch (err) {
+      console.error("Failed to start hold booking:", err);
+      showAlert("Unable to start hold booking. Please try again.");
       setReservingCabinId(null);
       setPendingReservation(null);
     }
@@ -1562,7 +1553,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                               >
                                 {/* Best Value Banner */}
                                 {cabin.isGuaranteed && (
-                                  <div className="absolute top-0 left-0 right-0 bg-purple-obc text-dark-blue text-center font-geograph font-medium text-[12px] py-1 z-10">
+                                  <div className="absolute top-0 left-0 right-0 bg-[#1B8F57] text-white text-center font-geograph font-medium text-[12px] py-1 z-10">
                                     Best Value
                                   </div>
                                 )}
@@ -1591,8 +1582,16 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                 <div className="p-4 flex flex-col flex-grow">
                                   {/* Cabin Title and Code */}
                                   <div className="flex items-center gap-2 mb-2">
-                                    <h3 className="font-geograph font-medium text-[18px] text-[#1c1c1c]">
+                                    <h3 className="font-geograph font-medium text-[18px] text-[#1c1c1c] flex items-center gap-2">
                                       {cabin.name}
+                                      {cabin.accessible && (
+                                        <span
+                                          className="text-blue-600 text-[16px]"
+                                          title="Accessible cabin"
+                                        >
+                                          ♿
+                                        </span>
+                                      )}
                                     </h3>
                                     {cabin.code && (
                                       <div className="flex items-center justify-center w-[32px] h-[27px] border border-[#d9d9d9] rounded">
@@ -2423,8 +2422,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           setIsHoldModalOpen(false);
           setPendingReservation(null);
         }}
-        onHold={handleHoldBooking}
-        onPayNow={handlePayNow}
+        onHoldBooking={handleHoldBookingFlow}
         cruiseName={cruiseData?.cruise?.name}
         cabinType={pendingReservation?.cabinName}
         price={pendingReservation?.price}

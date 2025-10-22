@@ -3,8 +3,17 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 
+interface Passenger {
+  firstName: string;
+  lastName: string;
+  email?: string;
+  passengerType?: string; // 'adult' or 'child'
+}
+
 interface BookingSummaryProps {
   sessionId: string;
+  passengers?: Passenger[];
+  showPassengers?: boolean; // Only show on payment page (step 3)
 }
 
 interface CruiseData {
@@ -23,7 +32,11 @@ interface CabinData {
   gradeno?: string;
 }
 
-export default function BookingSummary({ sessionId }: BookingSummaryProps) {
+export default function BookingSummary({
+  sessionId,
+  passengers,
+  showPassengers = false,
+}: BookingSummaryProps) {
   const [cruiseData, setCruiseData] = useState<CruiseData | null>(null);
   const [cabinData, setCabinData] = useState<CabinData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -247,6 +260,54 @@ export default function BookingSummary({ sessionId }: BookingSummaryProps) {
                   {cabinData.description}
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Passengers - Only show on payment page */}
+          {showPassengers && passengers && passengers.length > 0 && (
+            <div>
+              <p className="font-geograph text-[12px] text-gray-600 uppercase tracking-wide mb-1">
+                Passengers ({passengers.length})
+              </p>
+              <div className="space-y-2">
+                {passengers.map((passenger, index) => {
+                  // Count adults and children separately for proper labeling
+                  const adultsBeforeThis = passengers
+                    .slice(0, index)
+                    .filter(
+                      (p) => !p.passengerType || p.passengerType === "adult",
+                    ).length;
+                  const childrenBeforeThis = passengers
+                    .slice(0, index)
+                    .filter((p) => p.passengerType === "child").length;
+
+                  const isChild = passenger.passengerType === "child";
+                  const label = isChild
+                    ? `Child ${childrenBeforeThis + 1}`
+                    : `Adult ${adultsBeforeThis + 1}`;
+
+                  return (
+                    <div
+                      key={index}
+                      className="flex justify-between items-start"
+                    >
+                      <div>
+                        <p className="font-geograph font-medium text-[14px] text-dark-blue">
+                          {passenger.firstName} {passenger.lastName}
+                        </p>
+                        <p className="font-geograph text-[13px] text-gray-600">
+                          {label}
+                        </p>
+                      </div>
+                      {index === 0 && passenger.email && (
+                        <p className="font-geograph text-[13px] text-gray-600">
+                          {passenger.email}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

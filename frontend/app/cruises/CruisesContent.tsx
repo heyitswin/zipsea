@@ -830,7 +830,7 @@ export default function CruisesContent() {
                     value={cruiseLineSearch}
                     onChange={(e) => setCruiseLineSearch(e.target.value)}
                     placeholder="Search cruise lines..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-gray-400"
                   />
                 </div>
                 {/* Scrollable List */}
@@ -1028,7 +1028,7 @@ export default function CruisesContent() {
                     value={departurePortSearch}
                     onChange={(e) => setDeparturePortSearch(e.target.value)}
                     placeholder="Search ports..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-gray-400"
                   />
                 </div>
                 {/* Scrollable List */}
@@ -1098,7 +1098,7 @@ export default function CruisesContent() {
                     value={regionSearch}
                     onChange={(e) => setRegionSearch(e.target.value)}
                     placeholder="Search regions..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-gray-400"
                   />
                 </div>
                 {/* Scrollable List */}
@@ -1729,7 +1729,7 @@ export default function CruisesContent() {
                       value={cruiseLineSearch}
                       onChange={(e) => setCruiseLineSearch(e.target.value)}
                       placeholder="Search cruise lines..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-gray-400"
                     />
                   </div>
                   <div
@@ -1922,7 +1922,7 @@ export default function CruisesContent() {
                       value={departurePortSearch}
                       onChange={(e) => setDeparturePortSearch(e.target.value)}
                       placeholder="Search ports..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-gray-400"
                     />
                   </div>
                   <div
@@ -1990,7 +1990,7 @@ export default function CruisesContent() {
                       value={regionSearch}
                       onChange={(e) => setRegionSearch(e.target.value)}
                       placeholder="Search regions..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-gray-400"
                     />
                   </div>
                   <div

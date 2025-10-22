@@ -17,6 +17,7 @@ interface Cabin {
   y1?: number;
   x2?: number;
   y2?: number;
+  accessible?: boolean;
 }
 
 interface DeckPlan {
@@ -293,8 +294,16 @@ export default function SpecificCabinModal({
                       }`}
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <div className="font-geograph font-semibold text-base">
+                        <div className="font-geograph font-semibold text-base flex items-center gap-2">
                           Cabin {cabin.cabinNo}
+                          {cabin.accessible && (
+                            <span
+                              className="text-blue-600"
+                              title="Accessible cabin"
+                            >
+                              ♿
+                            </span>
+                          )}
                         </div>
                         <div className="text-sm text-gray-600">
                           Deck {cabin.deck}
