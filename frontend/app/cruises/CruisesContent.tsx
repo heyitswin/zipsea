@@ -894,7 +894,7 @@ export default function CruisesContent() {
                   Cruise Dates
                 </h3>
                 <div className="space-y-3">
-                  {[2025, 2026].map((year) => {
+                  {[2025, 2026, 2027].map((year) => {
                     const currentDate = new Date();
                     const currentYear = currentDate.getFullYear();
                     const currentMonth = currentDate.getMonth();
@@ -926,42 +926,39 @@ export default function CruisesContent() {
                               year < currentYear ||
                               (year === currentYear && index < currentMonth);
 
+                            // Don't render past months at all
+                            if (isPast) return null;
+
                             return (
                               <button
                                 key={monthStr}
                                 onClick={() => {
-                                  if (!isPast) {
-                                    const urlParams = new URLSearchParams(
-                                      window.location.search,
-                                    );
-                                    const currentParam =
-                                      urlParams.get("months");
-                                    const currentMonths = currentParam
-                                      ? currentParam.split(",")
-                                      : [];
-                                    const newSelection = currentMonths.includes(
-                                      monthStr,
-                                    )
-                                      ? currentMonths.filter(
-                                          (m) => m !== monthStr,
-                                        )
-                                      : [...currentMonths, monthStr];
-                                    updateURLParams({
-                                      months:
-                                        newSelection.length > 0
-                                          ? newSelection
-                                          : null,
-                                      page: 1,
-                                    });
-                                  }
+                                  const urlParams = new URLSearchParams(
+                                    window.location.search,
+                                  );
+                                  const currentParam = urlParams.get("months");
+                                  const currentMonths = currentParam
+                                    ? currentParam.split(",")
+                                    : [];
+                                  const newSelection = currentMonths.includes(
+                                    monthStr,
+                                  )
+                                    ? currentMonths.filter(
+                                        (m) => m !== monthStr,
+                                      )
+                                    : [...currentMonths, monthStr];
+                                  updateURLParams({
+                                    months:
+                                      newSelection.length > 0
+                                        ? newSelection
+                                        : null,
+                                    page: 1,
+                                  });
                                 }}
-                                disabled={isPast}
                                 className={`px-2 py-1 rounded text-[12px] font-geograph transition-colors ${
-                                  isPast
-                                    ? "bg-gray-50 text-gray-400 cursor-not-allowed"
-                                    : isSelected
-                                      ? "bg-[#0E1B4D] text-white"
-                                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                  isSelected
+                                    ? "bg-[#0E1B4D] text-white"
+                                    : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
                                 }`}
                               >
                                 {month}
@@ -1792,7 +1789,7 @@ export default function CruisesContent() {
                     Cruise Dates
                   </h3>
                   <div className="space-y-3">
-                    {[2025, 2026].map((year) => {
+                    {[2025, 2026, 2027].map((year) => {
                       const currentDate = new Date();
                       const currentYear = currentDate.getFullYear();
                       const currentMonth = currentDate.getMonth();
@@ -1822,41 +1819,41 @@ export default function CruisesContent() {
                               const isPast =
                                 year < currentYear ||
                                 (year === currentYear && index < currentMonth);
+
+                              // Don't render past months at all
+                              if (isPast) return null;
+
                               return (
                                 <button
                                   key={monthStr}
                                   onClick={() => {
-                                    if (!isPast) {
-                                      const urlParams = new URLSearchParams(
-                                        window.location.search,
-                                      );
-                                      const currentParam =
-                                        urlParams.get("months");
-                                      const currentMonths = currentParam
-                                        ? currentParam.split(",")
-                                        : [];
-                                      const newSelection =
-                                        currentMonths.includes(monthStr)
-                                          ? currentMonths.filter(
-                                              (m) => m !== monthStr,
-                                            )
-                                          : [...currentMonths, monthStr];
-                                      updateURLParams({
-                                        months:
-                                          newSelection.length > 0
-                                            ? newSelection
-                                            : null,
-                                        page: 1,
-                                      });
-                                    }
+                                    const urlParams = new URLSearchParams(
+                                      window.location.search,
+                                    );
+                                    const currentParam =
+                                      urlParams.get("months");
+                                    const currentMonths = currentParam
+                                      ? currentParam.split(",")
+                                      : [];
+                                    const newSelection = currentMonths.includes(
+                                      monthStr,
+                                    )
+                                      ? currentMonths.filter(
+                                          (m) => m !== monthStr,
+                                        )
+                                      : [...currentMonths, monthStr];
+                                    updateURLParams({
+                                      months:
+                                        newSelection.length > 0
+                                          ? newSelection
+                                          : null,
+                                      page: 1,
+                                    });
                                   }}
-                                  disabled={isPast}
                                   className={`px-2 py-1 rounded text-[12px] font-geograph transition-colors ${
-                                    isPast
-                                      ? "bg-gray-50 text-gray-400 cursor-not-allowed"
-                                      : isSelected
-                                        ? "bg-[#0E1B4D] text-white"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                    isSelected
+                                      ? "bg-[#0E1B4D] text-white"
+                                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                   }`}
                                 >
                                   {month}
