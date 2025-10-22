@@ -797,6 +797,7 @@ class TraveltekBookingService {
         depositBooking: false, // Full payment for now
         // Include payment card in booking request (per Traveltek docs)
         ccard: {
+          passthroughitem: parseInt(sessionData.itemkey), // Required: item identifier for passthrough payment
           amount: params.payment.amount,
           nameoncard: params.payment.cardholderName,
           cardtype: cardType,
