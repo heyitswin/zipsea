@@ -826,14 +826,14 @@ class TraveltekBookingService {
       console.log(`   Traveltek Booking ID: ${traveltekBookingId}`);
 
       // Step 5: Store booking in our database
-      // Extract transaction ID from booking response
-      const transactionId =
-        bookingResponse.results?.[0]?.bookingdetails?.transactions?.[0]?.transactionid;
+      // Extract booking details and transaction ID from response
+      const bookingDetails = bookingResponse.results?.[0]?.bookingdetails;
+      const transactionId = bookingDetails?.transactions?.[0]?.transactionid;
 
       const bookingId = await this.storeBooking({
         sessionId: params.sessionId,
         traveltekBookingId: traveltekBookingId,
-        bookingDetails: bookingResponse,
+        bookingDetails: bookingDetails,
         passengers: params.passengers,
         payment: {
           ...params.payment,
@@ -849,7 +849,6 @@ class TraveltekBookingService {
 
       // Step 7: Determine payment status from booking response
       // Check if payment was successful by looking at transaction authcode
-      const bookingDetails = bookingResponse.results?.[0]?.bookingdetails;
       const hasAuthCode = bookingDetails?.transactions?.[0]?.authcode;
       const paymentStatus = hasAuthCode ? 'confirmed' : 'pending';
 
@@ -1254,29 +1253,31 @@ class TraveltekBookingService {
 
       console.log(`   Traveltek Booking ID: ${traveltekBookingId}`);
 
-      // Step 5: Calculate hold expiration (default 7 days)
+      // Step 5: Extract booking details from response
+      const bookingDetails = bookingResponse.results?.[0]?.bookingdetails;
+
+      // Step 6: Calculate hold expiration (default 7 days)
       const holdDays = params.holdDurationDays || 7;
       const holdExpiresAt = new Date();
       holdExpiresAt.setDate(holdExpiresAt.getDate() + holdDays);
 
-      // Step 6: Store booking in our database with hold status
+      // Step 7: Store booking in our database with hold status
       const bookingId = await this.storeHoldBooking({
         sessionId: params.sessionId,
         traveltekBookingId: traveltekBookingId,
-        bookingDetails: bookingResponse,
+        bookingDetails: bookingDetails,
         leadPassenger: params.leadPassenger,
         holdExpiresAt,
       });
 
-      // Step 7: Mark session as completed
+      // Step 8: Mark session as completed
       await traveltekSessionService.completeSession(params.sessionId);
 
       console.log(`[TraveltekBooking] ✅ Successfully created hold booking ${bookingId}`);
 
-      // Step 8: Send Slack notification for hold booking
+      // Step 9: Send Slack notification for hold booking
       try {
         const cruiseDetails = await this.getCruiseDetailsForNotification(sessionData.cruiseId);
-        const bookingDetails = bookingResponse.results?.[0]?.bookingdetails;
 
         await slackService.notifyBookingCreated({
           bookingId,
@@ -1301,8 +1302,7 @@ class TraveltekBookingService {
         console.error('[TraveltekBooking] Failed to send Slack notification:', slackError);
       }
 
-      // Step 9: Return booking result
-      const bookingDetails = bookingResponse.results?.[0]?.bookingdetails;
+      // Step 10: Return booking result
       return {
         bookingId,
         traveltekBookingId: traveltekBookingId,
