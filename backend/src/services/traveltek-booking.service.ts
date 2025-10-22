@@ -22,6 +22,7 @@ interface PassengerDetails {
 }
 
 interface ContactDetails {
+  title?: string; // Optional: Will use lead passenger's title if not provided
   firstName: string;
   lastName: string;
   email: string;
@@ -762,15 +763,16 @@ class TraveltekBookingService {
       const cardType = this.determineCardType(params.payment.cardNumber);
       console.log(`💳 [TraveltekBooking] Detected card type: ${cardType}`);
 
-      // Get title from lead passenger or first passenger for cardholder
+      // Get title from lead passenger or first passenger for cardholder and contact
       const leadPassenger = params.passengers.find(p => p.isLeadPassenger) || params.passengers[0];
-      const cardholderTitle = leadPassenger.title;
+      const leadPassengerTitle = leadPassenger.title;
 
       const bookingResponse = await traveltekApiService.createBooking({
         sessionkey: sessionData.sessionKey,
         sid: sessionData.sid,
         itemkey: sessionData.itemkey,
         contact: {
+          title: leadPassengerTitle, // Use lead passenger's title for contact
           firstname: params.contact.firstName,
           lastname: params.contact.lastName,
           email: params.contact.email,
@@ -802,7 +804,7 @@ class TraveltekBookingService {
           expirymonth: params.payment.expiryMonth,
           expiryyear: params.payment.expiryYear,
           signature: params.payment.cvv,
-          title: cardholderTitle,
+          title: leadPassengerTitle,
           firstname: params.contact.firstName,
           lastname: params.contact.lastName,
           postcode: params.contact.postalCode,
@@ -1220,6 +1222,7 @@ class TraveltekBookingService {
         sid: sessionData.sid,
         itemkey: sessionData.itemkey,
         contact: {
+          title: 'Mr', // Default title for hold bookings
           firstname: params.leadPassenger.firstName,
           lastname: params.leadPassenger.lastName,
           email: params.leadPassenger.email,
