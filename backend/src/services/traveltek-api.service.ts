@@ -710,6 +710,7 @@ export class TraveltekApiService {
       params.passengers.forEach((passenger, index) => {
         const paxNum = index + 1;
         passengersObject[paxNum] = {
+          paxno: paxNum.toString(), // Passenger number as string per Traveltek docs
           title: passenger.title,
           firstname: passenger.firstname,
           lastname: passenger.lastname,
