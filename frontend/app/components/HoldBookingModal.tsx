@@ -33,7 +33,7 @@ export default function HoldBookingModal({
 
       {/* Modal - Full screen on mobile, centered on desktop */}
       <div className="flex min-h-full items-center justify-center md:p-4">
-        <div className="relative w-full h-full md:h-auto md:max-w-2xl bg-white md:rounded-lg shadow-xl flex flex-col">
+        <div className="relative w-full h-full min-h-screen md:min-h-0 md:h-auto md:max-w-2xl bg-white md:rounded-lg shadow-xl flex flex-col">
           {/* Header - Fixed on mobile and desktop */}
           <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0 bg-white">
             <h2 className="font-geograph font-bold text-[24px] text-dark-blue">

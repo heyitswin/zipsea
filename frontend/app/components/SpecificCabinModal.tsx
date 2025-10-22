@@ -208,7 +208,7 @@ export default function SpecificCabinModal({
 
       {/* Modal - Full screen on mobile, centered on desktop */}
       <div className="flex min-h-full items-center justify-center md:p-4">
-        <div className="relative w-full h-full md:h-[90vh] md:max-w-7xl bg-white md:rounded-xl shadow-xl flex flex-col">
+        <div className="relative w-full h-full min-h-screen md:min-h-0 md:h-[90vh] md:max-w-7xl bg-white md:rounded-xl shadow-xl flex flex-col">
           {/* Header - Fixed on mobile and desktop */}
           <div className="sticky top-0 z-10 flex items-center justify-between p-4 md:p-6 border-b flex-shrink-0 bg-white">
             <div>

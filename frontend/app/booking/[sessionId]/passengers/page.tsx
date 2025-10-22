@@ -125,7 +125,7 @@ export default function BookingPassengersPage() {
         isValid = false;
       }
       if (!passenger.nationality) {
-        passengerErrors.nationality = "Nationality is required";
+        passengerErrors.nationality = "Citizenship is required";
         isValid = false;
       }
 
@@ -285,7 +285,8 @@ export default function BookingPassengersPage() {
                   onChange={(e) =>
                     updatePassenger(index, "dateOfBirth", e.target.value)
                   }
-                  className={`w-full max-w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none bg-white text-dark-blue ${
+                  placeholder="MM/DD/YYYY"
+                  className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none bg-white text-dark-blue ${
                     errors[index]?.dateOfBirth
                       ? "border-red-500"
                       : "border-gray-300"
@@ -341,7 +342,7 @@ export default function BookingPassengersPage() {
 
               <div>
                 <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                  Nationality *
+                  Citizenship *
                 </label>
                 <div className="relative">
                   <select
