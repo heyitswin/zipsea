@@ -74,16 +74,28 @@ export default function BookingSummary({
             const cruise = cruiseResponseData.data || cruiseResponseData;
             console.log("🚢 Cruise data received:", cruise);
 
+            const shipImage =
+              cruise.ship?.defaultShipImageHd ||
+              cruise.ship?.defaultShipImage2k ||
+              cruise.ship?.defaultShipImage ||
+              cruise.shipImageHd ||
+              cruise.shipImage2k ||
+              cruise.shipImage;
+
+            console.log("🖼️ Ship image URL:", shipImage);
+            console.log("🖼️ Available image fields:", {
+              shipDefaultHd: cruise.ship?.defaultShipImageHd,
+              ship2k: cruise.ship?.defaultShipImage2k,
+              shipDefault: cruise.ship?.defaultShipImage,
+              cruiseShipHd: cruise.shipImageHd,
+              cruiseShip2k: cruise.shipImage2k,
+              cruiseShipImage: cruise.shipImage,
+            });
+
             setCruiseData({
               name: cruise.name || cruise.title || cruise.voyageName,
               shipName: cruise.shipName || cruise.ship?.name,
-              shipImage:
-                cruise.ship?.defaultShipImageHd ||
-                cruise.ship?.defaultShipImage2k ||
-                cruise.ship?.defaultShipImage ||
-                cruise.shipImageHd ||
-                cruise.shipImage2k ||
-                cruise.shipImage,
+              shipImage,
               departureDate:
                 cruise.departureDate ||
                 cruise.startDate ||

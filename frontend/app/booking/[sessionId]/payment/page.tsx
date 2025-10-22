@@ -100,18 +100,38 @@ export default function BookingPaymentPage() {
 
         if (cruise.cruiseLineId || cruise.lineid) {
           const lineId = cruise.cruiseLineId || cruise.lineid;
+          console.log("🚢 Cruise line ID:", lineId);
 
           // Get cruise line data
           const lineResponse = await fetch(
             `${process.env.NEXT_PUBLIC_API_URL}/cruise-lines/${lineId}`,
           );
-          if (!lineResponse.ok) return;
+          if (!lineResponse.ok) {
+            console.error(
+              "❌ Failed to fetch cruise line data:",
+              lineResponse.status,
+            );
+            return;
+          }
 
           const lineData = await lineResponse.json();
+          console.log("📋 Cruise line data:", lineData);
+          console.log(
+            "🔗 Cancellation policy URL:",
+            lineData.cancellationPolicyUrl,
+          );
+
           setCruiseLineName(lineData.name || "");
           if (lineData.cancellationPolicyUrl) {
             setCancellationPolicyUrl(lineData.cancellationPolicyUrl);
+          } else {
+            console.warn(
+              "⚠️ No cancellation policy URL found for",
+              lineData.name,
+            );
           }
+        } else {
+          console.warn("⚠️ No cruise line ID found in cruise data");
         }
       } catch (error) {
         console.error("Error fetching cancellation policy:", error);
