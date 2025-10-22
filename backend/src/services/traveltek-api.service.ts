@@ -641,7 +641,6 @@ export class TraveltekApiService {
     sid: string;
     itemkey: string; // Required: itemkey from basket response
     contact: {
-      title: string;
       firstname: string;
       lastname: string;
       email: string;
@@ -653,20 +652,18 @@ export class TraveltekApiService {
       country: string;
     };
     passengers: Array<{
-      title: string;
       firstname: string;
       lastname: string;
       dob: string; // YYYY-MM-DD
       gender: string; // M, F, X
-      nationality: string;
       paxtype: 'adult' | 'child' | 'infant';
       age: number;
     }>;
     dining: string;
     depositBooking?: boolean; // true = deposit only, false = full payment
     ccard?: {
-      // Payment information (optional - if not provided, booking without payment)
-      passthroughitem: string; // itemkey for passthrough payment
+      // Optional: Include for full payment, omit for hold bookings
+      passthroughitem?: number;
       amount: number;
       nameoncard: string;
       cardtype: string; // VIS, MSC, AMX, etc.
@@ -674,7 +671,7 @@ export class TraveltekApiService {
       expirymonth: string;
       expiryyear: string;
       signature: string; // CVV
-      title: string;
+      title?: string;
       firstname: string;
       lastname: string;
       postcode: string;
@@ -713,13 +710,10 @@ export class TraveltekApiService {
       params.passengers.forEach((passenger, index) => {
         const paxNum = index + 1;
         passengersObject[paxNum] = {
-          paxno: paxNum, // Required: passenger number
-          title: passenger.title,
           firstname: passenger.firstname,
           lastname: passenger.lastname,
           dob: passenger.dob,
           gender: passenger.gender,
-          nationality: passenger.nationality,
           paxtype: passenger.paxtype,
           age: passenger.age,
         };
@@ -742,9 +736,13 @@ export class TraveltekApiService {
         },
       };
 
-      // Add payment information if provided
+      // Include payment card if provided (for full payment bookings)
+      // Omit for hold bookings (per Traveltek docs)
       if (params.ccard) {
         requestBody.ccard = params.ccard;
+        console.log('💳 Including payment card in booking request');
+      } else {
+        console.log('🏗️ No payment card - creating hold booking');
       }
 
       console.log('🔍 Traveltek API: createBooking JSON request body:');
@@ -758,50 +756,17 @@ export class TraveltekApiService {
       });
 
       console.log('✅ Traveltek API: createBooking response received');
+      console.log('   Response status:', response.status);
+      console.log('   Response data keys:', Object.keys(response.data));
 
-      // Wrap all logging in try-catch to prevent crashes
-      try {
-        console.log('   Response status:', response.status);
-        console.log('   Response data keys:', Object.keys(response.data));
-
-        // Don't log full response - it can be huge and cause crashes
-        // Instead, log key information only
-        if (response.data.results && response.data.results.length > 0) {
-          const firstResult = response.data.results[0];
-          console.log('🔍 Booking result keys:', Object.keys(firstResult));
-          if (firstResult.bookingdetails) {
-            console.log('   Booking ID:', firstResult.bookingdetails.bookingid);
-            console.log('   Status:', firstResult.bookingdetails.status);
-            console.log('   Total Cost:', firstResult.bookingdetails.totalcost);
-            console.log('   Total Paid:', firstResult.bookingdetails.totalpaid);
-            console.log(
-              '   Transaction Count:',
-              firstResult.bookingdetails.transactions?.length || 0
-            );
-          }
-        }
-
-        // Log any errors or warnings
-        if (response.data.errors && response.data.errors.length > 0) {
-          console.error('⚠️  Traveltek API: createBooking returned errors:');
-          console.error(JSON.stringify(response.data.errors, null, 2));
-        }
-        if (response.data.warnings && response.data.warnings.length > 0) {
-          console.warn('⚠️  Traveltek API: createBooking returned warnings:');
-          console.warn(JSON.stringify(response.data.warnings, null, 2));
-        }
-      } catch (loggingError) {
-        console.error('⚠️  Error while logging response:', loggingError);
-        console.error('Response exists:', !!response);
-        console.error('Response.data exists:', !!response?.data);
+      // Log any errors or warnings
+      if (response.data.errors && response.data.errors.length > 0) {
+        console.error('⚠️  Traveltek API: createBooking returned errors:', response.data.errors);
+      }
+      if (response.data.warnings && response.data.warnings.length > 0) {
+        console.warn('⚠️  Traveltek API: createBooking returned warnings:', response.data.warnings);
       }
 
-      // Extract the first result from the results array
-      if (response.data.results && response.data.results.length > 0) {
-        return response.data.results[0];
-      }
-
-      // If no results, return the full response (for error handling)
       return response.data;
     } catch (error) {
       console.error('❌ Traveltek API: createBooking error:', error);
@@ -815,51 +780,24 @@ export class TraveltekApiService {
 
   /**
    * Process payment for booking
-   *
-   * Uses Traveltek's payment.pl endpoint with JSON format
-   * Documentation shows both JSON and form-urlencoded are supported
    */
   async processPayment(params: {
     sessionkey: string;
-    ccard: {
-      cardtype: string; // VIS, MSC, AMX
-      cardnumber: string;
-      expirymonth: string;
-      expiryyear: string;
-      nameoncard: string;
-      cvv: string; // CVV/security code (1-7 digit numeric format)
-      amount: string;
-      title?: string;
-      firstname?: string;
-      lastname?: string;
-      address1?: string;
-      address2?: string;
-      city?: string; // Billing city
-      postcode?: string;
-      country?: string;
-    };
+    cardtype: string; // VIS, MSC, AMX
+    cardnumber: string;
+    expirymonth: string;
+    expiryyear: string;
+    nameoncard: string;
+    cvv: string;
+    amount: string;
+    address1: string;
+    city: string;
+    postcode: string;
+    country: string;
   }): Promise<ApiResponse> {
     try {
-      console.log(
-        '🔍 Traveltek API: processPayment called with sessionkey:',
-        params.sessionkey.slice(-8)
-      );
-      console.log('🔍 Traveltek API: processPayment ccard:', JSON.stringify(params.ccard, null, 2));
-      console.log('🔍 Traveltek API: Full payment request:', JSON.stringify(params, null, 2));
-
-      // Send payment request as JSON - both JSON and form-urlencoded are documented as valid
-      // Using JSON format for simplicity and better error handling
-      const response = await this.axiosInstance.post('/payment.pl', params, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      console.log(
-        '✅ Traveltek API: processPayment response:',
-        JSON.stringify(response.data, null, 2)
-      );
-
+      const formData = new URLSearchParams(params as any);
+      const response = await this.axiosInstance.post('/payment.pl', formData);
       return response.data;
     } catch (error) {
       console.error('❌ Traveltek API: processPayment error:', error);
