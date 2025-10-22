@@ -98,8 +98,11 @@ export default function BookingPaymentPage() {
         const cruiseData = await cruiseResponse.json();
         const cruise = cruiseData.data || cruiseData;
 
-        if (cruise.cruiseLineId || cruise.lineid) {
-          const lineId = cruise.cruiseLineId || cruise.lineid;
+        // Check for cruise line ID in multiple possible locations
+        const lineId =
+          cruise.cruiseLineId || cruise.lineid || cruise.cruiseLine?.id;
+
+        if (lineId) {
           console.log("🚢 Cruise line ID:", lineId);
 
           // Get cruise line data
