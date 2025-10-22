@@ -246,6 +246,8 @@ class TraveltekBookingService {
             rateCode: cheapestOption.ratecode || '', // Use ratecode from cheapest pricing option
             // Include all rate options indexed by rate code for easy lookup when user changes selection
             ratesByCode,
+            // Accessibility indicator (modified:1 = accessible cabin)
+            accessible: cabin.modified === 1 || cabin.modified === '1',
           });
         } else if (cabin.gradeno && cabin.ratecode) {
           // Fallback: If no gridpricing array, use top-level values
@@ -276,6 +278,8 @@ class TraveltekBookingService {
             gradeNo: cabin.gradeno,
             rateCode: cabin.ratecode || '',
             ratesByCode: singleRateByCode,
+            // Accessibility indicator (modified:1 = accessible cabin)
+            accessible: cabin.modified === 1 || cabin.modified === '1',
           });
         }
       });
@@ -665,6 +669,8 @@ class TraveltekBookingService {
         y1: cabin.y1,
         x2: cabin.x2,
         y2: cabin.y2,
+        // Accessibility indicator (modified:1 = accessible cabin)
+        accessible: cabin.modified === 1 || cabin.modified === '1',
       }));
 
       console.log(
