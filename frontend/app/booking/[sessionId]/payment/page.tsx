@@ -172,27 +172,46 @@ export default function BookingPaymentPage() {
   };
 
   const handleConfirmBooking = async () => {
+    console.log("🔘 Confirm booking clicked, isHoldBooking:", isHoldBooking);
+
     if (!validateForm()) {
+      console.log("❌ Validation failed");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
+    console.log("✅ Validation passed");
     setIsProcessing(true);
 
     try {
       // Get lead contact info from localStorage (entered in options page)
       if (!bookingSummary.leadContact) {
+        console.error("❌ No lead contact found");
         throw new Error("No contact information found");
       }
-      if (
-        !bookingSummary.passengers ||
-        bookingSummary.passengers.length === 0
-      ) {
-        throw new Error("No passenger data found");
+
+      console.log("✅ Lead contact found:", bookingSummary.leadContact);
+
+      // Only check passengers for full payment bookings
+      if (!isHoldBooking) {
+        if (
+          !bookingSummary.passengers ||
+          bookingSummary.passengers.length === 0
+        ) {
+          console.error("❌ No passenger data found");
+          throw new Error("No passenger data found");
+        }
       }
 
       // Handle hold booking differently
       if (isHoldBooking) {
+        console.log("🏗️ Creating hold booking...");
+        console.log("Hold booking data:", {
+          firstName: bookingSummary.leadContact.firstName,
+          lastName: bookingSummary.leadContact.lastName,
+          email: bookingSummary.leadContact.email,
+          phone: bookingSummary.leadContact.phone,
+        });
         // Create hold booking
         const holdResponse = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/hold`,
@@ -212,11 +231,19 @@ export default function BookingPaymentPage() {
         );
 
         if (!holdResponse.ok) {
+          console.error(
+            "❌ Hold booking API error:",
+            holdResponse.status,
+            holdResponse.statusText,
+          );
           const errorData = await holdResponse.json().catch(() => ({}));
+          console.error("Error response:", errorData);
           throw new Error(errorData.error || "Failed to create hold booking");
         }
 
+        console.log("✅ Hold booking created successfully");
         const holdResult = await holdResponse.json();
+        console.log("Hold result:", holdResult);
 
         // Clear session and booking data
         clearSession();
