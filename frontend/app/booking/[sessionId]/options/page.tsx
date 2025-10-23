@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useBooking } from "../../../context/BookingContext";
 import BookingSummary from "../../../components/BookingSummary";
-import PricingSummary from "../../../components/PricingSummary";
 
 export default function BookingOptionsPage() {
   const router = useRouter();
@@ -119,9 +118,6 @@ export default function BookingOptionsPage() {
       <div className="max-w-3xl mx-auto px-6 py-8">
         {/* Booking Summary */}
         <BookingSummary sessionId={sessionId} />
-
-        {/* Pricing Summary */}
-        <PricingSummary sessionId={sessionId} />
 
         {/* Lead Contact Information */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 md:p-8 mb-6">

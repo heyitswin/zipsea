@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { useBooking } from "../../../context/BookingContext";
 import BookingSummary from "../../../components/BookingSummary";
-import PricingSummary from "../../../components/PricingSummary";
 
 interface PassengerData {
   title: string;
@@ -177,9 +176,6 @@ export default function BookingPassengersPage() {
       <div className="max-w-3xl mx-auto px-6 py-8">
         {/* Booking Summary */}
         <BookingSummary sessionId={sessionId} />
-
-        {/* Pricing Summary */}
-        <PricingSummary sessionId={sessionId} />
 
         {passengers.map((passenger, index) => (
           <div
