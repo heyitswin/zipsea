@@ -38,11 +38,14 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
   useEffect(() => {
     const fetchPricingData = async () => {
       try {
-        console.log("💰 PricingSummary: Fetching pricing for session:", sessionId);
+        console.log(
+          "💰 PricingSummary: Fetching pricing for session:",
+          sessionId,
+        );
 
         // Fetch basket data which contains pricing breakdown
         const basketResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/basket`
+          `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/basket`,
         );
 
         if (!basketResponse.ok) {
@@ -51,10 +54,15 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
 
         const basketData = await basketResponse.json();
         console.log("🛒 Basket data:", basketData);
+        console.log("🛒 basketData.results:", basketData.results);
+        console.log("🛒 basketData.results[0]:", basketData.results?.[0]);
 
         // Extract pricing from basket
         const totalprice = basketData.results?.[0]?.totalprice || 0;
         const totaldeposit = basketData.results?.[0]?.totaldeposit || 0;
+
+        console.log("💵 Extracted totalprice:", totalprice);
+        console.log("💵 Extracted totaldeposit:", totaldeposit);
         const currency = basketData.results?.[0]?.currency || "USD";
         const currencySymbol = basketData.results?.[0]?.currencysymbol || "$";
 
@@ -74,8 +82,12 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
             const category = (item.category || "").toLowerCase();
 
             if (amount !== 0) {
-              const isDiscount = amount < 0 || category.includes("discount") || category.includes("promotion");
-              const isTax = category.includes("tax") || category.includes("fee");
+              const isDiscount =
+                amount < 0 ||
+                category.includes("discount") ||
+                category.includes("promotion");
+              const isTax =
+                category.includes("tax") || category.includes("fee");
 
               breakdown.push({
                 description,
@@ -89,7 +101,10 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
                 discounts += Math.abs(amount);
               } else if (isTax) {
                 taxes += amount;
-              } else if (category.includes("fare") || category.includes("cruise")) {
+              } else if (
+                category.includes("fare") ||
+                category.includes("cruise")
+              ) {
                 cruiseFare += amount;
               } else {
                 fees += amount;
@@ -99,7 +114,11 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
         }
 
         // If no breakdown available, try perperson pricing
-        if (breakdown.length === 0 && basketItem?.perperson && Array.isArray(basketItem.perperson)) {
+        if (
+          breakdown.length === 0 &&
+          basketItem?.perperson &&
+          Array.isArray(basketItem.perperson)
+        ) {
           basketItem.perperson.forEach((person: any) => {
             if (person.fare) {
               breakdown.push({
@@ -141,34 +160,37 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
 
         try {
           const sessionResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/booking/session/${sessionId}`
+            `${process.env.NEXT_PUBLIC_API_URL}/booking/session/${sessionId}`,
           );
           if (sessionResponse.ok) {
             const sessionData = await sessionResponse.json();
             if (sessionData.cruiseId) {
               // Fetch cruise details to get cruise line
               const cruiseResponse = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/cruises/${sessionData.cruiseId}`
+                `${process.env.NEXT_PUBLIC_API_URL}/cruises/${sessionData.cruiseId}`,
               );
               if (cruiseResponse.ok) {
                 const cruiseData = await cruiseResponse.json();
                 const cruise = cruiseData.data || cruiseData;
 
                 shipName = cruise.shipName || cruise.ship?.name || shipName;
-                shipImage = cruise.ship?.defaultShipImageHd ||
-                           cruise.ship?.defaultShipImage2k ||
-                           cruise.shipImageHd ||
-                           shipImage;
+                shipImage =
+                  cruise.ship?.defaultShipImageHd ||
+                  cruise.ship?.defaultShipImage2k ||
+                  cruise.shipImageHd ||
+                  shipImage;
 
                 // Fetch cruise line for cancellation policy
                 if (cruise.cruiseLineId) {
                   const lineResponse = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL}/cruise-lines/${cruise.cruiseLineId}`
+                    `${process.env.NEXT_PUBLIC_API_URL}/cruise-lines/${cruise.cruiseLineId}`,
                   );
                   if (lineResponse.ok) {
                     const lineData = await lineResponse.json();
                     cruiseLineName = lineData.name;
-                    cancellationPolicyUrl = lineData.cancellationPolicyUrl || lineData.cancellation_policy_url;
+                    cancellationPolicyUrl =
+                      lineData.cancellationPolicyUrl ||
+                      lineData.cancellation_policy_url;
                   }
                 }
               }
@@ -264,11 +286,16 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
       <div className="space-y-2 mb-4 pb-4 border-b border-gray-200">
         {pricingData.breakdown.map((item, index) => (
           <div key={index} className="flex justify-between items-start">
-            <span className={`font-geograph text-[14px] ${item.isDiscount ? 'text-green-600' : 'text-gray-700'}`}>
+            <span
+              className={`font-geograph text-[14px] ${item.isDiscount ? "text-green-600" : "text-gray-700"}`}
+            >
               {item.description}
             </span>
-            <span className={`font-geograph text-[14px] ${item.isDiscount ? 'text-green-600' : 'text-gray-900'}`}>
-              {item.isDiscount && item.amount > 0 ? '-' : ''}{formatPrice(item.amount)}
+            <span
+              className={`font-geograph text-[14px] ${item.isDiscount ? "text-green-600" : "text-gray-900"}`}
+            >
+              {item.isDiscount && item.amount > 0 ? "-" : ""}
+              {formatPrice(item.amount)}
             </span>
           </div>
         ))}

@@ -771,9 +771,25 @@ class TraveltekBookingService {
         console.log(
           '[TraveltekBooking] 📦 Basket empty from API, using cached basket from session'
         );
+        console.log(
+          '[TraveltekBooking] 💵 Returning cached totalprice:',
+          sessionData.basketData.results?.[0]?.totalprice
+        );
+        console.log(
+          '[TraveltekBooking] 💵 Returning cached totaldeposit:',
+          sessionData.basketData.results?.[0]?.totaldeposit
+        );
         return sessionData.basketData;
       }
 
+      console.log(
+        '[TraveltekBooking] 💵 Returning API totalprice:',
+        basketData.results?.[0]?.totalprice
+      );
+      console.log(
+        '[TraveltekBooking] 💵 Returning API totaldeposit:',
+        basketData.results?.[0]?.totaldeposit
+      );
       return basketData;
     } catch (error) {
       console.error('[TraveltekBooking] Failed to get basket:', error);
