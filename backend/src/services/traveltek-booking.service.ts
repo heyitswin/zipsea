@@ -553,12 +553,30 @@ class TraveltekBookingService {
         );
 
         // Find a matching cabin grade with the same type from fresh pricing
+        // IMPORTANT: Search within gridpricing array, not just top-level results
+        // Each cabin can have multiple rate codes in gridpricing, each with its own gradeno and resultno
         let alternativeGrade = null;
         if (cabinTypeIndex && freshPricing.results && freshPricing.results.length > 0) {
-          alternativeGrade = freshPricing.results.find((r: any) => {
-            const parts = r.gradeno?.split(':');
-            return parts && parts.length >= 3 && parts[2] === cabinTypeIndex;
-          });
+          for (const cabin of freshPricing.results) {
+            if (cabin.gridpricing && Array.isArray(cabin.gridpricing)) {
+              // Search gridpricing array for matching cabin type
+              const matchingRate = cabin.gridpricing.find((rate: any) => {
+                const parts = rate.gradeno?.split(':');
+                return (
+                  parts &&
+                  parts.length >= 3 &&
+                  parts[2] === cabinTypeIndex &&
+                  rate.available === 'Y' &&
+                  parseFloat(rate.price || '0') > 0
+                );
+              });
+
+              if (matchingRate) {
+                alternativeGrade = matchingRate;
+                break;
+              }
+            }
+          }
         }
 
         if (alternativeGrade && alternativeGrade.price > 0) {
