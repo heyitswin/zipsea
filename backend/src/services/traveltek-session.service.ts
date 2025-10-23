@@ -19,6 +19,7 @@ interface SessionData {
   cruiseId?: string;
   userId?: string;
   cruiseResultNo?: string; // Cruise result number from getCabinGrades for addToBasket API
+  basketData?: any; // Cached basket data from addToBasket response
   itemkey?: string; // Item key from basket response, required for booking creation
   isHoldBooking?: boolean; // Flag for hold booking vs full payment
 }
