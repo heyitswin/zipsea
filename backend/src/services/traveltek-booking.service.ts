@@ -452,85 +452,17 @@ class TraveltekBookingService {
         sailingDate: cruise.sailing_date,
       });
 
-      // CRITICAL: Call getCabinGrades before addToBasket to refresh pricing
-      // Per Traveltek docs: "The price of a cruise will be up-to-date once you retrieve it using the cabingrades endpoint"
-      // This prevents basket from showing price: 0 due to stale pricing
-      const { adults, children, childAges } = sessionData.passengerCount;
-
-      // Format child DOBs for API (YYYY-MM-DD)
-      const childDobs = (childAges || []).map((age: number) => {
-        const dob = new Date();
-        dob.setFullYear(dob.getFullYear() - age);
-        return dob.toISOString().split('T')[0];
-      });
-
-      const getCabinGradesParams = {
-        sessionkey: sessionData.sessionKey,
-        sid: sessionData.sid,
-        codetocruiseid: cruise.id,
-        adults,
-        children,
-        childDobs: childDobs.length > 0 ? childDobs : undefined,
-      };
+      // NOTE: Removed getCabinGrades call before addToBasket
+      // Previously tried to refresh pricing by calling getCabinGrades first, but this caused issues:
+      // - Rate codes change frequently (DM996598 → DM996603, etc.)
+      // - User's selected rate code may no longer exist after getCabinGrades refresh
+      // - This resulted in addToBasket returning price: 0, paymentoption: "none"
+      // Solution: Trust the user's selection from when they loaded the pricing page
+      // The addToBasket API will return current pricing for that cabin grade
 
       console.log(
-        '[TraveltekBooking] 🚀 Refreshing pricing with getCabinGrades before addToBasket:',
-        {
-          ...getCabinGradesParams,
-          sessionkey: '***' + getCabinGradesParams.sessionkey.slice(-8),
-        }
+        '[TraveltekBooking] 🚀 Adding to basket directly (no pre-refresh to avoid rate code mismatches)'
       );
-
-      const freshPricingData = await traveltekApiService.getCabinGrades(getCabinGradesParams);
-
-      console.log('[TraveltekBooking] ✅ Fresh pricing retrieved');
-      console.log(
-        '[TraveltekBooking] 📊 getCabinGrades response keys:',
-        Object.keys(freshPricingData)
-      );
-      console.log('[TraveltekBooking] 📊 results count:', freshPricingData.results?.length || 0);
-      if (freshPricingData.results && freshPricingData.results.length > 0) {
-        // Log what we're searching for
-        console.log('[TraveltekBooking] 🔍 Searching for grade with:', {
-          searchResultNo: params.resultNo,
-          searchGradeNo: params.gradeNo,
-          searchResultNoType: typeof params.resultNo,
-          searchGradeNoType: typeof params.gradeNo,
-        });
-
-        // Log what's available in the response
-        console.log('[TraveltekBooking] 🔍 Available grades:');
-        freshPricingData.results.forEach((r: any, idx: number) => {
-          console.log(`  Grade ${idx}:`, {
-            resultno: r.resultno,
-            gradeno: r.gradeno,
-            resultnoType: typeof r.resultno,
-            gradenoType: typeof r.gradeno,
-          });
-        });
-
-        // Find the matching cabin grade from fresh pricing
-        const matchingGrade = freshPricingData.results.find(
-          (r: any) => r.resultno === params.resultNo && r.gradeno === params.gradeNo
-        );
-        if (matchingGrade) {
-          console.log('[TraveltekBooking] 📊 Matching grade from fresh pricing:', {
-            resultno: matchingGrade.resultno,
-            gradeno: matchingGrade.gradeno,
-            ratecode: matchingGrade.ratecode,
-            price: matchingGrade.price,
-            paymentoption: matchingGrade.paymentoption,
-            gridpricing: matchingGrade.gridpricing?.length || 0,
-          });
-          console.log(
-            '[TraveltekBooking] 📊 Full matching grade:',
-            JSON.stringify(matchingGrade, null, 2)
-          );
-        } else {
-          console.warn('[TraveltekBooking] ⚠️ No matching grade found in fresh pricing');
-        }
-      }
-      console.log('[TraveltekBooking] 🚀 Now adding to basket');
 
       // Build addToBasket params
       // For guaranteed cabins: only send resultno, gradeno, ratecode
