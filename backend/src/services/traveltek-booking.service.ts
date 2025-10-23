@@ -483,7 +483,35 @@ class TraveltekBookingService {
 
       const freshPricingData = await traveltekApiService.getCabinGrades(getCabinGradesParams);
 
-      console.log('[TraveltekBooking] ✅ Fresh pricing retrieved, now adding to basket');
+      console.log('[TraveltekBooking] ✅ Fresh pricing retrieved');
+      console.log(
+        '[TraveltekBooking] 📊 getCabinGrades response keys:',
+        Object.keys(freshPricingData)
+      );
+      console.log('[TraveltekBooking] 📊 results count:', freshPricingData.results?.length || 0);
+      if (freshPricingData.results && freshPricingData.results.length > 0) {
+        // Find the matching cabin grade from fresh pricing
+        const matchingGrade = freshPricingData.results.find(
+          (r: any) => r.resultno === params.resultNo && r.gradeno === params.gradeNo
+        );
+        if (matchingGrade) {
+          console.log('[TraveltekBooking] 📊 Matching grade from fresh pricing:', {
+            resultno: matchingGrade.resultno,
+            gradeno: matchingGrade.gradeno,
+            ratecode: matchingGrade.ratecode,
+            price: matchingGrade.price,
+            paymentoption: matchingGrade.paymentoption,
+            gridpricing: matchingGrade.gridpricing?.length || 0,
+          });
+          console.log(
+            '[TraveltekBooking] 📊 Full matching grade:',
+            JSON.stringify(matchingGrade, null, 2)
+          );
+        } else {
+          console.warn('[TraveltekBooking] ⚠️ No matching grade found in fresh pricing');
+        }
+      }
+      console.log('[TraveltekBooking] 🚀 Now adding to basket');
 
       // Build addToBasket params
       // For guaranteed cabins: only send resultno, gradeno, ratecode
