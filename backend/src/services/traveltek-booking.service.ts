@@ -125,7 +125,6 @@ class TraveltekBookingService {
       `;
 
       if (cruiseResult.length === 0) {
-        redis.disconnect();
         throw new Error('Cruise not found');
       }
 
