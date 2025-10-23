@@ -1290,6 +1290,7 @@ class TraveltekBookingService {
       // Step 7: Store booking in our database with hold status
       const bookingId = await this.storeHoldBooking({
         sessionId: params.sessionId,
+        cruiseId: sessionData.cruiseId,
         traveltekBookingId: traveltekBookingId,
         bookingDetails: bookingDetails,
         leadPassenger: params.leadPassenger,
@@ -1355,6 +1356,7 @@ class TraveltekBookingService {
    */
   private async storeHoldBooking(params: {
     sessionId: string;
+    cruiseId: string;
     traveltekBookingId: string;
     bookingDetails: any;
     leadPassenger: {
@@ -1371,6 +1373,7 @@ class TraveltekBookingService {
         .insert(bookings)
         .values({
           bookingSessionId: params.sessionId,
+          cruiseId: params.cruiseId,
           traveltekBookingId: params.traveltekBookingId,
           status: 'hold',
           bookingType: 'hold',
