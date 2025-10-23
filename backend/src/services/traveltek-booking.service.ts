@@ -490,6 +490,25 @@ class TraveltekBookingService {
       );
       console.log('[TraveltekBooking] 📊 results count:', freshPricingData.results?.length || 0);
       if (freshPricingData.results && freshPricingData.results.length > 0) {
+        // Log what we're searching for
+        console.log('[TraveltekBooking] 🔍 Searching for grade with:', {
+          searchResultNo: params.resultNo,
+          searchGradeNo: params.gradeNo,
+          searchResultNoType: typeof params.resultNo,
+          searchGradeNoType: typeof params.gradeNo,
+        });
+
+        // Log what's available in the response
+        console.log('[TraveltekBooking] 🔍 Available grades:');
+        freshPricingData.results.forEach((r: any, idx: number) => {
+          console.log(`  Grade ${idx}:`, {
+            resultno: r.resultno,
+            gradeno: r.gradeno,
+            resultnoType: typeof r.resultno,
+            gradenoType: typeof r.gradeno,
+          });
+        });
+
         // Find the matching cabin grade from fresh pricing
         const matchingGrade = freshPricingData.results.find(
           (r: any) => r.resultno === params.resultNo && r.gradeno === params.gradeNo
