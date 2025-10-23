@@ -565,6 +565,8 @@ class TraveltekBookingService {
       // but we only have the IDs at this point. We can add them later if needed.
       console.log('[TraveltekBooking] 💾 Saving basketData to session:');
       console.log('  - basketData has items?', !!basketData.results?.[0]?.basketitems?.length);
+      console.log('  - basketData.results[0].totalprice:', basketData.results?.[0]?.totalprice);
+      console.log('  - basketData.results[0].totaldeposit:', basketData.results?.[0]?.totaldeposit);
       console.log('  - basketData structure:', JSON.stringify(basketData).substring(0, 300));
 
       await traveltekSessionService.updateSession(params.sessionId, {
@@ -771,9 +773,25 @@ class TraveltekBookingService {
         console.log(
           '[TraveltekBooking] 📦 Basket empty from API, using cached basket from session'
         );
+        console.log(
+          '[TraveltekBooking] 💵 Returning cached totalprice:',
+          sessionData.basketData.results?.[0]?.totalprice
+        );
+        console.log(
+          '[TraveltekBooking] 💵 Returning cached totaldeposit:',
+          sessionData.basketData.results?.[0]?.totaldeposit
+        );
         return sessionData.basketData;
       }
 
+      console.log(
+        '[TraveltekBooking] 💵 Returning API totalprice:',
+        basketData.results?.[0]?.totalprice
+      );
+      console.log(
+        '[TraveltekBooking] 💵 Returning API totaldeposit:',
+        basketData.results?.[0]?.totaldeposit
+      );
       return basketData;
     } catch (error) {
       console.error('[TraveltekBooking] Failed to get basket:', error);
