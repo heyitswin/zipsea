@@ -741,6 +741,20 @@ class TraveltekBookingService {
         sessionkey: sessionData.sessionKey,
       });
 
+      // Check if basket is empty but we have cached basketData from selectCabin
+      // This handles race conditions where frontend requests basket before Traveltek
+      // has fully processed the addToBasket call
+      const basketItems = basketData.results?.[0]?.basketitems || [];
+      const hasCachedBasket =
+        sessionData.basketData && sessionData.basketData.results?.[0]?.basketitems?.length > 0;
+
+      if (basketItems.length === 0 && hasCachedBasket) {
+        console.log(
+          '[TraveltekBooking] 📦 Basket empty from API, using cached basket from session'
+        );
+        return sessionData.basketData;
+      }
+
       return basketData;
     } catch (error) {
       console.error('[TraveltekBooking] Failed to get basket:', error);
