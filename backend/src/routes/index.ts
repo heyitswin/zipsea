@@ -9,6 +9,7 @@ import searchOptimizedRoutes from './search-optimized.routes';
 import searchComprehensiveRoutes from './search-comprehensive.routes';
 import filterOptionsRoutes from './filter-options.routes';
 import cruiseRoutes from './cruise.routes';
+import cruiseLineRoutes from './cruise-lines.routes';
 import shipRoutes from './ship.routes';
 import quoteRoutes from './quote.routes';
 import adminRoutes from './admin.routes';
@@ -58,6 +59,7 @@ apiRouter.use('/filter-options', filterOptionsRoutes);
 // Keep old search routes as fallback at different path if needed
 // apiRouter.use('/search-old', searchRoutes);
 apiRouter.use('/cruises', cruiseRoutes);
+apiRouter.use('/cruise-lines', cruiseLineRoutes);
 apiRouter.use('/ships', shipRoutes);
 apiRouter.use('/quotes', quoteRoutes);
 apiRouter.use('/price-history', priceHistoryRoutes);
