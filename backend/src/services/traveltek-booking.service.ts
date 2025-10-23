@@ -831,16 +831,20 @@ class TraveltekBookingService {
       const bookingDetails = bookingResponse.results?.[0]?.bookingdetails;
       const transactionId = bookingDetails?.transactions?.[0]?.transactionid;
 
-      // Determine payment status from Traveltek booking status
+      // Determine booking status and payment status from Traveltek response
       const traveltekStatus = bookingDetails?.status?.toLowerCase();
-      let paymentStatus: 'deposit_paid' | 'fully_paid' | 'pending' | 'failed';
+      let bookingStatus: 'confirmed' | 'pending' | 'cancelled' | 'failed';
+      let bookingPaymentStatus: 'deposit_paid' | 'fully_paid' | 'pending' | 'failed';
 
       if (traveltekStatus === 'confirmed') {
-        paymentStatus = 'fully_paid';
+        bookingStatus = 'confirmed';
+        bookingPaymentStatus = 'fully_paid';
       } else if (traveltekStatus === 'failed') {
-        paymentStatus = 'failed';
+        bookingStatus = 'failed';
+        bookingPaymentStatus = 'failed';
       } else {
-        paymentStatus = 'pending';
+        bookingStatus = 'pending';
+        bookingPaymentStatus = 'pending';
       }
 
       const bookingId = await this.storeBooking({
@@ -848,7 +852,8 @@ class TraveltekBookingService {
         cruiseId: sessionData.cruiseId,
         traveltekBookingId: traveltekBookingId,
         bookingDetails: bookingDetails,
-        paymentStatus: paymentStatus,
+        status: bookingStatus,
+        paymentStatus: bookingPaymentStatus,
         passengers: params.passengers,
         payment: {
           ...params.payment,
@@ -1047,6 +1052,7 @@ class TraveltekBookingService {
     cruiseId: string;
     traveltekBookingId: string;
     bookingDetails: any;
+    status: 'confirmed' | 'pending' | 'cancelled' | 'failed';
     paymentStatus: 'deposit_paid' | 'fully_paid' | 'pending' | 'failed';
     passengers: PassengerDetails[];
     payment: any;
@@ -1059,7 +1065,7 @@ class TraveltekBookingService {
           bookingSessionId: params.sessionId,
           cruiseId: params.cruiseId,
           traveltekBookingId: params.traveltekBookingId,
-          status: 'confirmed',
+          status: params.status,
           bookingDetails: params.bookingDetails,
           totalAmount: params.bookingDetails.totalcost?.toString() || '0',
           depositAmount: params.bookingDetails.totaldeposit?.toString() || '0',
