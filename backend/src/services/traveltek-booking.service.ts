@@ -565,6 +565,12 @@ class TraveltekBookingService {
       // but we only have the IDs at this point. We can add them later if needed.
       console.log('[TraveltekBooking] 💾 Saving basketData to session:');
       console.log('  - basketData has items?', !!basketData.results?.[0]?.basketitems?.length);
+      console.log('  - basketData.results[0].totalprice:', basketData.results?.[0]?.totalprice);
+      console.log('  - basketData.results[0].totaldeposit:', basketData.results?.[0]?.totaldeposit);
+      console.log(
+        '  - Full basketData.results[0]:',
+        JSON.stringify(basketData.results?.[0], null, 2)
+      );
       console.log('  - basketData structure:', JSON.stringify(basketData).substring(0, 300));
 
       await traveltekSessionService.updateSession(params.sessionId, {
