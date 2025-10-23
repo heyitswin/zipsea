@@ -9,6 +9,7 @@ export const cruiseLines = pgTable('cruise_lines', {
   shortName: varchar('short_name', { length: 50 }),
   niceUrl: varchar('nice_url', { length: 255 }),
   logo: varchar('logo', { length: 500 }),
+  cancellationPolicyUrl: varchar('cancellation_policy_url', { length: 500 }),
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
