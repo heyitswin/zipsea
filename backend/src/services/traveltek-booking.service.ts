@@ -752,6 +752,29 @@ class TraveltekBookingService {
         throw new Error('No itemkey found in session. Please select a cabin before booking.');
       }
 
+      // Step 3.5: Retrieve basket to get latest pricing
+      // This ensures Traveltek has calculated current pricing before we book
+      console.log('🛒 [TraveltekBooking] Retrieving basket before booking to get latest pricing');
+      const basketResponse = await traveltekApiService.getBasket({
+        sessionkey: sessionData.sessionKey,
+      });
+
+      console.log('🔍 [TraveltekBooking] Basket response structure:', {
+        hasResults: !!basketResponse.results,
+        resultsLength: basketResponse.results?.length,
+        hasBasketItems: !!basketResponse.results?.[0]?.basketitems,
+        basketItemsLength: basketResponse.results?.[0]?.basketitems?.length,
+      });
+
+      // Log basket pricing
+      if (basketResponse.results?.[0]) {
+        console.log('💰 [TraveltekBooking] Basket pricing:', {
+          totalprice: basketResponse.results[0].totalprice,
+          totaldeposit: basketResponse.results[0].totaldeposit,
+          duedate: basketResponse.results[0].duedate,
+        });
+      }
+
       // Step 4: Create booking with Traveltek INCLUDING payment
       // Per Traveltek docs: Include ccard object for full payment bookings
       console.log(
@@ -831,6 +854,30 @@ class TraveltekBookingService {
       const bookingDetails = bookingResponse.results?.[0]?.bookingdetails;
       const transactionId = bookingDetails?.transactions?.[0]?.transactionid;
 
+      console.log('🔍 [TraveltekBooking] Booking response pricing:', {
+        totalcost: bookingDetails?.totalcost,
+        totaldeposit: bookingDetails?.totaldeposit,
+        balanceduedate: bookingDetails?.balanceduedate,
+        status: bookingDetails?.status,
+      });
+
+      // IMPORTANT: If booking response has $0 pricing, use basket pricing as fallback
+      // This handles cases where Traveltek doesn't return pricing in booking response
+      let finalTotalCost = bookingDetails?.totalcost;
+      let finalTotalDeposit = bookingDetails?.totaldeposit;
+
+      if ((!finalTotalCost || finalTotalCost === 0) && basketResponse.results?.[0]) {
+        console.log(
+          '⚠️  [TraveltekBooking] Booking has $0 pricing, using basket pricing as fallback'
+        );
+        finalTotalCost = basketResponse.results[0].totalprice;
+        finalTotalDeposit = basketResponse.results[0].totaldeposit;
+        console.log('💰 [TraveltekBooking] Using basket pricing:', {
+          totalcost: finalTotalCost,
+          totaldeposit: finalTotalDeposit,
+        });
+      }
+
       // Determine booking status and payment status from Traveltek response
       const traveltekStatus = bookingDetails?.status?.toLowerCase();
       let bookingStatus: 'confirmed' | 'pending' | 'cancelled' | 'failed';
@@ -851,7 +898,12 @@ class TraveltekBookingService {
         sessionId: params.sessionId,
         cruiseId: sessionData.cruiseId,
         traveltekBookingId: traveltekBookingId,
-        bookingDetails: bookingDetails,
+        bookingDetails: {
+          ...bookingDetails,
+          // Override with final pricing (from basket if booking response has $0)
+          totalcost: finalTotalCost,
+          totaldeposit: finalTotalDeposit,
+        },
         status: bookingStatus,
         paymentStatus: bookingPaymentStatus,
         passengers: params.passengers,
@@ -896,9 +948,9 @@ class TraveltekBookingService {
           sailingDate: cruiseDetails?.sailingDate,
           nights: cruiseDetails?.nights,
           passengerCount: params.passengers.length,
-          totalAmount: bookingDetails?.totalcost,
+          totalAmount: finalTotalCost, // Use final pricing (may be from basket)
           paidAmount: params.payment.amount,
-          depositAmount: bookingDetails?.totaldeposit,
+          depositAmount: finalTotalDeposit, // Use final pricing (may be from basket)
           balanceDueDate: bookingDetails?.balanceduedate,
           leadPassenger: {
             firstName: leadPassenger.firstName,
@@ -920,8 +972,8 @@ class TraveltekBookingService {
         bookingId,
         traveltekBookingId: traveltekBookingId,
         status: paymentStatus,
-        totalAmount: bookingDetails?.totalcost,
-        depositAmount: bookingDetails?.totaldeposit,
+        totalAmount: finalTotalCost, // Use final pricing (may be from basket)
+        depositAmount: finalTotalDeposit, // Use final pricing (may be from basket)
         paidAmount: params.payment.amount,
         balanceDueDate: bookingDetails?.balanceduedate,
         confirmationNumber: bookingDetails?.confirmationnumber,
