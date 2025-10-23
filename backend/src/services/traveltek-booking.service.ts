@@ -773,6 +773,16 @@ class TraveltekBookingService {
           totaldeposit: basketResponse.results[0].totaldeposit,
           duedate: basketResponse.results[0].duedate,
         });
+
+        // Also log basket items to see if pricing is nested there
+        if (basketResponse.results[0].basketitems?.[0]) {
+          console.log('💰 [TraveltekBooking] First basket item pricing:', {
+            price: basketResponse.results[0].basketitems[0].price,
+            searchprice: basketResponse.results[0].basketitems[0].searchprice,
+            hasBreakdown: !!basketResponse.results[0].basketitems[0].breakdown,
+            hasPerperson: !!basketResponse.results[0].basketitems[0].perperson,
+          });
+        }
       }
 
       // Step 4: Create booking with Traveltek INCLUDING payment
