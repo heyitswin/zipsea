@@ -831,11 +831,24 @@ class TraveltekBookingService {
       const bookingDetails = bookingResponse.results?.[0]?.bookingdetails;
       const transactionId = bookingDetails?.transactions?.[0]?.transactionid;
 
+      // Determine payment status from Traveltek booking status
+      const traveltekStatus = bookingDetails?.status?.toLowerCase();
+      let paymentStatus: 'deposit_paid' | 'fully_paid' | 'pending' | 'failed';
+
+      if (traveltekStatus === 'confirmed') {
+        paymentStatus = 'fully_paid';
+      } else if (traveltekStatus === 'failed') {
+        paymentStatus = 'failed';
+      } else {
+        paymentStatus = 'pending';
+      }
+
       const bookingId = await this.storeBooking({
         sessionId: params.sessionId,
         cruiseId: sessionData.cruiseId,
         traveltekBookingId: traveltekBookingId,
         bookingDetails: bookingDetails,
+        paymentStatus: paymentStatus,
         passengers: params.passengers,
         payment: {
           ...params.payment,
@@ -1034,6 +1047,7 @@ class TraveltekBookingService {
     cruiseId: string;
     traveltekBookingId: string;
     bookingDetails: any;
+    paymentStatus: 'deposit_paid' | 'fully_paid' | 'pending' | 'failed';
     passengers: PassengerDetails[];
     payment: any;
   }): Promise<string> {
@@ -1050,7 +1064,7 @@ class TraveltekBookingService {
           totalAmount: params.bookingDetails.totalcost?.toString() || '0',
           depositAmount: params.bookingDetails.totaldeposit?.toString() || '0',
           paidAmount: params.payment.amount.toString(),
-          paymentStatus: 'paid',
+          paymentStatus: params.paymentStatus,
           balanceDueDate: params.bookingDetails.balanceduedate
             ? new Date(params.bookingDetails.balanceduedate)
             : new Date(),
