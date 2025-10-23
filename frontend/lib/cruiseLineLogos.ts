@@ -1,6 +1,7 @@
 /**
  * Maps cruise line names to their logo filenames
  * All logos are stored in /public/images/cruise-logos/
+ * Updated: Oct 23, 2025
  */
 export function getCruiseLineLogo(cruiseLineName: string): string {
   // Normalize the cruise line name to lowercase for matching
