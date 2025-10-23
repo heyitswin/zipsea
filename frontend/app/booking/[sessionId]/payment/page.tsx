@@ -8,7 +8,7 @@ import PricingSummary from "../../../components/PricingSummary";
 import {
   detectCardType,
   formatCardNumber,
-} from "../../../lib/cardTypeDetection";
+} from "../../../../lib/cardTypeDetection";
 
 interface BookingSummary {
   passengers?: any[];
