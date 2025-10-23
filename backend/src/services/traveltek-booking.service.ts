@@ -109,24 +109,11 @@ class TraveltekBookingService {
 
       const { adults, children, childAges } = sessionData.passengerCount;
 
-      // Check Redis cache first for faster response
-      // Cache key includes cruise ID and passenger count for accurate pricing
-      const cacheKey = `cabin_pricing:${cruiseId}:${adults}a:${children}c:${childAges.join(',')}`;
-
-      const Redis = require('ioredis');
-      const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-
-      try {
-        const cachedData = await redis.get(cacheKey);
-        if (cachedData) {
-          console.log(`[TraveltekBooking] 🚀 Cache HIT for cabin pricing: ${cruiseId}`);
-          redis.disconnect();
-          return JSON.parse(cachedData);
-        }
-        console.log(`[TraveltekBooking] Cache MISS for cabin pricing: ${cruiseId}`);
-      } catch (cacheError) {
-        console.warn('[TraveltekBooking] Redis cache read failed:', cacheError);
-      }
+      // NOTE: Caching disabled for live pricing to prevent stale rate codes
+      // Rate codes can change frequently, and caching causes mismatches between
+      // what the user sees in the dropdown and what's actually available
+      // Performance impact is acceptable since this only runs when user loads cabin pricing
+      console.log(`[TraveltekBooking] 🔄 Fetching fresh cabin pricing (no cache): ${cruiseId}`);
 
       // Get cruise to verify it exists
       // Use raw SQL to avoid schema mismatch issues between environments
@@ -373,16 +360,8 @@ class TraveltekBookingService {
         availableRateCodes, // Add available rate codes for frontend selector
       };
 
-      // Cache the result for 5 minutes (300 seconds)
-      // Pricing changes infrequently, so this provides a good balance
-      try {
-        await redis.setex(cacheKey, 300, JSON.stringify(result));
-        console.log(`[TraveltekBooking] 💾 Cached cabin pricing for 5 minutes: ${cruiseId}`);
-      } catch (cacheError) {
-        console.warn('[TraveltekBooking] Failed to cache pricing:', cacheError);
-      } finally {
-        redis.disconnect();
-      }
+      // NOTE: Caching removed - see note at top of method
+      // Always return fresh pricing to prevent rate code mismatches
 
       return result;
     } catch (error) {
