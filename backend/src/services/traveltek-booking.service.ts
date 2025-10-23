@@ -175,6 +175,22 @@ class TraveltekBookingService {
           '[TraveltekBooking] 🔍 DEBUG First cabin from Traveltek:',
           JSON.stringify(pricingData.results[0], null, 2)
         );
+
+        // Log all unique rate codes found
+        const allRateCodes = new Set<string>();
+        pricingData.results.forEach((cabin: any) => {
+          if (cabin.gridpricing && Array.isArray(cabin.gridpricing)) {
+            cabin.gridpricing.forEach((rate: any) => {
+              if (rate.ratecode) allRateCodes.add(rate.ratecode);
+            });
+          } else if (cabin.ratecode) {
+            allRateCodes.add(cabin.ratecode);
+          }
+        });
+        console.log(
+          '[TraveltekBooking] 🔍 All rate codes in this response:',
+          Array.from(allRateCodes).sort()
+        );
       }
 
       // Transform cabin grades - each cabin should appear ONCE with its cheapest rate
@@ -504,6 +520,11 @@ class TraveltekBookingService {
           '[TraveltekBooking] ⚠️  Rate no longer available (price=0, paymentoption=none)'
         );
         console.warn('[TraveltekBooking] ⚠️  Attempting to find alternative rate...');
+        console.warn('[TraveltekBooking] 🔍 Original request used:', {
+          rateCode: params.rateCode,
+          gradeNo: params.gradeNo,
+          resultNo: params.resultNo,
+        });
 
         // Get fresh pricing to find current available rates
         const { adults, children, childAges } = sessionData.passengerCount;
