@@ -833,6 +833,7 @@ class TraveltekBookingService {
 
       const bookingId = await this.storeBooking({
         sessionId: params.sessionId,
+        cruiseId: sessionData.cruiseId,
         traveltekBookingId: traveltekBookingId,
         bookingDetails: bookingDetails,
         passengers: params.passengers,
@@ -1030,6 +1031,7 @@ class TraveltekBookingService {
    */
   private async storeBooking(params: {
     sessionId: string;
+    cruiseId: string;
     traveltekBookingId: string;
     bookingDetails: any;
     passengers: PassengerDetails[];
@@ -1041,6 +1043,7 @@ class TraveltekBookingService {
         .insert(bookings)
         .values({
           bookingSessionId: params.sessionId,
+          cruiseId: params.cruiseId,
           traveltekBookingId: params.traveltekBookingId,
           status: 'confirmed',
           bookingDetails: params.bookingDetails,
