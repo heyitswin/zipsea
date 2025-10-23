@@ -518,6 +518,81 @@ class TraveltekBookingService {
         throw new Error(`Failed to add cabin to basket: ${errorMessages}`);
       }
 
+      // Check if the selected rate is no longer available (price = 0, paymentoption = "none")
+      // This happens when rate codes expire or sell out between loading pricing and reserving
+      const basketItem = basketData.results?.[0]?.basketitems?.[0];
+      if (basketItem && basketItem.price === 0 && basketItem.paymentoption === 'none') {
+        console.warn(
+          '[TraveltekBooking] ⚠️  Rate no longer available (price=0, paymentoption=none)'
+        );
+        console.warn('[TraveltekBooking] ⚠️  Attempting to find alternative rate...');
+
+        // Get fresh pricing to find current available rates
+        const { adults, children, childAges } = sessionData.passengerCount;
+        const childDobs = (childAges || []).map((age: number) => {
+          const dob = new Date();
+          dob.setFullYear(dob.getFullYear() - age);
+          return dob.toISOString().split('T')[0];
+        });
+
+        const freshPricing = await traveltekApiService.getCabinGrades({
+          sessionkey: sessionData.sessionKey,
+          sid: sessionData.sid,
+          codetocruiseid: cruise.id,
+          adults,
+          children,
+          childDobs: childDobs.length > 0 ? childDobs : undefined,
+        });
+
+        // Extract cabin type from the original gradeno (format: "201:RATECODE:TYPE")
+        const gradeNoParts = params.gradeNo.split(':');
+        const cabinTypeIndex = gradeNoParts.length >= 3 ? gradeNoParts[2] : null;
+
+        console.log(
+          '[TraveltekBooking] 🔍 Looking for alternative rate with cabin type index:',
+          cabinTypeIndex
+        );
+
+        // Find a matching cabin grade with the same type from fresh pricing
+        let alternativeGrade = null;
+        if (cabinTypeIndex && freshPricing.results && freshPricing.results.length > 0) {
+          alternativeGrade = freshPricing.results.find((r: any) => {
+            const parts = r.gradeno?.split(':');
+            return parts && parts.length >= 3 && parts[2] === cabinTypeIndex;
+          });
+        }
+
+        if (alternativeGrade && alternativeGrade.price > 0) {
+          console.log('[TraveltekBooking] ✅ Found alternative rate:', {
+            originalRate: params.rateCode,
+            newRate: alternativeGrade.ratecode,
+            originalPrice: basketItem.searchprice || 'unknown',
+            newPrice: alternativeGrade.price,
+          });
+
+          // Try adding to basket with the fresh rate
+          const retryParams = {
+            ...addToBasketParams,
+            resultno: alternativeGrade.resultno,
+            gradeno: alternativeGrade.gradeno,
+            ratecode: alternativeGrade.ratecode,
+          };
+
+          console.log('[TraveltekBooking] 🔄 Retrying addToBasket with fresh rate');
+          const retryBasketData = await traveltekApiService.addToBasket(retryParams);
+
+          // Update basketData to use the retry response
+          Object.assign(basketData, retryBasketData);
+
+          console.log('[TraveltekBooking] ✅ Successfully added to basket with alternative rate');
+        } else {
+          console.error('[TraveltekBooking] ❌ No alternative rates available');
+          throw new Error(
+            'The selected rate is no longer available and no alternatives were found. Please refresh the page to see current pricing.'
+          );
+        }
+      }
+
       // Extract itemkey from basket response
       // The itemkey is needed for booking creation to specify dining preferences
       // Note: basketitems is nested inside results[0], not at the top level
