@@ -9,7 +9,7 @@ import { eq } from 'drizzle-orm';
 interface PassengerDetails {
   passengerNumber: number;
   passengerType: 'adult' | 'child' | 'infant';
-  title: string; // Mr, Mrs, Ms, Miss, Dr, etc.
+  title?: string; // Mr, Mrs, Ms, Miss, Dr, etc. - Optional, will default based on gender
   firstName: string;
   lastName: string;
   dateOfBirth: string; // YYYY-MM-DD
@@ -847,16 +847,19 @@ class TraveltekBookingService {
           postcode: params.contact.postalCode,
           country: params.contact.country,
         },
-        passengers: params.passengers.map(p => ({
-          title: p.title,
-          firstname: p.firstName,
-          lastname: p.lastName,
-          dob: p.dateOfBirth,
-          gender: p.gender,
-          nationality: p.nationality,
-          paxtype: p.passengerType,
-          age: this.calculateAge(p.dateOfBirth),
-        })),
+        passengers: params.passengers.map(p => {
+          const age = this.calculateAge(p.dateOfBirth);
+          return {
+            title: p.title || this.getDefaultTitle(p.gender, age),
+            firstname: p.firstName,
+            lastname: p.lastName,
+            dob: p.dateOfBirth,
+            gender: p.gender,
+            nationality: p.nationality,
+            paxtype: p.passengerType,
+            age: age,
+          };
+        }),
         dining: params.dining, // Dining seating preference passed to API service
         depositBooking: false, // Full payment for now
         // Include payment card in booking request (per Traveltek docs)
@@ -994,6 +997,19 @@ class TraveltekBookingService {
     }
 
     return age;
+  }
+
+  /**
+   * Get default title based on gender and age
+   * Used when frontend doesn't provide title
+   */
+  private getDefaultTitle(gender: 'M' | 'F', age: number): string {
+    if (gender === 'M') {
+      return 'Mr';
+    } else {
+      // For females, use Miss for children and Ms for adults
+      return age < 18 ? 'Miss' : 'Ms';
+    }
   }
 
   /**

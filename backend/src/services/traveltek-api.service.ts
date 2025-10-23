@@ -641,6 +641,7 @@ export class TraveltekApiService {
     sid: string;
     itemkey: string; // Required: itemkey from basket response
     contact: {
+      title?: string; // Mr, Mrs, Ms, Miss, Dr, etc. - Optional per Traveltek docs
       firstname: string;
       lastname: string;
       email: string;
