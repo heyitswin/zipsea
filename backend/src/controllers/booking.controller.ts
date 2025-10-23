@@ -332,11 +332,16 @@ class BookingController {
       // Create hold booking or payment booking based on flag
       let bookingResult;
       if (isHoldBooking) {
+        // For hold bookings, extract lead passenger from passengers array
+        const leadPassenger = passengers.find(p => p.isLeadPassenger) || passengers[0];
         bookingResult = await traveltekBookingService.createHoldBooking({
           sessionId,
-          passengers,
-          contact,
-          dining,
+          leadPassenger: {
+            firstName: leadPassenger.firstName,
+            lastName: leadPassenger.lastName,
+            email: contact.email,
+            phone: contact.phone,
+          },
         });
       } else {
         bookingResult = await traveltekBookingService.createBooking({
