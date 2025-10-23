@@ -301,7 +301,7 @@ class BookingController {
   async createBooking(req: Request, res: Response): Promise<void> {
     try {
       const { sessionId } = req.params;
-      const { passengers, contact, payment, dining } = req.body;
+      const { passengers, contact, payment, dining, isHoldBooking } = req.body;
 
       // Validation
       if (!passengers || !Array.isArray(passengers) || passengers.length === 0) {
@@ -314,9 +314,14 @@ class BookingController {
         return;
       }
 
-      if (!payment || !payment.cardNumber || !payment.amount) {
-        res.status(400).json({ error: 'payment details with cardNumber and amount are required' });
-        return;
+      // Payment validation only for non-hold bookings
+      if (!isHoldBooking) {
+        if (!payment || !payment.cardNumber || !payment.amount) {
+          res
+            .status(400)
+            .json({ error: 'payment details with cardNumber and amount are required' });
+          return;
+        }
       }
 
       if (!dining) {
@@ -324,14 +329,24 @@ class BookingController {
         return;
       }
 
-      // Create booking
-      const bookingResult = await traveltekBookingService.createBooking({
-        sessionId,
-        passengers,
-        contact,
-        payment,
-        dining,
-      });
+      // Create hold booking or payment booking based on flag
+      let bookingResult;
+      if (isHoldBooking) {
+        bookingResult = await traveltekBookingService.createHoldBooking({
+          sessionId,
+          passengers,
+          contact,
+          dining,
+        });
+      } else {
+        bookingResult = await traveltekBookingService.createBooking({
+          sessionId,
+          passengers,
+          contact,
+          payment,
+          dining,
+        });
+      }
 
       res.status(201).json(bookingResult);
     } catch (error) {
