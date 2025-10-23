@@ -747,7 +747,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
     return {
       image: cabinCategory
-        ? cabinCategory.imageUrl || cabinCategory.imageUrlHd // Prefer regular URL as HD often broken
+        ? cabinCategory.imageUrlHd || cabinCategory.imageUrl // Prefer HD for better quality on desktop
         : null,
       description: cabinCategory?.description || null,
     };
@@ -1784,7 +1784,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   >
                     <div className="flex flex-col md:flex-row md:items-center">
                       {/* Cabin Image */}
-                      <div className="md:w-48 h-32 md:h-24 flex-shrink-0">
+                      <div className="md:w-64 h-32 md:h-40 flex-shrink-0">
                         {(() => {
                           const interiorImage = getCabinImage("interior");
                           return interiorImage ? (
@@ -1865,7 +1865,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   >
                     <div className="flex flex-col md:flex-row md:items-center">
                       {/* Cabin Image */}
-                      <div className="md:w-48 h-32 md:h-24 flex-shrink-0">
+                      <div className="md:w-64 h-32 md:h-40 flex-shrink-0">
                         {(() => {
                           const oceanviewImage = getCabinImage("oceanview");
                           return oceanviewImage ? (
@@ -1946,7 +1946,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   >
                     <div className="flex flex-col md:flex-row md:items-center">
                       {/* Cabin Image */}
-                      <div className="md:w-48 h-32 md:h-24 flex-shrink-0">
+                      <div className="md:w-64 h-32 md:h-40 flex-shrink-0">
                         {(() => {
                           const balconyImage = getCabinImage("balcony");
                           return balconyImage ? (
@@ -2024,7 +2024,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 >
                   <div className="flex flex-col md:flex-row md:items-center">
                     {/* Cabin Image */}
-                    <div className="md:w-48 h-32 md:h-24 flex-shrink-0">
+                    <div className="md:w-64 h-32 md:h-40 flex-shrink-0">
                       {(() => {
                         const suiteImage = getCabinImage("suite");
                         return suiteImage ? (
