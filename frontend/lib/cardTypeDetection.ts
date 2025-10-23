@@ -1,6 +1,7 @@
 import creditCardType from "credit-card-type";
 
 /**
+ * Credit card type detection and validation utilities
  * Maps credit-card-type library card types to Traveltek API card type codes
  */
 const CARD_TYPE_TO_TRAVELTEK_CODE: Record<string, string> = {
