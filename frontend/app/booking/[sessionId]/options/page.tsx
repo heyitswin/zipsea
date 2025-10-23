@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useBooking } from "../../../context/BookingContext";
 import BookingSummary from "../../../components/BookingSummary";
@@ -13,6 +13,7 @@ export default function BookingOptionsPage() {
   const { passengerCount } = useBooking();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cruiseSlug, setCruiseSlug] = useState<string | null>(null);
 
   // Lead contact fields
   const [leadContact, setLeadContact] = useState({
@@ -26,6 +27,39 @@ export default function BookingOptionsPage() {
     postalCode: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Fetch cruise data for back button
+  useEffect(() => {
+    const fetchCruiseSlug = async () => {
+      try {
+        const sessionResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/booking/session/${sessionId}`,
+        );
+        if (sessionResponse.ok) {
+          const sessionData = await sessionResponse.json();
+          if (sessionData.cruiseId) {
+            // Fetch cruise to get slug
+            const cruiseResponse = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/cruises/${sessionData.cruiseId}`,
+            );
+            if (cruiseResponse.ok) {
+              const cruiseData = await cruiseResponse.json();
+              const cruise = cruiseData.data || cruiseData;
+              if (cruise.slug) {
+                setCruiseSlug(cruise.slug);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching cruise slug:", error);
+      }
+    };
+
+    if (sessionId) {
+      fetchCruiseSlug();
+    }
+  }, [sessionId]);
 
   const handleContinue = async () => {
     // Validate lead contact fields
@@ -266,7 +300,13 @@ export default function BookingOptionsPage() {
         {/* Navigation Buttons */}
         <div className="flex justify-between items-center">
           <button
-            onClick={() => router.back()}
+            onClick={() => {
+              if (cruiseSlug) {
+                router.push(`/cruise/${cruiseSlug}`);
+              } else {
+                router.back();
+              }
+            }}
             className="font-geograph font-medium text-[16px] px-6 py-3 rounded-[5px] bg-white text-dark-blue border border-gray-300 hover:border-dark-blue transition-colors"
           >
             Back
