@@ -231,6 +231,7 @@ class TraveltekSessionService {
         itemkey: dbSession.itemkey || undefined,
         cruiseResultNo: dbSession.selectedCabinGrade || undefined, // Store cruise result number
         isHoldBooking: dbSession.isHoldBooking || false,
+        basketData: dbSession.basketData || undefined, // Include basket data for fallback pricing
       };
 
       // Restore to Redis
