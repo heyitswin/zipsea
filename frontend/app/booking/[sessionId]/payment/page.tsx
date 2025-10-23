@@ -381,9 +381,6 @@ export default function BookingPaymentPage() {
               showPassengers={true}
             />
 
-            {/* Pricing Summary */}
-            <PricingSummary sessionId={sessionId} />
-
             {/* Payment Form or Hold Booking Info */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
@@ -711,75 +708,35 @@ export default function BookingPaymentPage() {
 
           {/* Right Column - Price Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-[100px]">
-              <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
-                Price Summary
-              </h3>
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between">
-                  <span className="font-geograph text-[14px] text-gray-600">
-                    Cruise Fare
-                  </span>
-                  <span className="font-geograph text-[14px] text-dark-blue">
-                    $2,200.00
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-geograph text-[14px] text-gray-600">
-                    Taxes & Fees
-                  </span>
-                  <span className="font-geograph text-[14px] text-dark-blue">
-                    $287.36
-                  </span>
-                </div>
-                <div className="border-t border-gray-200 pt-3 mt-3">
-                  <div className="flex justify-between">
-                    <span className="font-geograph font-bold text-[18px] text-dark-blue">
-                      Total
-                    </span>
-                    <span className="font-geograph font-bold text-[18px] text-dark-blue">
-                      $2,487.36
-                    </span>
-                  </div>
-                  <p className="font-geograph text-[12px] text-gray-600 mt-2">
-                    For {passengerCount.adults}{" "}
-                    {passengerCount.adults === 1 ? "guest" : "guests"}
+            <div className="sticky top-[100px] space-y-4">
+              <PricingSummary sessionId={sessionId} />
+
+              {/* Confirm Booking Button */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <button
+                  onClick={handleConfirmBooking}
+                  disabled={isProcessing}
+                  className={`w-full font-geograph font-medium text-[16px] px-6 py-4 rounded-[5px] transition-colors ${
+                    isProcessing
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90"
+                  }`}
+                >
+                  {isProcessing
+                    ? isHoldBooking
+                      ? "Creating Hold..."
+                      : "Processing..."
+                    : isHoldBooking
+                      ? "Confirm Hold Booking"
+                      : "Confirm & Pay"}
+                </button>
+
+                {!isHoldBooking && (
+                  <p className="font-geograph text-[12px] text-gray-600 text-center mt-4">
+                    Your payment is secure and encrypted
                   </p>
-                </div>
+                )}
               </div>
-
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <p className="font-geograph font-bold text-[14px] text-green-800 mb-1">
-                  Included Perks
-                </p>
-                <p className="font-geograph text-[14px] text-green-700">
-                  +$497 Onboard Credit
-                </p>
-              </div>
-
-              <button
-                onClick={handleConfirmBooking}
-                disabled={isProcessing}
-                className={`w-full font-geograph font-medium text-[16px] px-6 py-4 rounded-[5px] transition-colors ${
-                  isProcessing
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90"
-                }`}
-              >
-                {isProcessing
-                  ? isHoldBooking
-                    ? "Creating Hold..."
-                    : "Processing..."
-                  : isHoldBooking
-                    ? "Confirm Hold Booking"
-                    : "Confirm & Pay $2,487.36"}
-              </button>
-
-              {!isHoldBooking && (
-                <p className="font-geograph text-[12px] text-gray-600 text-center mt-4">
-                  Your payment is secure and encrypted
-                </p>
-              )}
             </div>
           </div>
         </div>

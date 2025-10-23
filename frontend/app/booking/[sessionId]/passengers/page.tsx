@@ -174,265 +174,274 @@ export default function BookingPassengersPage() {
   return (
     <div className="min-h-screen bg-sand pt-20">
       {/* Form Content */}
-      <div className="max-w-3xl mx-auto px-6 py-8">
-        {/* Booking Summary */}
-        <BookingSummary sessionId={sessionId} />
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Booking Summary and Forms */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Booking Summary */}
+            <BookingSummary sessionId={sessionId} />
 
-        {/* Pricing Summary */}
-        <PricingSummary sessionId={sessionId} />
+            {passengers.map((passenger, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-lg border border-gray-200 p-6 md:p-8 mb-6"
+              >
+                <h3 className="font-geograph font-bold text-[20px] text-dark-blue mb-6">
+                  {getPassengerLabel(index)}
+                </h3>
 
-        {passengers.map((passenger, index) => (
-          <div
-            key={index}
-            className="bg-white rounded-lg border border-gray-200 p-6 md:p-8 mb-6"
-          >
-            <h3 className="font-geograph font-bold text-[20px] text-dark-blue mb-6">
-              {getPassengerLabel(index)}
-            </h3>
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                      Title *
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={passenger.title}
+                        onChange={(e) =>
+                          updatePassenger(index, "title", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 pr-10 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none bg-white ${
+                          errors[index]?.title
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        <option value="">Select title</option>
+                        <option value="Mr">Mr</option>
+                        <option value="Mrs">Mrs</option>
+                        <option value="Ms">Ms</option>
+                        <option value="Miss">Miss</option>
+                        <option value="Dr">Dr</option>
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <Image
+                          src="/images/arrow-down.svg"
+                          alt=""
+                          width={12}
+                          height={12}
+                        />
+                      </div>
+                    </div>
+                    {errors[index]?.title && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors[index].title}
+                      </p>
+                    )}
+                  </div>
 
-            {/* Basic Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                  Title *
-                </label>
-                <div className="relative">
-                  <select
-                    value={passenger.title}
-                    onChange={(e) =>
-                      updatePassenger(index, "title", e.target.value)
-                    }
-                    className={`w-full px-4 py-3 pr-10 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none bg-white ${
-                      errors[index]?.title
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    <option value="">Select title</option>
-                    <option value="Mr">Mr</option>
-                    <option value="Mrs">Mrs</option>
-                    <option value="Ms">Ms</option>
-                    <option value="Miss">Miss</option>
-                    <option value="Dr">Dr</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <Image
-                      src="/images/arrow-down.svg"
-                      alt=""
-                      width={12}
-                      height={12}
+                  <div>
+                    <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                      First Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={passenger.firstName}
+                      onChange={(e) =>
+                        updatePassenger(index, "firstName", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
+                        errors[index]?.firstName
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="John"
                     />
+                    {errors[index]?.firstName && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors[index].firstName}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                      Last Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={passenger.lastName}
+                      onChange={(e) =>
+                        updatePassenger(index, "lastName", e.target.value)
+                      }
+                      className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
+                        errors[index]?.lastName
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="Doe"
+                    />
+                    {errors[index]?.lastName && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors[index].lastName}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                      Date of Birth *
+                    </label>
+                    <input
+                      type="date"
+                      value={passenger.dateOfBirth}
+                      onChange={(e) =>
+                        updatePassenger(index, "dateOfBirth", e.target.value)
+                      }
+                      placeholder="MM/DD/YYYY"
+                      className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none bg-white text-dark-blue ${
+                        errors[index]?.dateOfBirth
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      style={{
+                        colorScheme: "light",
+                        WebkitAppearance: "none",
+                        MozAppearance: "textfield",
+                      }}
+                    />
+                    {errors[index]?.dateOfBirth && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors[index].dateOfBirth}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                      Gender *
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={passenger.gender}
+                        onChange={(e) =>
+                          updatePassenger(index, "gender", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 pr-10 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none bg-white ${
+                          errors[index]?.gender
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        <option value="">Select gender</option>
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <Image
+                          src="/images/arrow-down.svg"
+                          alt=""
+                          width={12}
+                          height={12}
+                        />
+                      </div>
+                    </div>
+                    {errors[index]?.gender && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors[index].gender}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                      Citizenship *
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={passenger.nationality}
+                        onChange={(e) =>
+                          updatePassenger(index, "nationality", e.target.value)
+                        }
+                        className={`w-full px-4 py-3 pr-10 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none bg-white ${
+                          errors[index]?.nationality
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        <option value="">Select nationality</option>
+                        <option value="US">United States</option>
+                        <option value="CA">Canada</option>
+                        <option value="GB">United Kingdom</option>
+                        <option value="AU">Australia</option>
+                        <option value="NZ">New Zealand</option>
+                        <option value="IE">Ireland</option>
+                        <option value="FR">France</option>
+                        <option value="DE">Germany</option>
+                        <option value="IT">Italy</option>
+                        <option value="ES">Spain</option>
+                        <option value="PT">Portugal</option>
+                        <option value="NL">Netherlands</option>
+                        <option value="BE">Belgium</option>
+                        <option value="CH">Switzerland</option>
+                        <option value="AT">Austria</option>
+                        <option value="SE">Sweden</option>
+                        <option value="NO">Norway</option>
+                        <option value="DK">Denmark</option>
+                        <option value="FI">Finland</option>
+                        <option value="MX">Mexico</option>
+                        <option value="BR">Brazil</option>
+                        <option value="AR">Argentina</option>
+                        <option value="CL">Chile</option>
+                        <option value="JP">Japan</option>
+                        <option value="KR">South Korea</option>
+                        <option value="CN">China</option>
+                        <option value="IN">India</option>
+                        <option value="SG">Singapore</option>
+                        <option value="ZA">South Africa</option>
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <Image
+                          src="/images/arrow-down.svg"
+                          alt=""
+                          width={12}
+                          height={12}
+                        />
+                      </div>
+                    </div>
+                    {errors[index]?.nationality && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors[index].nationality}
+                      </p>
+                    )}
                   </div>
                 </div>
-                {errors[index]?.title && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors[index].title}
-                  </p>
-                )}
               </div>
+            ))}
 
-              <div>
-                <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                  First Name *
-                </label>
-                <input
-                  type="text"
-                  value={passenger.firstName}
-                  onChange={(e) =>
-                    updatePassenger(index, "firstName", e.target.value)
-                  }
-                  className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                    errors[index]?.firstName
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
-                  placeholder="John"
-                />
-                {errors[index]?.firstName && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors[index].firstName}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                  Last Name *
-                </label>
-                <input
-                  type="text"
-                  value={passenger.lastName}
-                  onChange={(e) =>
-                    updatePassenger(index, "lastName", e.target.value)
-                  }
-                  className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                    errors[index]?.lastName
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
-                  placeholder="Doe"
-                />
-                {errors[index]?.lastName && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors[index].lastName}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                  Date of Birth *
-                </label>
-                <input
-                  type="date"
-                  value={passenger.dateOfBirth}
-                  onChange={(e) =>
-                    updatePassenger(index, "dateOfBirth", e.target.value)
-                  }
-                  placeholder="MM/DD/YYYY"
-                  className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none bg-white text-dark-blue ${
-                    errors[index]?.dateOfBirth
-                      ? "border-red-500"
-                      : "border-gray-300"
-                  }`}
-                  style={{
-                    colorScheme: "light",
-                    WebkitAppearance: "none",
-                    MozAppearance: "textfield",
-                  }}
-                />
-                {errors[index]?.dateOfBirth && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors[index].dateOfBirth}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                  Gender *
-                </label>
-                <div className="relative">
-                  <select
-                    value={passenger.gender}
-                    onChange={(e) =>
-                      updatePassenger(index, "gender", e.target.value)
-                    }
-                    className={`w-full px-4 py-3 pr-10 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none bg-white ${
-                      errors[index]?.gender
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    <option value="">Select gender</option>
-                    <option value="M">Male</option>
-                    <option value="F">Female</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <Image
-                      src="/images/arrow-down.svg"
-                      alt=""
-                      width={12}
-                      height={12}
-                    />
-                  </div>
-                </div>
-                {errors[index]?.gender && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors[index].gender}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                  Citizenship *
-                </label>
-                <div className="relative">
-                  <select
-                    value={passenger.nationality}
-                    onChange={(e) =>
-                      updatePassenger(index, "nationality", e.target.value)
-                    }
-                    className={`w-full px-4 py-3 pr-10 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue appearance-none bg-white ${
-                      errors[index]?.nationality
-                        ? "border-red-500"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    <option value="">Select nationality</option>
-                    <option value="US">United States</option>
-                    <option value="CA">Canada</option>
-                    <option value="GB">United Kingdom</option>
-                    <option value="AU">Australia</option>
-                    <option value="NZ">New Zealand</option>
-                    <option value="IE">Ireland</option>
-                    <option value="FR">France</option>
-                    <option value="DE">Germany</option>
-                    <option value="IT">Italy</option>
-                    <option value="ES">Spain</option>
-                    <option value="PT">Portugal</option>
-                    <option value="NL">Netherlands</option>
-                    <option value="BE">Belgium</option>
-                    <option value="CH">Switzerland</option>
-                    <option value="AT">Austria</option>
-                    <option value="SE">Sweden</option>
-                    <option value="NO">Norway</option>
-                    <option value="DK">Denmark</option>
-                    <option value="FI">Finland</option>
-                    <option value="MX">Mexico</option>
-                    <option value="BR">Brazil</option>
-                    <option value="AR">Argentina</option>
-                    <option value="CL">Chile</option>
-                    <option value="JP">Japan</option>
-                    <option value="KR">South Korea</option>
-                    <option value="CN">China</option>
-                    <option value="IN">India</option>
-                    <option value="SG">Singapore</option>
-                    <option value="ZA">South Africa</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <Image
-                      src="/images/arrow-down.svg"
-                      alt=""
-                      width={12}
-                      height={12}
-                    />
-                  </div>
-                </div>
-                {errors[index]?.nationality && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors[index].nationality}
-                  </p>
-                )}
-              </div>
+            {/* Navigation Buttons */}
+            <div className="flex justify-between items-center">
+              <button
+                onClick={() => router.push(`/booking/${sessionId}/options`)}
+                className="font-geograph font-medium text-[16px] px-6 py-3 rounded-[5px] bg-white text-dark-blue border border-gray-300 hover:border-dark-blue transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleContinue}
+                disabled={isSubmitting}
+                className={`font-geograph font-medium text-[16px] px-8 py-3 rounded-[5px] transition-colors ${
+                  isSubmitting
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90"
+                }`}
+              >
+                {isSubmitting
+                  ? "Saving..."
+                  : isHoldBooking
+                    ? "Continue to Review"
+                    : "Continue to Payment"}
+              </button>
             </div>
           </div>
-        ))}
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between items-center">
-          <button
-            onClick={() => router.push(`/booking/${sessionId}/options`)}
-            className="font-geograph font-medium text-[16px] px-6 py-3 rounded-[5px] bg-white text-dark-blue border border-gray-300 hover:border-dark-blue transition-colors"
-          >
-            Back
-          </button>
-          <button
-            onClick={handleContinue}
-            disabled={isSubmitting}
-            className={`font-geograph font-medium text-[16px] px-8 py-3 rounded-[5px] transition-colors ${
-              isSubmitting
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90"
-            }`}
-          >
-            {isSubmitting
-              ? "Saving..."
-              : isHoldBooking
-                ? "Continue to Review"
-                : "Continue to Payment"}
-          </button>
+          {/* Right Column - Pricing Summary */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-[100px]">
+              <PricingSummary sessionId={sessionId} />
+            </div>
+          </div>
         </div>
       </div>
     </div>
