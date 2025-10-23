@@ -22,7 +22,6 @@ interface PassengerDetails {
 }
 
 interface ContactDetails {
-  title?: string; // Optional: Will use lead passenger's title if not provided
   firstName: string;
   lastName: string;
   email: string;
@@ -564,6 +563,10 @@ class TraveltekBookingService {
       // Note: We're only storing the basketData for now since we don't have complete cabin details
       // The selectedCabinGrade and selectedCabin fields in the schema expect full objects,
       // but we only have the IDs at this point. We can add them later if needed.
+      console.log('[TraveltekBooking] 💾 Saving basketData to session:');
+      console.log('  - basketData has items?', !!basketData.results?.[0]?.basketitems?.length);
+      console.log('  - basketData structure:', JSON.stringify(basketData).substring(0, 300));
+
       await traveltekSessionService.updateSession(params.sessionId, {
         basketData,
         itemkey,
@@ -746,8 +749,23 @@ class TraveltekBookingService {
       // This handles race conditions where frontend requests basket before Traveltek
       // has fully processed the addToBasket call
       const basketItems = basketData.results?.[0]?.basketitems || [];
+
+      // Debug logging to trace the issue
+      console.log('[TraveltekBooking] 🔍 Basket debug info:');
+      console.log('  - API basketItems length:', basketItems.length);
+      console.log('  - Session has basketData?', !!sessionData.basketData);
+      if (sessionData.basketData) {
+        const cachedItems = sessionData.basketData.results?.[0]?.basketitems || [];
+        console.log('  - Cached basketItems length:', cachedItems.length);
+        console.log(
+          '  - Cached basket structure:',
+          JSON.stringify(sessionData.basketData).substring(0, 200)
+        );
+      }
+
       const hasCachedBasket =
         sessionData.basketData && sessionData.basketData.results?.[0]?.basketitems?.length > 0;
+      console.log('  - hasCachedBasket?', hasCachedBasket);
 
       if (basketItems.length === 0 && hasCachedBasket) {
         console.log(
@@ -799,39 +817,6 @@ class TraveltekBookingService {
         throw new Error('No itemkey found in session. Please select a cabin before booking.');
       }
 
-      // Step 3.5: Retrieve basket to get latest pricing
-      // This ensures Traveltek has calculated current pricing before we book
-      console.log('🛒 [TraveltekBooking] Retrieving basket before booking to get latest pricing');
-      const basketResponse = await traveltekApiService.getBasket({
-        sessionkey: sessionData.sessionKey,
-      });
-
-      console.log('🔍 [TraveltekBooking] Basket response structure:', {
-        hasResults: !!basketResponse.results,
-        resultsLength: basketResponse.results?.length,
-        hasBasketItems: !!basketResponse.results?.[0]?.basketitems,
-        basketItemsLength: basketResponse.results?.[0]?.basketitems?.length,
-      });
-
-      // Log basket pricing
-      if (basketResponse.results?.[0]) {
-        console.log('💰 [TraveltekBooking] Basket pricing:', {
-          totalprice: basketResponse.results[0].totalprice,
-          totaldeposit: basketResponse.results[0].totaldeposit,
-          duedate: basketResponse.results[0].duedate,
-        });
-
-        // Also log basket items to see if pricing is nested there
-        if (basketResponse.results[0].basketitems?.[0]) {
-          console.log('💰 [TraveltekBooking] First basket item pricing:', {
-            price: basketResponse.results[0].basketitems[0].price,
-            searchprice: basketResponse.results[0].basketitems[0].searchprice,
-            hasBreakdown: !!basketResponse.results[0].basketitems[0].breakdown,
-            hasPerperson: !!basketResponse.results[0].basketitems[0].perperson,
-          });
-        }
-      }
-
       // Step 4: Create booking with Traveltek INCLUDING payment
       // Per Traveltek docs: Include ccard object for full payment bookings
       console.log(
@@ -843,16 +828,15 @@ class TraveltekBookingService {
       const cardType = this.determineCardType(params.payment.cardNumber);
       console.log(`💳 [TraveltekBooking] Detected card type: ${cardType}`);
 
-      // Get title from lead passenger or first passenger for cardholder and contact
+      // Get title from lead passenger or first passenger for cardholder
       const leadPassenger = params.passengers.find(p => p.isLeadPassenger) || params.passengers[0];
-      const leadPassengerTitle = leadPassenger.title;
+      const cardholderTitle = leadPassenger.title;
 
       const bookingResponse = await traveltekApiService.createBooking({
         sessionkey: sessionData.sessionKey,
         sid: sessionData.sid,
         itemkey: sessionData.itemkey,
         contact: {
-          title: leadPassengerTitle, // Use lead passenger's title for contact
           firstname: params.contact.firstName,
           lastname: params.contact.lastName,
           email: params.contact.email,
@@ -877,7 +861,6 @@ class TraveltekBookingService {
         depositBooking: false, // Full payment for now
         // Include payment card in booking request (per Traveltek docs)
         ccard: {
-          passthroughitem: parseInt(sessionData.itemkey), // Required: item identifier for passthrough payment
           amount: params.payment.amount,
           nameoncard: params.payment.cardholderName,
           cardtype: cardType,
@@ -885,7 +868,7 @@ class TraveltekBookingService {
           expirymonth: params.payment.expiryMonth,
           expiryyear: params.payment.expiryYear,
           signature: params.payment.cvv,
-          title: leadPassengerTitle,
+          title: cardholderTitle,
           firstname: params.contact.firstName,
           lastname: params.contact.lastName,
           postcode: params.contact.postalCode,
@@ -896,73 +879,21 @@ class TraveltekBookingService {
         },
       });
 
-      // Extract booking ID from the response structure
-      const traveltekBookingId = bookingResponse.results?.[0]?.bookingdetails?.bookingid;
-
-      if (!traveltekBookingId) {
+      if (!bookingResponse.bookingid) {
         throw new Error('Booking creation failed: no booking ID returned');
       }
 
       console.log('✅ [TraveltekBooking] Booking created with payment included');
-      console.log(`   Traveltek Booking ID: ${traveltekBookingId}`);
 
       // Step 5: Store booking in our database
-      // Extract booking details and transaction ID from response
-      const bookingDetails = bookingResponse.results?.[0]?.bookingdetails;
-      const transactionId = bookingDetails?.transactions?.[0]?.transactionid;
-
-      console.log('🔍 [TraveltekBooking] Booking response pricing:', {
-        totalcost: bookingDetails?.totalcost,
-        totaldeposit: bookingDetails?.totaldeposit,
-        balanceduedate: bookingDetails?.balanceduedate,
-        status: bookingDetails?.status,
-      });
-
-      // IMPORTANT: If booking response has $0 pricing, use basket pricing as fallback
-      // This handles cases where Traveltek doesn't return pricing in booking response
-      let finalTotalCost = bookingDetails?.totalcost;
-      let finalTotalDeposit = bookingDetails?.totaldeposit;
-
-      if ((!finalTotalCost || finalTotalCost === 0) && basketResponse.results?.[0]) {
-        console.log(
-          '⚠️  [TraveltekBooking] Booking has $0 pricing, using basket pricing as fallback'
-        );
-        finalTotalCost = basketResponse.results[0].totalprice;
-        finalTotalDeposit = basketResponse.results[0].totaldeposit;
-        console.log('💰 [TraveltekBooking] Using basket pricing:', {
-          totalcost: finalTotalCost,
-          totaldeposit: finalTotalDeposit,
-        });
-      }
-
-      // Determine booking status and payment status from Traveltek response
-      const traveltekStatus = bookingDetails?.status?.toLowerCase();
-      let bookingStatus: 'confirmed' | 'pending' | 'cancelled' | 'failed';
-      let bookingPaymentStatus: 'deposit_paid' | 'fully_paid' | 'pending' | 'failed';
-
-      if (traveltekStatus === 'confirmed') {
-        bookingStatus = 'confirmed';
-        bookingPaymentStatus = 'fully_paid';
-      } else if (traveltekStatus === 'failed') {
-        bookingStatus = 'failed';
-        bookingPaymentStatus = 'failed';
-      } else {
-        bookingStatus = 'pending';
-        bookingPaymentStatus = 'pending';
-      }
+      // Extract transaction ID from booking response
+      const transactionId =
+        bookingResponse.transactions?.[0]?.transactionid || bookingResponse.transactionid;
 
       const bookingId = await this.storeBooking({
         sessionId: params.sessionId,
-        cruiseId: sessionData.cruiseId,
-        traveltekBookingId: traveltekBookingId,
-        bookingDetails: {
-          ...bookingDetails,
-          // Override with final pricing (from basket if booking response has $0)
-          totalcost: finalTotalCost,
-          totaldeposit: finalTotalDeposit,
-        },
-        status: bookingStatus,
-        paymentStatus: bookingPaymentStatus,
+        traveltekBookingId: bookingResponse.bookingid,
+        bookingDetails: bookingResponse,
         passengers: params.passengers,
         payment: {
           ...params.payment,
@@ -978,7 +909,7 @@ class TraveltekBookingService {
 
       // Step 7: Determine payment status from booking response
       // Check if payment was successful by looking at transaction authcode
-      const hasAuthCode = bookingDetails?.transactions?.[0]?.authcode;
+      const hasAuthCode = bookingResponse.transactions?.[0]?.authcode;
       const paymentStatus = hasAuthCode ? 'confirmed' : 'pending';
 
       console.log(`💳 [TraveltekBooking] Payment status: ${paymentStatus}`, {
@@ -997,26 +928,26 @@ class TraveltekBookingService {
 
         await slackService.notifyBookingCreated({
           bookingId,
-          confirmationNumber: bookingDetails?.confirmationnumber,
-          traveltekBookingId: traveltekBookingId,
+          confirmationNumber: bookingResponse.confirmationnumber,
+          traveltekBookingId: bookingResponse.bookingid,
           cruiseName: cruiseDetails?.cruiseName,
           cruiseLine: cruiseDetails?.cruiseLine,
           shipName: cruiseDetails?.shipName,
           sailingDate: cruiseDetails?.sailingDate,
           nights: cruiseDetails?.nights,
           passengerCount: params.passengers.length,
-          totalAmount: finalTotalCost, // Use final pricing (may be from basket)
+          totalAmount: bookingResponse.totalcost,
           paidAmount: params.payment.amount,
-          depositAmount: finalTotalDeposit, // Use final pricing (may be from basket)
-          balanceDueDate: bookingDetails?.balanceduedate,
+          depositAmount: bookingResponse.depositamount,
+          balanceDueDate: bookingResponse.balanceduedate,
           leadPassenger: {
             firstName: leadPassenger.firstName,
             lastName: leadPassenger.lastName,
             email: leadPassenger.email || params.contact.email,
             phone: leadPassenger.phone || params.contact.phone,
           },
-          cabinGrade: bookingDetails?.cabingrade || bookingDetails?.cabintype,
-          rateCode: bookingDetails?.ratecode,
+          cabinGrade: bookingResponse.cabingrade || bookingResponse.cabintype,
+          rateCode: bookingResponse.ratecode,
           status: paymentStatus,
         });
       } catch (slackError) {
@@ -1027,13 +958,13 @@ class TraveltekBookingService {
       // Step 9: Return booking result
       return {
         bookingId,
-        traveltekBookingId: traveltekBookingId,
+        traveltekBookingId: bookingResponse.bookingid,
         status: paymentStatus,
-        totalAmount: finalTotalCost, // Use final pricing (may be from basket)
-        depositAmount: finalTotalDeposit, // Use final pricing (may be from basket)
+        totalAmount: bookingResponse.totalcost,
+        depositAmount: bookingResponse.depositamount,
         paidAmount: params.payment.amount,
-        balanceDueDate: bookingDetails?.balanceduedate,
-        confirmationNumber: bookingDetails?.confirmationnumber,
+        balanceDueDate: bookingResponse.balanceduedate,
+        confirmationNumber: bookingResponse.confirmationnumber,
         bookingDetails: bookingResponse,
       };
     } catch (error) {
@@ -1158,11 +1089,8 @@ class TraveltekBookingService {
    */
   private async storeBooking(params: {
     sessionId: string;
-    cruiseId: string;
     traveltekBookingId: string;
     bookingDetails: any;
-    status: 'confirmed' | 'pending' | 'cancelled' | 'failed';
-    paymentStatus: 'deposit_paid' | 'fully_paid' | 'pending' | 'failed';
     passengers: PassengerDetails[];
     payment: any;
   }): Promise<string> {
@@ -1172,17 +1100,14 @@ class TraveltekBookingService {
         .insert(bookings)
         .values({
           bookingSessionId: params.sessionId,
-          cruiseId: params.cruiseId,
           traveltekBookingId: params.traveltekBookingId,
-          status: params.status,
+          status: 'confirmed',
           bookingDetails: params.bookingDetails,
-          totalAmount: params.bookingDetails.totalcost?.toString() || '0',
-          depositAmount: params.bookingDetails.totaldeposit?.toString() || '0',
+          totalAmount: params.bookingDetails.totalcost.toString(),
+          depositAmount: params.bookingDetails.depositamount.toString(),
           paidAmount: params.payment.amount.toString(),
-          paymentStatus: params.paymentStatus,
-          balanceDueDate: params.bookingDetails.balanceduedate
-            ? new Date(params.bookingDetails.balanceduedate)
-            : new Date(),
+          paymentStatus: 'paid',
+          balanceDueDate: new Date(params.bookingDetails.balanceduedate),
           createdAt: new Date(),
           updatedAt: new Date(),
         })
@@ -1190,9 +1115,9 @@ class TraveltekBookingService {
 
       // Insert passengers
       await db.insert(bookingPassengers).values(
-        params.passengers.map((p, index) => ({
+        params.passengers.map(p => ({
           bookingId: booking.id,
-          passengerNumber: p.passengerNumber || index + 1, // Generate sequential number if not provided
+          passengerNumber: p.passengerNumber,
           passengerType: p.passengerType,
           firstName: p.firstName,
           lastName: p.lastName,
@@ -1210,7 +1135,7 @@ class TraveltekBookingService {
       await db.insert(bookingPayments).values({
         bookingId: booking.id,
         amount: params.payment.amount.toString(),
-        paymentType: params.payment.paymentType || 'full_payment', // Default to full_payment if not provided
+        paymentType: params.payment.paymentType,
         paymentMethod: 'credit_card',
         last4: params.payment.last4,
         transactionId: params.payment.transactionId,
@@ -1361,7 +1286,6 @@ class TraveltekBookingService {
         sid: sessionData.sid,
         itemkey: sessionData.itemkey,
         contact: {
-          title: 'Mr', // Default title for hold bookings
           firstname: params.leadPassenger.firstName,
           lastname: params.leadPassenger.lastName,
           email: params.leadPassenger.email,
@@ -1379,75 +1303,66 @@ class TraveltekBookingService {
         // IMPORTANT: No ccard object = booking created without payment
       });
 
-      // Extract booking ID from the response structure
-      const traveltekBookingId = bookingResponse.results?.[0]?.bookingdetails?.bookingid;
-
-      if (!traveltekBookingId) {
+      if (!bookingResponse.bookingid) {
         throw new Error('Hold booking creation failed: no booking ID returned');
       }
 
-      console.log(`   Traveltek Booking ID: ${traveltekBookingId}`);
-
-      // Step 5: Extract booking details from response
-      const bookingDetails = bookingResponse.results?.[0]?.bookingdetails;
-
-      // Step 6: Calculate hold expiration (default 7 days)
+      // Step 5: Calculate hold expiration (default 7 days)
       const holdDays = params.holdDurationDays || 7;
       const holdExpiresAt = new Date();
       holdExpiresAt.setDate(holdExpiresAt.getDate() + holdDays);
 
-      // Step 7: Store booking in our database with hold status
+      // Step 6: Store booking in our database with hold status
       const bookingId = await this.storeHoldBooking({
         sessionId: params.sessionId,
-        cruiseId: sessionData.cruiseId,
-        traveltekBookingId: traveltekBookingId,
-        bookingDetails: bookingDetails,
+        traveltekBookingId: bookingResponse.bookingid,
+        bookingDetails: bookingResponse,
         leadPassenger: params.leadPassenger,
         holdExpiresAt,
       });
 
-      // Step 8: Mark session as completed
+      // Step 7: Mark session as completed
       await traveltekSessionService.completeSession(params.sessionId);
 
       console.log(`[TraveltekBooking] ✅ Successfully created hold booking ${bookingId}`);
 
-      // Step 9: Send Slack notification for hold booking
+      // Step 8: Send Slack notification for hold booking
       try {
         const cruiseDetails = await this.getCruiseDetailsForNotification(sessionData.cruiseId);
 
         await slackService.notifyBookingCreated({
           bookingId,
-          confirmationNumber: bookingDetails?.confirmationnumber,
-          traveltekBookingId: traveltekBookingId,
+          confirmationNumber: bookingResponse.confirmationnumber,
+          traveltekBookingId: bookingResponse.bookingid,
           cruiseName: cruiseDetails?.cruiseName,
           cruiseLine: cruiseDetails?.cruiseLine,
           shipName: cruiseDetails?.shipName,
           sailingDate: cruiseDetails?.sailingDate,
           nights: cruiseDetails?.nights,
           passengerCount,
-          totalAmount: bookingDetails?.totalcost,
+          totalAmount: bookingResponse.totalcost,
           paidAmount: 0, // No payment yet
-          depositAmount: bookingDetails?.totaldeposit,
-          balanceDueDate: bookingDetails?.balanceduedate,
+          depositAmount: bookingResponse.depositamount,
+          balanceDueDate: bookingResponse.balanceduedate,
           leadPassenger: params.leadPassenger,
-          cabinGrade: bookingDetails?.cabingrade || bookingDetails?.cabintype,
-          rateCode: bookingDetails?.ratecode,
+          cabinGrade: bookingResponse.cabingrade || bookingResponse.cabintype,
+          rateCode: bookingResponse.ratecode,
           status: 'hold',
         });
       } catch (slackError) {
         console.error('[TraveltekBooking] Failed to send Slack notification:', slackError);
       }
 
-      // Step 10: Return booking result
+      // Step 9: Return booking result
       return {
         bookingId,
-        traveltekBookingId: traveltekBookingId,
+        traveltekBookingId: bookingResponse.bookingid,
         status: 'hold' as const,
-        totalAmount: bookingDetails?.totalcost,
-        depositAmount: bookingDetails?.totaldeposit,
+        totalAmount: bookingResponse.totalcost,
+        depositAmount: bookingResponse.depositamount,
         paidAmount: 0,
         balanceDueDate: holdExpiresAt.toISOString(),
-        confirmationNumber: bookingDetails?.confirmationnumber,
+        confirmationNumber: bookingResponse.confirmationnumber,
         bookingDetails: bookingResponse,
       };
     } catch (error) {
@@ -1465,7 +1380,6 @@ class TraveltekBookingService {
    */
   private async storeHoldBooking(params: {
     sessionId: string;
-    cruiseId: string;
     traveltekBookingId: string;
     bookingDetails: any;
     leadPassenger: {
@@ -1482,14 +1396,13 @@ class TraveltekBookingService {
         .insert(bookings)
         .values({
           bookingSessionId: params.sessionId,
-          cruiseId: params.cruiseId,
           traveltekBookingId: params.traveltekBookingId,
           status: 'hold',
           bookingType: 'hold',
           holdExpiresAt: params.holdExpiresAt,
           bookingDetails: params.bookingDetails,
-          totalAmount: params.bookingDetails.totalcost?.toString() || '0',
-          depositAmount: params.bookingDetails.totaldeposit?.toString() || '0',
+          totalAmount: params.bookingDetails.totalcost.toString(),
+          depositAmount: params.bookingDetails.depositamount.toString(),
           paidAmount: '0',
           paymentStatus: 'pending',
           balanceDueDate: params.holdExpiresAt,
