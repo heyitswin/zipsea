@@ -1101,7 +1101,7 @@ class TraveltekBookingService {
       await db.insert(bookingPayments).values({
         bookingId: booking.id,
         amount: params.payment.amount.toString(),
-        paymentType: params.payment.paymentType,
+        paymentType: params.payment.paymentType || 'full_payment', // Default to full_payment if not provided
         paymentMethod: 'credit_card',
         last4: params.payment.last4,
         transactionId: params.payment.transactionId,
