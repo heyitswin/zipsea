@@ -4,6 +4,11 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useBooking } from "../../../context/BookingContext";
 import BookingSummary from "../../../components/BookingSummary";
+import PricingSummary from "../../../components/PricingSummary";
+import {
+  detectCardType,
+  formatCardNumber,
+} from "../../../lib/cardTypeDetection";
 
 interface BookingSummary {
   passengers?: any[];
@@ -30,6 +35,11 @@ export default function BookingPaymentPage() {
   const [bookingSummary, setBookingSummary] = useState<BookingSummary>({});
   const [isHoldBooking, setIsHoldBooking] = useState(false);
   const [cardNumber, setCardNumber] = useState("");
+  const [cardType, setCardType] = useState<string | null>(null);
+  const [cardTypeName, setCardTypeName] = useState<string | null>(null);
+  const [traveltekCardCode, setTraveltekCardCode] = useState<string | null>(
+    null,
+  );
   const [expiryDate, setExpiryDate] = useState("");
   const [cvv, setCvv] = useState("");
   const [cardName, setCardName] = useState("");
@@ -304,6 +314,7 @@ export default function BookingPaymentPage() {
         },
         payment: {
           cardNumber: cardNumber.replace(/\s/g, ""),
+          cardType: traveltekCardCode || "VIS", // Default to Visa if detection fails
           expiryMonth,
           expiryYear: `20${expiryYear}`, // Convert YY to YYYY
           cardholderName: cardName,
@@ -370,6 +381,9 @@ export default function BookingPaymentPage() {
               showPassengers={true}
             />
 
+            {/* Pricing Summary */}
+            <PricingSummary sessionId={sessionId} />
+
             {/* Payment Form or Hold Booking Info */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
@@ -407,10 +421,16 @@ export default function BookingPaymentPage() {
                       type="text"
                       value={cardNumber}
                       onChange={(e) => {
-                        const formatted = formatCardNumber(
-                          e.target.value.slice(0, 19),
-                        );
+                        const input = e.target.value.slice(0, 19);
+                        const formatted = formatCardNumber(input);
                         setCardNumber(formatted);
+
+                        // Detect card type in real-time
+                        const detected = detectCardType(input);
+                        setCardType(detected.type);
+                        setCardTypeName(detected.name);
+                        setTraveltekCardCode(detected.traveltekCode);
+
                         if (errors.cardNumber) {
                           const newErrors = { ...errors };
                           delete newErrors.cardNumber;
@@ -426,6 +446,18 @@ export default function BookingPaymentPage() {
                     {errors.cardNumber && (
                       <p className="text-red-500 text-sm mt-1">
                         {errors.cardNumber}
+                      </p>
+                    )}
+                    {cardTypeName && traveltekCardCode && (
+                      <p className="text-green-600 text-sm mt-1 flex items-center gap-2">
+                        <span>✓</span>
+                        <span>{cardTypeName} detected</span>
+                      </p>
+                    )}
+                    {cardNumber.length > 4 && !traveltekCardCode && (
+                      <p className="text-orange-600 text-sm mt-1">
+                        ⚠ Card type not supported. Please use Visa, Mastercard,
+                        American Express, Maestro, or Diners Club.
                       </p>
                     )}
                   </div>
