@@ -452,6 +452,39 @@ class TraveltekBookingService {
         sailingDate: cruise.sailing_date,
       });
 
+      // CRITICAL: Call getCabinGrades before addToBasket to refresh pricing
+      // Per Traveltek docs: "The price of a cruise will be up-to-date once you retrieve it using the cabingrades endpoint"
+      // This prevents basket from showing price: 0 due to stale pricing
+      const { adults, children, childAges } = sessionData.passengerCount;
+
+      // Format child DOBs for API (YYYY-MM-DD)
+      const childDobs = (childAges || []).map((age: number) => {
+        const dob = new Date();
+        dob.setFullYear(dob.getFullYear() - age);
+        return dob.toISOString().split('T')[0];
+      });
+
+      const getCabinGradesParams = {
+        sessionkey: sessionData.sessionKey,
+        sid: sessionData.sid,
+        codetocruiseid: cruise.id,
+        adults,
+        children,
+        childDobs: childDobs.length > 0 ? childDobs : undefined,
+      };
+
+      console.log(
+        '[TraveltekBooking] 🚀 Refreshing pricing with getCabinGrades before addToBasket:',
+        {
+          ...getCabinGradesParams,
+          sessionkey: '***' + getCabinGradesParams.sessionkey.slice(-8),
+        }
+      );
+
+      const freshPricingData = await traveltekApiService.getCabinGrades(getCabinGradesParams);
+
+      console.log('[TraveltekBooking] ✅ Fresh pricing retrieved, now adding to basket');
+
       // Build addToBasket params
       // For guaranteed cabins: only send resultno, gradeno, ratecode
       // For specific cabins: also send cabinresult and cabinno
