@@ -541,9 +541,14 @@ class TraveltekBookingService {
         }
 
         if (alternativeGrade && alternativeGrade.price > 0) {
+          // Extract rate code from gradeno (format: "201:RATECODE:TYPE")
+          const alternativeRateCode = alternativeGrade.gradeno?.split(':')[1];
+
           console.log('[TraveltekBooking] ✅ Found alternative rate:', {
             originalRate: params.rateCode,
-            newRate: alternativeGrade.ratecode,
+            newRate: alternativeRateCode,
+            originalGradeNo: params.gradeNo,
+            newGradeNo: alternativeGrade.gradeno,
             originalPrice: basketItem.searchprice || 'unknown',
             newPrice: alternativeGrade.price,
           });
@@ -553,7 +558,7 @@ class TraveltekBookingService {
             ...addToBasketParams,
             resultno: alternativeGrade.resultno,
             gradeno: alternativeGrade.gradeno,
-            ratecode: alternativeGrade.ratecode,
+            ratecode: alternativeRateCode,
           };
 
           console.log('[TraveltekBooking] 🔄 Retrying addToBasket with fresh rate');
