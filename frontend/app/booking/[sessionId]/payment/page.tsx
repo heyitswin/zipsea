@@ -381,9 +381,6 @@ export default function BookingPaymentPage() {
               showPassengers={true}
             />
 
-            {/* Pricing Summary */}
-            <PricingSummary sessionId={sessionId} />
-
             {/* Payment Form or Hold Booking Info */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
@@ -709,54 +706,12 @@ export default function BookingPaymentPage() {
             </div>
           </div>
 
-          {/* Right Column - Price Summary */}
+          {/* Right Column - Pricing Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-[100px]">
-              <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
-                Price Summary
-              </h3>
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between">
-                  <span className="font-geograph text-[14px] text-gray-600">
-                    Cruise Fare
-                  </span>
-                  <span className="font-geograph text-[14px] text-dark-blue">
-                    $2,200.00
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-geograph text-[14px] text-gray-600">
-                    Taxes & Fees
-                  </span>
-                  <span className="font-geograph text-[14px] text-dark-blue">
-                    $287.36
-                  </span>
-                </div>
-                <div className="border-t border-gray-200 pt-3 mt-3">
-                  <div className="flex justify-between">
-                    <span className="font-geograph font-bold text-[18px] text-dark-blue">
-                      Total
-                    </span>
-                    <span className="font-geograph font-bold text-[18px] text-dark-blue">
-                      $2,487.36
-                    </span>
-                  </div>
-                  <p className="font-geograph text-[12px] text-gray-600 mt-2">
-                    For {passengerCount.adults}{" "}
-                    {passengerCount.adults === 1 ? "guest" : "guests"}
-                  </p>
-                </div>
-              </div>
+            <div className="sticky top-[100px] space-y-4">
+              <PricingSummary sessionId={sessionId} />
 
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <p className="font-geograph font-bold text-[14px] text-green-800 mb-1">
-                  Included Perks
-                </p>
-                <p className="font-geograph text-[14px] text-green-700">
-                  +$497 Onboard Credit
-                </p>
-              </div>
-
+              {/* Confirm & Pay Button */}
               <button
                 onClick={handleConfirmBooking}
                 disabled={isProcessing}
@@ -772,11 +727,11 @@ export default function BookingPaymentPage() {
                     : "Processing..."
                   : isHoldBooking
                     ? "Confirm Hold Booking"
-                    : "Confirm & Pay $2,487.36"}
+                    : "Confirm & Pay"}
               </button>
 
               {!isHoldBooking && (
-                <p className="font-geograph text-[12px] text-gray-600 text-center mt-4">
+                <p className="font-geograph text-[12px] text-gray-600 text-center">
                   Your payment is secure and encrypted
                 </p>
               )}
