@@ -563,6 +563,10 @@ class TraveltekBookingService {
       // Note: We're only storing the basketData for now since we don't have complete cabin details
       // The selectedCabinGrade and selectedCabin fields in the schema expect full objects,
       // but we only have the IDs at this point. We can add them later if needed.
+      console.log('[TraveltekBooking] 💾 Saving basketData to session:');
+      console.log('  - basketData has items?', !!basketData.results?.[0]?.basketitems?.length);
+      console.log('  - basketData structure:', JSON.stringify(basketData).substring(0, 300));
+
       await traveltekSessionService.updateSession(params.sessionId, {
         basketData,
         itemkey,
@@ -745,8 +749,23 @@ class TraveltekBookingService {
       // This handles race conditions where frontend requests basket before Traveltek
       // has fully processed the addToBasket call
       const basketItems = basketData.results?.[0]?.basketitems || [];
+
+      // Debug logging to trace the issue
+      console.log('[TraveltekBooking] 🔍 Basket debug info:');
+      console.log('  - API basketItems length:', basketItems.length);
+      console.log('  - Session has basketData?', !!sessionData.basketData);
+      if (sessionData.basketData) {
+        const cachedItems = sessionData.basketData.results?.[0]?.basketitems || [];
+        console.log('  - Cached basketItems length:', cachedItems.length);
+        console.log(
+          '  - Cached basket structure:',
+          JSON.stringify(sessionData.basketData).substring(0, 200)
+        );
+      }
+
       const hasCachedBasket =
         sessionData.basketData && sessionData.basketData.results?.[0]?.basketitems?.length > 0;
+      console.log('  - hasCachedBasket?', hasCachedBasket);
 
       if (basketItems.length === 0 && hasCachedBasket) {
         console.log(
