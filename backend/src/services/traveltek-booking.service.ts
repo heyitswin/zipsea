@@ -176,12 +176,26 @@ class TraveltekBookingService {
           JSON.stringify(pricingData.results[0], null, 2)
         );
 
-        // Log all unique rate codes found
+        // Log all unique rate codes found and check if they have individual resultnos
         const allRateCodes = new Set<string>();
+        const rateCodeDetails: any[] = [];
         pricingData.results.forEach((cabin: any) => {
           if (cabin.gridpricing && Array.isArray(cabin.gridpricing)) {
             cabin.gridpricing.forEach((rate: any) => {
-              if (rate.ratecode) allRateCodes.add(rate.ratecode);
+              if (rate.ratecode) {
+                allRateCodes.add(rate.ratecode);
+                // Only log first 3 rates to avoid spam
+                if (rateCodeDetails.length < 3) {
+                  rateCodeDetails.push({
+                    ratecode: rate.ratecode,
+                    gradeno: rate.gradeno,
+                    hasOwnResultno: !!rate.resultno,
+                    resultno: rate.resultno || 'MISSING - will use cabin.resultno',
+                    cabinResultno: cabin.resultno,
+                    price: rate.price,
+                  });
+                }
+              }
             });
           } else if (cabin.ratecode) {
             allRateCodes.add(cabin.ratecode);
@@ -191,6 +205,7 @@ class TraveltekBookingService {
           '[TraveltekBooking] 🔍 All rate codes in this response:',
           Array.from(allRateCodes).sort()
         );
+        console.log('[TraveltekBooking] 🔍 Sample rate details:', rateCodeDetails);
       }
 
       // Transform cabin grades - each cabin should appear ONCE with its cheapest rate
