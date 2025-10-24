@@ -4,903 +4,927 @@ import Image from "next/image";
 import OptimizedImage from "../lib/OptimizedImage";
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  fetchShips,
-  Ship,
-  searchCruises,
-  Cruise,
-  fetchLastMinuteDeals,
-  LastMinuteDeals,
-  fetchAvailableSailingDates,
-  AvailableSailingDate,
-} from "../lib/api";
-import { createSlugFromCruise } from "../lib/slug";
-import { useAlert } from "../components/GlobalAlertProvider";
 import Navigation from "./components/Navigation";
-import SearchResultsModal from "./components/SearchResultsModal";
-import PassengerSelector from "./components/PassengerSelector";
-import { trackSearch, trackEngagement } from "../lib/analytics";
+import { trackEngagement } from "../lib/analytics";
 
-interface FilterOption {
-  id: number;
-  name: string;
-  count?: number;
-}
+// Month options for the date selector
+const MONTH_OPTIONS = [
+  { value: "1", label: "January" },
+  { value: "2", label: "February" },
+  { value: "3", label: "March" },
+  { value: "4", label: "April" },
+  { value: "5", label: "May" },
+  { value: "6", label: "June" },
+  { value: "7", label: "July" },
+  { value: "8", label: "August" },
+  { value: "9", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
+// Cruise line options
+const CRUISE_LINE_OPTIONS = [
+  { value: "1", label: "Carnival" },
+  { value: "22", label: "Royal Caribbean" },
+  { value: "3", label: "Celebrity" },
+  { value: "2", label: "Norwegian" },
+  { value: "14", label: "Princess" },
+  { value: "4", label: "Disney" },
+  { value: "5", label: "MSC" },
+  { value: "6", label: "Holland America" },
+];
 
 // Separate component to handle URL params (needs to be wrapped in Suspense)
 function HomeWithParams() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { showAlert } = useAlert();
 
-  // Last minute deals states
-  const [lastMinuteDeals, setLastMinuteDeals] = useState<LastMinuteDeals[]>([]);
-  const [isLoadingDeals, setIsLoadingDeals] = useState(false);
-
-  // Passenger selection state
+  // Search states
+  const [selectedCruiseLine, setSelectedCruiseLine] = useState<string>("");
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [passengerCount, setPassengerCount] = useState({
     adults: 2,
     children: 0,
     childAges: [] as number[],
   });
 
-  // Handle post-authentication redirects
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const redirectUrl = sessionStorage.getItem("redirectAfterSignIn");
-      const hasPendingQuote = sessionStorage.getItem("pendingQuote");
+  // Dropdown states
+  const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] =
+    useState(false);
+  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
+  const [isPassengerDropdownOpen, setIsPassengerDropdownOpen] = useState(false);
 
+  // Refs for click outside detection
+  const cruiseLineRef = useRef<HTMLDivElement>(null);
+  const monthRef = useRef<HTMLDivElement>(null);
+  const passengerRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (
-        redirectUrl &&
-        redirectUrl !== "/" &&
-        redirectUrl !== window.location.pathname
+        cruiseLineRef.current &&
+        !cruiseLineRef.current.contains(event.target as Node)
       ) {
-        // Clear the redirect URL and navigate to the stored path
-        sessionStorage.removeItem("redirectAfterSignIn");
-        // Add a small delay to ensure the redirect works properly
-        setTimeout(() => {
-          router.replace(redirectUrl);
-        }, 100);
-        return;
+        setIsCruiseLineDropdownOpen(false);
       }
-
-      // If we're on the homepage but have a pending quote, it means we came back from auth
-      // but the redirect URL was the homepage, so we should stay here
-      if (hasPendingQuote && window.location.pathname === "/") {
-        console.log("User returned to homepage after auth with pending quote");
-        // The quote processing will be handled by the QuoteModalNative component
-        // if they open a quote modal again
+      if (
+        monthRef.current &&
+        !monthRef.current.contains(event.target as Node)
+      ) {
+        setIsMonthDropdownOpen(false);
       }
-    }
-  }, [router]);
-
-  // Load last minute deals on component mount
-  useEffect(() => {
-    const loadLastMinuteDeals = async () => {
-      setIsLoadingDeals(true);
-      try {
-        const deals = await fetchLastMinuteDeals();
-        setLastMinuteDeals(deals);
-      } catch (err) {
-        console.error("Failed to load last minute deals:", err);
-        showAlert("Failed to load last minute deals. Please try again later.");
-        setLastMinuteDeals([]);
-      } finally {
-        setIsLoadingDeals(false);
+      if (
+        passengerRef.current &&
+        !passengerRef.current.contains(event.target as Node)
+      ) {
+        setIsPassengerDropdownOpen(false);
       }
     };
 
-    loadLastMinuteDeals();
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Handle cruise card clicks for last minute deals
-  const handleCruiseClick = (cruise: any) => {
-    try {
-      const slug = createSlugFromCruise(cruise);
-      // Track the engagement
-      trackEngagement("cruise_card_click", {
-        label: cruise.name || `Cruise ${cruise.id}`,
-        cruiseId: cruise.id,
-        cruiseLine: cruise.cruiseLine?.name || "Unknown",
-        ship: cruise.ship?.name || "Unknown",
-        from: "last_minute_deals",
-      });
-      router.push(`/cruise/${slug}`);
-    } catch (error) {
-      console.error("Error navigating to cruise:", error);
-      showAlert(
-        "Sorry, we couldn't open this cruise. Please try again or search for it manually.",
-      );
+  // Handle search
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+
+    if (selectedCruiseLine) {
+      params.set("cruiseLines", selectedCruiseLine);
     }
+    if (selectedMonth) {
+      params.set("months", selectedMonth);
+    }
+
+    // Store passenger count in sessionStorage
+    sessionStorage.setItem("passengerCount", JSON.stringify(passengerCount));
+
+    // Track search
+    trackEngagement("homepage_search", {
+      cruiseLine: selectedCruiseLine || "any",
+      month: selectedMonth || "any",
+      passengers: passengerCount.adults + passengerCount.children,
+    });
+
+    router.push(`/cruises${params.toString() ? `?${params.toString()}` : ""}`);
   };
 
-  const handleSearchClick = () => {
-    // Store passenger count in sessionStorage to pass to search results
-    sessionStorage.setItem("passengerCount", JSON.stringify(passengerCount));
-    router.push("/cruises");
+  // Get display text for dropdowns
+  const getCruiseLineText = () => {
+    if (!selectedCruiseLine) return "Cruise Line";
+    const option = CRUISE_LINE_OPTIONS.find(
+      (opt) => opt.value === selectedCruiseLine,
+    );
+    return option?.label || "Cruise Line";
+  };
+
+  const getMonthText = () => {
+    if (!selectedMonth) return "Date";
+    const option = MONTH_OPTIONS.find((opt) => opt.value === selectedMonth);
+    return option?.label || "Date";
+  };
+
+  const getPassengerText = () => {
+    const total = passengerCount.adults + passengerCount.children;
+    return `${total} ${total === 1 ? "Guest" : "Guests"}`;
   };
 
   return (
     <>
-      <Navigation />
-
-      {/* Hero Section */}
-      <section className="relative h-[620px] md:h-[720px] bg-light-blue pt-[80px] md:pt-[100px] pb-[10px] md:pb-[100px] overflow-visible z-20">
-        {/* Floating Swimmers - Behind all content - Swimmer 1&2 Hidden on mobile, Swimmer 3 shown */}
-        <div className="absolute inset-0 z-0">
-          {/* Swimmer 1 - Hidden on mobile */}
-          <div
-            className="absolute swimmer-float-1 hidden md:block"
-            style={{
-              top: "15%",
-              left: "8%",
-              width: "auto",
-              height: "auto",
-            }}
-          >
-            <OptimizedImage
-              src="/images/swimmer-1.png"
-              alt=""
-              width={200}
-              height={100}
-              className="opacity-100"
-              style={{
-                width: "140px",
-                height: "auto",
-              }}
-            />
+      {/* Hero Section with Video Mask */}
+      <section className="relative bg-sand overflow-hidden">
+        {/* Container with max-width */}
+        <div className="relative mx-auto" style={{ maxWidth: "1699px" }}>
+          {/* Navigation - Inside container */}
+          <div className="relative z-20">
+            <Navigation />
           </div>
 
-          {/* Swimmer 2 - Hidden on mobile */}
-          <div
-            className="absolute swimmer-float-2 hidden md:block"
-            style={{
-              top: "15%",
-              right: "5%",
-              width: "auto",
-              height: "auto",
-            }}
-          >
-            <OptimizedImage
-              src="/images/swimmer-2.png"
-              alt=""
-              width={200}
-              height={100}
-              className="opacity-100"
-              style={{
-                width: "160px",
-                height: "auto",
-              }}
-            />
-          </div>
-
-          {/* Swimmer 3 - Shown on all devices */}
-          <div
-            className="absolute swimmer-float-3"
-            style={{
-              bottom: "20%",
-              left: "10%",
-              width: "auto",
-              height: "auto",
-            }}
-          >
-            <OptimizedImage
-              src="/images/swimmer-3.png"
-              alt=""
-              width={160}
-              height={80}
-              className="opacity-100"
-              style={{
-                width: "120px",
-                height: "auto",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="relative z-10 flex flex-col items-center justify-center h-[calc(620px-120px)] md:h-[calc(720px-220px)] px-4 pt-[60px]">
-          {/* Main Heading - Responsive */}
-          <h1 className="text-sunshine text-[48px] md:text-[72px] font-whitney uppercase text-center leading-none tracking-tight mb-3 md:mb-5">
-            The smartest
-            <br />
-            way to cruise
-          </h1>
-
-          {/* Subheading - Responsive */}
-          <p
-            className="text-white text-[18px] md:text-[18px] font-medium font-geograph tracking-tight text-center w-full max-w-[900px] mb-6 md:mb-8"
-            style={{ lineHeight: "1.75" }}
-          >
-            More value. Zero hassle. All for you.
-          </p>
-
-          {/* Passenger Selector */}
-          <div className="w-full max-w-[400px] mb-4">
-            <PassengerSelector
-              value={passengerCount}
-              onChange={setPassengerCount}
-            />
-          </div>
-
-          {/* CTA Button */}
-          <button
-            onClick={handleSearchClick}
-            className="bg-[#0E1B4D] hover:bg-[#0E1B4D]/90 text-white px-8 py-4 rounded-full text-[20px] font-geograph font-medium tracking-tight transition-all duration-200 flex items-center gap-2"
-            style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
-          >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M9 17C13.4183 17 17 13.4183 17 9C17 4.58172 13.4183 1 9 1C4.58172 1 1 4.58172 1 9C1 13.4183 4.58172 17 9 17Z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M19 19L14.65 14.65"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            Find my cruise
-          </button>
-
-          {/* Trust Indicators */}
-          <div className="mt-[38px] flex flex-col items-center gap-2">
-            <p className="text-white text-[10px] font-geograph font-bold uppercase tracking-[0.1em]">
-              TRUSTED BY HUNDREDS OF CRUISERS
-            </p>
-            <div className="flex items-center gap-[6px]">
-              {[...Array(5)].map((_, i) => (
-                <svg
-                  key={i}
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="#F7F170"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-                </svg>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Hero Section Separator */}
-      <div
-        className="w-full h-[21px]"
-        style={{
-          backgroundImage: 'url("/images/separator-7.png")',
-          backgroundRepeat: "repeat-x",
-          backgroundSize: "1749px 21px",
-          backgroundPosition: "left top",
-        }}
-      />
-
-      {/* Why Zipsea Section */}
-      <section className="bg-white py-[80px] md:py-[120px]">
-        <div className="max-w-7xl mx-auto px-8">
-          {/* Caption */}
-          <p className="text-center text-[#2238C3] text-[14px] font-geograph font-bold uppercase tracking-[0.1em] mb-4">
-            WHY BOOK WITH ZIPSEA?
-          </p>
-
-          {/* Headline */}
-          <h2 className="text-center text-[#0E1B4D] text-[36px] md:text-[52px] font-whitney uppercase leading-none tracking-[-0.02em] mb-8">
-            Same Ship.
-            <br className="md:hidden" /> Same Price.
-            <br />
-            More to spend onboard
-          </h2>
-
-          {/* Body Copy */}
-          <div className="max-w-[700px] mx-auto mb-12">
-            <p className="text-[#0E1B4D] text-[18px] md:text-[20px] font-geograph leading-[1.5] tracking-[-0.02em] text-center">
-              Most cruisers don't realize this: When you book directly with a
-              cruise line, you're paying the standard fare… and that's it. No
-              extras.
-            </p>
-          </div>
-
-          {/* Why Zipsea Image */}
-          <div className="flex justify-center mb-12">
-            <Image
-              src="/images/why-zipsea.png"
-              alt="Why Zipsea"
-              width={550}
-              height={400}
-              className="max-w-full h-auto"
-            />
-          </div>
-
-          {/* More Body Copy */}
-          <div className="max-w-[700px] mx-auto mb-16">
-            <p className="text-[#0E1B4D] text-[18px] md:text-[20px] font-geograph leading-[1.5] tracking-[-0.02em] text-center">
-              But here's the inside scoop: cruise lines offer agencies
-              incentives to sell their sailings. Most agencies keep it as
-              commission. At Zipsea, we give most of it back to you.
-            </p>
-          </div>
-
-          {/* Section Headline */}
-          <h3 className="text-center text-[#0E1B4D] text-[28px] md:text-[32px] font-whitney uppercase leading-none tracking-[-0.02em] mb-8">
-            More Onboard Credit,
-            <br />
-            Unlimited Possibilities
-          </h3>
-
-          {/* OBC Options Image */}
-          <div className="flex justify-center">
-            <Image
-              src="/images/obc-options.png"
-              alt="Onboard Credit Options"
-              width={620}
-              height={400}
-              className="max-w-full h-auto"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Why Zipsea Section Separator */}
-      <div
-        className="w-full h-[21px]"
-        style={{
-          backgroundImage: 'url("/images/separator-8.png")',
-          backgroundRepeat: "repeat-x",
-          backgroundSize: "1749px 21px",
-          backgroundPosition: "left top",
-        }}
-      />
-
-      {/* How It Works Section */}
-      <section className="bg-[#0E1B4D] py-[80px] md:py-[120px]">
-        <div className="max-w-7xl mx-auto px-8">
-          {/* Caption */}
-          <p className="text-center text-white text-[14px] font-geograph font-bold uppercase tracking-[0.1em] mb-4">
-            HOW IT WORKS
-          </p>
-
-          {/* Headline */}
-          <h2 className="text-center text-[#E9B4EB] text-[36px] md:text-[52px] font-whitney uppercase leading-none tracking-[-0.02em] mb-16">
-            Booking with
-            <br />
-            zipsea is simple
-          </h2>
-
-          {/* Step Cards */}
-          <div className="space-y-8 max-w-[880px] mx-auto">
-            {/* Step 1 */}
-            <div className="flex rounded-[10px] overflow-hidden">
-              <div className="bg-white rounded-tl-[10px] rounded-bl-[10px] p-[40px] md:p-[54px] flex-1 min-w-0 md:min-w-[440px]">
-                <p className="text-[#2238C3] text-[14px] font-geograph font-bold uppercase tracking-[0.1em] mb-2">
-                  STEP 1
-                </p>
-                <h3 className="text-[#0E1B4D] text-[28px] md:text-[32px] font-whitney uppercase tracking-[-0.02em] mb-4">
-                  Browse cruises
-                </h3>
-                <p className="text-[#2F2F2F] text-[18px] md:text-[20px] font-geograph leading-[1.5] tracking-[-0.02em]">
-                  See live sailings, cabin types with starting prices, and an
-                  estimate of how much onboard credit you'll earn. Prices based
-                  on double occupancy and subject to change.
-                </p>
-              </div>
-              <div className="hidden md:block">
-                <Image
-                  src="/images/step-1.png"
-                  alt="Step 1"
-                  width={440}
-                  height={300}
-                  className="h-full object-cover rounded-tr-[10px] rounded-br-[10px]"
+          {/* Video Background with Mask */}
+          <div className="relative" style={{ height: "634px" }}>
+            {/* Video with SVG mask */}
+            <div className="absolute inset-0">
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+                style={{
+                  maskImage: "url('/images/updated-homepage/video-mask.svg')",
+                  WebkitMaskImage:
+                    "url('/images/updated-homepage/video-mask.svg')",
+                  maskSize: "100% 100%",
+                  WebkitMaskSize: "100% 100%",
+                  maskRepeat: "no-repeat",
+                  WebkitMaskRepeat: "no-repeat",
+                  maskPosition: "center",
+                  WebkitMaskPosition: "center",
+                }}
+              >
+                <source
+                  src="/images/updated-homepage/homepage-video.mov"
+                  type="video/mp4"
                 />
-              </div>
+              </video>
             </div>
 
-            {/* Step 2 */}
-            <div className="flex rounded-[10px] overflow-hidden">
-              <div className="bg-white rounded-tl-[10px] rounded-bl-[10px] p-[40px] md:p-[54px] flex-1 min-w-0 md:min-w-[440px]">
-                <p className="text-[#2238C3] text-[14px] font-geograph font-bold uppercase tracking-[0.1em] mb-2">
-                  STEP 2
-                </p>
-                <h3 className="text-[#0E1B4D] text-[28px] md:text-[32px] font-whitney uppercase tracking-[-0.02em] mb-4">
-                  Request a quote
-                </h3>
-                <p className="text-[#2F2F2F] text-[18px] md:text-[20px] font-geograph leading-[1.5] tracking-[-0.02em]">
-                  A Zipsea advisor takes your unique booking requirements and
-                  gets you a quote directly from the cruise line with our added
-                  onboard credit on top.
-                </p>
-              </div>
-              <div className="hidden md:block">
-                <Image
-                  src="/images/step-2.png"
-                  alt="Step 2"
-                  width={440}
-                  height={300}
-                  className="h-full object-cover rounded-tr-[10px] rounded-br-[10px]"
-                />
-              </div>
-            </div>
+            {/* Content Overlay */}
+            <div className="relative z-10 flex flex-col items-center justify-center h-full px-4">
+              {/* Headline */}
+              <h1
+                className="text-white font-whitney uppercase text-center leading-none mb-8"
+                style={{
+                  fontSize: "64px",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                Find your next
+                <br />
+                cruise adventure
+              </h1>
 
-            {/* Step 3 */}
-            <div className="flex rounded-[10px] overflow-hidden">
-              <div className="bg-white rounded-tl-[10px] rounded-bl-[10px] p-[40px] md:p-[54px] flex-1 min-w-0 md:min-w-[440px]">
-                <p className="text-[#2238C3] text-[14px] font-geograph font-bold uppercase tracking-[0.1em] mb-2">
-                  STEP 3
-                </p>
-                <h3 className="text-[#0E1B4D] text-[28px] md:text-[32px] font-whitney uppercase tracking-[-0.02em] mb-4">
-                  Book with us
-                </h3>
-                <p className="text-[#2F2F2F] text-[18px] md:text-[20px] font-geograph leading-[1.5] tracking-[-0.02em]">
-                  If you like what you see, we'll handle the booking for you at
-                  the exact same price as the cruise line — except you'll get
-                  hundreds more in onboard credit.
-                </p>
-              </div>
-              <div className="hidden md:block">
-                <Image
-                  src="/images/step-3.png"
-                  alt="Step 3"
-                  width={440}
-                  height={300}
-                  className="h-full object-cover rounded-tr-[10px] rounded-br-[10px]"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Everything Else Section */}
-          <div className="max-w-[880px] mx-auto mt-16">
-            <h3 className="text-white text-[28px] md:text-[32px] font-whitney uppercase tracking-[-0.02em] mb-6 leading-none">
-              Everything else works the same
-            </h3>
-            <p className="text-[#E9B4EB] text-[18px] md:text-[20px] font-geograph leading-[1.5] tracking-[-0.02em]">
-              Your deposit, payment windows, and final balance all follow the
-              cruise line's rules. You can manage your reservation directly with
-              the line, or let Zipsea help along the way.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section Separator */}
-      <div
-        className="w-full h-[21px]"
-        style={{
-          backgroundImage: 'url("/images/separator-9.png")',
-          backgroundRepeat: "repeat-x",
-          backgroundSize: "1749px 21px",
-          backgroundPosition: "left top",
-        }}
-      />
-
-      {/* Best of Both Worlds Section */}
-      <section className="bg-white py-[80px] md:py-[100px] overflow-hidden">
-        <div className="max-w-7xl mx-auto px-8">
-          {/* Caption */}
-          <p className="text-center text-[#2238C3] text-[14px] font-geograph font-bold uppercase tracking-[0.1em] mb-4">
-            THE BEST OF BOTH WORLDS
-          </p>
-
-          {/* Headline */}
-          <h2 className="text-center text-[#0E1B4D] text-[36px] md:text-[52px] font-whitney uppercase leading-none tracking-[-0.02em] mb-8">
-            Part tech
-            <br />
-            part travel experts
-          </h2>
-
-          {/* Body Copy */}
-          <div className="max-w-[700px] mx-auto mb-16">
-            <p className="text-[#0E1B4D] text-[18px] md:text-[20px] font-geograph leading-[1.5] tracking-[-0.02em] text-center">
-              All the convenience of booking online, plus the hidden perks only
-              agencies can unlock — and we pass them straight to you.
-            </p>
-          </div>
-
-          {/* Logo Section - Vertical on mobile, horizontal on desktop */}
-          <div className="flex flex-col md:flex-row items-center justify-center gap-8 mb-[100px]">
-            <div className="text-center">
-              <Image
-                src="/images/royal.png"
-                alt="Royal Caribbean"
-                width={140}
-                height={60}
-                className="mb-2 mx-auto"
-              />
-              <p className="text-[#2F2F2F] text-[12px] font-geograph font-bold uppercase tracking-[0.1em]">
-                ACCREDITED TRAVEL AGENCY
-              </p>
-            </div>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="#F4AC38"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-            </svg>
-            <div className="text-center">
-              <Image
-                src="/images/carnival.png"
-                alt="Carnival"
-                width={155}
-                height={60}
-                className="mb-2 mx-auto"
-              />
-              <p className="text-[#2F2F2F] text-[12px] font-geograph font-bold uppercase tracking-[0.1em]">
-                ACCREDITED TRAVEL AGENCY
-              </p>
-            </div>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="#F4AC38"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-            </svg>
-            <div className="text-center">
-              <Image
-                src="/images/norwegian.png"
-                alt="Norwegian"
-                width={180}
-                height={60}
-                className="mb-2 mx-auto"
-              />
-              <p className="text-[#2F2F2F] text-[12px] font-geograph font-bold uppercase tracking-[0.1em]">
-                ACCREDITED TRAVEL AGENCY
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Logo Strip Marquee - Full Width - Desktop Only */}
-        <div className="hidden md:block w-full overflow-hidden">
-          <div className="flex animate-marquee">
-            <Image
-              src="/images/logos-strip.png"
-              alt=""
-              width={3553}
-              height={60}
-              className="mr-0"
-              style={{ width: "3553px", height: "auto" }}
-            />
-            <Image
-              src="/images/logos-strip.png"
-              alt=""
-              width={3553}
-              height={60}
-              className="mr-0"
-              style={{ width: "3553px", height: "auto" }}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Best of Both Worlds Section Separator */}
-      <div
-        className="w-full h-[21px]"
-        style={{
-          backgroundImage: 'url("/images/separator-10.png")',
-          backgroundRepeat: "repeat-x",
-          backgroundSize: "1749px 21px",
-          backgroundPosition: "left top",
-        }}
-      />
-
-      {/* Last Minute Deals Section - Mobile Responsive */}
-      <section className="bg-sand py-[100px] md:py-[100px] relative pt-[50px] md:pt-[100px]">
-        <div className="max-w-7xl mx-auto px-8">
-          {/* Headline with Hourglass Icon - Mobile Responsive */}
-          <div className="flex items-center justify-center mb-[80px]">
-            <svg
-              width="36"
-              height="36"
-              viewBox="0 0 55 55"
-              fill="none"
-              className="mr-4 md:mr-6 md:w-12 md:h-12"
-              style={{ shapeRendering: "geometricPrecision" }}
-            >
-              <g clipPath="url(#clip0_573_3612)">
-                <path
-                  d="M38.4687 49.648L35.7206 48.9646L37.3152 42.5522C37.9504 39.989 37.8041 37.2943 36.8953 34.8148C35.9865 32.3354 34.3567 30.1845 32.2156 28.6388C34.8312 28.2759 37.2785 27.1389 39.2428 25.374C41.2071 23.6091 42.5986 21.297 43.2383 18.7349L44.833 12.3226L47.5812 13.006C48.0671 13.1269 48.5811 13.0497 49.0101 12.7916C49.4391 12.5335 49.748 12.1155 49.8689 11.6296C49.9897 11.1437 49.9126 10.6297 49.6544 10.2006C49.3963 9.77159 48.9783 9.46268 48.4924 9.34184L17.3467 1.59625C16.8608 1.47541 16.3468 1.55254 15.9178 1.81068C15.4888 2.06882 15.1799 2.48682 15.059 2.97272C14.9382 3.45863 15.0153 3.97263 15.2735 4.40166C15.5316 4.83069 15.9496 5.1396 16.4355 5.26044L19.1836 5.94388L17.589 12.3562C16.9541 14.9195 17.1005 17.614 18.0092 20.0935C18.918 22.5729 20.5477 24.7238 22.6886 26.2696C20.0729 26.6323 17.6255 27.7692 15.6611 29.5341C13.6968 31.2991 12.3054 33.6113 11.6659 36.1735L10.0712 42.5858L7.32304 41.9024C6.83713 41.7816 6.32313 41.8587 5.8941 42.1168C5.46507 42.375 5.15615 42.793 5.03532 43.2789C4.91448 43.7648 4.99161 44.2788 5.24975 44.7078C5.50789 45.1368 5.92589 45.4458 6.41179 45.5666L37.5575 53.3122C38.0434 53.433 38.5574 53.3559 38.9864 53.0978C39.4154 52.8396 39.7243 52.4216 39.8452 51.9357C39.966 51.4498 39.8889 50.9358 39.6307 50.5068C39.3726 50.0777 38.9546 49.7688 38.4687 49.648ZM22.7864 16.4112C23.0148 16.1494 23.311 15.9556 23.6424 15.8513C23.9738 15.747 24.3276 15.7362 24.6648 15.8201L35.3642 18.4809C35.7012 18.565 36.0085 18.7404 36.2522 18.9878C36.4959 19.2352 36.6667 19.5451 36.7457 19.8833C36.8247 20.2215 36.8088 20.5749 36.6999 20.9047C36.591 21.2345 36.3932 21.5278 36.1284 21.7525C35.0797 22.6448 33.8334 23.2744 32.4929 23.5891C31.1524 23.9039 29.7562 23.8947 28.42 23.5624C27.0837 23.2301 25.8458 22.5842 24.8089 21.6782C23.772 20.7722 22.9659 19.6322 22.4573 18.3526C22.3282 18.0301 22.2906 17.6782 22.3487 17.3356C22.4067 16.9931 22.5582 16.6732 22.7864 16.4112ZM16.9564 37.7421L23.871 33.75C24.5077 33.4096 25.248 33.3176 25.9487 33.4919C26.6493 33.6661 27.2603 34.0942 27.6634 34.6931L31.9012 41.4568C32.1985 41.9225 32.3362 42.4723 32.2936 43.0232C32.251 43.5741 32.0304 44.0962 31.6651 44.5107C31.3276 44.8836 30.8946 45.1571 30.4129 45.3017C29.9312 45.4463 29.4191 45.4564 28.9321 45.3309L17.7764 42.5566C17.2883 42.4411 16.8409 42.1945 16.4825 41.8435C16.1242 41.4924 15.8684 41.0503 15.7428 40.5646C15.6112 40.0262 15.6584 39.4595 15.8773 38.9503C16.0963 38.4411 16.475 38.017 16.9564 37.7421Z"
-                  fill="#0E1B4D"
-                />
-              </g>
-              <defs>
-                <clipPath id="clip0_573_3612">
-                  <rect
-                    width="45.3097"
-                    height="45.3097"
-                    fill="white"
-                    transform="translate(10.9351) rotate(13.9655)"
-                  />
-                </clipPath>
-              </defs>
-            </svg>
-            <h2 className="text-dark-blue text-[32px] md:text-[52px] font-whitney font-black leading-none tracking-tight">
-              LAST MINUTE DEALS
-            </h2>
-          </div>
-
-          {/* Loading State */}
-          {isLoadingDeals && (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-dark-blue"></div>
-              <p className="mt-4 text-gray-600 font-geograph">
-                Loading last minute deals...
-              </p>
-            </div>
-          )}
-
-          {/* Cruise Grid - 3x2 on desktop */}
-          {!isLoadingDeals && lastMinuteDeals.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {lastMinuteDeals.slice(0, 6).map((deal) => {
-                // Use OBC from backend (20% of cheapest pricing) or calculate if missing
-                const obc =
-                  deal.onboard_credit ||
-                  Math.floor((deal.cheapest_pricing * 0.2) / 10) * 10;
-
-                // Calculate return date from sailing_date + nights
-                const sailingDate = new Date(deal.sailing_date);
-                const returnDate = new Date(sailingDate);
-                returnDate.setDate(sailingDate.getDate() + deal.nights);
-
-                // Format date range as "Oct 5 - Oct 12"
-                const dateRange = `${sailingDate.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })} - ${returnDate.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}`;
-
-                // Truncate cruise name to max 27 characters
-                const truncatedName =
-                  deal.name.length > 27
-                    ? deal.name.substring(0, 27) + "..."
-                    : deal.name;
-
-                return (
-                  <div
-                    key={deal.id}
-                    className="cursor-pointer"
+              {/* Pill-shaped Search Bar */}
+              <div
+                className="bg-white rounded-full flex items-center overflow-hidden"
+                style={{
+                  height: "64px",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+                }}
+              >
+                {/* Cruise Line Selector */}
+                <div className="relative" ref={cruiseLineRef}>
+                  <button
                     onClick={() => {
-                      // Handle cruise click - convert to expected format
-                      const cruiseForNavigation = {
-                        id: deal.id,
-                        shipId: deal.ship_id || 0,
-                        shipName: deal.ship_name,
-                        cruiseLineName: deal.cruise_line_name,
-                        departureDate: deal.sailing_date,
-                        returnDate: deal.return_date || "",
-                        duration: deal.nights,
-                        itinerary: [],
-                        departurePort:
-                          deal.embarkation_port_name ||
-                          deal.embark_port_name ||
-                          "",
-                        prices: {
-                          interior:
-                            deal.cheapest_price || deal.cheapest_pricing,
-                          oceanView:
-                            deal.cheapest_price || deal.cheapest_pricing,
-                          balcony: deal.cheapest_price || deal.cheapest_pricing,
-                          suite: deal.cheapest_price || deal.cheapest_pricing,
-                        },
-                      } as unknown as Cruise;
-                      handleCruiseClick(cruiseForNavigation);
+                      setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen);
+                      setIsMonthDropdownOpen(false);
+                      setIsPassengerDropdownOpen(false);
+                    }}
+                    className="h-16 px-6 flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                    style={{
+                      minWidth: "200px",
+                      borderRight: "1px solid #e5e7eb",
                     }}
                   >
-                    {/* Featured Image with Date Range Badge */}
-                    <div className="relative">
-                      <div className="h-[180px] bg-gray-200 relative overflow-hidden rounded-[18px]">
-                        {deal.ship_image ? (
-                          <OptimizedImage
-                            src={deal.ship_image}
-                            alt={deal.ship_name}
-                            fill
-                            sizes="(max-width: 768px) 100vw, 33vw"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-light-blue to-dark-blue flex items-center justify-center">
-                            <svg
-                              width="64"
-                              height="64"
-                              viewBox="0 0 34 27"
-                              fill="none"
-                              style={{ shapeRendering: "geometricPrecision" }}
-                              className="opacity-60"
+                    <span
+                      className="font-geograph"
+                      style={{
+                        fontSize: "16px",
+                        color: selectedCruiseLine ? "#1c1c1c" : "#9ca3af",
+                        fontWeight: selectedCruiseLine ? "500" : "400",
+                      }}
+                    >
+                      {getCruiseLineText()}
+                    </span>
+                    <svg
+                      width="12"
+                      height="8"
+                      viewBox="0 0 12 8"
+                      fill="none"
+                      style={{
+                        transform: isCruiseLineDropdownOpen
+                          ? "rotate(180deg)"
+                          : "rotate(0deg)",
+                        transition: "transform 0.2s",
+                      }}
+                    >
+                      <path
+                        d="M1 1L6 6L11 1"
+                        stroke="#9ca3af"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown */}
+                  {isCruiseLineDropdownOpen && (
+                    <div
+                      className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-lg overflow-hidden z-50"
+                      style={{ minWidth: "200px" }}
+                    >
+                      <button
+                        onClick={() => {
+                          setSelectedCruiseLine("");
+                          setIsCruiseLineDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 font-geograph text-sm"
+                      >
+                        All Cruise Lines
+                      </button>
+                      {CRUISE_LINE_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            setSelectedCruiseLine(option.value);
+                            setIsCruiseLineDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-gray-50 font-geograph text-sm"
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Date (Month) Selector */}
+                <div className="relative" ref={monthRef}>
+                  <button
+                    onClick={() => {
+                      setIsMonthDropdownOpen(!isMonthDropdownOpen);
+                      setIsCruiseLineDropdownOpen(false);
+                      setIsPassengerDropdownOpen(false);
+                    }}
+                    className="h-16 px-6 flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                    style={{
+                      minWidth: "180px",
+                      borderRight: "1px solid #e5e7eb",
+                    }}
+                  >
+                    <span
+                      className="font-geograph"
+                      style={{
+                        fontSize: "16px",
+                        color: selectedMonth ? "#1c1c1c" : "#9ca3af",
+                        fontWeight: selectedMonth ? "500" : "400",
+                      }}
+                    >
+                      {getMonthText()}
+                    </span>
+                    <svg
+                      width="12"
+                      height="8"
+                      viewBox="0 0 12 8"
+                      fill="none"
+                      style={{
+                        transform: isMonthDropdownOpen
+                          ? "rotate(180deg)"
+                          : "rotate(0deg)",
+                        transition: "transform 0.2s",
+                      }}
+                    >
+                      <path
+                        d="M1 1L6 6L11 1"
+                        stroke="#9ca3af"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown */}
+                  {isMonthDropdownOpen && (
+                    <div
+                      className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-lg overflow-hidden z-50"
+                      style={{
+                        minWidth: "180px",
+                        maxHeight: "300px",
+                        overflowY: "auto",
+                      }}
+                    >
+                      <button
+                        onClick={() => {
+                          setSelectedMonth("");
+                          setIsMonthDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 font-geograph text-sm"
+                      >
+                        Any Month
+                      </button>
+                      {MONTH_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            setSelectedMonth(option.value);
+                            setIsMonthDropdownOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-gray-50 font-geograph text-sm"
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Passengers Selector */}
+                <div className="relative" ref={passengerRef}>
+                  <button
+                    onClick={() => {
+                      setIsPassengerDropdownOpen(!isPassengerDropdownOpen);
+                      setIsCruiseLineDropdownOpen(false);
+                      setIsMonthDropdownOpen(false);
+                    }}
+                    className="h-16 px-6 flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                    style={{
+                      minWidth: "160px",
+                      borderRight: "1px solid #e5e7eb",
+                    }}
+                  >
+                    <span
+                      className="font-geograph"
+                      style={{
+                        fontSize: "16px",
+                        color: "#1c1c1c",
+                        fontWeight: "500",
+                      }}
+                    >
+                      {getPassengerText()}
+                    </span>
+                    <svg
+                      width="12"
+                      height="8"
+                      viewBox="0 0 12 8"
+                      fill="none"
+                      style={{
+                        transform: isPassengerDropdownOpen
+                          ? "rotate(180deg)"
+                          : "rotate(0deg)",
+                        transition: "transform 0.2s",
+                      }}
+                    >
+                      <path
+                        d="M1 1L6 6L11 1"
+                        stroke="#9ca3af"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Dropdown */}
+                  {isPassengerDropdownOpen && (
+                    <div
+                      className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-lg p-4 z-50"
+                      style={{ minWidth: "280px" }}
+                    >
+                      {/* Adults */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-geograph text-sm font-medium">
+                            Adults
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => {
+                                if (passengerCount.adults > 1) {
+                                  setPassengerCount({
+                                    ...passengerCount,
+                                    adults: passengerCount.adults - 1,
+                                  });
+                                }
+                              }}
+                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                              disabled={passengerCount.adults <= 1}
                             >
-                              <path
-                                d="M32.8662 25.4355C32.0707 25.4334 31.2888 25.2282 30.5947 24.8395C29.9005 24.4508 29.3171 23.8914 28.8995 23.2142C28.478 23.8924 27.8906 24.4519 27.1926 24.8398C26.4947 25.2278 25.7094 25.4314 24.9109 25.4314C24.1124 25.4314 23.3271 25.2278 22.6292 24.8398C21.9313 24.4519 21.3438 23.8924 20.9223 23.2142C20.5031 23.894 19.9167 24.4551 19.2191 24.844C18.5215 25.2329 17.7359 25.4365 16.9372 25.4355C14.8689 25.4355 11.4533 22.2962 9.31413 20.0961C9.17574 19.9536 8.99997 19.8529 8.80698 19.8057C8.61399 19.7585 8.4116 19.7666 8.22303 19.8292C8.03445 19.8917 7.86733 20.0062 7.74084 20.1594C7.61435 20.3126 7.53361 20.4984 7.50788 20.6954C7.36621 22.0086 6.83213 23.3105 5.25396 23.3105C4.30812 23.2648 3.39767 22.9367 2.64011 22.3686C1.88255 21.8004 1.31265 21.0183 1.00396 20.123"
-                                stroke="white"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                vectorEffect="non-scaling-stroke"
-                              />
-                              <path
-                                d="M18 20.123L22.8875 18.9005C24.0268 18.6152 25.0946 18.097 26.0236 17.3784C26.9526 16.6598 27.7226 15.7566 28.285 14.7255L32.875 6.31055L1 12.6855"
-                                stroke="white"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                vectorEffect="non-scaling-stroke"
-                              />
-                              <path
-                                d="M25.2861 7.8278L18.0002 4.18555L4.18772 6.31055"
-                                stroke="white"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                vectorEffect="non-scaling-stroke"
-                              />
-                              <path
-                                d="M6.31254 11.6236L4.18754 6.31109L1.9662 2.60934C1.86896 2.4482 1.81632 2.26409 1.81369 2.0759C1.81107 1.8877 1.85854 1.7022 1.95125 1.53841C2.04396 1.37461 2.17857 1.23843 2.34127 1.14382C2.50397 1.0492 2.68891 0.999569 2.87712 1H6.31254L11.54 5.18059"
-                                stroke="white"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                vectorEffect="non-scaling-stroke"
-                              />
-                            </svg>
+                              <span className="text-lg">−</span>
+                            </button>
+                            <span className="font-geograph font-medium w-6 text-center">
+                              {passengerCount.adults}
+                            </span>
+                            <button
+                              onClick={() => {
+                                if (passengerCount.adults < 8) {
+                                  setPassengerCount({
+                                    ...passengerCount,
+                                    adults: passengerCount.adults + 1,
+                                  });
+                                }
+                              }}
+                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                              disabled={passengerCount.adults >= 8}
+                            >
+                              <span className="text-lg">+</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Children */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-geograph text-sm font-medium">
+                            Children
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={() => {
+                                if (passengerCount.children > 0) {
+                                  const newChildAges = [
+                                    ...passengerCount.childAges,
+                                  ];
+                                  newChildAges.pop();
+                                  setPassengerCount({
+                                    ...passengerCount,
+                                    children: passengerCount.children - 1,
+                                    childAges: newChildAges,
+                                  });
+                                }
+                              }}
+                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                              disabled={passengerCount.children <= 0}
+                            >
+                              <span className="text-lg">−</span>
+                            </button>
+                            <span className="font-geograph font-medium w-6 text-center">
+                              {passengerCount.children}
+                            </span>
+                            <button
+                              onClick={() => {
+                                if (passengerCount.children < 6) {
+                                  setPassengerCount({
+                                    ...passengerCount,
+                                    children: passengerCount.children + 1,
+                                    childAges: [...passengerCount.childAges, 5],
+                                  });
+                                }
+                              }}
+                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                              disabled={passengerCount.children >= 6}
+                            >
+                              <span className="text-lg">+</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Child Ages */}
+                        {passengerCount.children > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {passengerCount.childAges.map((age, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-2"
+                              >
+                                <span className="font-geograph text-xs text-gray-600 w-16">
+                                  Child {index + 1}:
+                                </span>
+                                <select
+                                  value={age}
+                                  onChange={(e) => {
+                                    const newAges = [
+                                      ...passengerCount.childAges,
+                                    ];
+                                    newAges[index] = parseInt(e.target.value);
+                                    setPassengerCount({
+                                      ...passengerCount,
+                                      childAges: newAges,
+                                    });
+                                  }}
+                                  className="flex-1 px-2 py-1 border border-gray-300 rounded font-geograph text-sm"
+                                >
+                                  {Array.from({ length: 18 }, (_, i) => (
+                                    <option key={i} value={i}>
+                                      {i} years
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
-
-                      {/* Date Range Badge - Moved to top-right */}
-                      <div
-                        className="absolute top-3 right-3 bg-white px-1 py-0.5 rounded-[3px]"
-                        style={{
-                          fontSize: "13px",
-                          fontFamily: "Geograph",
-                          fontWeight: "bold",
-                          color: "#3a3c3e",
-                          letterSpacing: "-0.02em",
-                          paddingLeft: "6px", // Added 2px more padding (was 4px)
-                          paddingRight: "6px", // Added 2px more padding (was 4px)
-                          paddingTop: "2px",
-                          paddingBottom: "2px",
-                        }}
-                      >
-                        {dateRange}
-                      </div>
                     </div>
+                  )}
+                </div>
 
-                    {/* Card Content - Two Column Layout */}
-                    <div className="mt-4">
-                      <div className="flex justify-between items-start">
-                        {/* Left Side - Cruise Details */}
-                        <div className="flex-1 pr-4">
-                          {/* Cruise Name - Truncated */}
-                          <h3
-                            className="font-geograph font-medium"
-                            style={{
-                              fontSize: "18px",
-                              color: "#0E1B4D",
-                              letterSpacing: "-0.02em",
-                              marginBottom: "14px", // Reduced from 16px (mb-4) to 14px
-                              lineHeight: "1.1",
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {truncatedName}
-                          </h3>
-
-                          {/* Duration and Port */}
-                          <p
-                            className="font-geograph font-medium mb-1"
-                            style={{
-                              fontSize: "13px",
-                              color: "#2f2f2f",
-                              letterSpacing: "-0.02em",
-                            }}
-                          >
-                            {deal.nights} nights • {deal.embark_port_name}
-                          </p>
-
-                          {/* Cruise Line */}
-                          <p
-                            className="font-geograph"
-                            style={{
-                              fontSize: "13px",
-                              color: "#2f2f2f",
-                              letterSpacing: "-0.02em",
-                              fontWeight: "normal",
-                            }}
-                          >
-                            {deal.cruise_line_name || "Cruise Line"}
-                          </p>
-                        </div>
-
-                        {/* Right Side - Pricing */}
-                        <div className="flex flex-col items-end min-w-0">
-                          {/* "STARTING FROM" label */}
-                          <p
-                            className="font-geograph font-bold"
-                            style={{
-                              fontSize: "9px",
-                              color: "#474747",
-                              letterSpacing: "0.1em",
-                              marginBottom: "0.25px", // Reduced from 0.5px to half again
-                            }}
-                          >
-                            STARTING FROM
-                          </p>
-
-                          {/* Price */}
-                          <p
-                            className="font-geograph font-medium"
-                            style={{
-                              fontSize: "22px",
-                              letterSpacing: "-0.02em",
-                              marginBottom: "4px", // Reduced space between price and OBC badge by half
-                            }}
-                          >
-                            $
-                            {Math.floor(deal.cheapest_pricing).toLocaleString()}
-                          </p>
-
-                          {/* OBC Badge */}
-                          {obc > 0 && (
-                            <div
-                              className="rounded-[3px]"
-                              style={{
-                                backgroundColor: "#1b8f57",
-                                fontSize: "13px",
-                                fontFamily: "Geograph",
-                                fontWeight: "500", // Changed to medium (500)
-                                color: "white",
-                                letterSpacing: "-0.02em",
-                                paddingLeft: "7px", // Added 2px more padding (was 5px)
-                                paddingRight: "7px", // Added 2px more padding (was 5px)
-                                paddingTop: "3px", // Increased from 1px to 3px
-                                paddingBottom: "3px", // Increased from 1px to 3px
-                                whiteSpace: "nowrap", // Prevent text wrapping
-                              }}
-                            >
-                              +${obc} onboard credit
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                {/* Search Button */}
+                <button
+                  onClick={handleSearch}
+                  className="h-16 px-6 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                  style={{ minWidth: "64px" }}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z"
+                      stroke="#1c1c1c"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M21 21L16.65 16.65"
+                      stroke="#1c1c1c"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </section>
 
-      {/* Last Minute Deals Section Separator */}
-      <div
-        className="w-full h-[21px]"
-        style={{
-          backgroundImage: 'url("/images/separator-3.png")',
-          backgroundRepeat: "repeat-x",
-          backgroundSize: "1749px 21px",
-          backgroundPosition: "left top",
-        }}
-      />
+      {/* Banners Section */}
+      <section className="bg-sand py-12">
+        <div className="max-w-7xl mx-auto px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Image
+              src="/images/updated-homepage/banner-first-time.png"
+              alt="First Time Cruiser Benefits"
+              width={724}
+              height={168}
+              className="w-full h-auto rounded-lg"
+            />
+            <Image
+              src="/images/updated-homepage/banner-free-gift.png"
+              alt="Free Gift with Every Booking"
+              width={724}
+              height={168}
+              className="w-full h-auto rounded-lg"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Top Destinations Section */}
+      <section className="bg-sand py-20">
+        <div className="max-w-7xl mx-auto px-8">
+          {/* Headline */}
+          <h2
+            className="text-center font-whitney uppercase mb-12"
+            style={{
+              fontSize: "42px",
+              color: "#1c1c1c",
+              letterSpacing: "-0.02em",
+              fontWeight: "900",
+            }}
+          >
+            Top Destinations
+          </h2>
+
+          {/* Destination Tiles */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+            {/* Bahamas */}
+            <div
+              className="relative overflow-hidden rounded-lg"
+              style={{ height: "454px" }}
+            >
+              <Image
+                src="/images/updated-homepage/destination-bahamas.png"
+                alt="Bahamas"
+                width={360}
+                height={454}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/60 to-transparent">
+                <p
+                  className="font-geograph uppercase mb-1"
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: "700",
+                    color: "white",
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  Weekend getaways
+                </p>
+                <h3
+                  className="font-whitney uppercase"
+                  style={{
+                    fontSize: "42px",
+                    color: "white",
+                    fontWeight: "900",
+                  }}
+                >
+                  Bahamas
+                </h3>
+              </div>
+            </div>
+
+            {/* Caribbean */}
+            <div
+              className="relative overflow-hidden rounded-lg"
+              style={{ height: "454px" }}
+            >
+              <Image
+                src="/images/updated-homepage/destination-caribbean.png"
+                alt="Caribbean"
+                width={360}
+                height={454}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/60 to-transparent">
+                <p
+                  className="font-geograph uppercase mb-1"
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: "700",
+                    color: "white",
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  7 night cruises
+                </p>
+                <h3
+                  className="font-whitney uppercase"
+                  style={{
+                    fontSize: "42px",
+                    color: "white",
+                    fontWeight: "900",
+                  }}
+                >
+                  Caribbean
+                </h3>
+              </div>
+            </div>
+
+            {/* Mexico */}
+            <div
+              className="relative overflow-hidden rounded-lg"
+              style={{ height: "454px" }}
+            >
+              <Image
+                src="/images/updated-homepage/destination-mexico.png"
+                alt="Mexico"
+                width={360}
+                height={454}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/60 to-transparent">
+                <p
+                  className="font-geograph uppercase mb-1"
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: "700",
+                    color: "white",
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  cruises going to
+                </p>
+                <h3
+                  className="font-whitney uppercase"
+                  style={{
+                    fontSize: "42px",
+                    color: "white",
+                    fontWeight: "900",
+                  }}
+                >
+                  Mexico
+                </h3>
+              </div>
+            </div>
+
+            {/* New York */}
+            <div
+              className="relative overflow-hidden rounded-lg"
+              style={{ height: "454px" }}
+            >
+              <Image
+                src="/images/updated-homepage/destination-newyork.png"
+                alt="New York"
+                width={360}
+                height={454}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/60 to-transparent">
+                <p
+                  className="font-geograph uppercase mb-1"
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: "700",
+                    color: "white",
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  cruises departing
+                </p>
+                <h3
+                  className="font-whitney uppercase"
+                  style={{
+                    fontSize: "42px",
+                    color: "white",
+                    fontWeight: "900",
+                  }}
+                >
+                  New York
+                </h3>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA Button */}
+          <div className="flex justify-center">
+            <button
+              onClick={() => router.push("/cruises")}
+              className="font-geograph text-white rounded-full"
+              style={{
+                fontSize: "20px",
+                fontWeight: "500",
+                letterSpacing: "-0.02em",
+                backgroundColor: "#2238C3",
+                paddingTop: "20px",
+                paddingBottom: "20px",
+                paddingLeft: "32px",
+                paddingRight: "32px",
+              }}
+            >
+              Browse All Cruises
+            </button>
+          </div>
+        </div>
+
+        {/* Separator */}
+        <div
+          className="w-full h-[21px] mt-20"
+          style={{
+            backgroundImage: 'url("/images/separator-3.png")',
+            backgroundRepeat: "repeat-x",
+            backgroundSize: "1749px 21px",
+            backgroundPosition: "left top",
+          }}
+        />
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="bg-white py-20">
+        <div className="max-w-7xl mx-auto px-8">
+          {/* Headline */}
+          <h2
+            className="text-center font-whitney uppercase mb-12"
+            style={{
+              fontSize: "42px",
+              color: "#1c1c1c",
+              letterSpacing: "-0.02em",
+              fontWeight: "900",
+            }}
+          >
+            Smarter cruisers = happy cruisers
+          </h2>
+
+          {/* Review Tiles */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Review 1 */}
+            <div
+              className="bg-white border border-gray-200 rounded-lg p-7 flex flex-col"
+              style={{ minHeight: "280px" }}
+            >
+              {/* Stars */}
+              <div className="mb-4">
+                <Image
+                  src="/images/updated-homepage/trustpilot-stars.svg"
+                  alt="5 stars"
+                  width={120}
+                  height={24}
+                />
+              </div>
+
+              {/* Title */}
+              <h3
+                className="font-geograph font-bold text-lg mb-3"
+                style={{ color: "#1c1c1c" }}
+              >
+                Every Number Matched
+              </h3>
+
+              {/* Body */}
+              <p
+                className="font-geograph text-base mb-4 flex-grow"
+                style={{ color: "#2f2f2f", lineHeight: "1.5" }}
+              >
+                The base fare, taxes, and onboard credit lined up perfectly. No
+                fine print, no surprises. That's why I trusted them.
+              </p>
+
+              {/* Author */}
+              <p
+                className="font-geograph text-sm font-medium mt-auto"
+                style={{ color: "#6b7280" }}
+              >
+                James lee
+              </p>
+            </div>
+
+            {/* Review 2 */}
+            <div
+              className="bg-white border border-gray-200 rounded-lg p-7 flex flex-col"
+              style={{ minHeight: "280px" }}
+            >
+              {/* Stars */}
+              <div className="mb-4">
+                <Image
+                  src="/images/updated-homepage/trustpilot-stars.svg"
+                  alt="5 stars"
+                  width={120}
+                  height={24}
+                />
+              </div>
+
+              {/* Title */}
+              <h3
+                className="font-geograph font-bold text-lg mb-3"
+                style={{ color: "#1c1c1c" }}
+              >
+                Switching From Costco Paid Off
+              </h3>
+
+              {/* Body */}
+              <p
+                className="font-geograph text-base mb-4 flex-grow"
+                style={{ color: "#2f2f2f", lineHeight: "1.5" }}
+              >
+                We almost booked with Costco for Royal Caribbean. They offered a
+                small rebate card, but Zipsea added $400 in OBC...
+              </p>
+
+              {/* Author */}
+              <p
+                className="font-geograph text-sm font-medium mt-auto"
+                style={{ color: "#6b7280" }}
+              >
+                Drew
+              </p>
+            </div>
+
+            {/* Review 3 */}
+            <div
+              className="bg-white border border-gray-200 rounded-lg p-7 flex flex-col"
+              style={{ minHeight: "280px" }}
+            >
+              {/* Stars */}
+              <div className="mb-4">
+                <Image
+                  src="/images/updated-homepage/trustpilot-stars.svg"
+                  alt="5 stars"
+                  width={120}
+                  height={24}
+                />
+              </div>
+
+              {/* Title */}
+              <h3
+                className="font-geograph font-bold text-lg mb-3"
+                style={{ color: "#1c1c1c" }}
+              >
+                Incredible perks with Zipsea!
+              </h3>
+
+              {/* Body */}
+              <p
+                className="font-geograph text-base mb-4 flex-grow"
+                style={{ color: "#2f2f2f", lineHeight: "1.5" }}
+              >
+                ..My party and I can actually utilize the credit for our
+                excursions. What a seamless experience.
+              </p>
+
+              {/* Author */}
+              <p
+                className="font-geograph text-sm font-medium mt-auto"
+                style={{ color: "#6b7280" }}
+              >
+                Jamie
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer - Keep existing footer component if you have one */}
     </>
   );
 }
