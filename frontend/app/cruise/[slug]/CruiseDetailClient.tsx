@@ -2409,17 +2409,22 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             // Close specific cabin modal and open hold modal with cabin details
             setIsSpecificCabinModalOpen(false);
 
-            // Find the cabin price from the selected grade
+            // Find the cabin grade and get pricing for the selected rate code
             const cabinGrade = liveCabinGrades?.cabins?.find(
               (c: any) => c.resultNo === selectedCabinGrade.resultNo,
             );
+
+            // Use getCabinPricingForRate to get the correct price for the selected rate code
+            const cabinPricing = cabinGrade
+              ? getCabinPricingForRate(cabinGrade)
+              : null;
 
             setPendingReservation({
               resultNo: selectedCabinGrade.resultNo,
               gradeNo: selectedCabinGrade.gradeNo,
               rateCode: selectedCabinGrade.rateCode,
               cabinName: selectedCabinGrade.gradeName,
-              price: cabinGrade?.cheapestPrice || 0,
+              price: cabinPricing?.price || 0,
               cabinResultNo, // Store specific cabin number for later
             });
             setIsHoldModalOpen(true);
