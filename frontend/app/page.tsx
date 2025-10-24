@@ -4,79 +4,84 @@ import Image from "next/image";
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { trackEngagement } from "../lib/analytics";
+import {
+  fetchShips,
+  Ship,
+  fetchLastMinuteDeals,
+  LastMinuteDeals,
+} from "../lib/api";
+import { useAlert } from "../components/GlobalAlertProvider";
 
-// Month options for the date selector
-const MONTH_OPTIONS = [
-  { value: "1", label: "January" },
-  { value: "2", label: "February" },
-  { value: "3", label: "March" },
-  { value: "4", label: "April" },
-  { value: "5", label: "May" },
-  { value: "6", label: "June" },
-  { value: "7", label: "July" },
-  { value: "8", label: "August" },
-  { value: "9", label: "September" },
-  { value: "10", label: "October" },
-  { value: "11", label: "November" },
-  { value: "12", label: "December" },
-];
+interface FilterOption {
+  id: number;
+  name: string;
+  count?: number;
+}
 
-// Cruise line options
-const CRUISE_LINE_OPTIONS = [
-  { value: "1", label: "Carnival" },
-  { value: "22", label: "Royal Caribbean" },
-  { value: "3", label: "Celebrity" },
-  { value: "2", label: "Norwegian" },
-  { value: "14", label: "Princess" },
-  { value: "4", label: "Disney" },
-  { value: "5", label: "MSC" },
-  { value: "6", label: "Holland America" },
-];
-
-// Separate component to handle URL params (needs to be wrapped in Suspense)
+// Separate component to handle URL params
 function HomeWithParams() {
   const router = useRouter();
+  const { showAlert } = useAlert();
 
-  // Search states
-  const [selectedCruiseLine, setSelectedCruiseLine] = useState<string>("");
-  const [selectedMonth, setSelectedMonth] = useState<string>("");
-  const [passengerCount, setPassengerCount] = useState({
-    adults: 2,
-    children: 0,
-    childAges: [] as number[],
-  });
+  // Search states for the three dropdowns
+  const [selectedRegions, setSelectedRegions] = useState<number[]>([]);
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+  const [selectedCruiseLines, setSelectedCruiseLines] = useState<number[]>([]);
 
-  // Dropdown states
-  const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] =
-    useState(false);
-  const [isMonthDropdownOpen, setIsMonthDropdownOpen] = useState(false);
-  const [isPassengerDropdownOpen, setIsPassengerDropdownOpen] = useState(false);
+  // Dropdown open states
+  const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] = useState(false);
 
-  // Refs for click outside detection
-  const cruiseLineRef = useRef<HTMLDivElement>(null);
-  const monthRef = useRef<HTMLDivElement>(null);
-  const passengerRef = useRef<HTMLDivElement>(null);
+  // Filter options from API
+  const [regions, setRegions] = useState<FilterOption[]>([]);
+  const [cruiseLines, setCruiseLines] = useState<FilterOption[]>([]);
 
-  // Close dropdowns when clicking outside
+  // Refs for dropdown click outside detection
+  const regionDropdownRef = useRef<HTMLDivElement>(null);
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
+  const cruiseLineDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fetch filter options from API
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/filter-options`,
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setRegions(data.regions || []);
+          setCruiseLines(data.cruiseLines || []);
+        }
+      } catch (error) {
+        console.error("Error fetching filter options:", error);
+      }
+    };
+
+    fetchFilterOptions();
+  }, []);
+
+  // Handle click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        cruiseLineRef.current &&
-        !cruiseLineRef.current.contains(event.target as Node)
+        regionDropdownRef.current &&
+        !regionDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsRegionDropdownOpen(false);
+      }
+      if (
+        dateDropdownRef.current &&
+        !dateDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDateDropdownOpen(false);
+      }
+      if (
+        cruiseLineDropdownRef.current &&
+        !cruiseLineDropdownRef.current.contains(event.target as Node)
       ) {
         setIsCruiseLineDropdownOpen(false);
-      }
-      if (
-        monthRef.current &&
-        !monthRef.current.contains(event.target as Node)
-      ) {
-        setIsMonthDropdownOpen(false);
-      }
-      if (
-        passengerRef.current &&
-        !passengerRef.current.contains(event.target as Node)
-      ) {
-        setIsPassengerDropdownOpen(false);
       }
     };
 
@@ -84,28 +89,22 @@ function HomeWithParams() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Handle search
-  const handleSearch = () => {
+  // Handle search - navigate to /cruises with filters
+  const handleSearchCruises = () => {
     const params = new URLSearchParams();
 
-    if (selectedCruiseLine) {
-      params.set("cruiseLines", selectedCruiseLine);
+    if (selectedRegions.length > 0) {
+      params.set("regions", selectedRegions.join(","));
     }
-    if (selectedMonth) {
-      params.set("months", selectedMonth);
+    if (selectedMonths.length > 0) {
+      params.set("months", selectedMonths.join(","));
+    }
+    if (selectedCruiseLines.length > 0) {
+      params.set("cruiseLines", selectedCruiseLines.join(","));
     }
 
-    // Store passenger count in sessionStorage
-    sessionStorage.setItem("passengerCount", JSON.stringify(passengerCount));
-
-    // Track search
-    trackEngagement("homepage_search", {
-      cruiseLine: selectedCruiseLine || "any",
-      month: selectedMonth || "any",
-      passengers: passengerCount.adults + passengerCount.children,
-    });
-
-    router.push(`/cruises${params.toString() ? `?${params.toString()}` : ""}`);
+    const url = params.toString() ? `/cruises?${params.toString()}` : "/cruises";
+    router.push(url);
   };
 
   // Handle destination clicks
@@ -114,92 +113,65 @@ function HomeWithParams() {
 
     switch (destination) {
       case "bahamas":
-        params.set("regions", "9"); // Bahamas region ID
+        params.set("regions", "28"); // Bahamas
         params.set("minNights", "2");
         params.set("maxNights", "5");
         break;
       case "caribbean":
-        params.set("regions", "1"); // Caribbean region ID
+        params.set("regions", "2"); // Caribbean
         params.set("minNights", "7");
         params.set("maxNights", "7");
         break;
       case "mexico":
-        params.set("regions", "3"); // Mexico region ID
+        params.set("regions", "26"); // Mexico
         break;
       case "newyork":
-        params.set("departurePorts", "38,120,145"); // New York, Cape Liberty, Brooklyn port IDs
+        params.set("departurePorts", "362,5170,5171"); // NY area ports
         break;
     }
 
     router.push(`/cruises?${params.toString()}`);
   };
 
-  // Get display text for dropdowns
-  const getCruiseLineText = () => {
-    if (!selectedCruiseLine) return "Cruise Line";
-    const option = CRUISE_LINE_OPTIONS.find(
-      (opt) => opt.value === selectedCruiseLine,
-    );
-    return option?.label || "Cruise Line";
+  // Placeholder helpers
+  const getRegionPlaceholder = () => {
+    if (selectedRegions.length === 0) return "All destinations";
+    if (selectedRegions.length === 1) {
+      const region = regions.find((r) => r.id === selectedRegions[0]);
+      return region?.name || "1 selected";
+    }
+    return `${selectedRegions.length} selected`;
   };
 
-  const getMonthText = () => {
-    if (!selectedMonth) return "Date";
-    const option = MONTH_OPTIONS.find((opt) => opt.value === selectedMonth);
-    return option?.label || "Date";
+  const getDatePlaceholder = () => {
+    if (selectedMonths.length === 0) return "All dates";
+    if (selectedMonths.length === 1) {
+      const [year, month] = selectedMonths[0].split("-");
+      const monthName = new Date(
+        parseInt(year),
+        parseInt(month) - 1,
+      ).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+      return monthName;
+    }
+    return `${selectedMonths.length} selected`;
   };
 
-  const getPassengerText = () => {
-    const total = passengerCount.adults + passengerCount.children;
-    return `${total} ${total === 1 ? "Guest" : "Guests"}`;
+  const getCruiseLinePlaceholder = () => {
+    if (selectedCruiseLines.length === 0) return "All cruise lines";
+    if (selectedCruiseLines.length === 1) {
+      const line = cruiseLines.find((cl) => cl.id === selectedCruiseLines[0]);
+      return line?.name || "1 selected";
+    }
+    return `${selectedCruiseLines.length} selected`;
   };
 
   return (
     <>
       {/* Hero Section with Video Mask */}
       <section className="relative bg-sand overflow-hidden py-4 md:py-8">
-        {/* Container with max-width and padding */}
-        <div
-          className="relative mx-auto px-4 md:px-8"
-          style={{ maxWidth: "1699px" }}
-        >
-          {/* Navigation - Non-sticky, no scrolled state */}
-          <div className="relative z-20 mb-4 md:mb-8">
-            <div className="flex items-center justify-between py-4">
-              {/* Logo */}
-              <a href="/" className="flex items-center">
-                <Image
-                  src="/images/zipsea-logo.svg"
-                  alt="Zipsea"
-                  width={120}
-                  height={40}
-                  className="h-6 md:h-8 w-auto"
-                />
-              </a>
-
-              {/* Desktop Navigation Links */}
-              <nav className="hidden md:flex items-center gap-8">
-                <a
-                  href="/cruises"
-                  className="font-geograph text-base font-medium text-dark-blue hover:text-blue-600 transition-colors"
-                >
-                  Browse Cruises
-                </a>
-                <a
-                  href="/first-time-cruisers-guide"
-                  className="font-geograph text-base font-medium text-dark-blue hover:text-blue-600 transition-colors"
-                >
-                  First Time Cruisers
-                </a>
-              </nav>
-            </div>
-          </div>
-
-          {/* Video Background with Mask */}
-          <div
-            className="relative"
-            style={{ height: "634px", minHeight: "500px" }}
-          >
+        <div className="relative mx-auto px-4 md:px-8" style={{ maxWidth: "1699px" }}>
+          {/* Video Background with Mask - Fixed Height Container */}
+          <div className="relative" style={{ height: "634px", minHeight: "634px" }}>
             {/* Video with SVG mask */}
             <div className="absolute inset-0">
               <video
@@ -210,8 +182,7 @@ function HomeWithParams() {
                 className="w-full h-full object-cover"
                 style={{
                   maskImage: "url('/images/updated-homepage/video-mask.svg')",
-                  WebkitMaskImage:
-                    "url('/images/updated-homepage/video-mask.svg')",
+                  WebkitMaskImage: "url('/images/updated-homepage/video-mask.svg')",
                   maskSize: "100% 100%",
                   WebkitMaskSize: "100% 100%",
                   maskRepeat: "no-repeat",
@@ -220,22 +191,17 @@ function HomeWithParams() {
                   WebkitMaskPosition: "center",
                 }}
               >
-                <source
-                  src="/images/updated-homepage/homepage-video.mov"
-                  type="video/mp4"
-                />
+                <source src="/images/updated-homepage/homepage-video.mov" type="video/mp4" />
               </video>
             </div>
 
-            {/* Radial Gradient Overlay */}
+            {/* Radial Gradient Overlay - Darkened to 0.5 */}
             <div
               className="absolute inset-0 z-5"
               style={{
-                background:
-                  "radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0.3) 100%)",
+                background: "radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 100%)",
                 maskImage: "url('/images/updated-homepage/video-mask.svg')",
-                WebkitMaskImage:
-                  "url('/images/updated-homepage/video-mask.svg')",
+                WebkitMaskImage: "url('/images/updated-homepage/video-mask.svg')",
                 maskSize: "100% 100%",
                 WebkitMaskSize: "100% 100%",
                 maskRepeat: "no-repeat",
@@ -245,402 +211,351 @@ function HomeWithParams() {
               }}
             />
 
-            {/* Content Overlay */}
-            <div className="relative z-10 flex flex-col items-center justify-center h-full px-4">
-              {/* Headline */}
-              <h1
-                className="text-white font-whitney uppercase text-center leading-none mb-6 md:mb-8"
-                style={{
-                  fontSize: "clamp(36px, 5vw, 64px)",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                Find your next
-                <br />
-                cruise adventure
-              </h1>
+            {/* Navigation + Content INSIDE the masked area */}
+            <div className="absolute inset-0 z-10 flex flex-col" style={{ padding: "32px 48px" }}>
+              {/* Navigation - Inside mask */}
+              <div className="flex items-center justify-between mb-auto">
+                <a href="/" className="flex items-center">
+                  <Image
+                    src="/images/zipsea-logo.svg"
+                    alt="Zipsea"
+                    width={120}
+                    height={40}
+                    className="h-6 md:h-8 w-auto"
+                  />
+                </a>
 
-              {/* Pill-shaped Search Bar */}
-              <div
-                className="bg-white rounded-full flex items-center overflow-hidden"
-                style={{
-                  height: "64px",
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-                  maxWidth: "600px",
-                  width: "100%",
-                }}
-              >
-                {/* Cruise Line Selector */}
-                <div className="relative flex-1" ref={cruiseLineRef}>
-                  <button
-                    onClick={() => {
-                      setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen);
-                      setIsMonthDropdownOpen(false);
-                      setIsPassengerDropdownOpen(false);
-                    }}
-                    className="h-16 px-4 md:px-6 flex items-center gap-2 hover:bg-gray-50 transition-colors w-full"
-                    style={{
-                      borderRight: "1px solid #e5e7eb",
-                    }}
+                <nav className="hidden md:flex items-center gap-6">
+                  <a
+                    href="/sign-in"
+                    className="font-geograph text-base font-medium text-white hover:text-white/80 transition-colors"
                   >
-                    <span
-                      className="font-geograph truncate"
-                      style={{
-                        fontSize: "14px",
-                        color: selectedCruiseLine ? "#1c1c1c" : "#9ca3af",
-                        fontWeight: selectedCruiseLine ? "500" : "400",
-                      }}
-                    >
-                      {getCruiseLineText()}
-                    </span>
-                    <svg
-                      width="12"
-                      height="8"
-                      viewBox="0 0 12 8"
-                      fill="none"
-                      className="flex-shrink-0"
-                      style={{
-                        transform: isCruiseLineDropdownOpen
-                          ? "rotate(180deg)"
-                          : "rotate(0deg)",
-                        transition: "transform 0.2s",
-                      }}
-                    >
-                      <path
-                        d="M1 1L6 6L11 1"
-                        stroke="#9ca3af"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </button>
-
-                  {/* Dropdown */}
-                  {isCruiseLineDropdownOpen && (
-                    <div
-                      className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-lg overflow-hidden z-50"
-                      style={{ minWidth: "200px" }}
-                    >
-                      <button
-                        onClick={() => {
-                          setSelectedCruiseLine("");
-                          setIsCruiseLineDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-3 hover:bg-gray-50 font-geograph text-sm"
-                      >
-                        All Cruise Lines
-                      </button>
-                      {CRUISE_LINE_OPTIONS.map((option) => (
-                        <button
-                          key={option.value}
-                          onClick={() => {
-                            setSelectedCruiseLine(option.value);
-                            setIsCruiseLineDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-gray-50 font-geograph text-sm"
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Date (Month) Selector */}
-                <div className="relative flex-1" ref={monthRef}>
-                  <button
-                    onClick={() => {
-                      setIsMonthDropdownOpen(!isMonthDropdownOpen);
-                      setIsCruiseLineDropdownOpen(false);
-                      setIsPassengerDropdownOpen(false);
-                    }}
-                    className="h-16 px-4 md:px-6 flex items-center gap-2 hover:bg-gray-50 transition-colors w-full"
-                    style={{
-                      borderRight: "1px solid #e5e7eb",
-                    }}
+                    Sign in
+                  </a>
+                  <a
+                    href="/cruises"
+                    className="font-geograph text-base font-medium text-white bg-dark-blue hover:bg-dark-blue/90 px-6 py-3 rounded-full transition-colors"
                   >
-                    <span
-                      className="font-geograph truncate"
-                      style={{
-                        fontSize: "14px",
-                        color: selectedMonth ? "#1c1c1c" : "#9ca3af",
-                        fontWeight: selectedMonth ? "500" : "400",
-                      }}
-                    >
-                      {getMonthText()}
-                    </span>
-                    <svg
-                      width="12"
-                      height="8"
-                      viewBox="0 0 12 8"
-                      fill="none"
-                      className="flex-shrink-0"
-                      style={{
-                        transform: isMonthDropdownOpen
-                          ? "rotate(180deg)"
-                          : "rotate(0deg)",
-                        transition: "transform 0.2s",
-                      }}
-                    >
-                      <path
-                        d="M1 1L6 6L11 1"
-                        stroke="#9ca3af"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </button>
+                    Browse Cruises
+                  </a>
+                </nav>
+              </div>
 
-                  {/* Dropdown */}
-                  {isMonthDropdownOpen && (
-                    <div
-                      className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-lg overflow-hidden z-50"
-                      style={{
-                        minWidth: "180px",
-                        maxHeight: "300px",
-                        overflowY: "auto",
-                      }}
-                    >
-                      <button
-                        onClick={() => {
-                          setSelectedMonth("");
-                          setIsMonthDropdownOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-3 hover:bg-gray-50 font-geograph text-sm"
-                      >
-                        Any Month
-                      </button>
-                      {MONTH_OPTIONS.map((option) => (
-                        <button
-                          key={option.value}
-                          onClick={() => {
-                            setSelectedMonth(option.value);
-                            setIsMonthDropdownOpen(false);
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-gray-50 font-geograph text-sm"
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Passengers Selector */}
-                <div className="relative flex-1" ref={passengerRef}>
-                  <button
-                    onClick={() => {
-                      setIsPassengerDropdownOpen(!isPassengerDropdownOpen);
-                      setIsCruiseLineDropdownOpen(false);
-                      setIsMonthDropdownOpen(false);
-                    }}
-                    className="h-16 px-4 md:px-6 flex items-center gap-2 hover:bg-gray-50 transition-colors w-full"
-                  >
-                    <span
-                      className="font-geograph truncate"
-                      style={{
-                        fontSize: "14px",
-                        color: "#1c1c1c",
-                        fontWeight: "500",
-                      }}
-                    >
-                      {getPassengerText()}
-                    </span>
-                    <svg
-                      width="12"
-                      height="8"
-                      viewBox="0 0 12 8"
-                      fill="none"
-                      className="flex-shrink-0"
-                      style={{
-                        transform: isPassengerDropdownOpen
-                          ? "rotate(180deg)"
-                          : "rotate(0deg)",
-                        transition: "transform 0.2s",
-                      }}
-                    >
-                      <path
-                        d="M1 1L6 6L11 1"
-                        stroke="#9ca3af"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </button>
-
-                  {/* Dropdown */}
-                  {isPassengerDropdownOpen && (
-                    <div
-                      className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-lg p-4 z-50"
-                      style={{ minWidth: "280px" }}
-                    >
-                      {/* Adults */}
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-geograph text-sm font-medium">
-                            Adults
-                          </span>
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={() => {
-                                if (passengerCount.adults > 1) {
-                                  setPassengerCount({
-                                    ...passengerCount,
-                                    adults: passengerCount.adults - 1,
-                                  });
-                                }
-                              }}
-                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
-                              disabled={passengerCount.adults <= 1}
-                            >
-                              <span className="text-lg">−</span>
-                            </button>
-                            <span className="font-geograph font-medium w-6 text-center">
-                              {passengerCount.adults}
-                            </span>
-                            <button
-                              onClick={() => {
-                                if (passengerCount.adults < 8) {
-                                  setPassengerCount({
-                                    ...passengerCount,
-                                    adults: passengerCount.adults + 1,
-                                  });
-                                }
-                              }}
-                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
-                              disabled={passengerCount.adults >= 8}
-                            >
-                              <span className="text-lg">+</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Children */}
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-geograph text-sm font-medium">
-                            Children
-                          </span>
-                          <div className="flex items-center gap-3">
-                            <button
-                              onClick={() => {
-                                if (passengerCount.children > 0) {
-                                  const newChildAges = [
-                                    ...passengerCount.childAges,
-                                  ];
-                                  newChildAges.pop();
-                                  setPassengerCount({
-                                    ...passengerCount,
-                                    children: passengerCount.children - 1,
-                                    childAges: newChildAges,
-                                  });
-                                }
-                              }}
-                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
-                              disabled={passengerCount.children <= 0}
-                            >
-                              <span className="text-lg">−</span>
-                            </button>
-                            <span className="font-geograph font-medium w-6 text-center">
-                              {passengerCount.children}
-                            </span>
-                            <button
-                              onClick={() => {
-                                if (passengerCount.children < 6) {
-                                  setPassengerCount({
-                                    ...passengerCount,
-                                    children: passengerCount.children + 1,
-                                    childAges: [...passengerCount.childAges, 5],
-                                  });
-                                }
-                              }}
-                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
-                              disabled={passengerCount.children >= 6}
-                            >
-                              <span className="text-lg">+</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Child Ages */}
-                        {passengerCount.children > 0 && (
-                          <div className="mt-3 space-y-2">
-                            {passengerCount.childAges.map((age, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-2"
-                              >
-                                <span className="font-geograph text-xs text-gray-600 w-16">
-                                  Child {index + 1}:
-                                </span>
-                                <select
-                                  value={age}
-                                  onChange={(e) => {
-                                    const newAges = [
-                                      ...passengerCount.childAges,
-                                    ];
-                                    newAges[index] = parseInt(e.target.value);
-                                    setPassengerCount({
-                                      ...passengerCount,
-                                      childAges: newAges,
-                                    });
-                                  }}
-                                  className="flex-1 px-2 py-1 border border-gray-300 rounded font-geograph text-sm"
-                                >
-                                  {Array.from({ length: 18 }, (_, i) => (
-                                    <option key={i} value={i}>
-                                      {i} years
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Search Button - Blue circle */}
-                <button
-                  onClick={handleSearch}
-                  className="flex items-center justify-center transition-colors flex-shrink-0"
+              {/* Centered Content */}
+              <div className="flex flex-col items-center justify-center flex-1 px-4">
+                {/* Headline with drop shadow */}
+                <h1
+                  className="text-white font-whitney uppercase text-center leading-none mb-6 md:mb-8"
                   style={{
-                    width: "56px",
-                    height: "56px",
-                    borderRadius: "50%",
-                    backgroundColor: "#2238C3",
-                    margin: "4px",
+                    fontSize: "clamp(36px, 5vw, 64px)",
+                    letterSpacing: "-0.02em",
+                    textShadow: "0px 1px 4px rgba(0, 0, 0, 0.6)",
                   }}
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M21 21L16.65 16.65"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
+                  Find your next
+                  <br />
+                  cruise adventure
+                </h1>
+
+                {/* Search Bar with Icons - OLD IMPLEMENTATION */}
+                <div className="w-full" style={{ maxWidth: "740px" }}>
+                  <div className="hidden md:flex gap-3 items-center">
+                    {/* Destinations Dropdown with Place Icon */}
+                    <div className="relative flex-1" ref={regionDropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
+                        className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
+                        style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
+                      >
+                        <Image
+                          src="/images/place-icon.svg"
+                          alt=""
+                          width={20}
+                          height={20}
+                          className="mr-3"
+                        />
+                        <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
+                          {getRegionPlaceholder()}
+                        </span>
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          className={`transform transition-transform ${isRegionDropdownOpen ? "rotate-180" : ""}`}
+                        >
+                          <path
+                            d="M2 4L6 8L10 4"
+                            stroke="#0E1B4D"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+
+                      {isRegionDropdownOpen && (
+                        <div
+                          className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {regions.map((region) => (
+                            <div
+                              key={region.id}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setSelectedRegions((prev) =>
+                                  prev.includes(region.id)
+                                    ? prev.filter((id) => id !== region.id)
+                                    : [...prev, region.id],
+                                );
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer"
+                            >
+                              <div
+                                className={`w-4 h-4 border rounded ${
+                                  selectedRegions.includes(region.id)
+                                    ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                                    : "border-gray-300"
+                                }`}
+                              >
+                                {selectedRegions.includes(region.id) && (
+                                  <svg
+                                    className="w-full h-full text-white"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                )}
+                              </div>
+                              <div className="font-geograph text-[16px] text-dark-blue">
+                                {region.name}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Dates Dropdown with Calendar Icon */}
+                    <div className="relative flex-1" ref={dateDropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
+                        className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
+                        style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
+                      >
+                        <Image
+                          src="/images/calendar.svg"
+                          alt=""
+                          width={20}
+                          height={20}
+                          className="mr-3"
+                        />
+                        <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
+                          {getDatePlaceholder()}
+                        </span>
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          className={`transform transition-transform ${isDateDropdownOpen ? "rotate-180" : ""}`}
+                        >
+                          <path
+                            d="M2 4L6 8L10 4"
+                            stroke="#0E1B4D"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+
+                      {isDateDropdownOpen && (
+                        <div
+                          className="absolute top-full mt-2 w-[400px] bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4 max-h-[500px] overflow-y-auto"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {[2025, 2026, 2027].map((year) => {
+                            const currentDate = new Date();
+                            const currentYear = currentDate.getFullYear();
+                            const currentMonth = currentDate.getMonth();
+
+                            return (
+                              <div key={year} className="mb-4">
+                                <div className="font-geograph font-bold text-[14px] text-gray-700 mb-2">
+                                  {year}
+                                </div>
+                                <div className="grid grid-cols-4 gap-2">
+                                  {[
+                                    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+                                  ].map((month, index) => {
+                                    const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
+                                    const isSelected = selectedMonths.includes(monthStr);
+                                    const isPast =
+                                      year < currentYear ||
+                                      (year === currentYear && index < currentMonth);
+
+                                    return (
+                                      <button
+                                        key={monthStr}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          if (!isPast) {
+                                            setSelectedMonths((prev) =>
+                                              prev.includes(monthStr)
+                                                ? prev.filter((m) => m !== monthStr)
+                                                : [...prev, monthStr],
+                                            );
+                                          }
+                                        }}
+                                        disabled={isPast}
+                                        className={`px-3 py-2 rounded-full text-[14px] font-geograph transition-colors ${
+                                          isPast
+                                            ? "bg-gray-50 text-gray-400 cursor-not-allowed"
+                                            : isSelected
+                                              ? "bg-[#0E1B4D] text-white"
+                                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                        }`}
+                                      >
+                                        {month}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Cruise Lines Dropdown with Ship Icon */}
+                    <div className="relative flex-1" ref={cruiseLineDropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)}
+                        className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
+                        style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
+                      >
+                        <Image
+                          src="/images/ship.svg"
+                          alt=""
+                          width={20}
+                          height={20}
+                          className="mr-3"
+                        />
+                        <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
+                          {getCruiseLinePlaceholder()}
+                        </span>
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          className={`transform transition-transform ${isCruiseLineDropdownOpen ? "rotate-180" : ""}`}
+                        >
+                          <path
+                            d="M2 4L6 8L10 4"
+                            stroke="#0E1B4D"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+
+                      {isCruiseLineDropdownOpen && (
+                        <div
+                          className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {cruiseLines.map((line) => (
+                            <div
+                              key={line.id}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setSelectedCruiseLines((prev) =>
+                                  prev.includes(line.id)
+                                    ? prev.filter((id) => id !== line.id)
+                                    : [...prev, line.id],
+                                );
+                              }}
+                              className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer"
+                            >
+                              <div
+                                className={`w-4 h-4 border rounded ${
+                                  selectedCruiseLines.includes(line.id)
+                                    ? "bg-[#0E1B4D] border-[#0E1B4D]"
+                                    : "border-gray-300"
+                                }`}
+                              >
+                                {selectedCruiseLines.includes(line.id) && (
+                                  <svg
+                                    className="w-full h-full text-white"
+                                    fill="currentColor"
+                                    viewBox="0 0 20 20"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                )}
+                              </div>
+                              <div className="font-geograph text-[16px] text-dark-blue">
+                                {line.name}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Search Button */}
+                  <div className="flex justify-center mt-3">
+                    <button
+                      type="button"
+                      onClick={handleSearchCruises}
+                      className="h-[74px] px-12 bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors"
+                      style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
+                    >
+                      <Image
+                        src="/images/search.svg"
+                        alt=""
+                        width={20}
+                        height={20}
+                        className="mr-2"
+                      />
+                      <span className="text-white text-[20px] font-geograph font-medium whitespace-nowrap">
+                        Search cruises
+                      </span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Banners Section */}
+      {/* Banners Section - Custom max-width 1464px */}
       <section className="bg-sand py-8 md:py-12">
-        <div className="max-w-7xl mx-auto px-4 md:px-8">
+        <div className="mx-auto px-4 md:px-8" style={{ maxWidth: "1464px" }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <Image
               src="/images/updated-homepage/banner-first-time.png"
@@ -660,10 +575,9 @@ function HomeWithParams() {
         </div>
       </section>
 
-      {/* Top Destinations Section */}
-      <section className="bg-sand pt-12 md:pt-20">
-        <div className="max-w-7xl mx-auto px-4 md:px-8">
-          {/* Headline */}
+      {/* Top Destinations Section - Custom max-width 1464px, reduced bottom margin */}
+      <section className="bg-sand pt-12 md:pt-20 pb-6 md:pb-10">
+        <div className="mx-auto px-4 md:px-8" style={{ maxWidth: "1464px" }}>
           <h2
             className="text-center font-whitney uppercase mb-8 md:mb-12"
             style={{
@@ -676,7 +590,6 @@ function HomeWithParams() {
             Top Destinations
           </h2>
 
-          {/* Destination Tiles */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-12">
             {/* Bahamas */}
             <button
@@ -699,7 +612,7 @@ function HomeWithParams() {
                     fontWeight: "700",
                     color: "white",
                     letterSpacing: "0.1em",
-                    marginBottom: "-20px",
+                    marginBottom: "-10px",
                   }}
                 >
                   Weekend getaways
@@ -738,7 +651,7 @@ function HomeWithParams() {
                     fontWeight: "700",
                     color: "white",
                     letterSpacing: "0.1em",
-                    marginBottom: "-20px",
+                    marginBottom: "-10px",
                   }}
                 >
                   7 night cruises
@@ -777,7 +690,7 @@ function HomeWithParams() {
                     fontWeight: "700",
                     color: "white",
                     letterSpacing: "0.1em",
-                    marginBottom: "-20px",
+                    marginBottom: "-10px",
                   }}
                 >
                   cruises going to
@@ -816,7 +729,7 @@ function HomeWithParams() {
                     fontWeight: "700",
                     color: "white",
                     letterSpacing: "0.1em",
-                    marginBottom: "-20px",
+                    marginBottom: "-10px",
                   }}
                 >
                   cruises departing
@@ -835,8 +748,7 @@ function HomeWithParams() {
             </button>
           </div>
 
-          {/* CTA Button */}
-          <div className="flex justify-center mb-12 md:mb-16">
+          <div className="flex justify-center">
             <button
               onClick={() => router.push("/cruises")}
               className="font-geograph text-white rounded-full hover:opacity-90 transition-opacity"
@@ -856,9 +768,8 @@ function HomeWithParams() {
           </div>
         </div>
 
-        {/* Separator */}
         <div
-          className="w-full h-[21px]"
+          className="w-full h-[21px] mt-8 md:mt-12"
           style={{
             backgroundImage: 'url("/images/separator-3.png")',
             backgroundRepeat: "repeat-x",
@@ -868,10 +779,9 @@ function HomeWithParams() {
         />
       </section>
 
-      {/* Testimonials Section */}
-      <section className="bg-white py-12 md:py-20">
+      {/* Testimonials Section - Reduced top margin */}
+      <section className="bg-white py-6 md:py-10">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
-          {/* Headline */}
           <h2
             className="text-center font-whitney uppercase mb-8 md:mb-12"
             style={{
@@ -884,48 +794,31 @@ function HomeWithParams() {
             Smarter cruisers = happy cruisers
           </h2>
 
-          {/* Review Tiles */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Review 1 */}
+            {/* Review 1 - Reduced hover shadow opacity */}
             <a
               href="https://www.trustpilot.com/reviews/68ccd495ecd5535685d2dd7f"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col hover:shadow-lg transition-shadow"
-              style={{ minHeight: "280px" }}
+              className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col transition-shadow"
+              style={{ minHeight: "280px", boxShadow: "0 0 0 0 rgba(0,0,0,0)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = "0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = "0 0 0 0 rgba(0,0,0,0)";
+              }}
             >
-              {/* Stars */}
               <div className="mb-4">
-                <Image
-                  src="/images/updated-homepage/trustpilot-stars.svg"
-                  alt="5 stars"
-                  width={120}
-                  height={24}
-                />
+                <Image src="/images/updated-homepage/trustpilot-stars.svg" alt="5 stars" width={120} height={24} />
               </div>
-
-              {/* Title */}
-              <h3
-                className="font-geograph font-bold text-base md:text-lg mb-3"
-                style={{ color: "#1c1c1c" }}
-              >
+              <h3 className="font-geograph font-bold text-base md:text-lg mb-3" style={{ color: "#1c1c1c" }}>
                 Every Number Matched
               </h3>
-
-              {/* Body */}
-              <p
-                className="font-geograph text-sm md:text-base mb-4 flex-grow"
-                style={{ color: "#2f2f2f", lineHeight: "1.5" }}
-              >
-                The base fare, taxes, and onboard credit lined up perfectly. No
-                fine print, no surprises. That's why I trusted them.
+              <p className="font-geograph text-sm md:text-base mb-4 flex-grow" style={{ color: "#2f2f2f", lineHeight: "1.5" }}>
+                The base fare, taxes, and onboard credit lined up perfectly. No fine print, no surprises. That's why I trusted them.
               </p>
-
-              {/* Author */}
-              <p
-                className="font-geograph text-xs md:text-sm font-medium mt-auto"
-                style={{ color: "#6b7280" }}
-              >
+              <p className="font-geograph text-xs md:text-sm font-medium mt-auto" style={{ color: "#6b7280" }}>
                 James lee
               </p>
             </a>
@@ -935,41 +828,25 @@ function HomeWithParams() {
               href="https://www.trustpilot.com/users/68cccfc38a838cf268714fe1"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col hover:shadow-lg transition-shadow"
-              style={{ minHeight: "280px" }}
+              className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col transition-shadow"
+              style={{ minHeight: "280px", boxShadow: "0 0 0 0 rgba(0,0,0,0)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = "0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = "0 0 0 0 rgba(0,0,0,0)";
+              }}
             >
-              {/* Stars */}
               <div className="mb-4">
-                <Image
-                  src="/images/updated-homepage/trustpilot-stars.svg"
-                  alt="5 stars"
-                  width={120}
-                  height={24}
-                />
+                <Image src="/images/updated-homepage/trustpilot-stars.svg" alt="5 stars" width={120} height={24} />
               </div>
-
-              {/* Title */}
-              <h3
-                className="font-geograph font-bold text-base md:text-lg mb-3"
-                style={{ color: "#1c1c1c" }}
-              >
+              <h3 className="font-geograph font-bold text-base md:text-lg mb-3" style={{ color: "#1c1c1c" }}>
                 Switching From Costco Paid Off
               </h3>
-
-              {/* Body */}
-              <p
-                className="font-geograph text-sm md:text-base mb-4 flex-grow"
-                style={{ color: "#2f2f2f", lineHeight: "1.5" }}
-              >
-                We almost booked with Costco for Royal Caribbean. They offered a
-                small rebate card, but Zipsea added $400 in OBC...
+              <p className="font-geograph text-sm md:text-base mb-4 flex-grow" style={{ color: "#2f2f2f", lineHeight: "1.5" }}>
+                We almost booked with Costco for Royal Caribbean. They offered a small rebate card, but Zipsea added $400 in OBC...
               </p>
-
-              {/* Author */}
-              <p
-                className="font-geograph text-xs md:text-sm font-medium mt-auto"
-                style={{ color: "#6b7280" }}
-              >
+              <p className="font-geograph text-xs md:text-sm font-medium mt-auto" style={{ color: "#6b7280" }}>
                 Drew
               </p>
             </a>
@@ -979,41 +856,25 @@ function HomeWithParams() {
               href="https://www.trustpilot.com/users/68cc73c37b741cb43a9a8473"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col hover:shadow-lg transition-shadow"
-              style={{ minHeight: "280px" }}
+              className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col transition-shadow"
+              style={{ minHeight: "280px", boxShadow: "0 0 0 0 rgba(0,0,0,0)" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = "0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = "0 0 0 0 rgba(0,0,0,0)";
+              }}
             >
-              {/* Stars */}
               <div className="mb-4">
-                <Image
-                  src="/images/updated-homepage/trustpilot-stars.svg"
-                  alt="5 stars"
-                  width={120}
-                  height={24}
-                />
+                <Image src="/images/updated-homepage/trustpilot-stars.svg" alt="5 stars" width={120} height={24} />
               </div>
-
-              {/* Title */}
-              <h3
-                className="font-geograph font-bold text-base md:text-lg mb-3"
-                style={{ color: "#1c1c1c" }}
-              >
+              <h3 className="font-geograph font-bold text-base md:text-lg mb-3" style={{ color: "#1c1c1c" }}>
                 Incredible perks with Zipsea!
               </h3>
-
-              {/* Body */}
-              <p
-                className="font-geograph text-sm md:text-base mb-4 flex-grow"
-                style={{ color: "#2f2f2f", lineHeight: "1.5" }}
-              >
-                ..My party and I can actually utilize the credit for our
-                excursions. What a seamless experience.
+              <p className="font-geograph text-sm md:text-base mb-4 flex-grow" style={{ color: "#2f2f2f", lineHeight: "1.5" }}>
+                ..My party and I can actually utilize the credit for our excursions. What a seamless experience.
               </p>
-
-              {/* Author */}
-              <p
-                className="font-geograph text-xs md:text-sm font-medium mt-auto"
-                style={{ color: "#6b7280" }}
-              >
+              <p className="font-geograph text-xs md:text-sm font-medium mt-auto" style={{ color: "#6b7280" }}>
                 Jamie
               </p>
             </a>
@@ -1024,7 +885,6 @@ function HomeWithParams() {
   );
 }
 
-// Main component wrapped with Suspense
 export default function Home() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
