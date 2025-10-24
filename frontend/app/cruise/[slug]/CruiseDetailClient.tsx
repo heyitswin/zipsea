@@ -144,8 +144,21 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
   // Helper function to get cabin pricing for selected rate code
   const getCabinPricingForRate = (cabin: any) => {
+    console.log("🔍 getCabinPricingForRate called for cabin:", cabin.name, {
+      selectedRateCode,
+      hasRatesByCode: !!cabin.ratesByCode,
+      ratesByCodeKeys: cabin.ratesByCode ? Object.keys(cabin.ratesByCode) : [],
+      cheapestPrice: cabin.cheapestPrice,
+      defaultRateCode: cabin.rateCode,
+      defaultGradeNo: cabin.gradeNo,
+      defaultResultNo: cabin.resultNo,
+    });
+
     if (!selectedRateCode || !cabin.ratesByCode) {
       // No rate selected or no rates available - use default cheapest price
+      console.log(
+        "⚠️ Using cheapest price fallback - no rate code or ratesByCode",
+      );
       return {
         price: cabin.cheapestPrice,
         gradeNo: cabin.gradeNo,
@@ -157,6 +170,12 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     // Use selected rate code if available for this cabin
     const rateData = cabin.ratesByCode[selectedRateCode];
     if (rateData) {
+      console.log(
+        "✅ Using selected rate code:",
+        selectedRateCode,
+        "price:",
+        rateData.price,
+      );
       return {
         price: rateData.price,
         gradeNo: rateData.gradeno,
@@ -166,6 +185,9 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     }
 
     // Fallback to cheapest if selected rate not available for this cabin
+    console.log(
+      "⚠️ Using cheapest price fallback - selected rate not available for this cabin",
+    );
     return {
       price: cabin.cheapestPrice,
       gradeNo: cabin.gradeNo,
