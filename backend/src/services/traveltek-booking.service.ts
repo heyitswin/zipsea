@@ -569,8 +569,10 @@ class TraveltekBookingService {
 
         // Find a matching cabin grade with the same type from fresh pricing
         // IMPORTANT: Search within gridpricing array, not just top-level results
-        // Each cabin can have multiple rate codes in gridpricing, each with its own gradeno and resultno
+        // Each cabin can have multiple rate codes in gridpricing, each with its own gradeno
+        // BUT the resultno comes from the parent cabin object
         let alternativeGrade = null;
+        let parentCabinResultno = null;
         if (cabinTypeIndex && freshPricing.results && freshPricing.results.length > 0) {
           for (const cabin of freshPricing.results) {
             if (cabin.gridpricing && Array.isArray(cabin.gridpricing)) {
@@ -588,6 +590,7 @@ class TraveltekBookingService {
 
               if (matchingRate) {
                 alternativeGrade = matchingRate;
+                parentCabinResultno = cabin.resultno; // Get resultno from parent cabin
                 break;
               }
             }
@@ -603,14 +606,17 @@ class TraveltekBookingService {
             newRate: alternativeRateCode,
             originalGradeNo: params.gradeNo,
             newGradeNo: alternativeGrade.gradeno,
+            originalResultNo: params.resultNo,
+            newResultNo: parentCabinResultno,
             originalPrice: basketItem.searchprice || 'unknown',
             newPrice: alternativeGrade.price,
           });
 
           // Try adding to basket with the fresh rate
+          // Use parentCabinResultno since individual rates in gridpricing don't have their own resultno
           const retryParams = {
             ...addToBasketParams,
-            resultno: alternativeGrade.resultno,
+            resultno: parentCabinResultno || params.resultNo, // Fallback to original if not found
             gradeno: alternativeGrade.gradeno,
             ratecode: alternativeRateCode,
           };
