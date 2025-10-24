@@ -1034,6 +1034,7 @@ class TraveltekBookingService {
 
       const bookingId = await this.storeBooking({
         sessionId: params.sessionId,
+        cruiseId: sessionData.cruiseId,
         traveltekBookingId: bookingData.bookingid,
         bookingDetails: bookingData.bookingdetails || bookingData,
         passengers: params.passengers,
@@ -1251,25 +1252,53 @@ class TraveltekBookingService {
    */
   private async storeBooking(params: {
     sessionId: string;
+    cruiseId: string;
     traveltekBookingId: string;
     bookingDetails: any;
     passengers: PassengerDetails[];
     payment: any;
   }): Promise<string> {
     try {
+      console.log('[TraveltekBooking] storeBooking called with:', {
+        sessionId: params.sessionId,
+        traveltekBookingId: params.traveltekBookingId,
+        bookingDetailsKeys: params.bookingDetails ? Object.keys(params.bookingDetails) : 'null',
+        paymentAmount: params.payment?.amount,
+        passengersCount: params.passengers?.length,
+      });
+
+      // Extract amounts - use payment.amount as fallback for totalAmount
+      const totalAmount = params.bookingDetails?.totalcost || params.payment.amount || 0;
+      const depositAmount = params.bookingDetails?.depositamount || params.payment.amount || 0;
+      const paidAmount = params.payment.amount || 0;
+
+      // Extract balance due date - make it optional
+      let balanceDueDate: Date | null = null;
+      if (params.bookingDetails?.balanceduedate) {
+        try {
+          balanceDueDate = new Date(params.bookingDetails.balanceduedate);
+        } catch (error) {
+          console.warn(
+            '[TraveltekBooking] Invalid balanceduedate:',
+            params.bookingDetails.balanceduedate
+          );
+        }
+      }
+
       // Insert booking
       const [booking] = await db
         .insert(bookings)
         .values({
           bookingSessionId: params.sessionId,
+          cruiseId: params.cruiseId,
           traveltekBookingId: params.traveltekBookingId,
           status: 'confirmed',
           bookingDetails: params.bookingDetails,
-          totalAmount: params.bookingDetails.totalcost.toString(),
-          depositAmount: params.bookingDetails.depositamount.toString(),
-          paidAmount: params.payment.amount.toString(),
-          paymentStatus: 'paid',
-          balanceDueDate: new Date(params.bookingDetails.balanceduedate),
+          totalAmount: totalAmount.toString(),
+          depositAmount: depositAmount.toString(),
+          paidAmount: paidAmount.toString(),
+          paymentStatus: 'fully_paid', // Must be: 'deposit_paid' | 'fully_paid' | 'pending' | 'failed'
+          balanceDueDate: balanceDueDate,
           createdAt: new Date(),
           updatedAt: new Date(),
         })
@@ -1297,7 +1326,7 @@ class TraveltekBookingService {
       await db.insert(bookingPayments).values({
         bookingId: booking.id,
         amount: params.payment.amount.toString(),
-        paymentType: params.payment.paymentType,
+        paymentType: params.payment.paymentType || 'full_payment', // Must be: 'deposit' | 'full_payment' | 'balance'
         paymentMethod: 'credit_card',
         last4: params.payment.last4,
         transactionId: params.payment.transactionId,
