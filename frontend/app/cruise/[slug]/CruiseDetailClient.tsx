@@ -133,11 +133,12 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
   };
 
   // Helper function to format price with commas
+  // For live pricing, show 2 decimal places since it includes taxes & fees
   const formatPrice = (price: number | null | undefined): string => {
-    if (!price || isNaN(price)) return "0";
+    if (!price || isNaN(price)) return "0.00";
     return price.toLocaleString("en-US", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     });
   };
 
