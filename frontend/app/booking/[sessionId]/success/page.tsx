@@ -7,23 +7,6 @@ export default function BookingSuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const confirmationId = searchParams.get("confirmationId");
-  const [countdown, setCountdown] = useState(10);
-
-  useEffect(() => {
-    // Countdown to redirect
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          router.push("/");
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [router]);
 
   return (
     <div className="min-h-screen bg-sand flex items-center justify-center px-6">
@@ -111,11 +94,6 @@ export default function BookingSuccessPage() {
               Print Confirmation
             </button>
           </div>
-
-          {/* Auto Redirect Notice */}
-          <p className="font-geograph text-[14px] text-gray-600 mt-8">
-            Redirecting to homepage in {countdown} seconds...
-          </p>
         </div>
 
         {/* Support Info */}
