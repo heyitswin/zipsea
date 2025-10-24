@@ -28,6 +28,7 @@ interface PricingData {
   shipImage?: string;
   cruiseLineName?: string;
   cancellationPolicyUrl?: string;
+  isPriceEstimated?: boolean;
 }
 
 export default function PricingSummary({ sessionId }: PricingSummaryProps) {
@@ -58,16 +59,28 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
         console.log("🛒 basketData.results[0]:", basketData.results?.[0]);
 
         // Extract pricing from basket
-        const totalprice = basketData.results?.[0]?.totalprice || 0;
-        const totaldeposit = basketData.results?.[0]?.totaldeposit || 0;
+        // Note: Traveltek returns totalprice=0 until dining selection is finalized during booking
+        // In this case, use searchprice from the basket item as the estimated price
+        const basketItem = basketData.results?.[0]?.basketitems?.[0];
+        let totalprice = basketData.results?.[0]?.totalprice || 0;
+        let totaldeposit = basketData.results?.[0]?.totaldeposit || 0;
+        let isPriceEstimated = false;
+
+        // Fallback to searchprice if totalprice is 0
+        if (totalprice === 0 && basketItem?.searchprice) {
+          console.log("💵 Using searchprice as fallback (totalprice is 0)");
+          totalprice = parseFloat(basketItem.searchprice);
+          totaldeposit = parseFloat(basketItem.searchdeposit || 0);
+          isPriceEstimated = true;
+        }
 
         console.log("💵 Extracted totalprice:", totalprice);
         console.log("💵 Extracted totaldeposit:", totaldeposit);
+        console.log("💵 Is price estimated?", isPriceEstimated);
         const currency = basketData.results?.[0]?.currency || "USD";
         const currencySymbol = basketData.results?.[0]?.currencysymbol || "$";
 
         // Get breakdown from basket item
-        const basketItem = basketData.results?.[0]?.basketitems?.[0];
         const breakdown: PriceBreakdownItem[] = [];
         let cruiseFare = 0;
         let taxes = 0;
@@ -214,6 +227,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           shipImage,
           cruiseLineName,
           cancellationPolicyUrl,
+          isPriceEstimated,
         });
         setIsLoading(false);
       } catch (error) {
@@ -281,6 +295,16 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
       <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
         Pricing Summary
       </h3>
+
+      {/* Estimated Price Notice */}
+      {pricingData.isPriceEstimated && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="font-geograph text-[13px] text-blue-800">
+            <strong>Estimated Pricing:</strong> Final price will be confirmed
+            during checkout after all selections are complete.
+          </p>
+        </div>
+      )}
 
       {/* Detailed Breakdown */}
       <div className="space-y-2 mb-4 pb-4 border-b border-gray-200">
