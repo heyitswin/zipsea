@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, useRef, useEffect, Suspense } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { trackEngagement } from "../lib/analytics";
 import {
   fetchShips,
@@ -11,6 +11,7 @@ import {
   LastMinuteDeals,
 } from "../lib/api";
 import { useAlert } from "../components/GlobalAlertProvider";
+import LoginSignupModal from "../app/components/LoginSignupModal";
 
 interface FilterOption {
   id: number;
@@ -21,24 +22,31 @@ interface FilterOption {
 // Separate component to handle URL params
 function HomeWithParams() {
   const router = useRouter();
+  const pathname = usePathname();
   const { showAlert } = useAlert();
 
-  // Search states for the three dropdowns
-  const [selectedRegions, setSelectedRegions] = useState<number[]>([]);
+  // Guest selector states
+  const [adults, setAdults] = useState(2);
+  const [children, setChildren] = useState(0);
+
+  // Search states (cruise lines, dates, guests)
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const [selectedCruiseLines, setSelectedCruiseLines] = useState<number[]>([]);
 
+  // Login modal state
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
   // Dropdown open states
-  const [isRegionDropdownOpen, setIsRegionDropdownOpen] = useState(false);
+  const [isGuestsDropdownOpen, setIsGuestsDropdownOpen] = useState(false);
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
-  const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] = useState(false);
+  const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] =
+    useState(false);
 
   // Filter options from API
-  const [regions, setRegions] = useState<FilterOption[]>([]);
   const [cruiseLines, setCruiseLines] = useState<FilterOption[]>([]);
 
   // Refs for dropdown click outside detection
-  const regionDropdownRef = useRef<HTMLDivElement>(null);
+  const guestsDropdownRef = useRef<HTMLDivElement>(null);
   const dateDropdownRef = useRef<HTMLDivElement>(null);
   const cruiseLineDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -51,7 +59,6 @@ function HomeWithParams() {
         );
         if (response.ok) {
           const data = await response.json();
-          setRegions(data.regions || []);
           setCruiseLines(data.cruiseLines || []);
         }
       } catch (error) {
@@ -66,10 +73,10 @@ function HomeWithParams() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        regionDropdownRef.current &&
-        !regionDropdownRef.current.contains(event.target as Node)
+        guestsDropdownRef.current &&
+        !guestsDropdownRef.current.contains(event.target as Node)
       ) {
-        setIsRegionDropdownOpen(false);
+        setIsGuestsDropdownOpen(false);
       }
       if (
         dateDropdownRef.current &&
@@ -93,9 +100,6 @@ function HomeWithParams() {
   const handleSearchCruises = () => {
     const params = new URLSearchParams();
 
-    if (selectedRegions.length > 0) {
-      params.set("regions", selectedRegions.join(","));
-    }
     if (selectedMonths.length > 0) {
       params.set("months", selectedMonths.join(","));
     }
@@ -103,7 +107,9 @@ function HomeWithParams() {
       params.set("cruiseLines", selectedCruiseLines.join(","));
     }
 
-    const url = params.toString() ? `/cruises?${params.toString()}` : "/cruises";
+    const url = params.toString()
+      ? `/cruises?${params.toString()}`
+      : "/cruises";
     router.push(url);
   };
 
@@ -113,20 +119,20 @@ function HomeWithParams() {
 
     switch (destination) {
       case "bahamas":
-        params.set("regions", "28"); // Bahamas
+        params.set("regions", "28");
         params.set("minNights", "2");
         params.set("maxNights", "5");
         break;
       case "caribbean":
-        params.set("regions", "2"); // Caribbean
+        params.set("regions", "2");
         params.set("minNights", "7");
         params.set("maxNights", "7");
         break;
       case "mexico":
-        params.set("regions", "26"); // Mexico
+        params.set("regions", "26");
         break;
       case "newyork":
-        params.set("departurePorts", "362,5170,5171"); // NY area ports
+        params.set("departurePorts", "362,5170,5171");
         break;
     }
 
@@ -134,13 +140,10 @@ function HomeWithParams() {
   };
 
   // Placeholder helpers
-  const getRegionPlaceholder = () => {
-    if (selectedRegions.length === 0) return "All destinations";
-    if (selectedRegions.length === 1) {
-      const region = regions.find((r) => r.id === selectedRegions[0]);
-      return region?.name || "1 selected";
-    }
-    return `${selectedRegions.length} selected`;
+  const getGuestsPlaceholder = () => {
+    const total = adults + children;
+    if (total === 1) return "1 Guest";
+    return `${total} Guests`;
   };
 
   const getDatePlaceholder = () => {
@@ -165,13 +168,34 @@ function HomeWithParams() {
     return `${selectedCruiseLines.length} selected`;
   };
 
+  // Hide main nav on homepage - add CSS to header
+  useEffect(() => {
+    if (pathname === "/") {
+      const style = document.createElement("style");
+      style.id = "hide-nav-on-homepage";
+      style.innerHTML = `nav { display: none !important; }`;
+      document.head.appendChild(style);
+
+      return () => {
+        const styleEl = document.getElementById("hide-nav-on-homepage");
+        if (styleEl) styleEl.remove();
+      };
+    }
+  }, [pathname]);
+
   return (
     <>
       {/* Hero Section with Video Mask */}
       <section className="relative bg-sand overflow-hidden py-4 md:py-8">
-        <div className="relative mx-auto px-4 md:px-8" style={{ maxWidth: "1699px" }}>
+        <div
+          className="relative mx-auto px-4 md:px-8"
+          style={{ maxWidth: "1699px" }}
+        >
           {/* Video Background with Mask - Fixed Height Container */}
-          <div className="relative" style={{ height: "634px", minHeight: "634px" }}>
+          <div
+            className="relative"
+            style={{ height: "634px", minHeight: "634px" }}
+          >
             {/* Video with SVG mask */}
             <div className="absolute inset-0">
               <video
@@ -182,7 +206,8 @@ function HomeWithParams() {
                 className="w-full h-full object-cover"
                 style={{
                   maskImage: "url('/images/updated-homepage/video-mask.svg')",
-                  WebkitMaskImage: "url('/images/updated-homepage/video-mask.svg')",
+                  WebkitMaskImage:
+                    "url('/images/updated-homepage/video-mask.svg')",
                   maskSize: "100% 100%",
                   WebkitMaskSize: "100% 100%",
                   maskRepeat: "no-repeat",
@@ -191,7 +216,10 @@ function HomeWithParams() {
                   WebkitMaskPosition: "center",
                 }}
               >
-                <source src="/images/updated-homepage/homepage-video.mov" type="video/mp4" />
+                <source
+                  src="/images/updated-homepage/homepage-video.mov"
+                  type="video/mp4"
+                />
               </video>
             </div>
 
@@ -199,9 +227,11 @@ function HomeWithParams() {
             <div
               className="absolute inset-0 z-5"
               style={{
-                background: "radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 100%)",
+                background:
+                  "radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 100%)",
                 maskImage: "url('/images/updated-homepage/video-mask.svg')",
-                WebkitMaskImage: "url('/images/updated-homepage/video-mask.svg')",
+                WebkitMaskImage:
+                  "url('/images/updated-homepage/video-mask.svg')",
                 maskSize: "100% 100%",
                 WebkitMaskSize: "100% 100%",
                 maskRepeat: "no-repeat",
@@ -212,7 +242,10 @@ function HomeWithParams() {
             />
 
             {/* Navigation + Content INSIDE the masked area */}
-            <div className="absolute inset-0 z-10 flex flex-col" style={{ padding: "32px 48px" }}>
+            <div
+              className="absolute inset-0 z-10 flex flex-col"
+              style={{ padding: "32px 48px" }}
+            >
               {/* Navigation - Inside mask */}
               <div className="flex items-center justify-between mb-auto">
                 <a href="/" className="flex items-center">
@@ -226,15 +259,16 @@ function HomeWithParams() {
                 </a>
 
                 <nav className="hidden md:flex items-center gap-6">
-                  <a
-                    href="/sign-in"
+                  <button
+                    onClick={() => setIsLoginModalOpen(true)}
                     className="font-geograph text-base font-medium text-white hover:text-white/80 transition-colors"
                   >
                     Sign in
-                  </a>
+                  </button>
                   <a
                     href="/cruises"
-                    className="font-geograph text-base font-medium text-white bg-dark-blue hover:bg-dark-blue/90 px-6 py-3 rounded-full transition-colors"
+                    className="font-geograph text-base font-medium text-white px-6 py-3 rounded-full transition-colors"
+                    style={{ backgroundColor: "#2238C3" }}
                   >
                     Browse Cruises
                   </a>
@@ -257,197 +291,26 @@ function HomeWithParams() {
                   cruise adventure
                 </h1>
 
-                {/* Search Bar with Icons - OLD IMPLEMENTATION */}
-                <div className="w-full" style={{ maxWidth: "740px" }}>
-                  <div className="hidden md:flex gap-3 items-center">
-                    {/* Destinations Dropdown with Place Icon */}
-                    <div className="relative flex-1" ref={regionDropdownRef}>
+                {/* Combined Search Bar - Single Pill */}
+                <div
+                  className="w-full hidden md:block"
+                  style={{ maxWidth: "900px" }}
+                >
+                  <div
+                    className="bg-white rounded-full flex items-center"
+                    style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
+                  >
+                    {/* Cruise Line Dropdown */}
+                    <div
+                      className="relative flex-1 border-r border-gray-200"
+                      ref={cruiseLineDropdownRef}
+                    >
                       <button
                         type="button"
-                        onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
-                        className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
-                        style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
-                      >
-                        <Image
-                          src="/images/place-icon.svg"
-                          alt=""
-                          width={20}
-                          height={20}
-                          className="mr-3"
-                        />
-                        <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
-                          {getRegionPlaceholder()}
-                        </span>
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 12 12"
-                          fill="none"
-                          className={`transform transition-transform ${isRegionDropdownOpen ? "rotate-180" : ""}`}
-                        >
-                          <path
-                            d="M2 4L6 8L10 4"
-                            stroke="#0E1B4D"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </button>
-
-                      {isRegionDropdownOpen && (
-                        <div
-                          className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {regions.map((region) => (
-                            <div
-                              key={region.id}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setSelectedRegions((prev) =>
-                                  prev.includes(region.id)
-                                    ? prev.filter((id) => id !== region.id)
-                                    : [...prev, region.id],
-                                );
-                              }}
-                              className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer"
-                            >
-                              <div
-                                className={`w-4 h-4 border rounded ${
-                                  selectedRegions.includes(region.id)
-                                    ? "bg-[#0E1B4D] border-[#0E1B4D]"
-                                    : "border-gray-300"
-                                }`}
-                              >
-                                {selectedRegions.includes(region.id) && (
-                                  <svg
-                                    className="w-full h-full text-white"
-                                    fill="currentColor"
-                                    viewBox="0 0 20 20"
-                                  >
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                      clipRule="evenodd"
-                                    />
-                                  </svg>
-                                )}
-                              </div>
-                              <div className="font-geograph text-[16px] text-dark-blue">
-                                {region.name}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Dates Dropdown with Calendar Icon */}
-                    <div className="relative flex-1" ref={dateDropdownRef}>
-                      <button
-                        type="button"
-                        onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
-                        className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
-                        style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
-                      >
-                        <Image
-                          src="/images/calendar.svg"
-                          alt=""
-                          width={20}
-                          height={20}
-                          className="mr-3"
-                        />
-                        <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
-                          {getDatePlaceholder()}
-                        </span>
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 12 12"
-                          fill="none"
-                          className={`transform transition-transform ${isDateDropdownOpen ? "rotate-180" : ""}`}
-                        >
-                          <path
-                            d="M2 4L6 8L10 4"
-                            stroke="#0E1B4D"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </button>
-
-                      {isDateDropdownOpen && (
-                        <div
-                          className="absolute top-full mt-2 w-[400px] bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4 max-h-[500px] overflow-y-auto"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {[2025, 2026, 2027].map((year) => {
-                            const currentDate = new Date();
-                            const currentYear = currentDate.getFullYear();
-                            const currentMonth = currentDate.getMonth();
-
-                            return (
-                              <div key={year} className="mb-4">
-                                <div className="font-geograph font-bold text-[14px] text-gray-700 mb-2">
-                                  {year}
-                                </div>
-                                <div className="grid grid-cols-4 gap-2">
-                                  {[
-                                    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-                                  ].map((month, index) => {
-                                    const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
-                                    const isSelected = selectedMonths.includes(monthStr);
-                                    const isPast =
-                                      year < currentYear ||
-                                      (year === currentYear && index < currentMonth);
-
-                                    return (
-                                      <button
-                                        key={monthStr}
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          e.stopPropagation();
-                                          if (!isPast) {
-                                            setSelectedMonths((prev) =>
-                                              prev.includes(monthStr)
-                                                ? prev.filter((m) => m !== monthStr)
-                                                : [...prev, monthStr],
-                                            );
-                                          }
-                                        }}
-                                        disabled={isPast}
-                                        className={`px-3 py-2 rounded-full text-[14px] font-geograph transition-colors ${
-                                          isPast
-                                            ? "bg-gray-50 text-gray-400 cursor-not-allowed"
-                                            : isSelected
-                                              ? "bg-[#0E1B4D] text-white"
-                                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                                        }`}
-                                      >
-                                        {month}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Cruise Lines Dropdown with Ship Icon */}
-                    <div className="relative flex-1" ref={cruiseLineDropdownRef}>
-                      <button
-                        type="button"
-                        onClick={() => setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)}
-                        className="w-full h-[74px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
-                        style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
+                        onClick={() =>
+                          setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
+                        }
+                        className="w-full h-[74px] flex items-center px-6 hover:bg-gray-50 transition-colors rounded-l-full"
                       >
                         <Image
                           src="/images/ship.svg"
@@ -456,7 +319,7 @@ function HomeWithParams() {
                           height={20}
                           className="mr-3"
                         />
-                        <span className="flex-1 text-left text-[20px] font-geograph text-dark-blue tracking-tight">
+                        <span className="flex-1 text-left text-[18px] font-geograph text-dark-blue tracking-tight">
                           {getCruiseLinePlaceholder()}
                         </span>
                         <svg
@@ -478,7 +341,7 @@ function HomeWithParams() {
 
                       {isCruiseLineDropdownOpen && (
                         <div
-                          className="absolute top-full mt-2 w-64 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                          className="absolute top-full mt-2 w-72 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {cruiseLines.map((line) => (
@@ -493,7 +356,7 @@ function HomeWithParams() {
                                     : [...prev, line.id],
                                 );
                               }}
-                              className="w-full text-left px-4 py-2 hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer"
+                              className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer"
                             >
                               <div
                                 className={`w-4 h-4 border rounded ${
@@ -524,26 +387,236 @@ function HomeWithParams() {
                         </div>
                       )}
                     </div>
-                  </div>
 
-                  {/* Search Button */}
-                  <div className="flex justify-center mt-3">
+                    {/* Dates Dropdown */}
+                    <div
+                      className="relative flex-1 border-r border-gray-200"
+                      ref={dateDropdownRef}
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setIsDateDropdownOpen(!isDateDropdownOpen)
+                        }
+                        className="w-full h-[74px] flex items-center px-6 hover:bg-gray-50 transition-colors"
+                      >
+                        <Image
+                          src="/images/calendar.svg"
+                          alt=""
+                          width={20}
+                          height={20}
+                          className="mr-3"
+                        />
+                        <span className="flex-1 text-left text-[18px] font-geograph text-dark-blue tracking-tight">
+                          {getDatePlaceholder()}
+                        </span>
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          className={`transform transition-transform ${isDateDropdownOpen ? "rotate-180" : ""}`}
+                        >
+                          <path
+                            d="M2 4L6 8L10 4"
+                            stroke="#0E1B4D"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+
+                      {isDateDropdownOpen && (
+                        <div
+                          className="absolute top-full mt-2 w-[450px] bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4 max-h-[550px] overflow-y-auto"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {[2025, 2026, 2027].map((year) => {
+                            const currentDate = new Date();
+                            const currentYear = currentDate.getFullYear();
+                            const currentMonth = currentDate.getMonth();
+
+                            return (
+                              <div key={year} className="mb-4">
+                                <div className="font-geograph font-bold text-[14px] text-gray-700 mb-2">
+                                  {year}
+                                </div>
+                                <div className="grid grid-cols-4 gap-2">
+                                  {[
+                                    "Jan",
+                                    "Feb",
+                                    "Mar",
+                                    "Apr",
+                                    "May",
+                                    "Jun",
+                                    "Jul",
+                                    "Aug",
+                                    "Sep",
+                                    "Oct",
+                                    "Nov",
+                                    "Dec",
+                                  ].map((month, index) => {
+                                    const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
+                                    const isSelected =
+                                      selectedMonths.includes(monthStr);
+                                    const isPast =
+                                      year < currentYear ||
+                                      (year === currentYear &&
+                                        index < currentMonth);
+
+                                    if (isPast) return null; // Don't show past months
+
+                                    return (
+                                      <button
+                                        key={monthStr}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          setSelectedMonths((prev) =>
+                                            prev.includes(monthStr)
+                                              ? prev.filter(
+                                                  (m) => m !== monthStr,
+                                                )
+                                              : [...prev, monthStr],
+                                          );
+                                        }}
+                                        className={`px-3 py-2 rounded-full text-[14px] font-geograph transition-colors ${
+                                          isSelected
+                                            ? "bg-[#0E1B4D] text-white"
+                                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                        }`}
+                                      >
+                                        {month}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Guests Dropdown */}
+                    <div className="relative flex-1" ref={guestsDropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setIsGuestsDropdownOpen(!isGuestsDropdownOpen)
+                        }
+                        className="w-full h-[74px] flex items-center px-6 hover:bg-gray-50 transition-colors"
+                      >
+                        <Image
+                          src="/images/updated-homepage/people-icon.svg"
+                          alt=""
+                          width={20}
+                          height={20}
+                          className="mr-3"
+                        />
+                        <span className="flex-1 text-left text-[18px] font-geograph text-dark-blue tracking-tight">
+                          {getGuestsPlaceholder()}
+                        </span>
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          className={`transform transition-transform ${isGuestsDropdownOpen ? "rotate-180" : ""}`}
+                        >
+                          <path
+                            d="M2 4L6 8L10 4"
+                            stroke="#0E1B4D"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+
+                      {isGuestsDropdownOpen && (
+                        <div
+                          className="absolute top-full mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {/* Adults */}
+                          <div className="flex items-center justify-between mb-4">
+                            <span className="font-geograph text-[16px] text-dark-blue">
+                              Adults
+                            </span>
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setAdults(Math.max(1, adults - 1))
+                                }
+                                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                              >
+                                −
+                              </button>
+                              <span className="font-geograph text-[18px] text-dark-blue w-8 text-center">
+                                {adults}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setAdults(Math.min(8, adults + 1))
+                                }
+                                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Children */}
+                          <div className="flex items-center justify-between">
+                            <span className="font-geograph text-[16px] text-dark-blue">
+                              Children
+                            </span>
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setChildren(Math.max(0, children - 1))
+                                }
+                                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                              >
+                                −
+                              </button>
+                              <span className="font-geograph text-[18px] text-dark-blue w-8 text-center">
+                                {children}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setChildren(Math.min(6, children + 1))
+                                }
+                                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Search Button - Circle with Blue BG */}
                     <button
                       type="button"
                       onClick={handleSearchCruises}
-                      className="h-[74px] px-12 bg-dark-blue rounded-full flex items-center justify-center hover:bg-dark-blue/90 transition-colors"
-                      style={{ boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)" }}
+                      className="h-[74px] w-[74px] flex items-center justify-center rounded-full transition-opacity hover:opacity-90"
+                      style={{ backgroundColor: "#2238C3" }}
                     >
                       <Image
                         src="/images/search.svg"
-                        alt=""
-                        width={20}
-                        height={20}
-                        className="mr-2"
+                        alt="Search"
+                        width={24}
+                        height={24}
                       />
-                      <span className="text-white text-[20px] font-geograph font-medium whitespace-nowrap">
-                        Search cruises
-                      </span>
                     </button>
                   </div>
                 </div>
@@ -553,30 +626,37 @@ function HomeWithParams() {
         </div>
       </section>
 
-      {/* Banners Section - Custom max-width 1464px */}
+      {/* Banners Section */}
       <section className="bg-sand py-8 md:py-12">
         <div className="mx-auto px-4 md:px-8" style={{ maxWidth: "1464px" }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <Image
-              src="/images/updated-homepage/banner-first-time.png"
-              alt="First Time Cruiser Benefits"
-              width={724}
-              height={168}
-              className="w-full h-auto rounded-lg"
-            />
-            <Image
-              src="/images/updated-homepage/banner-free-gift.png"
-              alt="Free Gift with Every Booking"
-              width={724}
-              height={168}
-              className="w-full h-auto rounded-lg"
-            />
+            <a
+              href="https://www.zipsea.com/first-time-cruisers-guide"
+              className="block"
+            >
+              <Image
+                src="/images/updated-homepage/banner-first-time.png"
+                alt="First Time Cruiser Benefits"
+                width={724}
+                height={168}
+                className="w-full h-auto rounded-lg hover:opacity-95 transition-opacity"
+              />
+            </a>
+            <a href="/cruises" className="block">
+              <Image
+                src="/images/updated-homepage/banner-free-gift.png"
+                alt="Free Gift with Every Booking"
+                width={724}
+                height={168}
+                className="w-full h-auto rounded-lg hover:opacity-95 transition-opacity"
+              />
+            </a>
           </div>
         </div>
       </section>
 
-      {/* Top Destinations Section - Custom max-width 1464px, reduced bottom margin */}
-      <section className="bg-sand pt-12 md:pt-20 pb-6 md:pb-10">
+      {/* Top Destinations Section - Removed bottom padding */}
+      <section className="bg-sand pt-12 md:pt-20">
         <div className="mx-auto px-4 md:px-8" style={{ maxWidth: "1464px" }}>
           <h2
             className="text-center font-whitney uppercase mb-8 md:mb-12"
@@ -591,10 +671,10 @@ function HomeWithParams() {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-12">
-            {/* Bahamas */}
+            {/* Bahamas - Reduced hover scale */}
             <button
               onClick={() => handleDestinationClick("bahamas")}
-              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-105"
+              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-[1.025]"
               style={{ height: "454px" }}
             >
               <Image
@@ -633,7 +713,7 @@ function HomeWithParams() {
             {/* Caribbean */}
             <button
               onClick={() => handleDestinationClick("caribbean")}
-              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-105"
+              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-[1.025]"
               style={{ height: "454px" }}
             >
               <Image
@@ -672,7 +752,7 @@ function HomeWithParams() {
             {/* Mexico */}
             <button
               onClick={() => handleDestinationClick("mexico")}
-              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-105"
+              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-[1.025]"
               style={{ height: "454px" }}
             >
               <Image
@@ -711,7 +791,7 @@ function HomeWithParams() {
             {/* New York */}
             <button
               onClick={() => handleDestinationClick("newyork")}
-              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-105"
+              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-[1.025]"
               style={{ height: "454px" }}
             >
               <Image
@@ -748,7 +828,7 @@ function HomeWithParams() {
             </button>
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex justify-center pb-8 md:pb-12">
             <button
               onClick={() => router.push("/cruises")}
               className="font-geograph text-white rounded-full hover:opacity-90 transition-opacity"
@@ -769,7 +849,7 @@ function HomeWithParams() {
         </div>
 
         <div
-          className="w-full h-[21px] mt-8 md:mt-12"
+          className="w-full h-[21px]"
           style={{
             backgroundImage: 'url("/images/separator-3.png")',
             backgroundRepeat: "repeat-x",
@@ -779,11 +859,11 @@ function HomeWithParams() {
         />
       </section>
 
-      {/* Testimonials Section - Reduced top margin */}
-      <section className="bg-white py-6 md:py-10">
+      {/* Testimonials Section - Reduced margins */}
+      <section className="bg-white py-3 md:py-5">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <h2
-            className="text-center font-whitney uppercase mb-8 md:mb-12"
+            className="text-center font-whitney uppercase mb-6 md:mb-8"
             style={{
               fontSize: "clamp(32px, 4vw, 42px)",
               color: "#1c1c1c",
@@ -795,7 +875,7 @@ function HomeWithParams() {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Review 1 - Reduced hover shadow opacity */}
+            {/* Review 1 */}
             <a
               href="https://www.trustpilot.com/reviews/68ccd495ecd5535685d2dd7f"
               target="_blank"
@@ -803,22 +883,38 @@ function HomeWithParams() {
               className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col transition-shadow"
               style={{ minHeight: "280px", boxShadow: "0 0 0 0 rgba(0,0,0,0)" }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05)";
+                e.currentTarget.style.boxShadow =
+                  "0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.boxShadow = "0 0 0 0 rgba(0,0,0,0)";
               }}
             >
               <div className="mb-4">
-                <Image src="/images/updated-homepage/trustpilot-stars.svg" alt="5 stars" width={120} height={24} />
+                <Image
+                  src="/images/updated-homepage/trustpilot-stars.svg"
+                  alt="5 stars"
+                  width={120}
+                  height={24}
+                />
               </div>
-              <h3 className="font-geograph font-bold text-base md:text-lg mb-3" style={{ color: "#1c1c1c" }}>
+              <h3
+                className="font-geograph font-bold text-base md:text-lg mb-3"
+                style={{ color: "#1c1c1c" }}
+              >
                 Every Number Matched
               </h3>
-              <p className="font-geograph text-sm md:text-base mb-4 flex-grow" style={{ color: "#2f2f2f", lineHeight: "1.5" }}>
-                The base fare, taxes, and onboard credit lined up perfectly. No fine print, no surprises. That's why I trusted them.
+              <p
+                className="font-geograph text-sm md:text-base mb-4 flex-grow"
+                style={{ color: "#2f2f2f", lineHeight: "1.5" }}
+              >
+                The base fare, taxes, and onboard credit lined up perfectly. No
+                fine print, no surprises. That's why I trusted them.
               </p>
-              <p className="font-geograph text-xs md:text-sm font-medium mt-auto" style={{ color: "#6b7280" }}>
+              <p
+                className="font-geograph text-xs md:text-sm font-medium mt-auto"
+                style={{ color: "#6b7280" }}
+              >
                 James lee
               </p>
             </a>
@@ -831,22 +927,38 @@ function HomeWithParams() {
               className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col transition-shadow"
               style={{ minHeight: "280px", boxShadow: "0 0 0 0 rgba(0,0,0,0)" }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05)";
+                e.currentTarget.style.boxShadow =
+                  "0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.boxShadow = "0 0 0 0 rgba(0,0,0,0)";
               }}
             >
               <div className="mb-4">
-                <Image src="/images/updated-homepage/trustpilot-stars.svg" alt="5 stars" width={120} height={24} />
+                <Image
+                  src="/images/updated-homepage/trustpilot-stars.svg"
+                  alt="5 stars"
+                  width={120}
+                  height={24}
+                />
               </div>
-              <h3 className="font-geograph font-bold text-base md:text-lg mb-3" style={{ color: "#1c1c1c" }}>
+              <h3
+                className="font-geograph font-bold text-base md:text-lg mb-3"
+                style={{ color: "#1c1c1c" }}
+              >
                 Switching From Costco Paid Off
               </h3>
-              <p className="font-geograph text-sm md:text-base mb-4 flex-grow" style={{ color: "#2f2f2f", lineHeight: "1.5" }}>
-                We almost booked with Costco for Royal Caribbean. They offered a small rebate card, but Zipsea added $400 in OBC...
+              <p
+                className="font-geograph text-sm md:text-base mb-4 flex-grow"
+                style={{ color: "#2f2f2f", lineHeight: "1.5" }}
+              >
+                We almost booked with Costco for Royal Caribbean. They offered a
+                small rebate card, but Zipsea added $400 in OBC...
               </p>
-              <p className="font-geograph text-xs md:text-sm font-medium mt-auto" style={{ color: "#6b7280" }}>
+              <p
+                className="font-geograph text-xs md:text-sm font-medium mt-auto"
+                style={{ color: "#6b7280" }}
+              >
                 Drew
               </p>
             </a>
@@ -859,28 +971,51 @@ function HomeWithParams() {
               className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col transition-shadow"
               style={{ minHeight: "280px", boxShadow: "0 0 0 0 rgba(0,0,0,0)" }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05)";
+                e.currentTarget.style.boxShadow =
+                  "0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.boxShadow = "0 0 0 0 rgba(0,0,0,0)";
               }}
             >
               <div className="mb-4">
-                <Image src="/images/updated-homepage/trustpilot-stars.svg" alt="5 stars" width={120} height={24} />
+                <Image
+                  src="/images/updated-homepage/trustpilot-stars.svg"
+                  alt="5 stars"
+                  width={120}
+                  height={24}
+                />
               </div>
-              <h3 className="font-geograph font-bold text-base md:text-lg mb-3" style={{ color: "#1c1c1c" }}>
+              <h3
+                className="font-geograph font-bold text-base md:text-lg mb-3"
+                style={{ color: "#1c1c1c" }}
+              >
                 Incredible perks with Zipsea!
               </h3>
-              <p className="font-geograph text-sm md:text-base mb-4 flex-grow" style={{ color: "#2f2f2f", lineHeight: "1.5" }}>
-                ..My party and I can actually utilize the credit for our excursions. What a seamless experience.
+              <p
+                className="font-geograph text-sm md:text-base mb-4 flex-grow"
+                style={{ color: "#2f2f2f", lineHeight: "1.5" }}
+              >
+                ..My party and I can actually utilize the credit for our
+                excursions. What a seamless experience.
               </p>
-              <p className="font-geograph text-xs md:text-sm font-medium mt-auto" style={{ color: "#6b7280" }}>
+              <p
+                className="font-geograph text-xs md:text-sm font-medium mt-auto"
+                style={{ color: "#6b7280" }}
+              >
                 Jamie
               </p>
             </a>
           </div>
         </div>
       </section>
+
+      {/* Login Modal */}
+      <LoginSignupModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onSuccess={() => setIsLoginModalOpen(false)}
+      />
     </>
   );
 }
