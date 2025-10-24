@@ -656,6 +656,35 @@ class TraveltekBookingService {
         );
       }
 
+      // IMPORTANT: Normalize totalprice from searchprice if needed
+      // Traveltek often returns totalprice=0 in basketadd.pl response, but searchprice is always accurate
+      // This ensures frontend always gets valid pricing without needing fallback logic
+      const basketResult = basketData.results?.[0];
+      const firstBasketItem = basketResult?.basketitems?.[0];
+
+      if (basketResult && firstBasketItem) {
+        const currentTotalprice = basketResult.totalprice || 0;
+        const searchprice = firstBasketItem.searchprice
+          ? parseFloat(firstBasketItem.searchprice)
+          : 0;
+
+        if (currentTotalprice === 0 && searchprice > 0) {
+          console.log(
+            '[TraveltekBooking] 💰 Normalizing pricing: totalprice is 0, using searchprice'
+          );
+          console.log('  - searchprice:', searchprice);
+          console.log('  - searchdeposit:', firstBasketItem.searchdeposit);
+
+          basketResult.totalprice = searchprice;
+          basketResult.totaldeposit = firstBasketItem.searchdeposit
+            ? parseFloat(firstBasketItem.searchdeposit)
+            : 0;
+
+          console.log('  - ✅ Normalized totalprice to:', basketResult.totalprice);
+          console.log('  - ✅ Normalized totaldeposit to:', basketResult.totaldeposit);
+        }
+      }
+
       // Update session with basket data and itemkey
       // Note: We're only storing the basketData for now since we don't have complete cabin details
       // The selectedCabinGrade and selectedCabin fields in the schema expect full objects,
@@ -664,11 +693,6 @@ class TraveltekBookingService {
       console.log('  - basketData has items?', !!basketData.results?.[0]?.basketitems?.length);
       console.log('  - basketData.results[0].totalprice:', basketData.results?.[0]?.totalprice);
       console.log('  - basketData.results[0].totaldeposit:', basketData.results?.[0]?.totaldeposit);
-      console.log(
-        '  - Full basketData.results[0]:',
-        JSON.stringify(basketData.results?.[0], null, 2)
-      );
-      console.log('  - basketData structure:', JSON.stringify(basketData).substring(0, 300));
 
       await traveltekSessionService.updateSession(params.sessionId, {
         basketData,
