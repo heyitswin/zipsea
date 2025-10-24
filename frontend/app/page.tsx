@@ -1,10 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import OptimizedImage from "../lib/OptimizedImage";
 import { useState, useRef, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Navigation from "./components/Navigation";
+import { useRouter } from "next/navigation";
 import { trackEngagement } from "../lib/analytics";
 
 // Month options for the date selector
@@ -110,6 +108,32 @@ function HomeWithParams() {
     router.push(`/cruises${params.toString() ? `?${params.toString()}` : ""}`);
   };
 
+  // Handle destination clicks
+  const handleDestinationClick = (destination: string) => {
+    const params = new URLSearchParams();
+
+    switch (destination) {
+      case "bahamas":
+        params.set("regions", "9"); // Bahamas region ID
+        params.set("minNights", "2");
+        params.set("maxNights", "5");
+        break;
+      case "caribbean":
+        params.set("regions", "1"); // Caribbean region ID
+        params.set("minNights", "7");
+        params.set("maxNights", "7");
+        break;
+      case "mexico":
+        params.set("regions", "3"); // Mexico region ID
+        break;
+      case "newyork":
+        params.set("departurePorts", "38,120,145"); // New York, Cape Liberty, Brooklyn port IDs
+        break;
+    }
+
+    router.push(`/cruises?${params.toString()}`);
+  };
+
   // Get display text for dropdowns
   const getCruiseLineText = () => {
     if (!selectedCruiseLine) return "Cruise Line";
@@ -133,16 +157,49 @@ function HomeWithParams() {
   return (
     <>
       {/* Hero Section with Video Mask */}
-      <section className="relative bg-sand overflow-hidden">
-        {/* Container with max-width */}
-        <div className="relative mx-auto" style={{ maxWidth: "1699px" }}>
-          {/* Navigation - Inside container */}
-          <div className="relative z-20">
-            <Navigation />
+      <section className="relative bg-sand overflow-hidden py-4 md:py-8">
+        {/* Container with max-width and padding */}
+        <div
+          className="relative mx-auto px-4 md:px-8"
+          style={{ maxWidth: "1699px" }}
+        >
+          {/* Navigation - Non-sticky, no scrolled state */}
+          <div className="relative z-20 mb-4 md:mb-8">
+            <div className="flex items-center justify-between py-4">
+              {/* Logo */}
+              <a href="/" className="flex items-center">
+                <Image
+                  src="/images/zipsea-logo.svg"
+                  alt="Zipsea"
+                  width={120}
+                  height={40}
+                  className="h-6 md:h-8 w-auto"
+                />
+              </a>
+
+              {/* Desktop Navigation Links */}
+              <nav className="hidden md:flex items-center gap-8">
+                <a
+                  href="/cruises"
+                  className="font-geograph text-base font-medium text-dark-blue hover:text-blue-600 transition-colors"
+                >
+                  Browse Cruises
+                </a>
+                <a
+                  href="/first-time-cruisers-guide"
+                  className="font-geograph text-base font-medium text-dark-blue hover:text-blue-600 transition-colors"
+                >
+                  First Time Cruisers
+                </a>
+              </nav>
+            </div>
           </div>
 
           {/* Video Background with Mask */}
-          <div className="relative" style={{ height: "634px" }}>
+          <div
+            className="relative"
+            style={{ height: "634px", minHeight: "500px" }}
+          >
             {/* Video with SVG mask */}
             <div className="absolute inset-0">
               <video
@@ -170,13 +227,31 @@ function HomeWithParams() {
               </video>
             </div>
 
+            {/* Radial Gradient Overlay */}
+            <div
+              className="absolute inset-0 z-5"
+              style={{
+                background:
+                  "radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0.3) 100%)",
+                maskImage: "url('/images/updated-homepage/video-mask.svg')",
+                WebkitMaskImage:
+                  "url('/images/updated-homepage/video-mask.svg')",
+                maskSize: "100% 100%",
+                WebkitMaskSize: "100% 100%",
+                maskRepeat: "no-repeat",
+                WebkitMaskRepeat: "no-repeat",
+                maskPosition: "center",
+                WebkitMaskPosition: "center",
+              }}
+            />
+
             {/* Content Overlay */}
             <div className="relative z-10 flex flex-col items-center justify-center h-full px-4">
               {/* Headline */}
               <h1
-                className="text-white font-whitney uppercase text-center leading-none mb-8"
+                className="text-white font-whitney uppercase text-center leading-none mb-6 md:mb-8"
                 style={{
-                  fontSize: "64px",
+                  fontSize: "clamp(36px, 5vw, 64px)",
                   letterSpacing: "-0.02em",
                 }}
               >
@@ -191,26 +266,27 @@ function HomeWithParams() {
                 style={{
                   height: "64px",
                   boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+                  maxWidth: "600px",
+                  width: "100%",
                 }}
               >
                 {/* Cruise Line Selector */}
-                <div className="relative" ref={cruiseLineRef}>
+                <div className="relative flex-1" ref={cruiseLineRef}>
                   <button
                     onClick={() => {
                       setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen);
                       setIsMonthDropdownOpen(false);
                       setIsPassengerDropdownOpen(false);
                     }}
-                    className="h-16 px-6 flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                    className="h-16 px-4 md:px-6 flex items-center gap-2 hover:bg-gray-50 transition-colors w-full"
                     style={{
-                      minWidth: "200px",
                       borderRight: "1px solid #e5e7eb",
                     }}
                   >
                     <span
-                      className="font-geograph"
+                      className="font-geograph truncate"
                       style={{
-                        fontSize: "16px",
+                        fontSize: "14px",
                         color: selectedCruiseLine ? "#1c1c1c" : "#9ca3af",
                         fontWeight: selectedCruiseLine ? "500" : "400",
                       }}
@@ -222,6 +298,7 @@ function HomeWithParams() {
                       height="8"
                       viewBox="0 0 12 8"
                       fill="none"
+                      className="flex-shrink-0"
                       style={{
                         transform: isCruiseLineDropdownOpen
                           ? "rotate(180deg)"
@@ -270,23 +347,22 @@ function HomeWithParams() {
                 </div>
 
                 {/* Date (Month) Selector */}
-                <div className="relative" ref={monthRef}>
+                <div className="relative flex-1" ref={monthRef}>
                   <button
                     onClick={() => {
                       setIsMonthDropdownOpen(!isMonthDropdownOpen);
                       setIsCruiseLineDropdownOpen(false);
                       setIsPassengerDropdownOpen(false);
                     }}
-                    className="h-16 px-6 flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                    className="h-16 px-4 md:px-6 flex items-center gap-2 hover:bg-gray-50 transition-colors w-full"
                     style={{
-                      minWidth: "180px",
                       borderRight: "1px solid #e5e7eb",
                     }}
                   >
                     <span
-                      className="font-geograph"
+                      className="font-geograph truncate"
                       style={{
-                        fontSize: "16px",
+                        fontSize: "14px",
                         color: selectedMonth ? "#1c1c1c" : "#9ca3af",
                         fontWeight: selectedMonth ? "500" : "400",
                       }}
@@ -298,6 +374,7 @@ function HomeWithParams() {
                       height="8"
                       viewBox="0 0 12 8"
                       fill="none"
+                      className="flex-shrink-0"
                       style={{
                         transform: isMonthDropdownOpen
                           ? "rotate(180deg)"
@@ -350,23 +427,19 @@ function HomeWithParams() {
                 </div>
 
                 {/* Passengers Selector */}
-                <div className="relative" ref={passengerRef}>
+                <div className="relative flex-1" ref={passengerRef}>
                   <button
                     onClick={() => {
                       setIsPassengerDropdownOpen(!isPassengerDropdownOpen);
                       setIsCruiseLineDropdownOpen(false);
                       setIsMonthDropdownOpen(false);
                     }}
-                    className="h-16 px-6 flex items-center gap-2 hover:bg-gray-50 transition-colors"
-                    style={{
-                      minWidth: "160px",
-                      borderRight: "1px solid #e5e7eb",
-                    }}
+                    className="h-16 px-4 md:px-6 flex items-center gap-2 hover:bg-gray-50 transition-colors w-full"
                   >
                     <span
-                      className="font-geograph"
+                      className="font-geograph truncate"
                       style={{
-                        fontSize: "16px",
+                        fontSize: "14px",
                         color: "#1c1c1c",
                         fontWeight: "500",
                       }}
@@ -378,6 +451,7 @@ function HomeWithParams() {
                       height="8"
                       viewBox="0 0 12 8"
                       fill="none"
+                      className="flex-shrink-0"
                       style={{
                         transform: isPassengerDropdownOpen
                           ? "rotate(180deg)"
@@ -529,23 +603,29 @@ function HomeWithParams() {
                   )}
                 </div>
 
-                {/* Search Button */}
+                {/* Search Button - Blue circle */}
                 <button
                   onClick={handleSearch}
-                  className="h-16 px-6 flex items-center justify-center hover:bg-gray-50 transition-colors"
-                  style={{ minWidth: "64px" }}
+                  className="flex items-center justify-center transition-colors flex-shrink-0"
+                  style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "50%",
+                    backgroundColor: "#2238C3",
+                    margin: "4px",
+                  }}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path
                       d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z"
-                      stroke="#1c1c1c"
+                      stroke="white"
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
                     <path
                       d="M21 21L16.65 16.65"
-                      stroke="#1c1c1c"
+                      stroke="white"
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -559,9 +639,9 @@ function HomeWithParams() {
       </section>
 
       {/* Banners Section */}
-      <section className="bg-sand py-12">
-        <div className="max-w-7xl mx-auto px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <section className="bg-sand py-8 md:py-12">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <Image
               src="/images/updated-homepage/banner-first-time.png"
               alt="First Time Cruiser Benefits"
@@ -581,13 +661,13 @@ function HomeWithParams() {
       </section>
 
       {/* Top Destinations Section */}
-      <section className="bg-sand py-20">
-        <div className="max-w-7xl mx-auto px-8">
+      <section className="bg-sand pt-12 md:pt-20">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
           {/* Headline */}
           <h2
-            className="text-center font-whitney uppercase mb-12"
+            className="text-center font-whitney uppercase mb-8 md:mb-12"
             style={{
-              fontSize: "42px",
+              fontSize: "clamp(32px, 4vw, 42px)",
               color: "#1c1c1c",
               letterSpacing: "-0.02em",
               fontWeight: "900",
@@ -597,10 +677,11 @@ function HomeWithParams() {
           </h2>
 
           {/* Destination Tiles */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-12">
             {/* Bahamas */}
-            <div
-              className="relative overflow-hidden rounded-lg"
+            <button
+              onClick={() => handleDestinationClick("bahamas")}
+              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-105"
               style={{ height: "454px" }}
             >
               <Image
@@ -610,14 +691,15 @@ function HomeWithParams() {
                 height={454}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6 bg-gradient-to-t from-black/60 to-transparent">
                 <p
-                  className="font-geograph uppercase mb-1"
+                  className="font-geograph uppercase"
                   style={{
                     fontSize: "14px",
                     fontWeight: "700",
                     color: "white",
                     letterSpacing: "0.1em",
+                    marginBottom: "-20px",
                   }}
                 >
                   Weekend getaways
@@ -625,7 +707,7 @@ function HomeWithParams() {
                 <h3
                   className="font-whitney uppercase"
                   style={{
-                    fontSize: "42px",
+                    fontSize: "clamp(32px, 4vw, 42px)",
                     color: "white",
                     fontWeight: "900",
                   }}
@@ -633,11 +715,12 @@ function HomeWithParams() {
                   Bahamas
                 </h3>
               </div>
-            </div>
+            </button>
 
             {/* Caribbean */}
-            <div
-              className="relative overflow-hidden rounded-lg"
+            <button
+              onClick={() => handleDestinationClick("caribbean")}
+              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-105"
               style={{ height: "454px" }}
             >
               <Image
@@ -647,14 +730,15 @@ function HomeWithParams() {
                 height={454}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6 bg-gradient-to-t from-black/60 to-transparent">
                 <p
-                  className="font-geograph uppercase mb-1"
+                  className="font-geograph uppercase"
                   style={{
                     fontSize: "14px",
                     fontWeight: "700",
                     color: "white",
                     letterSpacing: "0.1em",
+                    marginBottom: "-20px",
                   }}
                 >
                   7 night cruises
@@ -662,7 +746,7 @@ function HomeWithParams() {
                 <h3
                   className="font-whitney uppercase"
                   style={{
-                    fontSize: "42px",
+                    fontSize: "clamp(32px, 4vw, 42px)",
                     color: "white",
                     fontWeight: "900",
                   }}
@@ -670,11 +754,12 @@ function HomeWithParams() {
                   Caribbean
                 </h3>
               </div>
-            </div>
+            </button>
 
             {/* Mexico */}
-            <div
-              className="relative overflow-hidden rounded-lg"
+            <button
+              onClick={() => handleDestinationClick("mexico")}
+              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-105"
               style={{ height: "454px" }}
             >
               <Image
@@ -684,14 +769,15 @@ function HomeWithParams() {
                 height={454}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6 bg-gradient-to-t from-black/60 to-transparent">
                 <p
-                  className="font-geograph uppercase mb-1"
+                  className="font-geograph uppercase"
                   style={{
                     fontSize: "14px",
                     fontWeight: "700",
                     color: "white",
                     letterSpacing: "0.1em",
+                    marginBottom: "-20px",
                   }}
                 >
                   cruises going to
@@ -699,7 +785,7 @@ function HomeWithParams() {
                 <h3
                   className="font-whitney uppercase"
                   style={{
-                    fontSize: "42px",
+                    fontSize: "clamp(32px, 4vw, 42px)",
                     color: "white",
                     fontWeight: "900",
                   }}
@@ -707,11 +793,12 @@ function HomeWithParams() {
                   Mexico
                 </h3>
               </div>
-            </div>
+            </button>
 
             {/* New York */}
-            <div
-              className="relative overflow-hidden rounded-lg"
+            <button
+              onClick={() => handleDestinationClick("newyork")}
+              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-105"
               style={{ height: "454px" }}
             >
               <Image
@@ -721,14 +808,15 @@ function HomeWithParams() {
                 height={454}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6 bg-gradient-to-t from-black/60 to-transparent">
                 <p
-                  className="font-geograph uppercase mb-1"
+                  className="font-geograph uppercase"
                   style={{
                     fontSize: "14px",
                     fontWeight: "700",
                     color: "white",
                     letterSpacing: "0.1em",
+                    marginBottom: "-20px",
                   }}
                 >
                   cruises departing
@@ -736,7 +824,7 @@ function HomeWithParams() {
                 <h3
                   className="font-whitney uppercase"
                   style={{
-                    fontSize: "42px",
+                    fontSize: "clamp(32px, 4vw, 42px)",
                     color: "white",
                     fontWeight: "900",
                   }}
@@ -744,23 +832,23 @@ function HomeWithParams() {
                   New York
                 </h3>
               </div>
-            </div>
+            </button>
           </div>
 
           {/* CTA Button */}
-          <div className="flex justify-center">
+          <div className="flex justify-center mb-12 md:mb-16">
             <button
               onClick={() => router.push("/cruises")}
-              className="font-geograph text-white rounded-full"
+              className="font-geograph text-white rounded-full hover:opacity-90 transition-opacity"
               style={{
-                fontSize: "20px",
+                fontSize: "clamp(16px, 2vw, 20px)",
                 fontWeight: "500",
                 letterSpacing: "-0.02em",
                 backgroundColor: "#2238C3",
-                paddingTop: "20px",
-                paddingBottom: "20px",
-                paddingLeft: "32px",
-                paddingRight: "32px",
+                paddingTop: "16px",
+                paddingBottom: "16px",
+                paddingLeft: "28px",
+                paddingRight: "28px",
               }}
             >
               Browse All Cruises
@@ -770,7 +858,7 @@ function HomeWithParams() {
 
         {/* Separator */}
         <div
-          className="w-full h-[21px] mt-20"
+          className="w-full h-[21px]"
           style={{
             backgroundImage: 'url("/images/separator-3.png")',
             backgroundRepeat: "repeat-x",
@@ -781,13 +869,13 @@ function HomeWithParams() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="bg-white py-20">
-        <div className="max-w-7xl mx-auto px-8">
+      <section className="bg-white py-12 md:py-20">
+        <div className="max-w-7xl mx-auto px-4 md:px-8">
           {/* Headline */}
           <h2
-            className="text-center font-whitney uppercase mb-12"
+            className="text-center font-whitney uppercase mb-8 md:mb-12"
             style={{
-              fontSize: "42px",
+              fontSize: "clamp(32px, 4vw, 42px)",
               color: "#1c1c1c",
               letterSpacing: "-0.02em",
               fontWeight: "900",
@@ -799,8 +887,11 @@ function HomeWithParams() {
           {/* Review Tiles */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Review 1 */}
-            <div
-              className="bg-white border border-gray-200 rounded-lg p-7 flex flex-col"
+            <a
+              href="https://www.trustpilot.com/reviews/68ccd495ecd5535685d2dd7f"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col hover:shadow-lg transition-shadow"
               style={{ minHeight: "280px" }}
             >
               {/* Stars */}
@@ -815,7 +906,7 @@ function HomeWithParams() {
 
               {/* Title */}
               <h3
-                className="font-geograph font-bold text-lg mb-3"
+                className="font-geograph font-bold text-base md:text-lg mb-3"
                 style={{ color: "#1c1c1c" }}
               >
                 Every Number Matched
@@ -823,7 +914,7 @@ function HomeWithParams() {
 
               {/* Body */}
               <p
-                className="font-geograph text-base mb-4 flex-grow"
+                className="font-geograph text-sm md:text-base mb-4 flex-grow"
                 style={{ color: "#2f2f2f", lineHeight: "1.5" }}
               >
                 The base fare, taxes, and onboard credit lined up perfectly. No
@@ -832,16 +923,19 @@ function HomeWithParams() {
 
               {/* Author */}
               <p
-                className="font-geograph text-sm font-medium mt-auto"
+                className="font-geograph text-xs md:text-sm font-medium mt-auto"
                 style={{ color: "#6b7280" }}
               >
                 James lee
               </p>
-            </div>
+            </a>
 
             {/* Review 2 */}
-            <div
-              className="bg-white border border-gray-200 rounded-lg p-7 flex flex-col"
+            <a
+              href="https://www.trustpilot.com/users/68cccfc38a838cf268714fe1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col hover:shadow-lg transition-shadow"
               style={{ minHeight: "280px" }}
             >
               {/* Stars */}
@@ -856,7 +950,7 @@ function HomeWithParams() {
 
               {/* Title */}
               <h3
-                className="font-geograph font-bold text-lg mb-3"
+                className="font-geograph font-bold text-base md:text-lg mb-3"
                 style={{ color: "#1c1c1c" }}
               >
                 Switching From Costco Paid Off
@@ -864,7 +958,7 @@ function HomeWithParams() {
 
               {/* Body */}
               <p
-                className="font-geograph text-base mb-4 flex-grow"
+                className="font-geograph text-sm md:text-base mb-4 flex-grow"
                 style={{ color: "#2f2f2f", lineHeight: "1.5" }}
               >
                 We almost booked with Costco for Royal Caribbean. They offered a
@@ -873,16 +967,19 @@ function HomeWithParams() {
 
               {/* Author */}
               <p
-                className="font-geograph text-sm font-medium mt-auto"
+                className="font-geograph text-xs md:text-sm font-medium mt-auto"
                 style={{ color: "#6b7280" }}
               >
                 Drew
               </p>
-            </div>
+            </a>
 
             {/* Review 3 */}
-            <div
-              className="bg-white border border-gray-200 rounded-lg p-7 flex flex-col"
+            <a
+              href="https://www.trustpilot.com/users/68cc73c37b741cb43a9a8473"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col hover:shadow-lg transition-shadow"
               style={{ minHeight: "280px" }}
             >
               {/* Stars */}
@@ -897,7 +994,7 @@ function HomeWithParams() {
 
               {/* Title */}
               <h3
-                className="font-geograph font-bold text-lg mb-3"
+                className="font-geograph font-bold text-base md:text-lg mb-3"
                 style={{ color: "#1c1c1c" }}
               >
                 Incredible perks with Zipsea!
@@ -905,7 +1002,7 @@ function HomeWithParams() {
 
               {/* Body */}
               <p
-                className="font-geograph text-base mb-4 flex-grow"
+                className="font-geograph text-sm md:text-base mb-4 flex-grow"
                 style={{ color: "#2f2f2f", lineHeight: "1.5" }}
               >
                 ..My party and I can actually utilize the credit for our
@@ -914,17 +1011,15 @@ function HomeWithParams() {
 
               {/* Author */}
               <p
-                className="font-geograph text-sm font-medium mt-auto"
+                className="font-geograph text-xs md:text-sm font-medium mt-auto"
                 style={{ color: "#6b7280" }}
               >
                 Jamie
               </p>
-            </div>
+            </a>
           </div>
         </div>
       </section>
-
-      {/* Footer - Keep existing footer component if you have one */}
     </>
   );
 }
