@@ -851,8 +851,12 @@ export class SlackService {
     const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
 
     // Format currency
-    const formatCurrency = (amount: number) =>
-      `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const formatCurrency = (amount: number | undefined) => {
+      if (amount === undefined || amount === null) {
+        return '$0.00';
+      }
+      return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
 
     // Build cruise details text
     let cruiseDetails = '';
