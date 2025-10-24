@@ -934,6 +934,10 @@ class TraveltekBookingService {
           '  - cruisedetail keys:',
           firstItem.cruisedetail ? Object.keys(firstItem.cruisedetail).join(', ') : 'undefined'
         );
+        console.log(
+          '  - cruisedetail.breakdown:',
+          JSON.stringify(firstItem.cruisedetail?.breakdown)
+        );
         console.log('  - cruisedetail.pricing:', firstItem.cruisedetail?.pricing);
         console.log('  - cruisedetail.pricingbreakdown:', firstItem.cruisedetail?.pricingbreakdown);
         console.log('  - All basketitem keys:', Object.keys(firstItem).join(', '));
