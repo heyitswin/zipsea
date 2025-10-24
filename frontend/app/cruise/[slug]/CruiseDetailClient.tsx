@@ -154,40 +154,45 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       defaultResultNo: cabin.resultNo,
     });
 
-    if (!selectedRateCode || !cabin.ratesByCode) {
-      // No rate selected or no rates available - use default cheapest price
-      console.log(
-        "⚠️ Using cheapest price fallback - no rate code or ratesByCode",
-      );
-      return {
-        price: cabin.cheapestPrice,
-        gradeNo: cabin.gradeNo,
-        rateCode: cabin.rateCode,
-        resultNo: cabin.resultNo,
-      };
+    // If rate codes are available, use them
+    if (cabin.ratesByCode) {
+      // Use selected rate code if available
+      if (selectedRateCode && cabin.ratesByCode[selectedRateCode]) {
+        const rateData = cabin.ratesByCode[selectedRateCode];
+        console.log(
+          "✅ Using selected rate code:",
+          selectedRateCode,
+          "price:",
+          rateData.price,
+        );
+        return {
+          price: rateData.price,
+          gradeNo: rateData.gradeno,
+          rateCode: rateData.ratecode,
+          resultNo: rateData.resultno || cabin.resultNo,
+        };
+      }
+
+      // No rate selected - use this cabin's default rate code
+      if (cabin.rateCode && cabin.ratesByCode[cabin.rateCode]) {
+        const rateData = cabin.ratesByCode[cabin.rateCode];
+        console.log(
+          "✅ Using cabin default rate code:",
+          cabin.rateCode,
+          "price:",
+          rateData.price,
+        );
+        return {
+          price: rateData.price,
+          gradeNo: rateData.gradeno,
+          rateCode: rateData.ratecode,
+          resultNo: rateData.resultno || cabin.resultNo,
+        };
+      }
     }
 
-    // Use selected rate code if available for this cabin
-    const rateData = cabin.ratesByCode[selectedRateCode];
-    if (rateData) {
-      console.log(
-        "✅ Using selected rate code:",
-        selectedRateCode,
-        "price:",
-        rateData.price,
-      );
-      return {
-        price: rateData.price,
-        gradeNo: rateData.gradeno,
-        rateCode: rateData.ratecode,
-        resultNo: rateData.resultno || cabin.resultNo,
-      };
-    }
-
-    // Fallback to cheapest if selected rate not available for this cabin
-    console.log(
-      "⚠️ Using cheapest price fallback - selected rate not available for this cabin",
-    );
+    // Final fallback: use cheapest price (should rarely happen)
+    console.log("⚠️ Using cheapest price fallback - no rate codes available");
     return {
       price: cabin.cheapestPrice,
       gradeNo: cabin.gradeNo,
