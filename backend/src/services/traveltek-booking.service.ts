@@ -917,6 +917,21 @@ class TraveltekBookingService {
         '[TraveltekBooking] 💵 Returning API totaldeposit:',
         basketData.results?.[0]?.totaldeposit
       );
+
+      // Log basketitem fields for pricing breakdown debugging
+      const firstItem = basketData.results?.[0]?.basketitems?.[0];
+      if (firstItem) {
+        console.log('[TraveltekBooking] 🔍 Basketitem fields for pricing breakdown:');
+        console.log('  - fare:', firstItem.fare);
+        console.log('  - taxes:', firstItem.taxes);
+        console.log('  - ncf:', firstItem.ncf);
+        console.log('  - gratuity:', firstItem.gratuity);
+        console.log('  - baseprice:', firstItem.baseprice);
+        console.log('  - searchprice:', firstItem.searchprice);
+        console.log('  - prices object:', firstItem.prices);
+        console.log('  - All basketitem keys:', Object.keys(firstItem).join(', '));
+      }
+
       return basketData;
     } catch (error) {
       console.error('[TraveltekBooking] Failed to get basket:', error);
