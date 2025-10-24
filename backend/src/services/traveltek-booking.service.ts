@@ -928,7 +928,14 @@ class TraveltekBookingService {
         console.log('  - gratuity:', firstItem.gratuity);
         console.log('  - baseprice:', firstItem.baseprice);
         console.log('  - searchprice:', firstItem.searchprice);
+        console.log('  - price:', firstItem.price);
         console.log('  - prices object:', firstItem.prices);
+        console.log(
+          '  - cruisedetail keys:',
+          firstItem.cruisedetail ? Object.keys(firstItem.cruisedetail).join(', ') : 'undefined'
+        );
+        console.log('  - cruisedetail.pricing:', firstItem.cruisedetail?.pricing);
+        console.log('  - cruisedetail.pricingbreakdown:', firstItem.cruisedetail?.pricingbreakdown);
         console.log('  - All basketitem keys:', Object.keys(firstItem).join(', '));
       }
 
