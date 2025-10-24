@@ -956,6 +956,12 @@ class TraveltekBookingService {
         sid: sessionData.sid,
         itemkey: sessionData.itemkey,
         contact: {
+          title:
+            leadPassenger.title ||
+            this.getDefaultTitle(
+              leadPassenger.gender,
+              this.calculateAge(leadPassenger.dateOfBirth)
+            ),
           firstname: params.contact.firstName,
           lastname: params.contact.lastName,
           email: params.contact.email,
