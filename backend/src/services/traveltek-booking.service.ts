@@ -1007,21 +1007,35 @@ class TraveltekBookingService {
         },
       });
 
-      if (!bookingResponse.bookingid) {
+      // Extract booking data from response
+      // Traveltek returns: { results: [{ bookingid, status, bookingdetails }] }
+      const bookingData = bookingResponse.results?.[0];
+
+      if (!bookingData?.bookingid) {
+        console.error('⚠️  Traveltek API: No booking ID in response');
+        console.error('Full response:', JSON.stringify(bookingResponse, null, 2));
         throw new Error('Booking creation failed: no booking ID returned');
       }
 
-      console.log('✅ [TraveltekBooking] Booking created with payment included');
+      console.log('✅ [TraveltekBooking] Booking created with ID:', bookingData.bookingid);
+      console.log('📊 Booking status:', bookingData.status);
+      console.log('📊 Booking details status:', bookingData.bookingdetails?.status);
+
+      // Check for fraud detection
+      const fraudCategory = bookingData.bookingdetails?.transactions?.[0]?.fraudcategory;
+      if (fraudCategory && fraudCategory !== 'Green') {
+        console.warn(`⚠️  Fraud detection: ${fraudCategory}`);
+      }
 
       // Step 5: Store booking in our database
       // Extract transaction ID from booking response
       const transactionId =
-        bookingResponse.transactions?.[0]?.transactionid || bookingResponse.transactionid;
+        bookingData.bookingdetails?.transactions?.[0]?.transactionid || bookingData.transactionid;
 
       const bookingId = await this.storeBooking({
         sessionId: params.sessionId,
-        traveltekBookingId: bookingResponse.bookingid,
-        bookingDetails: bookingResponse,
+        traveltekBookingId: bookingData.bookingid,
+        bookingDetails: bookingData.bookingdetails || bookingData,
         passengers: params.passengers,
         payment: {
           ...params.payment,
@@ -1037,7 +1051,7 @@ class TraveltekBookingService {
 
       // Step 7: Determine payment status from booking response
       // Check if payment was successful by looking at transaction authcode
-      const hasAuthCode = bookingResponse.transactions?.[0]?.authcode;
+      const hasAuthCode = bookingData.bookingdetails?.transactions?.[0]?.authcode;
       const paymentStatus = hasAuthCode ? 'confirmed' : 'pending';
 
       console.log(`💳 [TraveltekBooking] Payment status: ${paymentStatus}`, {
@@ -1056,26 +1070,29 @@ class TraveltekBookingService {
 
         await slackService.notifyBookingCreated({
           bookingId,
-          confirmationNumber: bookingResponse.confirmationnumber,
-          traveltekBookingId: bookingResponse.bookingid,
+          confirmationNumber: bookingData.bookingdetails?.confirmationnumber,
+          traveltekBookingId: bookingData.bookingid,
           cruiseName: cruiseDetails?.cruiseName,
           cruiseLine: cruiseDetails?.cruiseLine,
           shipName: cruiseDetails?.shipName,
           sailingDate: cruiseDetails?.sailingDate,
           nights: cruiseDetails?.nights,
           passengerCount: params.passengers.length,
-          totalAmount: bookingResponse.totalcost,
+          totalAmount:
+            bookingData.bookingdetails?.totalcost || bookingData.bookingdetails?.totalprice,
           paidAmount: params.payment.amount,
-          depositAmount: bookingResponse.depositamount,
-          balanceDueDate: bookingResponse.balanceduedate,
+          depositAmount:
+            bookingData.bookingdetails?.depositamount || bookingData.bookingdetails?.totaldeposit,
+          balanceDueDate: bookingData.bookingdetails?.balanceduedate,
           leadPassenger: {
             firstName: leadPassenger.firstName,
             lastName: leadPassenger.lastName,
             email: leadPassenger.email || params.contact.email,
             phone: leadPassenger.phone || params.contact.phone,
           },
-          cabinGrade: bookingResponse.cabingrade || bookingResponse.cabintype,
-          rateCode: bookingResponse.ratecode,
+          cabinGrade:
+            bookingData.bookingdetails?.cabingrade || bookingData.bookingdetails?.cabintype,
+          rateCode: bookingData.bookingdetails?.ratecode,
           status: paymentStatus,
         });
       } catch (slackError) {
@@ -1086,14 +1103,18 @@ class TraveltekBookingService {
       // Step 9: Return booking result
       return {
         bookingId,
-        traveltekBookingId: bookingResponse.bookingid,
+        traveltekBookingId: bookingData.bookingid,
         status: paymentStatus,
-        totalAmount: bookingResponse.totalcost,
-        depositAmount: bookingResponse.depositamount,
+        totalAmount:
+          bookingData.bookingdetails?.totalcost || bookingData.bookingdetails?.totalprice || 0,
+        depositAmount:
+          bookingData.bookingdetails?.depositamount ||
+          bookingData.bookingdetails?.totaldeposit ||
+          0,
         paidAmount: params.payment.amount,
-        balanceDueDate: bookingResponse.balanceduedate,
-        confirmationNumber: bookingResponse.confirmationnumber,
-        bookingDetails: bookingResponse,
+        balanceDueDate: bookingData.bookingdetails?.balanceduedate || '',
+        confirmationNumber: bookingData.bookingdetails?.confirmationnumber || '',
+        bookingDetails: bookingData.bookingdetails || bookingData,
       };
     } catch (error) {
       console.error('[TraveltekBooking] Failed to create booking:', error);
