@@ -72,29 +72,38 @@ function HomeWithParams() {
   // Handle click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+
       if (
         guestsDropdownRef.current &&
-        !guestsDropdownRef.current.contains(event.target as Node)
+        !guestsDropdownRef.current.contains(target)
       ) {
         setIsGuestsDropdownOpen(false);
       }
       if (
         dateDropdownRef.current &&
-        !dateDropdownRef.current.contains(event.target as Node)
+        !dateDropdownRef.current.contains(target)
       ) {
         setIsDateDropdownOpen(false);
       }
       if (
         cruiseLineDropdownRef.current &&
-        !cruiseLineDropdownRef.current.contains(event.target as Node)
+        !cruiseLineDropdownRef.current.contains(target)
       ) {
         setIsCruiseLineDropdownOpen(false);
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    if (
+      isGuestsDropdownOpen ||
+      isDateDropdownOpen ||
+      isCruiseLineDropdownOpen
+    ) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [isGuestsDropdownOpen, isDateDropdownOpen, isCruiseLineDropdownOpen]);
 
   // Handle search - navigate to /cruises with filters including passenger counts
   const handleSearchCruises = () => {
@@ -183,10 +192,10 @@ function HomeWithParams() {
   return (
     <>
       {/* Hero Section with Video Mask - REMOVED py padding and overflow-hidden */}
-      <section className="relative bg-sand pt-3">
-        <div className="relative mx-auto px-3" style={{ maxWidth: "1699px" }}>
+      <section className="relative bg-sand pt-3 px-3 md:pt-0 md:px-0">
+        <div className="relative mx-auto" style={{ maxWidth: "1880px" }}>
           {/* Video Background with Mask - Fixed Height Container with object-fit */}
-          <div className="relative w-full" style={{ height: "634px" }}>
+          <div className="relative w-full" style={{ height: "700px" }}>
             {/* Video with SVG mask - FIXED: prevent shrinking */}
             <div className="absolute inset-0 w-full h-full">
               <video
@@ -235,8 +244,8 @@ function HomeWithParams() {
 
             {/* Navigation + Content INSIDE the masked area */}
             <div
-              className="absolute inset-0 z-10 flex flex-col"
-              style={{ padding: "32px 48px" }}
+              className="absolute inset-0 z-10 flex flex-col md:p-12"
+              style={{ padding: "16px" }}
             >
               {/* Navigation - Inside mask */}
               <div className="flex items-center justify-between mb-auto">
@@ -268,7 +277,10 @@ function HomeWithParams() {
               </div>
 
               {/* Centered Content */}
-              <div className="flex flex-col items-center justify-center flex-1 px-4">
+              <div
+                className="flex flex-col items-center justify-center flex-1"
+                style={{ marginTop: "-50px" }}
+              >
                 {/* Headline with drop shadow */}
                 <h1
                   className="text-white font-whitney uppercase text-center leading-none mb-6 md:mb-8"
@@ -934,10 +946,10 @@ function HomeWithParams() {
         </div>
       </section>
 
-      {/* Banners Section - Stack even earlier (at smallest breakpoint) */}
+      {/* Banners Section - Stack at larger breakpoint */}
       <section className="bg-sand py-8 md:py-12">
         <div className="mx-auto px-4 md:px-8" style={{ maxWidth: "1464px" }}>
-          <div className="grid grid-cols-2 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             <a
               href="https://www.zipsea.com/first-time-cruisers-guide"
               className="block"
@@ -989,7 +1001,7 @@ function HomeWithParams() {
                 alt="Bahamas"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover h-[113px] md:h-[303px] lg:h-full"
+                className="w-full h-full object-cover h-[57px] md:h-[152px] lg:h-[454px]"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -999,7 +1011,7 @@ function HomeWithParams() {
                     fontWeight: "700",
                     color: "white",
                     letterSpacing: "0.1em",
-                    marginBottom: "-10px",
+                    marginBottom: "10px",
                   }}
                 >
                   Weekend getaways
@@ -1007,7 +1019,7 @@ function HomeWithParams() {
                 <h3
                   className="font-whitney uppercase"
                   style={{
-                    fontSize: "clamp(32px, 4vw, 42px)",
+                    fontSize: "clamp(42px, 4vw, 52px)",
                     color: "white",
                     fontWeight: "900",
                     lineHeight: "1",
@@ -1028,7 +1040,7 @@ function HomeWithParams() {
                 alt="Caribbean"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover h-[113px] md:h-[303px] lg:h-full"
+                className="w-full h-full object-cover h-[57px] md:h-[152px] lg:h-[454px]"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -1038,7 +1050,7 @@ function HomeWithParams() {
                     fontWeight: "700",
                     color: "white",
                     letterSpacing: "0.1em",
-                    marginBottom: "-10px",
+                    marginBottom: "10px",
                   }}
                 >
                   7 night cruises
@@ -1046,7 +1058,7 @@ function HomeWithParams() {
                 <h3
                   className="font-whitney uppercase"
                   style={{
-                    fontSize: "clamp(32px, 4vw, 42px)",
+                    fontSize: "clamp(42px, 4vw, 52px)",
                     color: "white",
                     fontWeight: "900",
                     lineHeight: "1",
@@ -1067,7 +1079,7 @@ function HomeWithParams() {
                 alt="Mexico"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover h-[113px] md:h-[303px] lg:h-full"
+                className="w-full h-full object-cover h-[57px] md:h-[152px] lg:h-[454px]"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -1077,7 +1089,7 @@ function HomeWithParams() {
                     fontWeight: "700",
                     color: "white",
                     letterSpacing: "0.1em",
-                    marginBottom: "-10px",
+                    marginBottom: "10px",
                   }}
                 >
                   cruises going to
@@ -1085,7 +1097,7 @@ function HomeWithParams() {
                 <h3
                   className="font-whitney uppercase"
                   style={{
-                    fontSize: "clamp(32px, 4vw, 42px)",
+                    fontSize: "clamp(42px, 4vw, 52px)",
                     color: "white",
                     fontWeight: "900",
                     lineHeight: "1",
@@ -1106,7 +1118,7 @@ function HomeWithParams() {
                 alt="New York"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover h-[113px] md:h-[303px] lg:h-full"
+                className="w-full h-full object-cover h-[57px] md:h-[152px] lg:h-[454px]"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -1116,7 +1128,7 @@ function HomeWithParams() {
                     fontWeight: "700",
                     color: "white",
                     letterSpacing: "0.1em",
-                    marginBottom: "-10px",
+                    marginBottom: "10px",
                   }}
                 >
                   cruises departing
@@ -1124,7 +1136,7 @@ function HomeWithParams() {
                 <h3
                   className="font-whitney uppercase"
                   style={{
-                    fontSize: "clamp(32px, 4vw, 42px)",
+                    fontSize: "clamp(42px, 4vw, 52px)",
                     color: "white",
                     fontWeight: "900",
                     lineHeight: "1",
@@ -1168,7 +1180,7 @@ function HomeWithParams() {
       </section>
 
       {/* Testimonials Section - Removed min-height on mobile/tablet, line-height 1 on headline */}
-      <section className="bg-white py-3 md:py-5 mt-8">
+      <section className="bg-white py-3 md:py-5 mt-16">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <h2
             className="text-center font-whitney uppercase mb-6 md:mb-8"
