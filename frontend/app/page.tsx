@@ -123,14 +123,23 @@ function HomeWithParams() {
         guestsDropdownRef.current &&
         !guestsDropdownRef.current.contains(event.target as Node)
       ) {
+        console.log("Closing guests dropdown - clicked outside");
         setIsGuestsDropdownOpen(false);
       }
     }
 
     if (isGuestsDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () =>
+      console.log("Attaching mousedown listener for guests dropdown");
+      // Use setTimeout to add listener on next tick to avoid immediate trigger
+      const timeoutId = setTimeout(() => {
+        document.addEventListener("mousedown", handleClickOutside);
+      }, 0);
+
+      return () => {
+        clearTimeout(timeoutId);
         document.removeEventListener("mousedown", handleClickOutside);
+        console.log("Removed mousedown listener for guests dropdown");
+      };
     }
   }, [isGuestsDropdownOpen]);
 
@@ -145,9 +154,15 @@ function HomeWithParams() {
     }
 
     if (isDateDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () =>
+      // Use setTimeout to add listener on next tick to avoid immediate trigger
+      const timeoutId = setTimeout(() => {
+        document.addEventListener("mousedown", handleClickOutside);
+      }, 0);
+
+      return () => {
+        clearTimeout(timeoutId);
         document.removeEventListener("mousedown", handleClickOutside);
+      };
     }
   }, [isDateDropdownOpen]);
 
@@ -162,9 +177,15 @@ function HomeWithParams() {
     }
 
     if (isCruiseLineDropdownOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      return () =>
+      // Use setTimeout to add listener on next tick to avoid immediate trigger
+      const timeoutId = setTimeout(() => {
+        document.addEventListener("mousedown", handleClickOutside);
+      }, 0);
+
+      return () => {
+        clearTimeout(timeoutId);
         document.removeEventListener("mousedown", handleClickOutside);
+      };
     }
   }, [isCruiseLineDropdownOpen]);
 
