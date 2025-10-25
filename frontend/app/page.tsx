@@ -345,7 +345,7 @@ function HomeWithParams() {
             />
 
             {/* Navigation + Content INSIDE the masked area */}
-            <div className="absolute inset-0 z-10 flex flex-col p-4 md:p-12">
+            <div className="absolute inset-0 z-10 flex flex-col p-4 md:p-6">
               {/* Navigation - Inside mask */}
               <div className="flex items-center justify-between mb-auto">
                 <a href="/" className="flex items-center">
