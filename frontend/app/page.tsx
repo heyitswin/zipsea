@@ -96,9 +96,15 @@ function HomeWithParams() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Handle search - navigate to /cruises with filters
+  // Handle search - navigate to /cruises with filters including passenger counts
   const handleSearchCruises = () => {
     const params = new URLSearchParams();
+
+    // Add passenger counts
+    params.set("adults", adults.toString());
+    if (children > 0) {
+      params.set("children", children.toString());
+    }
 
     if (selectedMonths.length > 0) {
       params.set("months", selectedMonths.join(","));
@@ -116,6 +122,12 @@ function HomeWithParams() {
   // Handle destination clicks
   const handleDestinationClick = (destination: string) => {
     const params = new URLSearchParams();
+
+    // Always include passenger counts
+    params.set("adults", adults.toString());
+    if (children > 0) {
+      params.set("children", children.toString());
+    }
 
     switch (destination) {
       case "bahamas":
@@ -168,48 +180,31 @@ function HomeWithParams() {
     return `${selectedCruiseLines.length} selected`;
   };
 
-  // Hide main nav on homepage - add CSS to header
-  useEffect(() => {
-    if (pathname === "/") {
-      const style = document.createElement("style");
-      style.id = "hide-nav-on-homepage";
-      style.innerHTML = `nav { display: none !important; }`;
-      document.head.appendChild(style);
-
-      return () => {
-        const styleEl = document.getElementById("hide-nav-on-homepage");
-        if (styleEl) styleEl.remove();
-      };
-    }
-  }, [pathname]);
-
   return (
     <>
-      {/* Hero Section with Video Mask */}
-      <section className="relative bg-sand overflow-hidden py-4 md:py-8">
+      {/* Hero Section with Video Mask - REMOVED py padding */}
+      <section className="relative bg-sand overflow-hidden">
         <div
           className="relative mx-auto px-4 md:px-8"
           style={{ maxWidth: "1699px" }}
         >
-          {/* Video Background with Mask - Fixed Height Container */}
-          <div
-            className="relative"
-            style={{ height: "634px", minHeight: "634px" }}
-          >
-            {/* Video with SVG mask */}
-            <div className="absolute inset-0">
+          {/* Video Background with Mask - Fixed Height Container with object-fit */}
+          <div className="relative w-full" style={{ height: "634px" }}>
+            {/* Video with SVG mask - FIXED: prevent shrinking */}
+            <div className="absolute inset-0 w-full h-full">
               <video
                 autoPlay
                 loop
                 muted
                 playsInline
-                className="w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full"
                 style={{
+                  objectFit: "cover",
                   maskImage: "url('/images/updated-homepage/video-mask.svg')",
                   WebkitMaskImage:
                     "url('/images/updated-homepage/video-mask.svg')",
-                  maskSize: "100% 100%",
-                  WebkitMaskSize: "100% 100%",
+                  maskSize: "cover",
+                  WebkitMaskSize: "cover",
                   maskRepeat: "no-repeat",
                   WebkitMaskRepeat: "no-repeat",
                   maskPosition: "center",
@@ -223,17 +218,17 @@ function HomeWithParams() {
               </video>
             </div>
 
-            {/* Radial Gradient Overlay - Darkened to 0.5 */}
+            {/* Radial Gradient Overlay - FIXED: same sizing */}
             <div
-              className="absolute inset-0 z-5"
+              className="absolute inset-0 w-full h-full"
               style={{
                 background:
                   "radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 100%)",
                 maskImage: "url('/images/updated-homepage/video-mask.svg')",
                 WebkitMaskImage:
                   "url('/images/updated-homepage/video-mask.svg')",
-                maskSize: "100% 100%",
-                WebkitMaskSize: "100% 100%",
+                maskSize: "cover",
+                WebkitMaskSize: "cover",
                 maskRepeat: "no-repeat",
                 WebkitMaskRepeat: "no-repeat",
                 maskPosition: "center",
@@ -291,7 +286,7 @@ function HomeWithParams() {
                   cruise adventure
                 </h1>
 
-                {/* Combined Search Bar - Single Pill */}
+                {/* DESKTOP: Combined Search Bar - Single Pill */}
                 <div
                   className="w-full hidden md:block"
                   style={{ maxWidth: "900px" }}
@@ -310,7 +305,7 @@ function HomeWithParams() {
                         onClick={() =>
                           setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
                         }
-                        className="w-full h-[74px] flex items-center px-6 hover:bg-gray-50 transition-colors rounded-l-full"
+                        className="w-full h-[74px] flex items-center px-6 bg-white hover:bg-gray-50 transition-colors rounded-l-full"
                       >
                         <Image
                           src="/images/ship.svg"
@@ -341,7 +336,7 @@ function HomeWithParams() {
 
                       {isCruiseLineDropdownOpen && (
                         <div
-                          className="absolute top-full mt-2 w-72 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                          className="absolute top-full mt-2 left-0 w-72 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-[100]"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {cruiseLines.map((line) => (
@@ -359,11 +354,7 @@ function HomeWithParams() {
                               className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer"
                             >
                               <div
-                                className={`w-4 h-4 border rounded ${
-                                  selectedCruiseLines.includes(line.id)
-                                    ? "bg-[#0E1B4D] border-[#0E1B4D]"
-                                    : "border-gray-300"
-                                }`}
+                                className={`w-4 h-4 border rounded ${selectedCruiseLines.includes(line.id) ? "bg-[#0E1B4D] border-[#0E1B4D]" : "border-gray-300"}`}
                               >
                                 {selectedCruiseLines.includes(line.id) && (
                                   <svg
@@ -398,7 +389,7 @@ function HomeWithParams() {
                         onClick={() =>
                           setIsDateDropdownOpen(!isDateDropdownOpen)
                         }
-                        className="w-full h-[74px] flex items-center px-6 hover:bg-gray-50 transition-colors"
+                        className="w-full h-[74px] flex items-center px-6 bg-white hover:bg-gray-50 transition-colors"
                       >
                         <Image
                           src="/images/calendar.svg"
@@ -429,7 +420,7 @@ function HomeWithParams() {
 
                       {isDateDropdownOpen && (
                         <div
-                          className="absolute top-full mt-2 w-[450px] bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4 max-h-[550px] overflow-y-auto"
+                          className="absolute top-full mt-2 left-0 w-[450px] bg-white rounded-lg shadow-lg border border-gray-200 z-[100] p-4 max-h-[550px] overflow-y-auto"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {[2025, 2026, 2027].map((year) => {
@@ -465,7 +456,7 @@ function HomeWithParams() {
                                       (year === currentYear &&
                                         index < currentMonth);
 
-                                    if (isPast) return null; // Don't show past months
+                                    if (isPast) return null;
 
                                     return (
                                       <button
@@ -500,17 +491,17 @@ function HomeWithParams() {
                       )}
                     </div>
 
-                    {/* Guests Dropdown */}
+                    {/* Guests Dropdown - FIXED: people-icon.svg */}
                     <div className="relative flex-1" ref={guestsDropdownRef}>
                       <button
                         type="button"
                         onClick={() =>
                           setIsGuestsDropdownOpen(!isGuestsDropdownOpen)
                         }
-                        className="w-full h-[74px] flex items-center px-6 hover:bg-gray-50 transition-colors"
+                        className="w-full h-[74px] flex items-center px-6 bg-white hover:bg-gray-50 transition-colors"
                       >
                         <Image
-                          src="/images/updated-homepage/people-icon.svg"
+                          src="/images/people-icon.svg"
                           alt=""
                           width={20}
                           height={20}
@@ -538,10 +529,9 @@ function HomeWithParams() {
 
                       {isGuestsDropdownOpen && (
                         <div
-                          className="absolute top-full mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-50 p-4"
+                          className="absolute top-full mt-2 right-0 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-[100] p-4"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {/* Adults */}
                           <div className="flex items-center justify-between mb-4">
                             <span className="font-geograph text-[16px] text-dark-blue">
                               Adults
@@ -570,8 +560,6 @@ function HomeWithParams() {
                               </button>
                             </div>
                           </div>
-
-                          {/* Children */}
                           <div className="flex items-center justify-between">
                             <span className="font-geograph text-[16px] text-dark-blue">
                               Children
@@ -604,7 +592,7 @@ function HomeWithParams() {
                       )}
                     </div>
 
-                    {/* Search Button - Circle with Blue BG */}
+                    {/* Search Button - Circle with WHITE icon */}
                     <button
                       type="button"
                       onClick={handleSearchCruises}
@@ -616,9 +604,330 @@ function HomeWithParams() {
                         alt="Search"
                         width={24}
                         height={24}
+                        style={{ filter: "brightness(0) invert(1)" }}
                       />
                     </button>
                   </div>
+                </div>
+
+                {/* MOBILE: Stacked Search Fields */}
+                <div
+                  className="w-full md:hidden flex flex-col gap-3"
+                  style={{ maxWidth: "400px" }}
+                >
+                  {/* Cruise Line - Mobile */}
+                  <div className="relative" ref={cruiseLineDropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
+                      }
+                      className="w-full h-[60px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
+                      style={{
+                        boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)",
+                      }}
+                    >
+                      <Image
+                        src="/images/ship.svg"
+                        alt=""
+                        width={18}
+                        height={18}
+                        className="mr-3"
+                      />
+                      <span className="flex-1 text-left text-[16px] font-geograph text-dark-blue tracking-tight">
+                        {getCruiseLinePlaceholder()}
+                      </span>
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        className={`transform transition-transform ${isCruiseLineDropdownOpen ? "rotate-180" : ""}`}
+                      >
+                        <path
+                          d="M2 4L6 8L10 4"
+                          stroke="#0E1B4D"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+
+                    {isCruiseLineDropdownOpen && (
+                      <div
+                        className="absolute top-full mt-2 left-0 right-0 max-h-72 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-[100]"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {cruiseLines.map((line) => (
+                          <div
+                            key={line.id}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setSelectedCruiseLines((prev) =>
+                                prev.includes(line.id)
+                                  ? prev.filter((id) => id !== line.id)
+                                  : [...prev, line.id],
+                              );
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer"
+                          >
+                            <div
+                              className={`w-4 h-4 border rounded ${selectedCruiseLines.includes(line.id) ? "bg-[#0E1B4D] border-[#0E1B4D]" : "border-gray-300"}`}
+                            >
+                              {selectedCruiseLines.includes(line.id) && (
+                                <svg
+                                  className="w-full h-full text-white"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                            <div className="font-geograph text-[16px] text-dark-blue">
+                              {line.name}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Dates - Mobile */}
+                  <div className="relative" ref={dateDropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
+                      className="w-full h-[60px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
+                      style={{
+                        boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)",
+                      }}
+                    >
+                      <Image
+                        src="/images/calendar.svg"
+                        alt=""
+                        width={18}
+                        height={18}
+                        className="mr-3"
+                      />
+                      <span className="flex-1 text-left text-[16px] font-geograph text-dark-blue tracking-tight">
+                        {getDatePlaceholder()}
+                      </span>
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        className={`transform transition-transform ${isDateDropdownOpen ? "rotate-180" : ""}`}
+                      >
+                        <path
+                          d="M2 4L6 8L10 4"
+                          stroke="#0E1B4D"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+
+                    {isDateDropdownOpen && (
+                      <div
+                        className="absolute top-full mt-2 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-[100] p-4 max-h-96 overflow-y-auto"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {[2025, 2026, 2027].map((year) => {
+                          const currentDate = new Date();
+                          const currentYear = currentDate.getFullYear();
+                          const currentMonth = currentDate.getMonth();
+
+                          return (
+                            <div key={year} className="mb-4">
+                              <div className="font-geograph font-bold text-[14px] text-gray-700 mb-2">
+                                {year}
+                              </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                {[
+                                  "Jan",
+                                  "Feb",
+                                  "Mar",
+                                  "Apr",
+                                  "May",
+                                  "Jun",
+                                  "Jul",
+                                  "Aug",
+                                  "Sep",
+                                  "Oct",
+                                  "Nov",
+                                  "Dec",
+                                ].map((month, index) => {
+                                  const monthStr = `${year}-${String(index + 1).padStart(2, "0")}`;
+                                  const isSelected =
+                                    selectedMonths.includes(monthStr);
+                                  const isPast =
+                                    year < currentYear ||
+                                    (year === currentYear &&
+                                      index < currentMonth);
+
+                                  if (isPast) return null;
+
+                                  return (
+                                    <button
+                                      key={monthStr}
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setSelectedMonths((prev) =>
+                                          prev.includes(monthStr)
+                                            ? prev.filter((m) => m !== monthStr)
+                                            : [...prev, monthStr],
+                                        );
+                                      }}
+                                      className={`px-2 py-2 rounded-full text-[12px] font-geograph transition-colors ${
+                                        isSelected
+                                          ? "bg-[#0E1B4D] text-white"
+                                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                      }`}
+                                    >
+                                      {month}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Guests - Mobile */}
+                  <div className="relative" ref={guestsDropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setIsGuestsDropdownOpen(!isGuestsDropdownOpen)
+                      }
+                      className="w-full h-[60px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
+                      style={{
+                        boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)",
+                      }}
+                    >
+                      <Image
+                        src="/images/people-icon.svg"
+                        alt=""
+                        width={18}
+                        height={18}
+                        className="mr-3"
+                      />
+                      <span className="flex-1 text-left text-[16px] font-geograph text-dark-blue tracking-tight">
+                        {getGuestsPlaceholder()}
+                      </span>
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 12 12"
+                        fill="none"
+                        className={`transform transition-transform ${isGuestsDropdownOpen ? "rotate-180" : ""}`}
+                      >
+                        <path
+                          d="M2 4L6 8L10 4"
+                          stroke="#0E1B4D"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
+
+                    {isGuestsDropdownOpen && (
+                      <div
+                        className="absolute top-full mt-2 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-[100] p-4"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="font-geograph text-[16px] text-dark-blue">
+                            Adults
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setAdults(Math.max(1, adults - 1))}
+                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                            >
+                              −
+                            </button>
+                            <span className="font-geograph text-[18px] text-dark-blue w-8 text-center">
+                              {adults}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setAdults(Math.min(8, adults + 1))}
+                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="font-geograph text-[16px] text-dark-blue">
+                            Children
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setChildren(Math.max(0, children - 1))
+                              }
+                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                            >
+                              −
+                            </button>
+                            <span className="font-geograph text-[18px] text-dark-blue w-8 text-center">
+                              {children}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setChildren(Math.min(6, children + 1))
+                              }
+                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Search Button - Mobile */}
+                  <button
+                    type="button"
+                    onClick={handleSearchCruises}
+                    className="w-full h-[60px] rounded-full flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+                    style={{
+                      backgroundColor: "#2238C3",
+                      boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)",
+                    }}
+                  >
+                    <Image
+                      src="/images/search.svg"
+                      alt="Search"
+                      width={20}
+                      height={20}
+                      style={{ filter: "brightness(0) invert(1)" }}
+                    />
+                    <span className="text-white text-[16px] font-geograph font-medium">
+                      Search cruises
+                    </span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -626,10 +935,10 @@ function HomeWithParams() {
         </div>
       </section>
 
-      {/* Banners Section */}
+      {/* Banners Section - Stack at sm instead of md */}
       <section className="bg-sand py-8 md:py-12">
         <div className="mx-auto px-4 md:px-8" style={{ maxWidth: "1464px" }}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
             <a
               href="https://www.zipsea.com/first-time-cruisers-guide"
               className="block"
@@ -655,7 +964,7 @@ function HomeWithParams() {
         </div>
       </section>
 
-      {/* Top Destinations Section - Removed bottom padding */}
+      {/* Top Destinations Section - Removed gradients, adjusted heights, line-height */}
       <section className="bg-sand pt-12 md:pt-20">
         <div className="mx-auto px-4 md:px-8" style={{ maxWidth: "1464px" }}>
           <h2
@@ -671,7 +980,7 @@ function HomeWithParams() {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-12">
-            {/* Bahamas - Reduced hover scale */}
+            {/* Bahamas - Reduced height on tablet/mobile, removed gradient */}
             <button
               onClick={() => handleDestinationClick("bahamas")}
               className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-[1.025]"
@@ -682,9 +991,9 @@ function HomeWithParams() {
                 alt="Bahamas"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover md:h-[303px] h-[227px] lg:h-full"
               />
-              <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
                   className="font-geograph uppercase"
                   style={{
@@ -703,6 +1012,7 @@ function HomeWithParams() {
                     fontSize: "clamp(32px, 4vw, 42px)",
                     color: "white",
                     fontWeight: "900",
+                    lineHeight: "1",
                   }}
                 >
                   Bahamas
@@ -721,9 +1031,9 @@ function HomeWithParams() {
                 alt="Caribbean"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover md:h-[303px] h-[227px] lg:h-full"
               />
-              <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
                   className="font-geograph uppercase"
                   style={{
@@ -742,6 +1052,7 @@ function HomeWithParams() {
                     fontSize: "clamp(32px, 4vw, 42px)",
                     color: "white",
                     fontWeight: "900",
+                    lineHeight: "1",
                   }}
                 >
                   Caribbean
@@ -760,9 +1071,9 @@ function HomeWithParams() {
                 alt="Mexico"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover md:h-[303px] h-[227px] lg:h-full"
               />
-              <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
                   className="font-geograph uppercase"
                   style={{
@@ -781,6 +1092,7 @@ function HomeWithParams() {
                     fontSize: "clamp(32px, 4vw, 42px)",
                     color: "white",
                     fontWeight: "900",
+                    lineHeight: "1",
                   }}
                 >
                   Mexico
@@ -799,9 +1111,9 @@ function HomeWithParams() {
                 alt="New York"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover md:h-[303px] h-[227px] lg:h-full"
               />
-              <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
                   className="font-geograph uppercase"
                   style={{
@@ -820,6 +1132,7 @@ function HomeWithParams() {
                     fontSize: "clamp(32px, 4vw, 42px)",
                     color: "white",
                     fontWeight: "900",
+                    lineHeight: "1",
                   }}
                 >
                   New York
@@ -859,7 +1172,7 @@ function HomeWithParams() {
         />
       </section>
 
-      {/* Testimonials Section - Reduced margins */}
+      {/* Testimonials Section - Removed min-height on mobile/tablet, line-height 1 on headline */}
       <section className="bg-white py-3 md:py-5">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <h2
@@ -869,6 +1182,7 @@ function HomeWithParams() {
               color: "#1c1c1c",
               letterSpacing: "-0.02em",
               fontWeight: "900",
+              lineHeight: "1",
             }}
           >
             Smarter cruisers = happy cruisers
@@ -880,8 +1194,8 @@ function HomeWithParams() {
               href="https://www.trustpilot.com/reviews/68ccd495ecd5535685d2dd7f"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col transition-shadow"
-              style={{ minHeight: "280px", boxShadow: "0 0 0 0 rgba(0,0,0,0)" }}
+              className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col transition-shadow md:min-h-0"
+              style={{ boxShadow: "0 0 0 0 rgba(0,0,0,0)" }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.boxShadow =
                   "0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05)";
@@ -924,8 +1238,8 @@ function HomeWithParams() {
               href="https://www.trustpilot.com/users/68cccfc38a838cf268714fe1"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col transition-shadow"
-              style={{ minHeight: "280px", boxShadow: "0 0 0 0 rgba(0,0,0,0)" }}
+              className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col transition-shadow md:min-h-0"
+              style={{ boxShadow: "0 0 0 0 rgba(0,0,0,0)" }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.boxShadow =
                   "0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05)";
@@ -968,8 +1282,8 @@ function HomeWithParams() {
               href="https://www.trustpilot.com/users/68cc73c37b741cb43a9a8473"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col transition-shadow"
-              style={{ minHeight: "280px", boxShadow: "0 0 0 0 rgba(0,0,0,0)" }}
+              className="bg-white border border-gray-200 rounded-lg p-6 md:p-7 flex flex-col transition-shadow md:min-h-0"
+              style={{ boxShadow: "0 0 0 0 rgba(0,0,0,0)" }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.boxShadow =
                   "0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05)";

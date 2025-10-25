@@ -45,6 +45,12 @@ export default function Navigation({
   const { showAlert } = useAlert();
   const pathname = usePathname();
   const router = useRouter();
+
+  // Don't render navigation on homepage
+  if (pathname === "/") {
+    return null;
+  }
+
   const isCruiseDetailPage = pathname?.startsWith("/cruise/") || false;
   const isCruisesPage = pathname === "/cruises";
   const isFirstTimeCruisersPage = pathname === "/first-time-cruisers-guide";
