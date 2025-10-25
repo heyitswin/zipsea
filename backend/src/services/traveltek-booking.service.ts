@@ -671,38 +671,63 @@ class TraveltekBookingService {
         );
       }
 
-      // IMPORTANT: Normalize totalprice from searchprice if needed
-      // Traveltek often returns totalprice=0 in basketadd.pl response, but searchprice is always accurate
-      // NOTE: searchprice is PER PERSON, so we must multiply by number of adults
-      // This ensures frontend always gets valid pricing without needing fallback logic
+      // IMPORTANT: Log complete basket response to understand Traveltek's pricing structure
+      // We need to determine if searchprice is per-person or total for all passengers
       const basketResult = basketData.results?.[0];
       const firstBasketItem = basketResult?.basketitems?.[0];
 
       if (basketResult && firstBasketItem) {
+        console.log('[TraveltekBooking] 📦 COMPLETE BASKET RESPONSE ANALYSIS:');
+        console.log('  Session passenger count:', JSON.stringify(sessionData.passengerCount));
+        console.log('  Traveltek meta.criteria.adults:', basketData.meta?.criteria?.adults);
+        console.log('  Traveltek meta.criteria.children:', basketData.meta?.criteria?.children);
+        console.log('  Traveltek meta.criteria.paxtotal:', basketData.meta?.criteria?.paxtotal);
+        console.log('  ');
+        console.log('  Basket-level pricing:');
+        console.log('    - totalprice:', basketResult.totalprice);
+        console.log('    - totaldeposit:', basketResult.totaldeposit);
+        console.log('  ');
+        console.log('  Basket item pricing:');
+        console.log('    - price:', firstBasketItem.price);
+        console.log('    - searchprice:', firstBasketItem.searchprice);
+        console.log('    - searchdeposit:', firstBasketItem.searchdeposit);
+        console.log('  ');
+        console.log('  Cruisedetail pricing:');
+        console.log('    - cruisedetail.price:', firstBasketItem.cruisedetail?.price);
+        console.log('    - cruisedetail.sprice:', firstBasketItem.cruisedetail?.sprice);
+        console.log('    - cruisedetail.cruiseinside:', firstBasketItem.cruisedetail?.cruiseinside);
+        console.log(
+          '    - cruisedetail.cruiseoutside:',
+          firstBasketItem.cruisedetail?.cruiseoutside
+        );
+        console.log(
+          '    - cruisedetail.cruisebalcony:',
+          firstBasketItem.cruisedetail?.cruisebalcony
+        );
+        console.log('    - cruisedetail.cruisesuite:', firstBasketItem.cruisedetail?.cruisesuite);
+        console.log('  ');
+        console.log(
+          '  Full cruisedetail object:',
+          JSON.stringify(firstBasketItem.cruisedetail, null, 2)
+        );
+
+        // For now, use searchprice as-is (don't multiply) until we confirm what it represents
         const currentTotalprice = basketResult.totalprice || 0;
-        const searchpricePerPerson = firstBasketItem.searchprice
+        const searchprice = firstBasketItem.searchprice
           ? parseFloat(firstBasketItem.searchprice)
           : 0;
-        const searchdepositPerPerson = firstBasketItem.searchdeposit
-          ? parseFloat(firstBasketItem.searchdeposit)
-          : 0;
 
-        if (currentTotalprice === 0 && searchpricePerPerson > 0) {
-          // Get number of adults from session
-          const adults = sessionData.passengerCount?.adults || 2;
+        if (currentTotalprice === 0 && searchprice > 0) {
+          console.log('[TraveltekBooking] ⚠️  WARNING: Using searchprice AS-IS (not multiplying)');
+          console.log('  We need to verify if searchprice is per-person or total');
 
-          console.log(
-            '[TraveltekBooking] 💰 Normalizing pricing: totalprice is 0, using searchprice × adults'
-          );
-          console.log('  - searchprice (per person):', searchpricePerPerson);
-          console.log('  - number of adults:', adults);
-          console.log('  - searchdeposit (per person):', searchdepositPerPerson);
+          basketResult.totalprice = searchprice;
+          basketResult.totaldeposit = firstBasketItem.searchdeposit
+            ? parseFloat(firstBasketItem.searchdeposit)
+            : 0;
 
-          basketResult.totalprice = searchpricePerPerson * adults;
-          basketResult.totaldeposit = searchdepositPerPerson * adults;
-
-          console.log('  - ✅ Normalized totalprice to:', basketResult.totalprice);
-          console.log('  - ✅ Normalized totaldeposit to:', basketResult.totaldeposit);
+          console.log('  - Set totalprice to:', basketResult.totalprice);
+          console.log('  - Set totaldeposit to:', basketResult.totaldeposit);
         }
       }
 
