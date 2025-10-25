@@ -182,12 +182,9 @@ function HomeWithParams() {
 
   return (
     <>
-      {/* Hero Section with Video Mask - REMOVED py padding */}
-      <section className="relative bg-sand overflow-hidden">
-        <div
-          className="relative mx-auto px-4 md:px-8"
-          style={{ maxWidth: "1699px" }}
-        >
+      {/* Hero Section with Video Mask - REMOVED py padding and overflow-hidden */}
+      <section className="relative bg-sand pt-3">
+        <div className="relative mx-auto px-3" style={{ maxWidth: "1699px" }}>
           {/* Video Background with Mask - Fixed Height Container with object-fit */}
           <div className="relative w-full" style={{ height: "634px" }}>
             {/* Video with SVG mask - FIXED: prevent shrinking */}
@@ -218,12 +215,12 @@ function HomeWithParams() {
               </video>
             </div>
 
-            {/* Radial Gradient Overlay - FIXED: same sizing */}
+            {/* Radial Gradient Overlay - Increased opacity from 0.5 to 0.7 */}
             <div
               className="absolute inset-0 w-full h-full"
               style={{
                 background:
-                  "radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0.5) 100%)",
+                  "radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0.7) 100%)",
                 maskImage: "url('/images/updated-homepage/video-mask.svg')",
                 WebkitMaskImage:
                   "url('/images/updated-homepage/video-mask.svg')",
@@ -336,12 +333,13 @@ function HomeWithParams() {
 
                       {isCruiseLineDropdownOpen && (
                         <div
-                          className="absolute top-full mt-2 left-0 w-72 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-[100]"
+                          className="absolute top-full mt-2 left-0 w-72 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {cruiseLines.map((line) => (
-                            <div
+                            <button
                               key={line.id}
+                              type="button"
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -373,7 +371,7 @@ function HomeWithParams() {
                               <div className="font-geograph text-[16px] text-dark-blue">
                                 {line.name}
                               </div>
-                            </div>
+                            </button>
                           ))}
                         </div>
                       )}
@@ -420,7 +418,7 @@ function HomeWithParams() {
 
                       {isDateDropdownOpen && (
                         <div
-                          className="absolute top-full mt-2 left-0 w-[450px] bg-white rounded-lg shadow-lg border border-gray-200 z-[100] p-4 max-h-[550px] overflow-y-auto"
+                          className="absolute top-full mt-2 left-0 w-[450px] bg-white rounded-lg shadow-lg border border-gray-200 z-[9999] p-4 max-h-[550px] overflow-y-auto"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {[2025, 2026, 2027].map((year) => {
@@ -529,7 +527,7 @@ function HomeWithParams() {
 
                       {isGuestsDropdownOpen && (
                         <div
-                          className="absolute top-full mt-2 right-0 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-[100] p-4"
+                          className="absolute top-full mt-2 right-0 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999] p-4"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <div className="flex items-center justify-between mb-4">
@@ -656,12 +654,13 @@ function HomeWithParams() {
 
                     {isCruiseLineDropdownOpen && (
                       <div
-                        className="absolute top-full mt-2 left-0 right-0 max-h-72 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-[100]"
+                        className="absolute top-full mt-2 left-0 right-0 max-h-72 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {cruiseLines.map((line) => (
-                          <div
+                          <button
                             key={line.id}
+                            type="button"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -693,7 +692,7 @@ function HomeWithParams() {
                             <div className="font-geograph text-[16px] text-dark-blue">
                               {line.name}
                             </div>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     )}
@@ -738,7 +737,7 @@ function HomeWithParams() {
 
                     {isDateDropdownOpen && (
                       <div
-                        className="absolute top-full mt-2 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-[100] p-4 max-h-96 overflow-y-auto"
+                        className="absolute top-full mt-2 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999] p-4 max-h-96 overflow-y-auto"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {[2025, 2026, 2027].map((year) => {
@@ -848,7 +847,7 @@ function HomeWithParams() {
 
                     {isGuestsDropdownOpen && (
                       <div
-                        className="absolute top-full mt-2 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-[100] p-4"
+                        className="absolute top-full mt-2 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999] p-4"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <div className="flex items-center justify-between mb-4">
@@ -935,10 +934,10 @@ function HomeWithParams() {
         </div>
       </section>
 
-      {/* Banners Section - Stack at sm instead of md */}
+      {/* Banners Section - Stack even earlier (at smallest breakpoint) */}
       <section className="bg-sand py-8 md:py-12">
         <div className="mx-auto px-4 md:px-8" style={{ maxWidth: "1464px" }}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+          <div className="grid grid-cols-2 gap-4 md:gap-6">
             <a
               href="https://www.zipsea.com/first-time-cruisers-guide"
               className="block"
@@ -983,15 +982,14 @@ function HomeWithParams() {
             {/* Bahamas - Reduced height on tablet/mobile, removed gradient */}
             <button
               onClick={() => handleDestinationClick("bahamas")}
-              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-[1.025]"
-              style={{ height: "454px" }}
+              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-[1.025] h-auto"
             >
               <Image
                 src="/images/updated-homepage/destination-bahamas.png"
                 alt="Bahamas"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover md:h-[303px] h-[227px] lg:h-full"
+                className="w-full h-full object-cover h-[113px] md:h-[303px] lg:h-full"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -1023,15 +1021,14 @@ function HomeWithParams() {
             {/* Caribbean */}
             <button
               onClick={() => handleDestinationClick("caribbean")}
-              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-[1.025]"
-              style={{ height: "454px" }}
+              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-[1.025] h-auto"
             >
               <Image
                 src="/images/updated-homepage/destination-caribbean.png"
                 alt="Caribbean"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover md:h-[303px] h-[227px] lg:h-full"
+                className="w-full h-full object-cover h-[113px] md:h-[303px] lg:h-full"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -1063,15 +1060,14 @@ function HomeWithParams() {
             {/* Mexico */}
             <button
               onClick={() => handleDestinationClick("mexico")}
-              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-[1.025]"
-              style={{ height: "454px" }}
+              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-[1.025] h-auto"
             >
               <Image
                 src="/images/updated-homepage/destination-mexico.png"
                 alt="Mexico"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover md:h-[303px] h-[227px] lg:h-full"
+                className="w-full h-full object-cover h-[113px] md:h-[303px] lg:h-full"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -1103,15 +1099,14 @@ function HomeWithParams() {
             {/* New York */}
             <button
               onClick={() => handleDestinationClick("newyork")}
-              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-[1.025]"
-              style={{ height: "454px" }}
+              className="relative overflow-hidden rounded-lg cursor-pointer transition-transform hover:scale-[1.025] h-auto"
             >
               <Image
                 src="/images/updated-homepage/destination-newyork.png"
                 alt="New York"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover md:h-[303px] h-[227px] lg:h-full"
+                className="w-full h-full object-cover h-[113px] md:h-[303px] lg:h-full"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -1173,7 +1168,7 @@ function HomeWithParams() {
       </section>
 
       {/* Testimonials Section - Removed min-height on mobile/tablet, line-height 1 on headline */}
-      <section className="bg-white py-3 md:py-5">
+      <section className="bg-white py-3 md:py-5 mt-8">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <h2
             className="text-center font-whitney uppercase mb-6 md:mb-8"
