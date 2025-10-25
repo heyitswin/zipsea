@@ -673,27 +673,33 @@ class TraveltekBookingService {
 
       // IMPORTANT: Normalize totalprice from searchprice if needed
       // Traveltek often returns totalprice=0 in basketadd.pl response, but searchprice is always accurate
+      // NOTE: searchprice is PER PERSON, so we must multiply by number of adults
       // This ensures frontend always gets valid pricing without needing fallback logic
       const basketResult = basketData.results?.[0];
       const firstBasketItem = basketResult?.basketitems?.[0];
 
       if (basketResult && firstBasketItem) {
         const currentTotalprice = basketResult.totalprice || 0;
-        const searchprice = firstBasketItem.searchprice
+        const searchpricePerPerson = firstBasketItem.searchprice
           ? parseFloat(firstBasketItem.searchprice)
           : 0;
+        const searchdepositPerPerson = firstBasketItem.searchdeposit
+          ? parseFloat(firstBasketItem.searchdeposit)
+          : 0;
 
-        if (currentTotalprice === 0 && searchprice > 0) {
+        if (currentTotalprice === 0 && searchpricePerPerson > 0) {
+          // Get number of adults from session
+          const adults = sessionData.passengerCount?.adults || 2;
+
           console.log(
-            '[TraveltekBooking] 💰 Normalizing pricing: totalprice is 0, using searchprice'
+            '[TraveltekBooking] 💰 Normalizing pricing: totalprice is 0, using searchprice × adults'
           );
-          console.log('  - searchprice:', searchprice);
-          console.log('  - searchdeposit:', firstBasketItem.searchdeposit);
+          console.log('  - searchprice (per person):', searchpricePerPerson);
+          console.log('  - number of adults:', adults);
+          console.log('  - searchdeposit (per person):', searchdepositPerPerson);
 
-          basketResult.totalprice = searchprice;
-          basketResult.totaldeposit = firstBasketItem.searchdeposit
-            ? parseFloat(firstBasketItem.searchdeposit)
-            : 0;
+          basketResult.totalprice = searchpricePerPerson * adults;
+          basketResult.totaldeposit = searchdepositPerPerson * adults;
 
           console.log('  - ✅ Normalized totalprice to:', basketResult.totalprice);
           console.log('  - ✅ Normalized totaldeposit to:', basketResult.totaldeposit);
