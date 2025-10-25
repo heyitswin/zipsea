@@ -116,31 +116,65 @@ function HomeWithParams() {
     setChildAges(newChildAges);
   };
 
-  // Handle click outside to close dropdowns - OLD WORKING PATTERN
+  // Handle click outside to close dropdowns - OLD WORKING PATTERN WITH DEBUG LOGGING
   useEffect(() => {
+    console.log("🔵 useEffect: Setting up click outside handler");
+
     const handleClickOutside = (event: MouseEvent) => {
+      console.log("🔴 mousedown event fired", {
+        target: event.target,
+        guestsDropdownOpen: isGuestsDropdownOpen,
+        dateDropdownOpen: isDateDropdownOpen,
+        cruiseLineDropdownOpen: isCruiseLineDropdownOpen,
+      });
+
       if (
         guestsDropdownRef.current &&
         !guestsDropdownRef.current.contains(event.target as Node)
       ) {
+        console.log("❌ Closing guests dropdown - clicked outside");
         setIsGuestsDropdownOpen(false);
+      } else if (
+        guestsDropdownRef.current &&
+        guestsDropdownRef.current.contains(event.target as Node)
+      ) {
+        console.log("✅ Click inside guests dropdown - keeping open");
       }
+
       if (
         dateDropdownRef.current &&
         !dateDropdownRef.current.contains(event.target as Node)
       ) {
+        console.log("❌ Closing date dropdown - clicked outside");
         setIsDateDropdownOpen(false);
+      } else if (
+        dateDropdownRef.current &&
+        dateDropdownRef.current.contains(event.target as Node)
+      ) {
+        console.log("✅ Click inside date dropdown - keeping open");
       }
+
       if (
         cruiseLineDropdownRef.current &&
         !cruiseLineDropdownRef.current.contains(event.target as Node)
       ) {
+        console.log("❌ Closing cruise line dropdown - clicked outside");
         setIsCruiseLineDropdownOpen(false);
+      } else if (
+        cruiseLineDropdownRef.current &&
+        cruiseLineDropdownRef.current.contains(event.target as Node)
+      ) {
+        console.log("✅ Click inside cruise line dropdown - keeping open");
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    console.log("✅ Event listener attached");
+
+    return () => {
+      console.log("🔵 Cleanup: Removing event listener");
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   // Handle search - navigate to /cruises with filters including passenger counts
@@ -539,9 +573,16 @@ function HomeWithParams() {
                     <div className="relative flex-1" ref={guestsDropdownRef}>
                       <button
                         type="button"
-                        onClick={() =>
-                          setIsGuestsDropdownOpen(!isGuestsDropdownOpen)
-                        }
+                        onClick={() => {
+                          console.log(
+                            "🟢 Button clicked - toggling guests dropdown",
+                            {
+                              currentState: isGuestsDropdownOpen,
+                              newState: !isGuestsDropdownOpen,
+                            },
+                          );
+                          setIsGuestsDropdownOpen(!isGuestsDropdownOpen);
+                        }}
                         className="w-full h-[74px] flex items-center px-6 bg-white hover:bg-gray-50 transition-colors"
                       >
                         <svg
