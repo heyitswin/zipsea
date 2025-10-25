@@ -72,38 +72,26 @@ function HomeWithParams() {
   // Handle click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
+      const target = event.target as HTMLElement;
 
+      // Don't close if clicking inside any dropdown
       if (
-        guestsDropdownRef.current &&
-        !guestsDropdownRef.current.contains(target)
+        guestsDropdownRef.current?.contains(target) ||
+        dateDropdownRef.current?.contains(target) ||
+        cruiseLineDropdownRef.current?.contains(target)
       ) {
-        setIsGuestsDropdownOpen(false);
+        return;
       }
-      if (
-        dateDropdownRef.current &&
-        !dateDropdownRef.current.contains(target)
-      ) {
-        setIsDateDropdownOpen(false);
-      }
-      if (
-        cruiseLineDropdownRef.current &&
-        !cruiseLineDropdownRef.current.contains(target)
-      ) {
-        setIsCruiseLineDropdownOpen(false);
-      }
+
+      // Close all dropdowns if clicking outside
+      setIsGuestsDropdownOpen(false);
+      setIsDateDropdownOpen(false);
+      setIsCruiseLineDropdownOpen(false);
     };
 
-    if (
-      isGuestsDropdownOpen ||
-      isDateDropdownOpen ||
-      isCruiseLineDropdownOpen
-    ) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
+    document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isGuestsDropdownOpen, isDateDropdownOpen, isCruiseLineDropdownOpen]);
+  }, []);
 
   // Handle search - navigate to /cruises with filters including passenger counts
   const handleSearchCruises = () => {
@@ -192,7 +180,7 @@ function HomeWithParams() {
   return (
     <>
       {/* Hero Section with Video Mask - REMOVED py padding and overflow-hidden */}
-      <section className="relative bg-sand mt-3 px-3 md:mt-0 md:px-0">
+      <section className="relative bg-sand md:mt-3 md:px-3">
         <div className="relative mx-auto" style={{ maxWidth: "1880px" }}>
           {/* Video Background with Mask - Fixed Height Container with object-fit */}
           <div className="relative w-full" style={{ height: "700px" }}>
