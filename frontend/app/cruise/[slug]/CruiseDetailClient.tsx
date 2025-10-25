@@ -1688,10 +1688,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                         Total Price
                                       </div>
                                       <div className="font-geograph font-medium text-[24px] text-[#1c1c1c]">
-                                        ${formatPrice(cabinPricing.price || 0)}
+                                        $
+                                        {formatPrice(
+                                          (cabinPricing.price || 0) *
+                                            (passengerCount?.adults || 1),
+                                        )}
                                       </div>
                                       <div className="font-geograph text-[12px] text-[#777777]">
-                                        Including taxes & fees
+                                        For {passengerCount?.adults || 1}{" "}
+                                        {(passengerCount?.adults || 1) === 1
+                                          ? "guest"
+                                          : "guests"}{" "}
+                                        • Including taxes & fees
                                       </div>
                                     </div>
 
@@ -1724,8 +1732,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                             console.log(
                                               "💰 RESERVE CLICKED - Cabin Pricing Data:",
                                               {
-                                                displayedPrice:
+                                                pricePerPerson:
                                                   cabinPricing.price,
+                                                numberOfAdults:
+                                                  passengerCount?.adults || 1,
+                                                displayedTotalPrice:
+                                                  (cabinPricing.price || 0) *
+                                                  (passengerCount?.adults || 1),
                                                 resultNo: cabinPricing.resultNo,
                                                 gradeNo: cabinPricing.gradeNo,
                                                 rateCode: cabinPricing.rateCode,
