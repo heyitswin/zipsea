@@ -55,6 +55,24 @@ function HomeWithParams() {
   const dateDropdownRef = useRef<HTMLDivElement>(null);
   const cruiseLineDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Refs to track current dropdown state (avoid stale closure in setTimeout)
+  const isGuestsDropdownOpenRef = useRef(isGuestsDropdownOpen);
+  const isDateDropdownOpenRef = useRef(isDateDropdownOpen);
+  const isCruiseLineDropdownOpenRef = useRef(isCruiseLineDropdownOpen);
+
+  // Update refs when state changes
+  useEffect(() => {
+    isGuestsDropdownOpenRef.current = isGuestsDropdownOpen;
+  }, [isGuestsDropdownOpen]);
+
+  useEffect(() => {
+    isDateDropdownOpenRef.current = isDateDropdownOpen;
+  }, [isDateDropdownOpen]);
+
+  useEffect(() => {
+    isCruiseLineDropdownOpenRef.current = isCruiseLineDropdownOpen;
+  }, [isCruiseLineDropdownOpen]);
+
   // Fetch filter options from API
   useEffect(() => {
     const fetchFilterOptions = async () => {
@@ -129,11 +147,16 @@ function HomeWithParams() {
       setTimeout(() => {
         const target = event.target as Node;
 
+        // Use refs to get current state (not stale closure values)
+        const guestsOpen = isGuestsDropdownOpenRef.current;
+        const dateOpen = isDateDropdownOpenRef.current;
+        const cruiseLineOpen = isCruiseLineDropdownOpenRef.current;
+
         console.log("🔴 mousedown event fired (deferred)", {
           target: event.target,
-          guestsDropdownOpen: isGuestsDropdownOpen,
-          dateDropdownOpen: isDateDropdownOpen,
-          cruiseLineDropdownOpen: isCruiseLineDropdownOpen,
+          guestsDropdownOpen: guestsOpen,
+          dateDropdownOpen: dateOpen,
+          cruiseLineDropdownOpen: cruiseLineOpen,
           guestsRef: guestsDropdownRef.current,
           dateRef: dateDropdownRef.current,
           cruiseLineRef: cruiseLineDropdownRef.current,
@@ -144,7 +167,7 @@ function HomeWithParams() {
 
         // Only check if dropdown is open AND click is outside
         if (
-          isGuestsDropdownOpen &&
+          guestsOpen &&
           guestsDropdownRef.current &&
           !guestsDropdownRef.current.contains(target)
         ) {
@@ -160,7 +183,7 @@ function HomeWithParams() {
         }
 
         if (
-          isDateDropdownOpen &&
+          dateOpen &&
           dateDropdownRef.current &&
           !dateDropdownRef.current.contains(target)
         ) {
@@ -174,7 +197,7 @@ function HomeWithParams() {
         }
 
         if (
-          isCruiseLineDropdownOpen &&
+          cruiseLineOpen &&
           cruiseLineDropdownRef.current &&
           !cruiseLineDropdownRef.current.contains(target)
         ) {
