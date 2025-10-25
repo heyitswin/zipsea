@@ -124,75 +124,80 @@ function HomeWithParams() {
       cruiseLineDropdownOpen: isCruiseLineDropdownOpen,
     });
 
-    const handleClickOutside = (event: Event) => {
-      const target = event.target as Node;
+    const handleClickOutside = (event: MouseEvent) => {
+      // Defer the check to next tick so React has time to render the dropdown
+      setTimeout(() => {
+        const target = event.target as Node;
 
-      console.log("🔴 click event fired", {
-        target: event.target,
-        guestsDropdownOpen: isGuestsDropdownOpen,
-        dateDropdownOpen: isDateDropdownOpen,
-        cruiseLineDropdownOpen: isCruiseLineDropdownOpen,
-        guestsRef: guestsDropdownRef.current,
-        dateRef: dateDropdownRef.current,
-        cruiseLineRef: cruiseLineDropdownRef.current,
-        guestsContains: guestsDropdownRef.current?.contains(target),
-        dateContains: dateDropdownRef.current?.contains(target),
-        cruiseLineContains: cruiseLineDropdownRef.current?.contains(target),
-      });
+        console.log("🔴 mousedown event fired (deferred)", {
+          target: event.target,
+          guestsDropdownOpen: isGuestsDropdownOpen,
+          dateDropdownOpen: isDateDropdownOpen,
+          cruiseLineDropdownOpen: isCruiseLineDropdownOpen,
+          guestsRef: guestsDropdownRef.current,
+          dateRef: dateDropdownRef.current,
+          cruiseLineRef: cruiseLineDropdownRef.current,
+          guestsContains: guestsDropdownRef.current?.contains(target),
+          dateContains: dateDropdownRef.current?.contains(target),
+          cruiseLineContains: cruiseLineDropdownRef.current?.contains(target),
+        });
 
-      // Only check if dropdown is open AND click is outside
-      if (
-        isGuestsDropdownOpen &&
-        guestsDropdownRef.current &&
-        !guestsDropdownRef.current.contains(target)
-      ) {
-        console.log("❌ Closing guests dropdown - clicked outside while open");
-        setIsGuestsDropdownOpen(false);
-      } else if (
-        guestsDropdownRef.current &&
-        guestsDropdownRef.current.contains(target)
-      ) {
-        console.log("✅ Click inside guests dropdown - keeping open");
-      }
+        // Only check if dropdown is open AND click is outside
+        if (
+          isGuestsDropdownOpen &&
+          guestsDropdownRef.current &&
+          !guestsDropdownRef.current.contains(target)
+        ) {
+          console.log(
+            "❌ Closing guests dropdown - clicked outside while open",
+          );
+          setIsGuestsDropdownOpen(false);
+        } else if (
+          guestsDropdownRef.current &&
+          guestsDropdownRef.current.contains(target)
+        ) {
+          console.log("✅ Click inside guests dropdown - keeping open");
+        }
 
-      if (
-        isDateDropdownOpen &&
-        dateDropdownRef.current &&
-        !dateDropdownRef.current.contains(target)
-      ) {
-        console.log("❌ Closing date dropdown - clicked outside while open");
-        setIsDateDropdownOpen(false);
-      } else if (
-        dateDropdownRef.current &&
-        dateDropdownRef.current.contains(target)
-      ) {
-        console.log("✅ Click inside date dropdown - keeping open");
-      }
+        if (
+          isDateDropdownOpen &&
+          dateDropdownRef.current &&
+          !dateDropdownRef.current.contains(target)
+        ) {
+          console.log("❌ Closing date dropdown - clicked outside while open");
+          setIsDateDropdownOpen(false);
+        } else if (
+          dateDropdownRef.current &&
+          dateDropdownRef.current.contains(target)
+        ) {
+          console.log("✅ Click inside date dropdown - keeping open");
+        }
 
-      if (
-        isCruiseLineDropdownOpen &&
-        cruiseLineDropdownRef.current &&
-        !cruiseLineDropdownRef.current.contains(target)
-      ) {
-        console.log(
-          "❌ Closing cruise line dropdown - clicked outside while open",
-        );
-        setIsCruiseLineDropdownOpen(false);
-      } else if (
-        cruiseLineDropdownRef.current &&
-        cruiseLineDropdownRef.current.contains(target)
-      ) {
-        console.log("✅ Click inside cruise line dropdown - keeping open");
-      }
+        if (
+          isCruiseLineDropdownOpen &&
+          cruiseLineDropdownRef.current &&
+          !cruiseLineDropdownRef.current.contains(target)
+        ) {
+          console.log(
+            "❌ Closing cruise line dropdown - clicked outside while open",
+          );
+          setIsCruiseLineDropdownOpen(false);
+        } else if (
+          cruiseLineDropdownRef.current &&
+          cruiseLineDropdownRef.current.contains(target)
+        ) {
+          console.log("✅ Click inside cruise line dropdown - keeping open");
+        }
+      }, 0);
     };
 
-    // Use click with capture phase - fires before child onClick handlers
-    document.addEventListener("click", handleClickOutside, true);
+    // Use mousedown with setTimeout to defer check until after React renders
+    document.addEventListener("mousedown", handleClickOutside);
     console.log("✅ Event listener attached");
 
     return () => {
       console.log("🔵 Cleanup: Removing event listener");
-      document.removeEventListener("click", handleClickOutside, true);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isGuestsDropdownOpen, isDateDropdownOpen, isCruiseLineDropdownOpen]);
 
