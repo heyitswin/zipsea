@@ -55,24 +55,6 @@ function HomeWithParams() {
   const dateDropdownRef = useRef<HTMLDivElement>(null);
   const cruiseLineDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Refs to track current dropdown state (avoid stale closure in setTimeout)
-  const isGuestsDropdownOpenRef = useRef(isGuestsDropdownOpen);
-  const isDateDropdownOpenRef = useRef(isDateDropdownOpen);
-  const isCruiseLineDropdownOpenRef = useRef(isCruiseLineDropdownOpen);
-
-  // Update refs when state changes
-  useEffect(() => {
-    isGuestsDropdownOpenRef.current = isGuestsDropdownOpen;
-  }, [isGuestsDropdownOpen]);
-
-  useEffect(() => {
-    isDateDropdownOpenRef.current = isDateDropdownOpen;
-  }, [isDateDropdownOpen]);
-
-  useEffect(() => {
-    isCruiseLineDropdownOpenRef.current = isCruiseLineDropdownOpen;
-  }, [isCruiseLineDropdownOpen]);
-
   // Fetch filter options from API
   useEffect(() => {
     const fetchFilterOptions = async () => {
@@ -134,95 +116,32 @@ function HomeWithParams() {
     setChildAges(newChildAges);
   };
 
-  // Handle click outside to close dropdowns - FIXED: Include state deps so handler sees current state
+  // Handle click outside to close dropdowns - Revert to simple working pattern
   useEffect(() => {
-    console.log("🔵 useEffect: Setting up click outside handler", {
-      guestsDropdownOpen: isGuestsDropdownOpen,
-      dateDropdownOpen: isDateDropdownOpen,
-      cruiseLineDropdownOpen: isCruiseLineDropdownOpen,
-    });
-
     const handleClickOutside = (event: MouseEvent) => {
-      // Defer the check to next tick so React has time to render the dropdown
-      setTimeout(() => {
-        const target = event.target as Node;
-
-        // Use refs to get current state (not stale closure values)
-        const guestsOpen = isGuestsDropdownOpenRef.current;
-        const dateOpen = isDateDropdownOpenRef.current;
-        const cruiseLineOpen = isCruiseLineDropdownOpenRef.current;
-
-        console.log("🔴 mousedown event fired (deferred)", {
-          target: event.target,
-          guestsDropdownOpen: guestsOpen,
-          dateDropdownOpen: dateOpen,
-          cruiseLineDropdownOpen: cruiseLineOpen,
-          guestsRef: guestsDropdownRef.current,
-          dateRef: dateDropdownRef.current,
-          cruiseLineRef: cruiseLineDropdownRef.current,
-          guestsContains: guestsDropdownRef.current?.contains(target),
-          dateContains: dateDropdownRef.current?.contains(target),
-          cruiseLineContains: cruiseLineDropdownRef.current?.contains(target),
-        });
-
-        // Only check if dropdown is open AND click is outside
-        if (
-          guestsOpen &&
-          guestsDropdownRef.current &&
-          !guestsDropdownRef.current.contains(target)
-        ) {
-          console.log(
-            "❌ Closing guests dropdown - clicked outside while open",
-          );
-          setIsGuestsDropdownOpen(false);
-        } else if (
-          guestsDropdownRef.current &&
-          guestsDropdownRef.current.contains(target)
-        ) {
-          console.log("✅ Click inside guests dropdown - keeping open");
-        }
-
-        if (
-          dateOpen &&
-          dateDropdownRef.current &&
-          !dateDropdownRef.current.contains(target)
-        ) {
-          console.log("❌ Closing date dropdown - clicked outside while open");
-          setIsDateDropdownOpen(false);
-        } else if (
-          dateDropdownRef.current &&
-          dateDropdownRef.current.contains(target)
-        ) {
-          console.log("✅ Click inside date dropdown - keeping open");
-        }
-
-        if (
-          cruiseLineOpen &&
-          cruiseLineDropdownRef.current &&
-          !cruiseLineDropdownRef.current.contains(target)
-        ) {
-          console.log(
-            "❌ Closing cruise line dropdown - clicked outside while open",
-          );
-          setIsCruiseLineDropdownOpen(false);
-        } else if (
-          cruiseLineDropdownRef.current &&
-          cruiseLineDropdownRef.current.contains(target)
-        ) {
-          console.log("✅ Click inside cruise line dropdown - keeping open");
-        }
-      }, 0);
+      if (
+        guestsDropdownRef.current &&
+        !guestsDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsGuestsDropdownOpen(false);
+      }
+      if (
+        dateDropdownRef.current &&
+        !dateDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDateDropdownOpen(false);
+      }
+      if (
+        cruiseLineDropdownRef.current &&
+        !cruiseLineDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsCruiseLineDropdownOpen(false);
+      }
     };
 
-    // Use mousedown with setTimeout to defer check until after React renders
     document.addEventListener("mousedown", handleClickOutside);
-    console.log("✅ Event listener attached");
-
-    return () => {
-      console.log("🔵 Cleanup: Removing event listener");
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isGuestsDropdownOpen, isDateDropdownOpen, isCruiseLineDropdownOpen]);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Handle search - navigate to /cruises with filters including passenger counts
   const handleSearchCruises = () => {
@@ -620,16 +539,9 @@ function HomeWithParams() {
                     <div className="relative flex-1" ref={guestsDropdownRef}>
                       <button
                         type="button"
-                        onClick={() => {
-                          console.log(
-                            "🟢 Button clicked - toggling guests dropdown",
-                            {
-                              currentState: isGuestsDropdownOpen,
-                              newState: !isGuestsDropdownOpen,
-                            },
-                          );
-                          setIsGuestsDropdownOpen(!isGuestsDropdownOpen);
-                        }}
+                        onClick={() =>
+                          setIsGuestsDropdownOpen(!isGuestsDropdownOpen)
+                        }
                         className="w-full h-[74px] flex items-center px-6 bg-white hover:bg-gray-50 transition-colors"
                       >
                         <svg
