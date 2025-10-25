@@ -116,41 +116,82 @@ function HomeWithParams() {
     setChildAges(newChildAges);
   };
 
-  // Handle click outside to close dropdowns - Based on working Navigation component pattern
+  // Handle click outside to close dropdowns - Reverting to working pattern from efe3ae1
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      // Use requestAnimationFrame to ensure DOM is fully updated after React render
-      requestAnimationFrame(() => {
-        const target = event.target as Node;
+    console.log("🔄 useEffect SETUP - Dropdowns state:", {
+      guests: isGuestsDropdownOpen,
+      date: isDateDropdownOpen,
+      cruiseLine: isCruiseLineDropdownOpen,
+    });
 
-        // Only close if clicking outside AND dropdown is open
-        if (
-          guestsDropdownRef.current &&
-          !guestsDropdownRef.current.contains(target) &&
-          isGuestsDropdownOpen
-        ) {
-          setIsGuestsDropdownOpen(false);
-        }
-        if (
-          dateDropdownRef.current &&
-          !dateDropdownRef.current.contains(target) &&
-          isDateDropdownOpen
-        ) {
-          setIsDateDropdownOpen(false);
-        }
-        if (
-          cruiseLineDropdownRef.current &&
-          !cruiseLineDropdownRef.current.contains(target) &&
-          isCruiseLineDropdownOpen
-        ) {
-          setIsCruiseLineDropdownOpen(false);
-        }
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+
+      console.log("👆 CLICK EVENT:", {
+        target: target,
+        targetElement:
+          target instanceof Element
+            ? `${target.tagName}.${target.className}`
+            : "not an element",
+        timestamp: new Date().toISOString(),
       });
+
+      // Check guests dropdown
+      const guestsRefExists = !!guestsDropdownRef.current;
+      const guestsContains = guestsDropdownRef.current?.contains(target);
+      console.log("🧑 Guests dropdown check:", {
+        refExists: guestsRefExists,
+        refElement: guestsDropdownRef.current?.tagName,
+        contains: guestsContains,
+        isOpen: isGuestsDropdownOpen,
+        willClose: guestsRefExists && !guestsContains,
+      });
+
+      if (guestsDropdownRef.current && !guestsContains) {
+        console.log("❌ CLOSING guests dropdown");
+        setIsGuestsDropdownOpen(false);
+      }
+
+      // Check date dropdown
+      const dateRefExists = !!dateDropdownRef.current;
+      const dateContains = dateDropdownRef.current?.contains(target);
+      console.log("📅 Date dropdown check:", {
+        refExists: dateRefExists,
+        refElement: dateDropdownRef.current?.tagName,
+        contains: dateContains,
+        isOpen: isDateDropdownOpen,
+        willClose: dateRefExists && !dateContains,
+      });
+
+      if (dateDropdownRef.current && !dateContains) {
+        console.log("❌ CLOSING date dropdown");
+        setIsDateDropdownOpen(false);
+      }
+
+      // Check cruise line dropdown
+      const cruiseLineRefExists = !!cruiseLineDropdownRef.current;
+      const cruiseLineContains =
+        cruiseLineDropdownRef.current?.contains(target);
+      console.log("🚢 Cruise line dropdown check:", {
+        refExists: cruiseLineRefExists,
+        refElement: cruiseLineDropdownRef.current?.tagName,
+        contains: cruiseLineContains,
+        isOpen: isCruiseLineDropdownOpen,
+        willClose: cruiseLineRefExists && !cruiseLineContains,
+      });
+
+      if (cruiseLineDropdownRef.current && !cruiseLineContains) {
+        console.log("❌ CLOSING cruise line dropdown");
+        setIsCruiseLineDropdownOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isGuestsDropdownOpen, isDateDropdownOpen, isCruiseLineDropdownOpen]);
+    return () => {
+      console.log("🧹 useEffect CLEANUP");
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Handle search - navigate to /cruises with filters including passenger counts
   const handleSearchCruises = () => {
