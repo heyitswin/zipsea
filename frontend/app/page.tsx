@@ -116,81 +116,66 @@ function HomeWithParams() {
     setChildAges(newChildAges);
   };
 
-  // Handle click outside to close dropdowns - Reverting to working pattern from efe3ae1
+  // Handle click outside to close dropdowns
+  // CRITICAL: We use refs to detect clicks outside, but the refs only exist in DOM when dropdown is open
+  // So we check if ref exists (dropdown is rendered) AND click is outside it
   useEffect(() => {
-    console.log("🔄 useEffect SETUP - Dropdowns state:", {
-      guests: isGuestsDropdownOpen,
-      date: isDateDropdownOpen,
-      cruiseLine: isCruiseLineDropdownOpen,
-    });
-
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
 
-      console.log("👆 CLICK EVENT:", {
-        target: target,
-        targetElement:
+      console.log("👆 CLICK:", {
+        element:
           target instanceof Element
-            ? `${target.tagName}.${target.className}`
-            : "not an element",
-        timestamp: new Date().toISOString(),
+            ? `${target.tagName}.${target.className.substring(0, 50)}`
+            : "not element",
       });
 
-      // Check guests dropdown
-      const guestsRefExists = !!guestsDropdownRef.current;
-      const guestsContains = guestsDropdownRef.current?.contains(target);
-      console.log("🧑 Guests dropdown check:", {
-        refExists: guestsRefExists,
-        refElement: guestsDropdownRef.current?.tagName,
-        contains: guestsContains,
-        isOpen: isGuestsDropdownOpen,
-        willClose: guestsRefExists && !guestsContains,
-      });
+      // Debug: Log ref structure when clicking
+      if (guestsDropdownRef.current) {
+        console.log("🧑 Guests ref structure:", {
+          refElement: guestsDropdownRef.current.outerHTML.substring(0, 200),
+          children: guestsDropdownRef.current.children.length,
+          contains: guestsDropdownRef.current.contains(target),
+        });
+      }
 
-      if (guestsDropdownRef.current && !guestsContains) {
-        console.log("❌ CLOSING guests dropdown");
+      // For each dropdown: if it exists in DOM (rendered), check if click is outside
+      // Guests dropdown
+      if (
+        guestsDropdownRef.current &&
+        !guestsDropdownRef.current.contains(target)
+      ) {
+        console.log("❌ Close guests (clicked outside)");
         setIsGuestsDropdownOpen(false);
+      } else if (guestsDropdownRef.current) {
+        console.log("✅ Keep guests open (clicked inside)");
       }
 
-      // Check date dropdown
-      const dateRefExists = !!dateDropdownRef.current;
-      const dateContains = dateDropdownRef.current?.contains(target);
-      console.log("📅 Date dropdown check:", {
-        refExists: dateRefExists,
-        refElement: dateDropdownRef.current?.tagName,
-        contains: dateContains,
-        isOpen: isDateDropdownOpen,
-        willClose: dateRefExists && !dateContains,
-      });
-
-      if (dateDropdownRef.current && !dateContains) {
-        console.log("❌ CLOSING date dropdown");
+      // Date dropdown
+      if (
+        dateDropdownRef.current &&
+        !dateDropdownRef.current.contains(target)
+      ) {
+        console.log("❌ Close date (clicked outside)");
         setIsDateDropdownOpen(false);
+      } else if (dateDropdownRef.current) {
+        console.log("✅ Keep date open (clicked inside)");
       }
 
-      // Check cruise line dropdown
-      const cruiseLineRefExists = !!cruiseLineDropdownRef.current;
-      const cruiseLineContains =
-        cruiseLineDropdownRef.current?.contains(target);
-      console.log("🚢 Cruise line dropdown check:", {
-        refExists: cruiseLineRefExists,
-        refElement: cruiseLineDropdownRef.current?.tagName,
-        contains: cruiseLineContains,
-        isOpen: isCruiseLineDropdownOpen,
-        willClose: cruiseLineRefExists && !cruiseLineContains,
-      });
-
-      if (cruiseLineDropdownRef.current && !cruiseLineContains) {
-        console.log("❌ CLOSING cruise line dropdown");
+      // Cruise line dropdown
+      if (
+        cruiseLineDropdownRef.current &&
+        !cruiseLineDropdownRef.current.contains(target)
+      ) {
+        console.log("❌ Close cruise line (clicked outside)");
         setIsCruiseLineDropdownOpen(false);
+      } else if (cruiseLineDropdownRef.current) {
+        console.log("✅ Keep cruise line open (clicked inside)");
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      console.log("🧹 useEffect CLEANUP");
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Handle search - navigate to /cruises with filters including passenger counts
