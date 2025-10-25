@@ -1338,11 +1338,20 @@ export default function CruisesContent() {
                               sizes="100vw"
                               className="object-cover"
                               loading="lazy"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = "/images/image-missing.png";
+                              }}
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                              No image
-                            </div>
+                            <Image
+                              src="/images/image-missing.png"
+                              alt="No image available"
+                              fill
+                              sizes="100vw"
+                              className="object-cover"
+                              loading="lazy"
+                            />
                           )}
                         </div>
 
@@ -1485,11 +1494,20 @@ export default function CruisesContent() {
                               className="object-cover"
                               loading="lazy"
                               quality={90}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = "/images/image-missing.png";
+                              }}
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                              No image
-                            </div>
+                            <Image
+                              src="/images/image-missing.png"
+                              alt="No image available"
+                              fill
+                              sizes="(max-width: 768px) 160px, (max-width: 1024px) 416px, 448px"
+                              className="object-cover"
+                              loading="lazy"
+                            />
                           )}
                         </div>
 

@@ -740,17 +740,29 @@ export default function CategoryCruisesContent({ category }: Props) {
                       {/* Featured Image with Date Range Badge */}
                       <div className="relative">
                         <div className="h-[180px] bg-gray-200 relative overflow-hidden rounded-[18px]">
-                          {(cruise.ship?.defaultShipImage2k ||
-                            cruise.ship?.defaultShipImage ||
-                            cruise.shipImage) && (
+                          {cruise.ship?.defaultShipImage2k ||
+                          cruise.ship?.defaultShipImage ||
+                          cruise.shipImage ? (
                             <Image
                               src={
                                 cruise.ship?.defaultShipImage2k ||
                                 cruise.ship?.defaultShipImage ||
                                 cruise.shipImage ||
-                                "/images/default-ship.jpg"
+                                ""
                               }
                               alt={cruise.ship?.name || "Cruise ship"}
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = "/images/image-missing.png";
+                              }}
+                            />
+                          ) : (
+                            <Image
+                              src="/images/image-missing.png"
+                              alt="No image available"
                               fill
                               className="object-cover"
                               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

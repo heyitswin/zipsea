@@ -1821,11 +1821,17 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                               alt="Interior Cabin"
                               className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                               onClick={() => handleImageClick(interiorImage)}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = "/images/image-missing.png";
+                              }}
                             />
                           ) : (
-                            <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
-                              <span className="text-sm">Interior Cabin</span>
-                            </div>
+                            <img
+                              src="/images/image-missing.png"
+                              alt="No cabin image available"
+                              className="w-full h-full object-cover rounded-lg"
+                            />
                           );
                         })()}
                       </div>
@@ -1902,11 +1908,17 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                               alt="Outside Cabin"
                               className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                               onClick={() => handleImageClick(oceanviewImage)}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = "/images/image-missing.png";
+                              }}
                             />
                           ) : (
-                            <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
-                              <span className="text-sm">Outside Cabin</span>
-                            </div>
+                            <img
+                              src="/images/image-missing.png"
+                              alt="No cabin image available"
+                              className="w-full h-full object-cover rounded-lg"
+                            />
                           );
                         })()}
                       </div>
@@ -1983,11 +1995,17 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                               alt="Balcony Cabin"
                               className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                               onClick={() => handleImageClick(balconyImage)}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = "/images/image-missing.png";
+                              }}
                             />
                           ) : (
-                            <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
-                              <span className="text-sm">Balcony Cabin</span>
-                            </div>
+                            <img
+                              src="/images/image-missing.png"
+                              alt="No cabin image available"
+                              className="w-full h-full object-cover rounded-lg"
+                            />
                           );
                         })()}
                       </div>
@@ -2061,11 +2079,17 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                             alt="Suite Cabin"
                             className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                             onClick={() => handleImageClick(suiteImage)}
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = "/images/image-missing.png";
+                            }}
                           />
                         ) : (
-                          <div className="w-full h-full bg-gray-200 rounded-lg flex items-center justify-center text-gray-500">
-                            <span className="text-sm">Suite Cabin</span>
-                          </div>
+                          <img
+                            src="/images/image-missing.png"
+                            alt="No cabin image available"
+                            className="w-full h-full object-cover rounded-lg"
+                          />
                         );
                       })()}
                     </div>
