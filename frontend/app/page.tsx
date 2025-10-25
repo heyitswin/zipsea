@@ -116,78 +116,32 @@ function HomeWithParams() {
     setChildAges(newChildAges);
   };
 
-  // Handle click outside to close dropdowns - only attach when open
+  // Handle click outside to close dropdowns - OLD WORKING PATTERN
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    const handleClickOutside = (event: MouseEvent) => {
       if (
         guestsDropdownRef.current &&
         !guestsDropdownRef.current.contains(event.target as Node)
       ) {
-        console.log("Closing guests dropdown - clicked outside");
         setIsGuestsDropdownOpen(false);
       }
-    }
-
-    if (isGuestsDropdownOpen) {
-      console.log("Attaching mousedown listener for guests dropdown");
-      // Use setTimeout to add listener on next tick to avoid immediate trigger
-      const timeoutId = setTimeout(() => {
-        document.addEventListener("mousedown", handleClickOutside);
-      }, 0);
-
-      return () => {
-        clearTimeout(timeoutId);
-        document.removeEventListener("mousedown", handleClickOutside);
-        console.log("Removed mousedown listener for guests dropdown");
-      };
-    }
-  }, [isGuestsDropdownOpen]);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
       if (
         dateDropdownRef.current &&
         !dateDropdownRef.current.contains(event.target as Node)
       ) {
         setIsDateDropdownOpen(false);
       }
-    }
-
-    if (isDateDropdownOpen) {
-      // Use setTimeout to add listener on next tick to avoid immediate trigger
-      const timeoutId = setTimeout(() => {
-        document.addEventListener("mousedown", handleClickOutside);
-      }, 0);
-
-      return () => {
-        clearTimeout(timeoutId);
-        document.removeEventListener("mousedown", handleClickOutside);
-      };
-    }
-  }, [isDateDropdownOpen]);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
       if (
         cruiseLineDropdownRef.current &&
         !cruiseLineDropdownRef.current.contains(event.target as Node)
       ) {
         setIsCruiseLineDropdownOpen(false);
       }
-    }
+    };
 
-    if (isCruiseLineDropdownOpen) {
-      // Use setTimeout to add listener on next tick to avoid immediate trigger
-      const timeoutId = setTimeout(() => {
-        document.addEventListener("mousedown", handleClickOutside);
-      }, 0);
-
-      return () => {
-        clearTimeout(timeoutId);
-        document.removeEventListener("mousedown", handleClickOutside);
-      };
-    }
-  }, [isCruiseLineDropdownOpen]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Handle search - navigate to /cruises with filters including passenger counts
   const handleSearchCruises = () => {
