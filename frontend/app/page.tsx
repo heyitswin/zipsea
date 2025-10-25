@@ -178,13 +178,13 @@ function HomeWithParams() {
       }
     };
 
-    // Use click instead of mousedown - gives React time to render dropdown
-    document.addEventListener("click", handleClickOutside);
+    // Use click with capture phase - fires before child onClick handlers
+    document.addEventListener("click", handleClickOutside, true);
     console.log("✅ Event listener attached");
 
     return () => {
       console.log("🔵 Cleanup: Removing event listener");
-      document.removeEventListener("click", handleClickOutside);
+      document.removeEventListener("click", handleClickOutside, true);
     };
   }, [isGuestsDropdownOpen, isDateDropdownOpen, isCruiseLineDropdownOpen]);
 
@@ -281,7 +281,7 @@ function HomeWithParams() {
   return (
     <>
       {/* Hero Section with Video Mask - REMOVED py padding and overflow-hidden */}
-      <section className="relative bg-sand md:mt-3 md:px-3">
+      <section className="relative bg-sand md:pt-3 md:px-3">
         <div className="relative mx-auto" style={{ maxWidth: "1880px" }}>
           {/* Video Background with Mask - Fixed Height Container with object-fit */}
           <div className="relative w-full" style={{ height: "700px" }}>
