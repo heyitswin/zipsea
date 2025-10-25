@@ -192,7 +192,7 @@ function HomeWithParams() {
   return (
     <>
       {/* Hero Section with Video Mask - REMOVED py padding and overflow-hidden */}
-      <section className="relative bg-sand pt-3 px-3 md:pt-0 md:px-0">
+      <section className="relative bg-sand mt-3 px-3 md:mt-0 md:px-0">
         <div className="relative mx-auto" style={{ maxWidth: "1880px" }}>
           {/* Video Background with Mask - Fixed Height Container with object-fit */}
           <div className="relative w-full" style={{ height: "700px" }}>
@@ -243,10 +243,7 @@ function HomeWithParams() {
             />
 
             {/* Navigation + Content INSIDE the masked area */}
-            <div
-              className="absolute inset-0 z-10 flex flex-col md:p-12"
-              style={{ padding: "16px" }}
-            >
+            <div className="absolute inset-0 z-10 flex flex-col p-4 md:p-12">
               {/* Navigation - Inside mask */}
               <div className="flex items-center justify-between mb-auto">
                 <a href="/" className="flex items-center">
@@ -259,16 +256,16 @@ function HomeWithParams() {
                   />
                 </a>
 
-                <nav className="hidden md:flex items-center gap-6">
+                <nav className="flex items-center gap-3 md:gap-6">
                   <button
                     onClick={() => setIsLoginModalOpen(true)}
-                    className="font-geograph text-base font-medium text-white hover:text-white/80 transition-colors"
+                    className="font-geograph text-sm md:text-base font-medium text-white hover:text-white/80 transition-colors"
                   >
                     Sign in
                   </button>
                   <a
                     href="/cruises"
-                    className="font-geograph text-base font-medium text-white px-6 py-3 rounded-full transition-colors"
+                    className="font-geograph text-sm md:text-base font-medium text-white px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors"
                     style={{ backgroundColor: "#2238C3" }}
                   >
                     Browse Cruises
@@ -349,9 +346,8 @@ function HomeWithParams() {
                           onClick={(e) => e.stopPropagation()}
                         >
                           {cruiseLines.map((line) => (
-                            <button
+                            <div
                               key={line.id}
-                              type="button"
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -383,7 +379,7 @@ function HomeWithParams() {
                               <div className="font-geograph text-[16px] text-dark-blue">
                                 {line.name}
                               </div>
-                            </button>
+                            </div>
                           ))}
                         </div>
                       )}
@@ -633,9 +629,6 @@ function HomeWithParams() {
                         setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
                       }
                       className="w-full h-[60px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
-                      style={{
-                        boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)",
-                      }}
                     >
                       <Image
                         src="/images/ship.svg"
@@ -670,9 +663,8 @@ function HomeWithParams() {
                         onClick={(e) => e.stopPropagation()}
                       >
                         {cruiseLines.map((line) => (
-                          <button
+                          <div
                             key={line.id}
-                            type="button"
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
@@ -704,7 +696,7 @@ function HomeWithParams() {
                             <div className="font-geograph text-[16px] text-dark-blue">
                               {line.name}
                             </div>
-                          </button>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -716,9 +708,6 @@ function HomeWithParams() {
                       type="button"
                       onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
                       className="w-full h-[60px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
-                      style={{
-                        boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)",
-                      }}
                     >
                       <Image
                         src="/images/calendar.svg"
@@ -826,9 +815,6 @@ function HomeWithParams() {
                         setIsGuestsDropdownOpen(!isGuestsDropdownOpen)
                       }
                       className="w-full h-[60px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
-                      style={{
-                        boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)",
-                      }}
                     >
                       <Image
                         src="/images/people-icon.svg"
@@ -925,7 +911,6 @@ function HomeWithParams() {
                     className="w-full h-[60px] rounded-full flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
                     style={{
                       backgroundColor: "#2238C3",
-                      boxShadow: "0 0 0 3px rgba(255, 255, 255, 0.3)",
                     }}
                   >
                     <Image
@@ -1001,7 +986,7 @@ function HomeWithParams() {
                 alt="Bahamas"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover h-[57px] md:h-[152px] lg:h-[454px]"
+                className="w-full h-full object-cover h-[38px] md:h-[152px] lg:h-[454px]"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -1019,7 +1004,7 @@ function HomeWithParams() {
                 <h3
                   className="font-whitney uppercase"
                   style={{
-                    fontSize: "clamp(42px, 4vw, 52px)",
+                    fontSize: "clamp(42px, 4vw, 46px)",
                     color: "white",
                     fontWeight: "900",
                     lineHeight: "1",
@@ -1040,7 +1025,7 @@ function HomeWithParams() {
                 alt="Caribbean"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover h-[57px] md:h-[152px] lg:h-[454px]"
+                className="w-full h-full object-cover h-[38px] md:h-[152px] lg:h-[454px]"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -1058,7 +1043,7 @@ function HomeWithParams() {
                 <h3
                   className="font-whitney uppercase"
                   style={{
-                    fontSize: "clamp(42px, 4vw, 52px)",
+                    fontSize: "clamp(42px, 4vw, 46px)",
                     color: "white",
                     fontWeight: "900",
                     lineHeight: "1",
@@ -1079,7 +1064,7 @@ function HomeWithParams() {
                 alt="Mexico"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover h-[57px] md:h-[152px] lg:h-[454px]"
+                className="w-full h-full object-cover h-[38px] md:h-[152px] lg:h-[454px]"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -1097,7 +1082,7 @@ function HomeWithParams() {
                 <h3
                   className="font-whitney uppercase"
                   style={{
-                    fontSize: "clamp(42px, 4vw, 52px)",
+                    fontSize: "clamp(42px, 4vw, 46px)",
                     color: "white",
                     fontWeight: "900",
                     lineHeight: "1",
@@ -1118,7 +1103,7 @@ function HomeWithParams() {
                 alt="New York"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover h-[57px] md:h-[152px] lg:h-[454px]"
+                className="w-full h-full object-cover h-[38px] md:h-[152px] lg:h-[454px]"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -1136,7 +1121,7 @@ function HomeWithParams() {
                 <h3
                   className="font-whitney uppercase"
                   style={{
-                    fontSize: "clamp(42px, 4vw, 52px)",
+                    fontSize: "clamp(42px, 4vw, 46px)",
                     color: "white",
                     fontWeight: "900",
                     lineHeight: "1",
