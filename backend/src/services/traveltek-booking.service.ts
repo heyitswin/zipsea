@@ -505,6 +505,21 @@ class TraveltekBookingService {
       const basketData = await traveltekApiService.addToBasket(addToBasketParams);
 
       console.log('[TraveltekBooking] 🔍 addToBasket response keys:', Object.keys(basketData));
+      console.log(
+        '[TraveltekBooking] 📦 Raw basket response:',
+        JSON.stringify(basketData, null, 2)
+      );
+      if (basketData.results?.[0]?.basketitems?.[0]) {
+        const item = basketData.results[0].basketitems[0];
+        console.log('[TraveltekBooking] 💰 Basket item pricing fields:', {
+          price: item.price,
+          searchprice: item.searchprice,
+          searchdeposit: item.searchdeposit,
+          paymentoption: item.paymentoption,
+          cruisedetailPrice: item.cruisedetail?.price,
+          cruisedetailInside: item.cruisedetail?.cruiseinside,
+        });
+      }
       if (basketData.errors) {
         console.log('[TraveltekBooking] 🔍 Response has errors field');
       }

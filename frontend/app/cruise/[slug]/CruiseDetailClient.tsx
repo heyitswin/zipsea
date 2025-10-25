@@ -1721,6 +1721,20 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                             }
 
                                             // Store pending reservation and show hold modal
+                                            console.log(
+                                              "💰 RESERVE CLICKED - Cabin Pricing Data:",
+                                              {
+                                                displayedPrice:
+                                                  cabinPricing.price,
+                                                resultNo: cabinPricing.resultNo,
+                                                gradeNo: cabinPricing.gradeNo,
+                                                rateCode: cabinPricing.rateCode,
+                                                cabinName: cabin.name,
+                                                fullCabinData: cabin,
+                                                cabinPricingComplete:
+                                                  cabinPricing,
+                                              },
+                                            );
                                             setPendingReservation({
                                               resultNo: cabinPricing.resultNo,
                                               gradeNo: cabinPricing.gradeNo,
