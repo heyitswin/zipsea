@@ -124,8 +124,8 @@ function HomeWithParams() {
       cruiseLineDropdownOpen: isCruiseLineDropdownOpen,
     });
 
-    const handleClickOutside = (event: MouseEvent) => {
-      console.log("🔴 mousedown event fired", {
+    const handleClickOutside = (event: Event) => {
+      console.log("🔴 click event fired", {
         target: event.target,
         guestsDropdownOpen: isGuestsDropdownOpen,
         dateDropdownOpen: isDateDropdownOpen,
@@ -178,12 +178,13 @@ function HomeWithParams() {
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    // Use click instead of mousedown - gives React time to render dropdown
+    document.addEventListener("click", handleClickOutside);
     console.log("✅ Event listener attached");
 
     return () => {
       console.log("🔵 Cleanup: Removing event listener");
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("click", handleClickOutside);
     };
   }, [isGuestsDropdownOpen, isDateDropdownOpen, isCruiseLineDropdownOpen]);
 
