@@ -116,32 +116,41 @@ function HomeWithParams() {
     setChildAges(newChildAges);
   };
 
-  // Handle click outside to close dropdowns - Revert to simple working pattern
+  // Handle click outside to close dropdowns - Based on working Navigation component pattern
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        guestsDropdownRef.current &&
-        !guestsDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsGuestsDropdownOpen(false);
-      }
-      if (
-        dateDropdownRef.current &&
-        !dateDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsDateDropdownOpen(false);
-      }
-      if (
-        cruiseLineDropdownRef.current &&
-        !cruiseLineDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsCruiseLineDropdownOpen(false);
-      }
+      // Use requestAnimationFrame to ensure DOM is fully updated after React render
+      requestAnimationFrame(() => {
+        const target = event.target as Node;
+
+        // Only close if clicking outside AND dropdown is open
+        if (
+          guestsDropdownRef.current &&
+          !guestsDropdownRef.current.contains(target) &&
+          isGuestsDropdownOpen
+        ) {
+          setIsGuestsDropdownOpen(false);
+        }
+        if (
+          dateDropdownRef.current &&
+          !dateDropdownRef.current.contains(target) &&
+          isDateDropdownOpen
+        ) {
+          setIsDateDropdownOpen(false);
+        }
+        if (
+          cruiseLineDropdownRef.current &&
+          !cruiseLineDropdownRef.current.contains(target) &&
+          isCruiseLineDropdownOpen
+        ) {
+          setIsCruiseLineDropdownOpen(false);
+        }
+      });
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [isGuestsDropdownOpen, isDateDropdownOpen, isCruiseLineDropdownOpen]);
 
   // Handle search - navigate to /cruises with filters including passenger counts
   const handleSearchCruises = () => {
