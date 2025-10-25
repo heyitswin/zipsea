@@ -12,6 +12,7 @@ import {
 } from "../lib/api";
 import { useAlert } from "../components/GlobalAlertProvider";
 import LoginSignupModal from "../app/components/LoginSignupModal";
+import { useBooking } from "../app/context/BookingContext";
 
 interface FilterOption {
   id: number;
@@ -24,10 +25,11 @@ function HomeWithParams() {
   const router = useRouter();
   const pathname = usePathname();
   const { showAlert } = useAlert();
+  const { passengerCount, setPassengerCount } = useBooking();
 
-  // Guest selector states
-  const [adults, setAdults] = useState(2);
-  const [children, setChildren] = useState(0);
+  // Local guest selector states (synced with context)
+  const [adults, setAdults] = useState(passengerCount.adults);
+  const [children, setChildren] = useState(passengerCount.children);
 
   // Search states (cruise lines, dates, guests)
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
@@ -68,6 +70,21 @@ function HomeWithParams() {
 
     fetchFilterOptions();
   }, []);
+
+  // Sync local guest state with context
+  useEffect(() => {
+    setAdults(passengerCount.adults);
+    setChildren(passengerCount.children);
+  }, [passengerCount]);
+
+  // Update context when local guest state changes
+  useEffect(() => {
+    setPassengerCount({
+      adults,
+      children,
+      childAges: Array(children).fill(0),
+    });
+  }, [adults, children, setPassengerCount]);
 
   // Handle click outside to close dropdowns
   useEffect(() => {
@@ -329,10 +346,7 @@ function HomeWithParams() {
                       </button>
 
                       {isCruiseLineDropdownOpen && (
-                        <div
-                          className="absolute top-full mt-2 left-0 w-72 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                        <div className="absolute top-full mt-2 left-0 w-72 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]">
                           {cruiseLines.map((line) => (
                             <div
                               key={line.id}
@@ -413,10 +427,7 @@ function HomeWithParams() {
                       </button>
 
                       {isDateDropdownOpen && (
-                        <div
-                          className="absolute top-full mt-2 left-0 w-[450px] bg-white rounded-lg shadow-lg border border-gray-200 z-[9999] p-4 max-h-[550px] overflow-y-auto"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                        <div className="absolute top-full mt-2 left-0 w-[450px] bg-white rounded-lg shadow-lg border border-gray-200 z-[9999] p-4 max-h-[550px] overflow-y-auto">
                           {[2025, 2026, 2027].map((year) => {
                             const currentDate = new Date();
                             const currentYear = currentDate.getFullYear();
@@ -522,10 +533,7 @@ function HomeWithParams() {
                       </button>
 
                       {isGuestsDropdownOpen && (
-                        <div
-                          className="absolute top-full mt-2 right-0 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999] p-4"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                        <div className="absolute top-full mt-2 right-0 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999] p-4">
                           <div className="flex items-center justify-between mb-4">
                             <span className="font-geograph text-[16px] text-dark-blue">
                               Adults
@@ -533,9 +541,10 @@ function HomeWithParams() {
                             <div className="flex items-center gap-3">
                               <button
                                 type="button"
-                                onClick={() =>
-                                  setAdults(Math.max(1, adults - 1))
-                                }
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setAdults(Math.max(1, adults - 1));
+                                }}
                                 className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
                               >
                                 −
@@ -545,10 +554,15 @@ function HomeWithParams() {
                               </span>
                               <button
                                 type="button"
-                                onClick={() =>
-                                  setAdults(Math.min(8, adults + 1))
-                                }
-                                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const total = adults + 1 + children;
+                                  if (total <= 4) {
+                                    setAdults(adults + 1);
+                                  }
+                                }}
+                                disabled={adults + children >= 4}
+                                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 +
                               </button>
@@ -561,9 +575,10 @@ function HomeWithParams() {
                             <div className="flex items-center gap-3">
                               <button
                                 type="button"
-                                onClick={() =>
-                                  setChildren(Math.max(0, children - 1))
-                                }
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setChildren(Math.max(0, children - 1));
+                                }}
                                 className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
                               >
                                 −
@@ -573,15 +588,25 @@ function HomeWithParams() {
                               </span>
                               <button
                                 type="button"
-                                onClick={() =>
-                                  setChildren(Math.min(6, children + 1))
-                                }
-                                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const total = adults + children + 1;
+                                  if (total <= 4) {
+                                    setChildren(children + 1);
+                                  }
+                                }}
+                                disabled={adults + children >= 4}
+                                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 +
                               </button>
                             </div>
                           </div>
+                          {adults + children >= 4 && (
+                            <p className="text-xs text-gray-500 mt-2">
+                              Maximum 4 guests total
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -646,10 +671,7 @@ function HomeWithParams() {
                     </button>
 
                     {isCruiseLineDropdownOpen && (
-                      <div
-                        className="absolute top-full mt-2 left-0 right-0 max-h-72 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <div className="absolute top-full mt-2 left-0 right-0 max-h-72 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]">
                         {cruiseLines.map((line) => (
                           <div
                             key={line.id}
@@ -725,10 +747,7 @@ function HomeWithParams() {
                     </button>
 
                     {isDateDropdownOpen && (
-                      <div
-                        className="absolute top-full mt-2 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999] p-4 max-h-96 overflow-y-auto"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999] p-4 max-h-96 overflow-y-auto">
                         {[2025, 2026, 2027].map((year) => {
                           const currentDate = new Date();
                           const currentYear = currentDate.getFullYear();
@@ -832,10 +851,7 @@ function HomeWithParams() {
                     </button>
 
                     {isGuestsDropdownOpen && (
-                      <div
-                        className="absolute top-full mt-2 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999] p-4"
-                        onClick={(e) => e.stopPropagation()}
-                      >
+                      <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999] p-4">
                         <div className="flex items-center justify-between mb-4">
                           <span className="font-geograph text-[16px] text-dark-blue">
                             Adults
@@ -843,7 +859,10 @@ function HomeWithParams() {
                           <div className="flex items-center gap-3">
                             <button
                               type="button"
-                              onClick={() => setAdults(Math.max(1, adults - 1))}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setAdults(Math.max(1, adults - 1));
+                              }}
                               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
                             >
                               −
@@ -853,8 +872,15 @@ function HomeWithParams() {
                             </span>
                             <button
                               type="button"
-                              onClick={() => setAdults(Math.min(8, adults + 1))}
-                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const total = adults + 1 + children;
+                                if (total <= 4) {
+                                  setAdults(adults + 1);
+                                }
+                              }}
+                              disabled={adults + children >= 4}
+                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               +
                             </button>
@@ -867,9 +893,10 @@ function HomeWithParams() {
                           <div className="flex items-center gap-3">
                             <button
                               type="button"
-                              onClick={() =>
-                                setChildren(Math.max(0, children - 1))
-                              }
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setChildren(Math.max(0, children - 1));
+                              }}
                               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
                             >
                               −
@@ -879,15 +906,25 @@ function HomeWithParams() {
                             </span>
                             <button
                               type="button"
-                              onClick={() =>
-                                setChildren(Math.min(6, children + 1))
-                              }
-                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const total = adults + children + 1;
+                                if (total <= 4) {
+                                  setChildren(children + 1);
+                                }
+                              }}
+                              disabled={adults + children >= 4}
+                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               +
                             </button>
                           </div>
                         </div>
+                        {adults + children >= 4 && (
+                          <p className="text-xs text-gray-500 mt-2">
+                            Maximum 4 guests total
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
