@@ -116,9 +116,13 @@ function HomeWithParams() {
     setChildAges(newChildAges);
   };
 
-  // Handle click outside to close dropdowns - OLD WORKING PATTERN WITH DEBUG LOGGING
+  // Handle click outside to close dropdowns - FIXED: Include state deps so handler sees current state
   useEffect(() => {
-    console.log("🔵 useEffect: Setting up click outside handler");
+    console.log("🔵 useEffect: Setting up click outside handler", {
+      guestsDropdownOpen: isGuestsDropdownOpen,
+      dateDropdownOpen: isDateDropdownOpen,
+      cruiseLineDropdownOpen: isCruiseLineDropdownOpen,
+    });
 
     const handleClickOutside = (event: MouseEvent) => {
       console.log("🔴 mousedown event fired", {
@@ -128,11 +132,13 @@ function HomeWithParams() {
         cruiseLineDropdownOpen: isCruiseLineDropdownOpen,
       });
 
+      // Only check if dropdown is open AND click is outside
       if (
+        isGuestsDropdownOpen &&
         guestsDropdownRef.current &&
         !guestsDropdownRef.current.contains(event.target as Node)
       ) {
-        console.log("❌ Closing guests dropdown - clicked outside");
+        console.log("❌ Closing guests dropdown - clicked outside while open");
         setIsGuestsDropdownOpen(false);
       } else if (
         guestsDropdownRef.current &&
@@ -142,10 +148,11 @@ function HomeWithParams() {
       }
 
       if (
+        isDateDropdownOpen &&
         dateDropdownRef.current &&
         !dateDropdownRef.current.contains(event.target as Node)
       ) {
-        console.log("❌ Closing date dropdown - clicked outside");
+        console.log("❌ Closing date dropdown - clicked outside while open");
         setIsDateDropdownOpen(false);
       } else if (
         dateDropdownRef.current &&
@@ -155,10 +162,13 @@ function HomeWithParams() {
       }
 
       if (
+        isCruiseLineDropdownOpen &&
         cruiseLineDropdownRef.current &&
         !cruiseLineDropdownRef.current.contains(event.target as Node)
       ) {
-        console.log("❌ Closing cruise line dropdown - clicked outside");
+        console.log(
+          "❌ Closing cruise line dropdown - clicked outside while open",
+        );
         setIsCruiseLineDropdownOpen(false);
       } else if (
         cruiseLineDropdownRef.current &&
@@ -175,7 +185,7 @@ function HomeWithParams() {
       console.log("🔵 Cleanup: Removing event listener");
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [isGuestsDropdownOpen, isDateDropdownOpen, isCruiseLineDropdownOpen]);
 
   // Handle search - navigate to /cruises with filters including passenger counts
   const handleSearchCruises = () => {
