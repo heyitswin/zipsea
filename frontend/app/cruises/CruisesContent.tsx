@@ -1338,6 +1338,7 @@ export default function CruisesContent() {
                               sizes="100vw"
                               className="object-cover"
                               loading="lazy"
+                              unoptimized
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.src = "/images/image-missing.png";
@@ -1494,6 +1495,7 @@ export default function CruisesContent() {
                               className="object-cover"
                               loading="lazy"
                               quality={90}
+                              unoptimized
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.src = "/images/image-missing.png";
