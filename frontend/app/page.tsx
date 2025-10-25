@@ -30,6 +30,9 @@ function HomeWithParams() {
   // Local guest selector states (synced with context)
   const [adults, setAdults] = useState(passengerCount.adults);
   const [children, setChildren] = useState(passengerCount.children);
+  const [childAges, setChildAges] = useState<number[]>(
+    passengerCount.childAges,
+  );
 
   // Search states (cruise lines, dates, guests)
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
@@ -75,6 +78,7 @@ function HomeWithParams() {
   useEffect(() => {
     setAdults(passengerCount.adults);
     setChildren(passengerCount.children);
+    setChildAges(passengerCount.childAges);
   }, [passengerCount]);
 
   // Update context when local guest state changes
@@ -82,33 +86,87 @@ function HomeWithParams() {
     setPassengerCount({
       adults,
       children,
-      childAges: Array(children).fill(0),
+      childAges,
     });
-  }, [adults, children, setPassengerCount]);
+  }, [adults, children, childAges, setPassengerCount]);
 
-  // Handle click outside to close dropdowns
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
+  // Update childAges array when children count changes
+  const updateChildren = (newCount: number) => {
+    const maxChildren = 4 - adults;
+    const count = Math.max(0, Math.min(maxChildren, newCount));
 
-      // Don't close if clicking inside any dropdown
-      if (
-        guestsDropdownRef.current?.contains(target) ||
-        dateDropdownRef.current?.contains(target) ||
-        cruiseLineDropdownRef.current?.contains(target)
-      ) {
-        return;
+    let newChildAges = [...childAges];
+    if (count > childAges.length) {
+      // Add default ages for new children (default to 8 years old)
+      while (newChildAges.length < count) {
+        newChildAges.push(8);
       }
+    } else if (count < childAges.length) {
+      // Remove extra ages
+      newChildAges = newChildAges.slice(0, count);
+    }
 
-      // Close all dropdowns if clicking outside
-      setIsGuestsDropdownOpen(false);
-      setIsDateDropdownOpen(false);
-      setIsCruiseLineDropdownOpen(false);
-    };
+    setChildren(count);
+    setChildAges(newChildAges);
+  };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const updateChildAge = (index: number, age: number) => {
+    const newChildAges = [...childAges];
+    newChildAges[index] = Math.max(0, Math.min(17, age));
+    setChildAges(newChildAges);
+  };
+
+  // Handle click outside to close dropdowns - only attach when open
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        guestsDropdownRef.current &&
+        !guestsDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsGuestsDropdownOpen(false);
+      }
+    }
+
+    if (isGuestsDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isGuestsDropdownOpen]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dateDropdownRef.current &&
+        !dateDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDateDropdownOpen(false);
+      }
+    }
+
+    if (isDateDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isDateDropdownOpen]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        cruiseLineDropdownRef.current &&
+        !cruiseLineDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsCruiseLineDropdownOpen(false);
+      }
+    }
+
+    if (isCruiseLineDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [isCruiseLineDropdownOpen]);
 
   // Handle search - navigate to /cruises with filters including passenger counts
   const handleSearchCruises = () => {
@@ -118,6 +176,9 @@ function HomeWithParams() {
     params.set("adults", adults.toString());
     if (children > 0) {
       params.set("children", children.toString());
+      if (childAges.length > 0) {
+        params.set("childAges", childAges.join(","));
+      }
     }
 
     if (selectedMonths.length > 0) {
@@ -141,6 +202,9 @@ function HomeWithParams() {
     params.set("adults", adults.toString());
     if (children > 0) {
       params.set("children", children.toString());
+      if (childAges.length > 0) {
+        params.set("childAges", childAges.join(","));
+      }
     }
 
     switch (destination) {
@@ -505,13 +569,36 @@ function HomeWithParams() {
                         }
                         className="w-full h-[74px] flex items-center px-6 bg-white hover:bg-gray-50 transition-colors"
                       >
-                        <Image
-                          src="/images/people-icon.svg"
-                          alt=""
-                          width={20}
-                          height={20}
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 25 25"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
                           className="mr-3"
-                        />
+                        >
+                          <path
+                            d="M16.6673 21.875V19.7917C16.6673 18.6866 16.2283 17.6268 15.4469 16.8454C14.6655 16.064 13.6057 15.625 12.5007 15.625H6.25065C5.14558 15.625 4.08577 16.064 3.30437 16.8454C2.52297 17.6268 2.08398 18.6866 2.08398 19.7917V21.875"
+                            stroke="#0E1B4D"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M9.37565 11.4583C11.6768 11.4583 13.5423 9.59285 13.5423 7.29167C13.5423 4.99048 11.6768 3.125 9.37565 3.125C7.07446 3.125 5.20898 4.99048 5.20898 7.29167C5.20898 9.59285 7.07446 11.4583 9.37565 11.4583Z"
+                            stroke="#0E1B4D"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path
+                            d="M22.916 21.8763V19.793C22.9153 18.8698 22.6081 17.9729 22.0424 17.2433C21.4768 16.5137 20.6849 15.9925 19.791 15.7617M16.666 3.26172C17.5623 3.4912 18.3567 4.01245 18.924 4.74329C19.4913 5.47414 19.7992 6.373 19.7992 7.29818C19.7992 8.22335 19.4913 9.12222 18.924 9.85306C18.3567 10.5839 17.5623 11.1052 16.666 11.3346"
+                            stroke="#0E1B4D"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
                         <span className="flex-1 text-left text-[18px] font-geograph text-dark-blue tracking-tight">
                           {getGuestsPlaceholder()}
                         </span>
@@ -577,7 +664,7 @@ function HomeWithParams() {
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setChildren(Math.max(0, children - 1));
+                                  updateChildren(children - 1);
                                 }}
                                 className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
                               >
@@ -590,10 +677,7 @@ function HomeWithParams() {
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  const total = adults + children + 1;
-                                  if (total <= 4) {
-                                    setChildren(children + 1);
-                                  }
+                                  updateChildren(children + 1);
                                 }}
                                 disabled={adults + children >= 4}
                                 className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -602,6 +686,47 @@ function HomeWithParams() {
                               </button>
                             </div>
                           </div>
+                          {children > 0 && (
+                            <div className="border-t border-gray-200 pt-3 mt-3">
+                              <div className="text-xs font-semibold text-dark-blue mb-2">
+                                Child Ages (at time of cruise)
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                {childAges.map((age, index) => (
+                                  <div key={index}>
+                                    <label className="text-xs text-gray-600 mb-1 block">
+                                      Child {index + 1}
+                                    </label>
+                                    <select
+                                      value={age}
+                                      onChange={(e) => {
+                                        e.stopPropagation();
+                                        updateChildAge(
+                                          index,
+                                          parseInt(e.target.value),
+                                        );
+                                      }}
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                    >
+                                      {Array.from(
+                                        { length: 18 },
+                                        (_, i) => i,
+                                      ).map((ageOption) => (
+                                        <option
+                                          key={ageOption}
+                                          value={ageOption}
+                                        >
+                                          {ageOption}{" "}
+                                          {ageOption === 0 ? "year" : "years"}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                           {adults + children >= 4 && (
                             <p className="text-xs text-gray-500 mt-2">
                               Maximum 4 guests total
@@ -823,13 +948,36 @@ function HomeWithParams() {
                       }
                       className="w-full h-[60px] bg-white rounded-full flex items-center px-6 hover:bg-gray-50 transition-colors"
                     >
-                      <Image
-                        src="/images/people-icon.svg"
-                        alt=""
-                        width={18}
-                        height={18}
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 25 25"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
                         className="mr-3"
-                      />
+                      >
+                        <path
+                          d="M16.6673 21.875V19.7917C16.6673 18.6866 16.2283 17.6268 15.4469 16.8454C14.6655 16.064 13.6057 15.625 12.5007 15.625H6.25065C5.14558 15.625 4.08577 16.064 3.30437 16.8454C2.52297 17.6268 2.08398 18.6866 2.08398 19.7917V21.875"
+                          stroke="#0E1B4D"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M9.37565 11.4583C11.6768 11.4583 13.5423 9.59285 13.5423 7.29167C13.5423 4.99048 11.6768 3.125 9.37565 3.125C7.07446 3.125 5.20898 4.99048 5.20898 7.29167C5.20898 9.59285 7.07446 11.4583 9.37565 11.4583Z"
+                          stroke="#0E1B4D"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M22.916 21.8763V19.793C22.9153 18.8698 22.6081 17.9729 22.0424 17.2433C21.4768 16.5137 20.6849 15.9925 19.791 15.7617M16.666 3.26172C17.5623 3.4912 18.3567 4.01245 18.924 4.74329C19.4913 5.47414 19.7992 6.373 19.7992 7.29818C19.7992 8.22335 19.4913 9.12222 18.924 9.85306C18.3567 10.5839 17.5623 11.1052 16.666 11.3346"
+                          stroke="#0E1B4D"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                       <span className="flex-1 text-left text-[16px] font-geograph text-dark-blue tracking-tight">
                         {getGuestsPlaceholder()}
                       </span>
@@ -895,7 +1043,7 @@ function HomeWithParams() {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setChildren(Math.max(0, children - 1));
+                                updateChildren(children - 1);
                               }}
                               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
                             >
@@ -908,10 +1056,7 @@ function HomeWithParams() {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                const total = adults + children + 1;
-                                if (total <= 4) {
-                                  setChildren(children + 1);
-                                }
+                                updateChildren(children + 1);
                               }}
                               disabled={adults + children >= 4}
                               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -920,6 +1065,44 @@ function HomeWithParams() {
                             </button>
                           </div>
                         </div>
+                        {children > 0 && (
+                          <div className="border-t border-gray-200 pt-3 mt-3">
+                            <div className="text-xs font-semibold text-dark-blue mb-2">
+                              Child Ages (at time of cruise)
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              {childAges.map((age, index) => (
+                                <div key={index}>
+                                  <label className="text-xs text-gray-600 mb-1 block">
+                                    Child {index + 1}
+                                  </label>
+                                  <select
+                                    value={age}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      updateChildAge(
+                                        index,
+                                        parseInt(e.target.value),
+                                      );
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                  >
+                                    {Array.from(
+                                      { length: 18 },
+                                      (_, i) => i,
+                                    ).map((ageOption) => (
+                                      <option key={ageOption} value={ageOption}>
+                                        {ageOption}{" "}
+                                        {ageOption === 0 ? "year" : "years"}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         {adults + children >= 4 && (
                           <p className="text-xs text-gray-500 mt-2">
                             Maximum 4 guests total
