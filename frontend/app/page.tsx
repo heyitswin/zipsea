@@ -340,13 +340,13 @@ function HomeWithParams() {
                   >
                     Sign in
                   </button>
-                  <button
-                    onClick={() => router.push("/cruises")}
-                    className="font-geograph text-sm md:text-base font-medium text-white px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors hover:opacity-90"
+                  <a
+                    href="/cruises"
+                    className="font-geograph text-sm md:text-base font-medium text-white px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors hover:opacity-80"
                     style={{ backgroundColor: "#2238C3" }}
                   >
                     Browse Cruises
-                  </button>
+                  </a>
                 </nav>
               </div>
 
