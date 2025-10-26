@@ -340,13 +340,13 @@ function HomeWithParams() {
                   >
                     Sign in
                   </button>
-                  <a
-                    href="/cruises"
-                    className="font-geograph text-sm md:text-base font-medium text-white px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors"
+                  <button
+                    onClick={() => router.push("/cruises")}
+                    className="font-geograph text-sm md:text-base font-medium text-white px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors hover:opacity-90"
                     style={{ backgroundColor: "#2238C3" }}
                   >
                     Browse Cruises
-                  </a>
+                  </button>
                 </nav>
               </div>
 
@@ -1205,7 +1205,7 @@ function HomeWithParams() {
                 alt="Bahamas"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover h-[38px] md:h-[152px] lg:h-[454px]"
+                className="w-full h-full object-cover h-[354px] md:h-[152px] lg:h-[454px]"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -1244,7 +1244,7 @@ function HomeWithParams() {
                 alt="Caribbean"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover h-[38px] md:h-[152px] lg:h-[454px]"
+                className="w-full h-full object-cover h-[354px] md:h-[152px] lg:h-[454px]"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -1283,7 +1283,7 @@ function HomeWithParams() {
                 alt="Mexico"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover h-[38px] md:h-[152px] lg:h-[454px]"
+                className="w-full h-full object-cover h-[354px] md:h-[152px] lg:h-[454px]"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -1322,7 +1322,7 @@ function HomeWithParams() {
                 alt="New York"
                 width={360}
                 height={454}
-                className="w-full h-full object-cover h-[38px] md:h-[152px] lg:h-[454px]"
+                className="w-full h-full object-cover h-[354px] md:h-[152px] lg:h-[454px]"
               />
               <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-6">
                 <p
@@ -1437,8 +1437,12 @@ function HomeWithParams() {
                 fine print, no surprises. That's why I trusted them.
               </p>
               <p
-                className="font-geograph text-xs md:text-sm font-medium mt-auto"
-                style={{ color: "#6b7280" }}
+                className="font-geograph font-bold uppercase mt-auto"
+                style={{
+                  fontSize: "14px",
+                  color: "#2f2f2f",
+                  letterSpacing: "0.1em",
+                }}
               >
                 James lee
               </p>
@@ -1481,8 +1485,12 @@ function HomeWithParams() {
                 small rebate card, but Zipsea added $400 in OBC...
               </p>
               <p
-                className="font-geograph text-xs md:text-sm font-medium mt-auto"
-                style={{ color: "#6b7280" }}
+                className="font-geograph font-bold uppercase mt-auto"
+                style={{
+                  fontSize: "14px",
+                  color: "#2f2f2f",
+                  letterSpacing: "0.1em",
+                }}
               >
                 Drew
               </p>
@@ -1525,8 +1533,12 @@ function HomeWithParams() {
                 excursions. What a seamless experience.
               </p>
               <p
-                className="font-geograph text-xs md:text-sm font-medium mt-auto"
-                style={{ color: "#6b7280" }}
+                className="font-geograph font-bold uppercase mt-auto"
+                style={{
+                  fontSize: "14px",
+                  color: "#2f2f2f",
+                  letterSpacing: "0.1em",
+                }}
               >
                 Jamie
               </p>

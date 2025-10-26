@@ -1411,10 +1411,10 @@ export default function CruisesContent() {
                                   className="flex-shrink-0"
                                 />
                                 <span className="font-geograph text-[14px] text-[#606060]">
-                                  {formatDate(
+                                  {formatDateNoYear(
                                     cruise.sailingDate || cruise.departureDate,
                                   )}{" "}
-                                  - {getReturnDateNoYear(cruise)}
+                                  - {getReturnDate(cruise)}
                                 </span>
                               </div>
 
@@ -1568,7 +1568,7 @@ export default function CruisesContent() {
                                   className="flex-shrink-0"
                                 />
                                 <span className="font-geograph text-[14px] text-[#606060]">
-                                  {formatDate(
+                                  {formatDateNoYear(
                                     cruise.sailingDate || cruise.departureDate,
                                   )}{" "}
                                   - {getReturnDate(cruise)}
