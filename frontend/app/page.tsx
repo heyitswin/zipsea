@@ -51,9 +51,13 @@ function HomeWithParams() {
   const [cruiseLines, setCruiseLines] = useState<FilterOption[]>([]);
 
   // Refs for dropdown click outside detection
-  const guestsDropdownRef = useRef<HTMLDivElement>(null);
-  const dateDropdownRef = useRef<HTMLDivElement>(null);
-  const cruiseLineDropdownRef = useRef<HTMLDivElement>(null);
+  // Separate refs for desktop and mobile to prevent conflicts
+  const guestsDropdownRefDesktop = useRef<HTMLDivElement>(null);
+  const guestsDropdownRefMobile = useRef<HTMLDivElement>(null);
+  const dateDropdownRefDesktop = useRef<HTMLDivElement>(null);
+  const dateDropdownRefMobile = useRef<HTMLDivElement>(null);
+  const cruiseLineDropdownRefDesktop = useRef<HTMLDivElement>(null);
+  const cruiseLineDropdownRefMobile = useRef<HTMLDivElement>(null);
 
   // Fetch filter options from API
   useEffect(() => {
@@ -130,47 +134,41 @@ function HomeWithParams() {
             : "not element",
       });
 
-      // Debug: Log ref structure when clicking
-      if (guestsDropdownRef.current) {
-        console.log("🧑 Guests ref structure:", {
-          refElement: guestsDropdownRef.current.outerHTML.substring(0, 200),
-          children: guestsDropdownRef.current.children.length,
-          contains: guestsDropdownRef.current.contains(target),
-        });
-      }
+      // For each dropdown: check both desktop and mobile refs
+      // If EITHER ref contains the click, keep dropdown open
+      // Only close if BOTH refs exist and NEITHER contains the click
 
-      // For each dropdown: if it exists in DOM (rendered), check if click is outside
       // Guests dropdown
-      if (
-        guestsDropdownRef.current &&
-        !guestsDropdownRef.current.contains(target)
-      ) {
-        console.log("❌ Close guests (clicked outside)");
+      const guestsDesktop = guestsDropdownRefDesktop.current;
+      const guestsMobile = guestsDropdownRefMobile.current;
+      const guestsClickedInside =
+        (guestsDesktop && guestsDesktop.contains(target)) ||
+        (guestsMobile && guestsMobile.contains(target));
+
+      if ((guestsDesktop || guestsMobile) && !guestsClickedInside) {
         setIsGuestsDropdownOpen(false);
-      } else if (guestsDropdownRef.current) {
-        console.log("✅ Keep guests open (clicked inside)");
       }
 
       // Date dropdown
-      if (
-        dateDropdownRef.current &&
-        !dateDropdownRef.current.contains(target)
-      ) {
-        console.log("❌ Close date (clicked outside)");
+      const dateDesktop = dateDropdownRefDesktop.current;
+      const dateMobile = dateDropdownRefMobile.current;
+      const dateClickedInside =
+        (dateDesktop && dateDesktop.contains(target)) ||
+        (dateMobile && dateMobile.contains(target));
+
+      if ((dateDesktop || dateMobile) && !dateClickedInside) {
         setIsDateDropdownOpen(false);
-      } else if (dateDropdownRef.current) {
-        console.log("✅ Keep date open (clicked inside)");
       }
 
       // Cruise line dropdown
-      if (
-        cruiseLineDropdownRef.current &&
-        !cruiseLineDropdownRef.current.contains(target)
-      ) {
-        console.log("❌ Close cruise line (clicked outside)");
+      const cruiseLineDesktop = cruiseLineDropdownRefDesktop.current;
+      const cruiseLineMobile = cruiseLineDropdownRefMobile.current;
+      const cruiseLineClickedInside =
+        (cruiseLineDesktop && cruiseLineDesktop.contains(target)) ||
+        (cruiseLineMobile && cruiseLineMobile.contains(target));
+
+      if ((cruiseLineDesktop || cruiseLineMobile) && !cruiseLineClickedInside) {
         setIsCruiseLineDropdownOpen(false);
-      } else if (cruiseLineDropdownRef.current) {
-        console.log("✅ Keep cruise line open (clicked inside)");
       }
     };
 
@@ -383,7 +381,7 @@ function HomeWithParams() {
                     {/* Cruise Line Dropdown */}
                     <div
                       className="relative flex-1 border-r border-gray-200"
-                      ref={cruiseLineDropdownRef}
+                      ref={cruiseLineDropdownRefDesktop}
                     >
                       <button
                         type="button"
@@ -464,7 +462,7 @@ function HomeWithParams() {
                     {/* Dates Dropdown */}
                     <div
                       className="relative flex-1 border-r border-gray-200"
-                      ref={dateDropdownRef}
+                      ref={dateDropdownRefDesktop}
                     >
                       <button
                         type="button"
@@ -571,7 +569,10 @@ function HomeWithParams() {
                     </div>
 
                     {/* Guests Dropdown - FIXED: people-icon.svg */}
-                    <div className="relative flex-1" ref={guestsDropdownRef}>
+                    <div
+                      className="relative flex-1"
+                      ref={guestsDropdownRefDesktop}
+                    >
                       <button
                         type="button"
                         onClick={() =>
@@ -770,7 +771,7 @@ function HomeWithParams() {
                   style={{ maxWidth: "400px" }}
                 >
                   {/* Cruise Line - Mobile */}
-                  <div className="relative" ref={cruiseLineDropdownRef}>
+                  <div className="relative" ref={cruiseLineDropdownRefMobile}>
                     <button
                       type="button"
                       onClick={() =>
@@ -848,7 +849,7 @@ function HomeWithParams() {
                   </div>
 
                   {/* Dates - Mobile */}
-                  <div className="relative" ref={dateDropdownRef}>
+                  <div className="relative" ref={dateDropdownRefMobile}>
                     <button
                       type="button"
                       onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
@@ -950,7 +951,7 @@ function HomeWithParams() {
                   </div>
 
                   {/* Guests - Mobile */}
-                  <div className="relative" ref={guestsDropdownRef}>
+                  <div className="relative" ref={guestsDropdownRefMobile}>
                     <button
                       type="button"
                       onClick={() =>
