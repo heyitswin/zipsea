@@ -112,7 +112,11 @@ class TraveltekSessionService {
       const sailingDate = new Date(cruiseResult[0].sailing_date);
 
       // Step 1: Create Traveltek session with date range including the cruise
-      const traveltekSession = await traveltekApiService.createSession(sailingDate);
+      // IMPORTANT: Pass the actual adult count so Traveltek session context matches getCabinGrades calls
+      const traveltekSession = await traveltekApiService.createSession(
+        sailingDate,
+        params.passengerCount.adults
+      );
 
       if (!traveltekSession.sessionkey) {
         throw new Error('Failed to create Traveltek session: missing sessionkey');

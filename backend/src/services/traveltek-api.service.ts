@@ -267,8 +267,14 @@ export class TraveltekApiService {
   /**
    * Create a new session by performing a minimal cruise search
    * This generates a sessionkey and sid needed for booking operations
+   *
+   * @param targetDate - Optional target sailing date to search around
+   * @param adults - Number of adults for session context (default: 2)
    */
-  async createSession(targetDate?: Date): Promise<{ sessionkey: string; sid: string }> {
+  async createSession(
+    targetDate?: Date,
+    adults: number = 2
+  ): Promise<{ sessionkey: string; sid: string }> {
     try {
       // Perform a minimal search to generate session
       // If targetDate is provided, search around that date
@@ -295,12 +301,16 @@ export class TraveltekApiService {
         enddate = nextYear.toISOString().split('T')[0];
       }
 
+      console.log(
+        `[TraveltekAPI] Creating session with adults=${adults}, startdate=${startdate}, enddate=${enddate}`
+      );
+
       const response = await this.axiosInstance.get('/cruiseresults.pl', {
         params: {
           startdate,
           enddate,
           lineid: '22,3', // Royal Caribbean and Celebrity
-          adults: 2,
+          adults: adults, // Use provided adult count for session context
           currency: 'USD', // Always use USD for pricing
         },
       });
