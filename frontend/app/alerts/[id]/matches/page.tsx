@@ -75,7 +75,7 @@ export default function AlertMatchesPage() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (!alertResponse.ok) {
@@ -92,7 +92,7 @@ export default function AlertMatchesPage() {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       if (!matchesResponse.ok) {
@@ -112,9 +112,8 @@ export default function AlertMatchesPage() {
   const getCruiseDetailUrl = (cruise: Cruise) => {
     const slug = createSlugFromCruise({
       id: cruise.id,
-      name: cruise.name,
+      shipName: cruise.ship?.name || "unknown-ship",
       sailingDate: cruise.sailingDate,
-      nights: cruise.nights,
     });
     return `/cruise/${slug}`;
   };
@@ -163,7 +162,10 @@ export default function AlertMatchesPage() {
       <div className="max-w-7xl mx-auto px-4 py-8 mt-16">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/alerts" className="text-blue-600 hover:underline mb-4 inline-block">
+          <Link
+            href="/alerts"
+            className="text-blue-600 hover:underline mb-4 inline-block"
+          >
             ← Back to All Alerts
           </Link>
 
@@ -172,7 +174,10 @@ export default function AlertMatchesPage() {
             <span>Budget: Up to ${alert.maxBudget} per person</span>
             <span>•</span>
             <span>
-              Cabin Types: {alert.cabinTypes.map((t) => t.charAt(0).toUpperCase() + t.slice(1)).join(", ")}
+              Cabin Types:{" "}
+              {alert.cabinTypes
+                .map((t) => t.charAt(0).toUpperCase() + t.slice(1))
+                .join(", ")}
             </span>
           </div>
         </div>
@@ -195,15 +200,19 @@ export default function AlertMatchesPage() {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No matches yet</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No matches yet
+            </h3>
             <p className="text-gray-600">
-              We haven't found any cruises matching your criteria yet. Check back daily!
+              We haven't found any cruises matching your criteria yet. Check
+              back daily!
             </p>
           </div>
         ) : (
           <>
             <div className="mb-4 text-gray-600">
-              Found {matches.length} cruise{matches.length !== 1 ? "s" : ""} matching your alert
+              Found {matches.length} cruise{matches.length !== 1 ? "s" : ""}{" "}
+              matching your alert
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -240,14 +249,19 @@ export default function AlertMatchesPage() {
 
                       <div className="space-y-1 text-sm text-gray-600 mb-3">
                         <p>{cruise.nights} Nights</p>
-                        <p>Departs: {new Date(cruise.sailingDate).toLocaleDateString()}</p>
+                        <p>
+                          Departs:{" "}
+                          {new Date(cruise.sailingDate).toLocaleDateString()}
+                        </p>
                         <p>From: {cruise.embarkPortName}</p>
                       </div>
 
                       {/* Alert Match Info */}
                       <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded">
                         <div className="text-xs font-medium text-green-800">
-                          Alert Match: {match.cabinType.charAt(0).toUpperCase() + match.cabinType.slice(1)}
+                          Alert Match:{" "}
+                          {match.cabinType.charAt(0).toUpperCase() +
+                            match.cabinType.slice(1)}
                         </div>
                         <div className="text-sm font-bold text-green-900">
                           ${Math.round(match.price).toLocaleString()}
@@ -261,7 +275,9 @@ export default function AlertMatchesPage() {
                           <div className="text-xl font-bold text-blue-600">
                             ${Math.round(lowestPrice).toLocaleString()}
                           </div>
-                          <div className="text-xs text-gray-500">per person</div>
+                          <div className="text-xs text-gray-500">
+                            per person
+                          </div>
                         </div>
                       )}
                     </div>
