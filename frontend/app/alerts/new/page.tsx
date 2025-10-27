@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import Navigation from "../../components/Navigation";
+import LoginSignupModal from "../../components/LoginSignupModal";
 
 interface CruiseLine {
   id: number;
@@ -13,7 +14,7 @@ interface CruiseLine {
 function AlertFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, getToken } = useAuth();
 
   // Form state
   const [alertName, setAlertName] = useState("");
@@ -27,6 +28,8 @@ function AlertFormContent() {
   const [cruiseLines, setCruiseLines] = useState<CruiseLine[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
 
   // Load cruise lines
   useEffect(() => {
@@ -130,27 +133,31 @@ function AlertFormContent() {
 
     // Check if user is signed in
     if (!isSignedIn) {
-      // Redirect to sign in with return URL
-      const returnUrl = encodeURIComponent(
-        window.location.pathname + window.location.search,
-      );
-      router.push(`/sign-in?redirect_url=${returnUrl}`);
+      // Show branded login modal instead of redirecting
+      setPendingSubmit(true);
+      setShowLoginModal(true);
       return;
     }
 
+    // Create the alert
+    await createAlert();
+  };
+
+  const createAlert = async () => {
     setLoading(true);
 
     try {
+      const token = await getClerkToken();
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/v1/alerts`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${await getClerkToken()}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            name: alertName,
+            name: alertName || generateAlertName(),
             searchCriteria: {
               cruiseLineId: selectedCruiseLines,
               departureMonth: selectedMonths,
@@ -176,10 +183,23 @@ function AlertFormContent() {
     }
   };
 
+  const handleLoginSuccess = async () => {
+    setShowLoginModal(false);
+    if (pendingSubmit) {
+      setPendingSubmit(false);
+      // User just logged in, now create the alert
+      await createAlert();
+    }
+  };
+
   const getClerkToken = async () => {
-    // This would use Clerk's getToken method
-    // For now, return empty string - needs proper Clerk integration
-    return "";
+    try {
+      const token = await getToken();
+      return token || "";
+    } catch (error) {
+      console.error("Failed to get Clerk token", error);
+      return "";
+    }
   };
 
   // Generate months for next 24 months
@@ -345,6 +365,16 @@ function AlertFormContent() {
           </div>
         </form>
       </div>
+
+      {/* Login/Signup Modal */}
+      <LoginSignupModal
+        isOpen={showLoginModal}
+        onClose={() => {
+          setShowLoginModal(false);
+          setPendingSubmit(false);
+        }}
+        onSuccess={handleLoginSuccess}
+      />
     </div>
   );
 }
