@@ -1,225 +1,111 @@
-#!/usr/bin/env node
+require('dotenv').config({ path: '.env' });
+const { Pool } = require('pg');
 
-const { Client } = require('pg');
-require('dotenv').config();
+const cruiseId = '2106593'; // harmony-of-the-seas-2026-03-01
 
-async function checkCruisePricing() {
-  const client = new Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: {
-      rejectUnauthorized: false
-    }
-  });
+const databaseUrl = process.env.DATABASE_URL_PRODUCTION || process.env.DATABASE_URL;
+const isProduction = databaseUrl && databaseUrl.includes('render.com');
 
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: isProduction ? { rejectUnauthorized: false } : false,
+});
+
+async function checkPricing() {
   try {
-    await client.connect();
-    console.log('Connected to PRODUCTION database\n');
+    console.log('🔍 Checking pricing for cruise:', cruiseId);
+    console.log('');
 
-    // 1. Check pricing data for cruise 2143102
-    console.log('💰 PRICING DATA FOR CRUISE 2143102:');
-    console.log('===================================\n');
+    // Get cruise details and cached pricing
+    const query = `
+      SELECT 
+        c.id,
+        c.name,
+        c.sailing_date,
+        c.nights,
+        c.cruise_line_id,
+        cp.interior_price,
+        cp.oceanview_price,
+        cp.balcony_price,
+        cp.suite_price,
+        cp.cheapest_price
+      FROM cruises c
+      LEFT JOIN cheapest_pricing cp ON c.id = cp.cruise_id
+      WHERE c.id = $1
+    `;
 
-    // Check main cruises table pricing columns
-    const cruisePricing = await client.query(`
-      SELECT
-        id,
-        name,
-        ship_name,
-        sailing_date,
-        cheapest_inside_cabin_price,
-        cheapest_ocean_view_cabin_price,
-        cheapest_balcony_cabin_price,
-        cheapest_suite_cabin_price,
-        updated_at
-      FROM cruises
-      WHERE id = '2143102'
-    `);
+    const result = await pool.query(query, [cruiseId]);
 
-    if (cruisePricing.rows.length > 0) {
-      const cruise = cruisePricing.rows[0];
-      console.log('Cruise: ' + cruise.name);
-      console.log('Ship: ' + cruise.ship_name);
-      console.log('Sailing: ' + cruise.sailing_date);
-      console.log('\nPrices in cruises table:');
-      console.log('  Inside Cabin: $' + (cruise.cheapest_inside_cabin_price || 'NULL'));
-      console.log('  Ocean View: $' + (cruise.cheapest_ocean_view_cabin_price || 'NULL'));
-      console.log('  Balcony: $' + (cruise.cheapest_balcony_cabin_price || 'NULL'));
-      console.log('  Suite: $' + (cruise.cheapest_suite_cabin_price || 'NULL'));
-      console.log('\nLast Updated: ' + cruise.updated_at);
+    if (result.rows.length === 0) {
+      console.log('❌ Cruise not found in database');
+      await pool.end();
+      return;
     }
 
-    // 2. Check if there's data in cheapest_pricing table
-    console.log('\n\n📊 CHEAPEST_PRICING TABLE DATA:');
-    console.log('================================\n');
+    const cruise = result.rows[0];
 
-    const cheapestPricing = await client.query(`
-      SELECT
-        cruise_id,
-        interior_price,
-        oceanview_price,
-        balcony_price,
-        suite_price,
-        lowest_price,
-        updated_at
-      FROM cheapest_pricing
-      WHERE cruise_id = '2143102'
-    `);
+    console.log('📊 DATABASE CACHED PRICING:');
+    console.log('════════════════════════════════════════');
+    console.log(`Cruise: ${cruise.name}`);
+    console.log(`Sailing Date: ${cruise.sailing_date}`);
+    console.log(`Nights: ${cruise.nights}`);
+    console.log('');
+    console.log('Raw pricing data:', cruise);
+    console.log('');
+    console.log('Cached Prices (for 2 adults):');
+    console.log(`  Interior:   $${cruise.interior_price ? parseFloat(cruise.interior_price).toFixed(2) : 'N/A'}`);
+    console.log(`  Oceanview:  $${cruise.oceanview_price ? parseFloat(cruise.oceanview_price).toFixed(2) : 'N/A'}`);
+    console.log(`  Balcony:    $${cruise.balcony_price ? parseFloat(cruise.balcony_price).toFixed(2) : 'N/A'}`);
+    console.log(`  Suite:      $${cruise.suite_price ? parseFloat(cruise.suite_price).toFixed(2) : 'N/A'}`);
+    console.log(`  Cheapest:   $${cruise.cheapest_price ? parseFloat(cruise.cheapest_price).toFixed(2) : 'N/A'}`);
+    console.log('');
 
-    if (cheapestPricing.rows.length > 0) {
-      const pricing = cheapestPricing.rows[0];
-      console.log('Found in cheapest_pricing table:');
-      console.log('  Interior: $' + (pricing.interior_price || 'NULL'));
-      console.log('  Ocean View: $' + (pricing.oceanview_price || 'NULL'));
-      console.log('  Balcony: $' + (pricing.balcony_price || 'NULL'));
-      console.log('  Suite: $' + (pricing.suite_price || 'NULL'));
-      console.log('  Lowest Overall: $' + (pricing.lowest_price || 'NULL'));
-      console.log('  Updated: ' + pricing.updated_at);
+    console.log('💰 LIVE PRICING FROM FRONTEND (when 3+ guests selected):');
+    console.log('════════════════════════════════════════');
+    console.log('Interior Guaranteed: $1,635.34 (for 2 guests)');
+    console.log('Interior (4V):       $1,790.34 (for 2 guests)');
+    console.log('Interior w/ VB:      $1,846.34 (for 2 guests)');
+    console.log('');
+
+    console.log('📈 COMPARISON:');
+    console.log('════════════════════════════════════════');
+    const liveCheapest = 1635.34;
+    const cachedCheapest = cruise.cheapest_price ? parseFloat(cruise.cheapest_price) : (cruise.interior_price ? parseFloat(cruise.interior_price) : 0);
+    const difference = liveCheapest - cachedCheapest;
+    const percentDiff = cachedCheapest ? ((difference / cachedCheapest) * 100).toFixed(2) : 'N/A';
+
+    console.log(`Cached Cheapest:  $${cachedCheapest.toFixed(2)}`);
+    console.log(`Live Cheapest:    $${liveCheapest.toFixed(2)}`);
+    console.log(`Difference:       $${difference.toFixed(2)} (${percentDiff}%)`);
+    console.log('');
+
+    if (Math.abs(difference) < 50) {
+      console.log('✅ Prices are very close (within $50)');
+    } else if (Math.abs(difference) < 200) {
+      console.log('⚠️  Moderate difference ($50-$200)');
     } else {
-      console.log('❌ No data in cheapest_pricing table for this cruise');
+      console.log('❌ Significant difference (>$200)');
     }
+    console.log('');
 
-    // 3. Check raw_data JSON to see what Traveltek sent
-    console.log('\n\n🔍 RAW TRAVELTEK DATA ANALYSIS:');
-    console.log('================================\n');
+    console.log('🐛 CRITICAL BUG - 2 GUESTS SHOWS NO CABINS:');
+    console.log('════════════════════════════════════════');
+    console.log('Issue: Setting 2 guests shows NO cabins');
+    console.log('       Setting 3 or 4 guests DOES show cabins');
+    console.log('');
+    console.log('This suggests a session or API parameter issue with adults=2');
+    console.log('Need to check:');
+    console.log('  1. Session creation with adults=2');
+    console.log('  2. getCabinGrades API call parameters');
+    console.log('  3. Traveltek API response with adults=2');
+    console.log('  4. Check Render logs for actual API calls');
 
-    const rawDataQuery = await client.query(`
-      SELECT
-        raw_data->'cheapest' as cheapest_obj,
-        raw_data->'cheapestinside' as cheapest_inside,
-        raw_data->'cheapestoutside' as cheapest_outside,
-        raw_data->'cheapestbalcony' as cheapest_balcony,
-        raw_data->'cheapestsuite' as cheapest_suite,
-        raw_data->'prices' as prices_obj,
-        raw_data->'cabins' as cabins_obj
-      FROM cruises
-      WHERE id = '2143102'
-    `);
-
-    if (rawDataQuery.rows.length > 0 && rawDataQuery.rows[0].cheapest_obj) {
-      const raw = rawDataQuery.rows[0];
-
-      console.log('Raw data structure from Traveltek:');
-
-      if (raw.cheapest_obj) {
-        console.log('\n"cheapest" object exists');
-        const cheapest = JSON.parse(raw.cheapest_obj);
-        if (cheapest.combined) {
-          console.log('  Has "combined" field with pricing');
-        }
-        if (cheapest.prices) {
-          console.log('  Has "prices" field');
-        }
-      }
-
-      if (raw.cheapest_inside) {
-        console.log('\n"cheapestinside" object:');
-        console.log(JSON.stringify(JSON.parse(raw.cheapest_inside), null, 2).substring(0, 500));
-      }
-
-      if (raw.prices_obj) {
-        console.log('\n"prices" object exists');
-      }
-
-      if (raw.cabins_obj) {
-        console.log('\n"cabins" object exists');
-        const cabins = JSON.parse(raw.cabins_obj);
-        console.log(`  Total cabin categories: ${Object.keys(cabins).length}`);
-      }
-    } else {
-      console.log('No raw_data field or it\'s empty');
-    }
-
-    // 4. Compare with other Royal Caribbean cruises
-    console.log('\n\n📈 COMPARISON WITH OTHER ROYAL CARIBBEAN CRUISES:');
-    console.log('=================================================\n');
-
-    const comparison = await client.query(`
-      SELECT
-        id,
-        name,
-        ship_name,
-        sailing_date,
-        cheapest_inside_cabin_price,
-        cheapest_ocean_view_cabin_price,
-        cheapest_balcony_cabin_price,
-        cheapest_suite_cabin_price
-      FROM cruises
-      WHERE cruise_line_id = 22
-      AND ship_name = 'Symphony of the Seas'
-      AND sailing_date >= '2025-09-01'
-      AND sailing_date <= '2025-11-01'
-      ORDER BY sailing_date
-      LIMIT 10
-    `);
-
-    console.log('Other Symphony of the Seas cruises (Sep-Nov 2025):');
-    comparison.rows.forEach(cruise => {
-      const prices = [];
-      if (cruise.cheapest_inside_cabin_price) prices.push(`Inside: $${cruise.cheapest_inside_cabin_price}`);
-      if (cruise.cheapest_ocean_view_cabin_price) prices.push(`Ocean: $${cruise.cheapest_ocean_view_cabin_price}`);
-      if (cruise.cheapest_balcony_cabin_price) prices.push(`Balcony: $${cruise.cheapest_balcony_cabin_price}`);
-      if (cruise.cheapest_suite_cabin_price) prices.push(`Suite: $${cruise.cheapest_suite_cabin_price}`);
-
-      console.log(`\n${cruise.sailing_date} - ${cruise.name} (ID: ${cruise.id})`);
-      if (prices.length > 0) {
-        console.log(`  ${prices.join(', ')}`);
-      } else {
-        console.log('  NO PRICING DATA');
-      }
-
-      if (cruise.id === '2143102') {
-        console.log('  ⭐ THIS IS THE CRUISE IN QUESTION');
-      }
-    });
-
-    // 5. Check when pricing was last synced
-    console.log('\n\n⏰ LAST SYNC INFORMATION:');
-    console.log('========================\n');
-
-    const lastSync = await client.query(`
-      SELECT
-        MAX(we.timestamp) as last_webhook,
-        we.metadata
-      FROM webhook_events we
-      WHERE we.metadata::text LIKE '%"cruise_line_id":22%'
-        OR we.metadata::text LIKE '%"lineId":22%'
-      GROUP BY we.metadata
-      ORDER BY MAX(we.timestamp) DESC
-      LIMIT 1
-    `);
-
-    if (lastSync.rows.length > 0) {
-      const syncInfo = lastSync.rows[0];
-      console.log('Last Royal Caribbean webhook sync:');
-      console.log('  Timestamp: ' + syncInfo.last_webhook);
-
-      const timeDiff = new Date() - new Date(syncInfo.last_webhook);
-      const hoursAgo = Math.floor(timeDiff / (1000 * 60 * 60));
-      const daysAgo = Math.floor(hoursAgo / 24);
-
-      if (daysAgo > 0) {
-        console.log(`  ${daysAgo} days, ${hoursAgo % 24} hours ago`);
-      } else {
-        console.log(`  ${hoursAgo} hours ago`);
-      }
-
-      if (syncInfo.metadata) {
-        const meta = typeof syncInfo.metadata === 'string' ?
-          JSON.parse(syncInfo.metadata) : syncInfo.metadata;
-        if (meta.cruises_updated) {
-          console.log(`  Cruises updated: ${meta.cruises_updated}`);
-        }
-      }
-    } else {
-      console.log('No recent webhook sync found for Royal Caribbean');
-    }
-
+    await pool.end();
   } catch (error) {
-    console.error('Error:', error.message);
-    if (error.detail) console.error('Detail:', error.detail);
-  } finally {
-    await client.end();
+    console.error('Error:', error);
+    await pool.end();
+    process.exit(1);
   }
 }
 
-checkCruisePricing();
+checkPricing();

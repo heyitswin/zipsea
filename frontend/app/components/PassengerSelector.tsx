@@ -78,8 +78,8 @@ export default function PassengerSelector({
 
   const updateChildAge = (index: number, age: number) => {
     const childAges = [...value.childAges];
-    // Min 0, max 17 years
-    childAges[index] = Math.max(0, Math.min(17, age));
+    // Min 0, max 12 years (cruise industry standard: ages 13+ are adults for pricing)
+    childAges[index] = Math.max(0, Math.min(12, age));
     const newValue = { ...value, childAges };
     onChange(newValue);
     setHasChanges(true);
@@ -230,7 +230,7 @@ export default function PassengerSelector({
           <div className="flex items-center justify-between mb-4">
             <div>
               <div className="font-semibold text-gray-900">Children</div>
-              <div className="text-sm text-gray-600">Ages 0-17</div>
+              <div className="text-sm text-gray-600">Ages 0-12</div>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -288,7 +288,7 @@ export default function PassengerSelector({
                       }
                       className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
                     >
-                      {Array.from({ length: 18 }, (_, i) => i).map(
+                      {Array.from({ length: 13 }, (_, i) => i).map(
                         (ageOption) => (
                           <option key={ageOption} value={ageOption}>
                             {ageOption} {ageOption === 0 ? "year" : "years"}

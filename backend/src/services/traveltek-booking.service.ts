@@ -1243,6 +1243,22 @@ class TraveltekBookingService {
   }
 
   /**
+   * Determine passenger type based on age (cruise industry standard)
+   * - Ages 0-2: Infant
+   * - Ages 3-12: Child
+   * - Ages 13+: Adult (for pricing purposes, even though minors)
+   */
+  private getPaxTypeFromAge(age: number): 'adult' | 'child' | 'infant' {
+    if (age <= 2) {
+      return 'infant';
+    } else if (age <= 12) {
+      return 'child';
+    } else {
+      return 'adult';
+    }
+  }
+
+  /**
    * Get default title based on gender and age
    * Used when frontend doesn't provide title
    */
@@ -1560,7 +1576,7 @@ class TraveltekBookingService {
           dob: childDob.toISOString().split('T')[0],
           gender: 'F',
           nationality: 'US',
-          paxtype: 'child' as const,
+          paxtype: this.getPaxTypeFromAge(childAge),
           age: childAge,
         });
       }

@@ -116,7 +116,8 @@ function HomeWithParams() {
 
   const updateChildAge = (index: number, age: number) => {
     const newChildAges = [...childAges];
-    newChildAges[index] = Math.max(0, Math.min(17, age));
+    // Min 0, max 12 years (cruise industry standard: ages 13+ are adults for pricing)
+    newChildAges[index] = Math.max(0, Math.min(12, age));
     setChildAges(newChildAges);
   };
 
@@ -721,7 +722,7 @@ function HomeWithParams() {
                                       className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
                                     >
                                       {Array.from(
-                                        { length: 18 },
+                                        { length: 13 },
                                         (_, i) => i,
                                       ).map((ageOption) => (
                                         <option
@@ -1100,7 +1101,7 @@ function HomeWithParams() {
                                     className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
                                   >
                                     {Array.from(
-                                      { length: 18 },
+                                      { length: 13 },
                                       (_, i) => i,
                                     ).map((ageOption) => (
                                       <option key={ageOption} value={ageOption}>
