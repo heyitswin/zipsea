@@ -1170,10 +1170,13 @@ export default function CruisesContent() {
                 onClick={() => {
                   const params = new URLSearchParams();
                   if (selectedCruiseLines.length > 0) {
-                    params.set("cruiseLine", selectedCruiseLines.join(","));
+                    params.set("cruiseLines", selectedCruiseLines.join(","));
                   }
                   if (selectedMonths.length > 0) {
                     params.set("months", selectedMonths.join(","));
+                  }
+                  if (selectedRegions.length > 0) {
+                    params.set("regions", selectedRegions.join(","));
                   }
                   const queryString = params.toString();
                   router.push(

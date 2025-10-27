@@ -38,12 +38,16 @@ export default function NewAlertPage() {
 
   // Pre-populate from URL params
   useEffect(() => {
-    const lineParam = searchParams.get("cruiseLine");
+    const lineParam = searchParams.get("cruiseLines");
     const monthParam = searchParams.get("months");
     const budgetParam = searchParams.get("maxBudget");
+    const regionsParam = searchParams.get("regions");
 
     if (lineParam) {
-      const lineIds = lineParam.split(",").map(Number);
+      const lineIds = lineParam
+        .split(",")
+        .map(Number)
+        .filter((n) => !isNaN(n));
       setSelectedCruiseLines(lineIds);
     }
     if (monthParam) {
@@ -52,23 +56,36 @@ export default function NewAlertPage() {
     if (budgetParam) {
       setMaxBudget(budgetParam);
     }
+    if (regionsParam) {
+      const regionIds = regionsParam
+        .split(",")
+        .map(Number)
+        .filter((n) => !isNaN(n));
+      if (regionIds.length > 0) {
+        setRegionId(regionIds[0]); // For now, just use the first region
+      }
+    }
   }, [searchParams]);
 
   const handleCruiseLineToggle = (lineId: number) => {
     setSelectedCruiseLines((prev) =>
-      prev.includes(lineId) ? prev.filter((id) => id !== lineId) : [...prev, lineId]
+      prev.includes(lineId)
+        ? prev.filter((id) => id !== lineId)
+        : [...prev, lineId],
     );
   };
 
   const handleMonthToggle = (month: string) => {
     setSelectedMonths((prev) =>
-      prev.includes(month) ? prev.filter((m) => m !== month) : [...prev, month]
+      prev.includes(month) ? prev.filter((m) => m !== month) : [...prev, month],
     );
   };
 
   const handleCabinTypeToggle = (cabinType: string) => {
     setSelectedCabinTypes((prev) =>
-      prev.includes(cabinType) ? prev.filter((t) => t !== cabinType) : [...prev, cabinType]
+      prev.includes(cabinType)
+        ? prev.filter((t) => t !== cabinType)
+        : [...prev, cabinType],
     );
   };
 
@@ -80,7 +97,8 @@ export default function NewAlertPage() {
             .map((l) => l.name)
             .join(", ")
         : "Any Line";
-    const months = selectedMonths.length > 0 ? selectedMonths.join(", ") : "Any Month";
+    const months =
+      selectedMonths.length > 0 ? selectedMonths.join(", ") : "Any Month";
     return `${lines} - ${months} under $${maxBudget || "0"}`;
   };
 
@@ -113,7 +131,9 @@ export default function NewAlertPage() {
     // Check if user is signed in
     if (!isSignedIn) {
       // Redirect to sign in with return URL
-      const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+      const returnUrl = encodeURIComponent(
+        window.location.pathname + window.location.search,
+      );
       router.push(`/sign-in?redirect_url=${returnUrl}`);
       return;
     }
@@ -121,23 +141,26 @@ export default function NewAlertPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/alerts`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${await getClerkToken()}`,
-        },
-        body: JSON.stringify({
-          name: alertName,
-          searchCriteria: {
-            cruiseLineId: selectedCruiseLines,
-            departureMonth: selectedMonths,
-            regionId: regionId || undefined,
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/alerts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${await getClerkToken()}`,
           },
-          maxBudget: parseFloat(maxBudget),
-          cabinTypes: selectedCabinTypes,
-        }),
-      });
+          body: JSON.stringify({
+            name: alertName,
+            searchCriteria: {
+              cruiseLineId: selectedCruiseLines,
+              departureMonth: selectedMonths,
+              regionId: regionId || undefined,
+            },
+            maxBudget: parseFloat(maxBudget),
+            cabinTypes: selectedCabinTypes,
+          }),
+        },
+      );
 
       if (!response.ok) {
         throw new Error("Failed to create alert");
@@ -180,7 +203,8 @@ export default function NewAlertPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">Create Price Alert</h1>
           <p className="text-gray-600">
-            Get notified daily when cruises match your criteria and fall below your budget
+            Get notified daily when cruises match your criteria and fall below
+            your budget
           </p>
         </div>
 
@@ -208,7 +232,9 @@ export default function NewAlertPage() {
 
           {/* Cruise Lines */}
           <div>
-            <label className="block text-sm font-medium mb-2">Cruise Lines *</label>
+            <label className="block text-sm font-medium mb-2">
+              Cruise Lines *
+            </label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {cruiseLines.map((line) => (
                 <button
@@ -229,7 +255,9 @@ export default function NewAlertPage() {
 
           {/* Departure Months */}
           <div>
-            <label className="block text-sm font-medium mb-2">Departure Months *</label>
+            <label className="block text-sm font-medium mb-2">
+              Departure Months *
+            </label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-60 overflow-y-auto">
               {availableMonths.map((month) => (
                 <button
@@ -250,9 +278,13 @@ export default function NewAlertPage() {
 
           {/* Max Budget */}
           <div>
-            <label className="block text-sm font-medium mb-2">Maximum Budget (per person) *</label>
+            <label className="block text-sm font-medium mb-2">
+              Maximum Budget (per person) *
+            </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+                $
+              </span>
               <input
                 type="number"
                 value={maxBudget}
@@ -270,7 +302,9 @@ export default function NewAlertPage() {
 
           {/* Cabin Types */}
           <div>
-            <label className="block text-sm font-medium mb-2">Cabin Types *</label>
+            <label className="block text-sm font-medium mb-2">
+              Cabin Types *
+            </label>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {["interior", "oceanview", "balcony", "suite"].map((type) => (
                 <button
@@ -296,7 +330,11 @@ export default function NewAlertPage() {
               disabled={loading}
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? "Creating Alert..." : isSignedIn ? "Create Alert" : "Sign In to Create Alert"}
+              {loading
+                ? "Creating Alert..."
+                : isSignedIn
+                  ? "Create Alert"
+                  : "Sign In to Create Alert"}
             </button>
 
             {!isSignedIn && (
