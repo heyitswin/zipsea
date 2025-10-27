@@ -4,6 +4,7 @@ import { env } from '../config/environment';
 import { dataSyncService } from './data-sync.service';
 import { traveltekFTPService } from './traveltek-ftp.service';
 import { priceHistoryService } from './price-history.service';
+import { alertCronService } from './alert-cron.service';
 
 export class CronService {
   private jobs: Map<string, cron.ScheduledTask> = new Map();
@@ -23,6 +24,7 @@ export class CronService {
         this.setupHealthCheckJobs();
         this.setupMaintenanceJobs();
         this.setupPriceHistoryJobs();
+        this.setupAlertJobs();
 
         logger.info('✅ All scheduled jobs initialized');
       } else {
@@ -191,6 +193,34 @@ export class CronService {
     priceAnalysisJob.start();
     logger.info('📅 Price history job scheduled:');
     logger.info('  - Weekly trend analysis: Sunday 2 AM UTC');
+  }
+
+  /**
+   * Setup price alert jobs
+   */
+  private setupAlertJobs(): void {
+    // Process price alerts daily at 9 AM UTC (2 AM PST)
+    const alertProcessingJob = cron.schedule(
+      '0 9 * * *',
+      async () => {
+        try {
+          logger.info('🔔 Starting daily price alert processing...');
+          await alertCronService.processAllAlerts();
+          logger.info('✅ Price alert processing completed');
+        } catch (error) {
+          logger.error('❌ Price alert processing failed:', error);
+        }
+      },
+      {
+        scheduled: false,
+        timezone: 'UTC',
+      }
+    );
+
+    this.jobs.set('alert-processing', alertProcessingJob);
+    alertProcessingJob.start();
+    logger.info('📅 Price alert job scheduled:');
+    logger.info('  - Daily alert processing: 9 AM UTC (2 AM PST)');
   }
 
   /**

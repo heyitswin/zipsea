@@ -11,6 +11,7 @@ export * from './pricing';
 export * from './price-history';
 export * from './quote-requests';
 export * from './saved-searches';
+export * from './alert-matches';
 export * from './webhook-events';
 export * from './cruise-tags';
 export * from './promotions';

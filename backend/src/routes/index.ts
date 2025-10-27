@@ -17,6 +17,7 @@ import { userRoutes } from './user.routes';
 import bookingRoutes from './booking.routes';
 import debugRoutes from './debug.routes';
 import promotionRoutes from './promotion.routes';
+import alertRoutes from './alert.routes';
 
 const router = Router();
 
@@ -71,6 +72,9 @@ apiRouter.use('/users', userRoutes);
 
 // Promotions routes
 apiRouter.use('/promotions', promotionRoutes);
+
+// Price alert routes
+apiRouter.use('/alerts', alertRoutes);
 
 // API info endpoint
 apiRouter.get('/', (req, res) => {

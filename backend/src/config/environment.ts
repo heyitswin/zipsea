@@ -66,6 +66,7 @@ const envSchema = z.object({
 
   // CORS
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
+  FRONTEND_URL: z.string().url().optional().default('https://zipsea.com'),
 
   // Cache TTL (in seconds)
   CACHE_TTL_SEARCH: z.string().transform(Number).default('3600'),
@@ -119,6 +120,7 @@ export const env = parseResult.success
       WEBHOOK_SECRET: process.env.WEBHOOK_SECRET,
       SLACK_WEBHOOK_URL: process.env.SLACK_WEBHOOK_URL,
       CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:3000',
+      FRONTEND_URL: process.env.FRONTEND_URL || 'https://zipsea.com',
       CACHE_TTL_SEARCH: Number(process.env.CACHE_TTL_SEARCH) || 3600,
       CACHE_TTL_CRUISE_DETAILS: Number(process.env.CACHE_TTL_CRUISE_DETAILS) || 21600,
       CACHE_TTL_PRICING: Number(process.env.CACHE_TTL_PRICING) || 900,
