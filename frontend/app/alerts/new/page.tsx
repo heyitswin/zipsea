@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import Navigation from "../../components/Navigation";
@@ -10,10 +10,10 @@ interface CruiseLine {
   name: string;
 }
 
-export default function NewAlertPage() {
+function AlertFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isSignedIn, userId } = useAuth();
+  const { isSignedIn } = useAuth();
 
   // Form state
   const [alertName, setAlertName] = useState("");
@@ -346,5 +346,22 @@ export default function NewAlertPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function NewAlertPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white">
+          <Navigation />
+          <div className="max-w-4xl mx-auto px-4 py-8 mt-16">
+            <div className="text-center py-12">Loading...</div>
+          </div>
+        </div>
+      }
+    >
+      <AlertFormContent />
+    </Suspense>
   );
 }
