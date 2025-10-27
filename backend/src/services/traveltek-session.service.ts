@@ -79,8 +79,12 @@ class TraveltekSessionService {
     try {
       // OPTIMIZATION: Check if we have an existing active session for this cruise/passenger combo
       // This can reuse Traveltek sessions and avoid the slow session creation call
+      //
+      // SESSION VERSION: v2 - Fixed adult count bug (adults now passed to Traveltek createSession)
+      // Old v1 sessions had hardcoded adults=2 in Traveltek, causing context mismatch
+      const SESSION_VERSION = 'v2';
       const passengerKey = `${params.passengerCount.adults}:${params.passengerCount.children}:${params.passengerCount.childAges.join(',')}`;
-      const existingSessionKey = `existing_session:${params.cruiseId}:${passengerKey}`;
+      const existingSessionKey = `existing_session:${SESSION_VERSION}:${params.cruiseId}:${passengerKey}`;
 
       try {
         const existingSessionId = await this.redis.get(existingSessionKey);
@@ -88,7 +92,7 @@ class TraveltekSessionService {
           const existingSession = await this.getSession(existingSessionId);
           if (existingSession) {
             console.log(
-              `[TraveltekSession] 🚀 Reusing existing session ${existingSessionId} for cruise ${params.cruiseId}`
+              `[TraveltekSession] 🚀 Reusing existing session ${existingSessionId} (${SESSION_VERSION}) for cruise ${params.cruiseId} with ${params.passengerCount.adults} adults`
             );
             return {
               sessionId: existingSessionId,
