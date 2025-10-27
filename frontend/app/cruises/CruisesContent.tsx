@@ -1164,6 +1164,26 @@ export default function CruisesContent() {
                   Clear All Filters
                 </button>
               )}
+
+              {/* Create Price Alert Button */}
+              <button
+                onClick={() => {
+                  const params = new URLSearchParams();
+                  if (selectedCruiseLines.length > 0) {
+                    params.set("cruiseLine", selectedCruiseLines.join(","));
+                  }
+                  if (selectedMonths.length > 0) {
+                    params.set("months", selectedMonths.join(","));
+                  }
+                  const queryString = params.toString();
+                  router.push(
+                    `/alerts/new${queryString ? `?${queryString}` : ""}`,
+                  );
+                }}
+                className="w-full py-2 px-4 bg-white border-2 border-[#0E1B4D] text-[#0E1B4D] font-geograph font-medium text-[14px] rounded-lg hover:bg-[#0E1B4D] hover:text-white transition-colors"
+              >
+                🔔 Create Price Alert
+              </button>
             </div>
           </aside>
 
