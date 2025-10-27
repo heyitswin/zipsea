@@ -124,7 +124,7 @@ export default function AlertMatchesPage() {
       cruise.oceanviewPrice,
       cruise.balconyPrice,
       cruise.suitePrice,
-    ].filter((p) => p != null && p > 0);
+    ].filter((p): p is number => p != null && p > 0);
     return prices.length > 0 ? Math.min(...prices) : null;
   };
 
