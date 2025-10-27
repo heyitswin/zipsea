@@ -8,6 +8,7 @@ const isPublicRoute = createRouteMatcher([
   "/cruises/(.*)", // All category pages (caribbean, alaska, etc.)
   "/cruise/(.*)",
   "/booking/(.*)", // Allow guest checkout - authentication not required for booking flow
+  "/alerts/new", // Allow users to fill out alert form before signing in
   "/top-destinations",
   "/cruise-lines",
   "/departure-ports",
