@@ -70,7 +70,7 @@ export default function AlertMatchesPage() {
 
       // Load alert details
       const alertResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/alerts/${alertId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/alerts/${alertId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -87,7 +87,7 @@ export default function AlertMatchesPage() {
 
       // Load matches
       const matchesResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/alerts/${alertId}/matches`,
+        `${process.env.NEXT_PUBLIC_API_URL}/alerts/${alertId}/matches`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

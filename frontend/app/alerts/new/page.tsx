@@ -33,7 +33,7 @@ function AlertFormContent() {
 
   // Load cruise lines
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/cruise-lines`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/cruise-lines`)
       .then((res) => res.json())
       .then((data) => setCruiseLines(data))
       .catch((err) => console.error("Failed to load cruise lines", err));
@@ -149,7 +149,7 @@ function AlertFormContent() {
     try {
       const token = await getClerkToken();
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/alerts`,
+        `${process.env.NEXT_PUBLIC_API_URL}/alerts`,
         {
           method: "POST",
           headers: {

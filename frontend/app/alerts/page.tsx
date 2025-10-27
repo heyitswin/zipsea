@@ -46,11 +46,14 @@ export default function AlertsPage() {
   const loadAlerts = async () => {
     try {
       const token = await getToken();
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/alerts`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/alerts`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       if (!response.ok) {
         throw new Error("Failed to load alerts");
@@ -69,16 +72,19 @@ export default function AlertsPage() {
   const toggleAlert = async (alertId: string, currentStatus: boolean) => {
     try {
       const token = await getToken();
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/alerts/${alertId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/alerts/${alertId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            alertEnabled: !currentStatus,
+          }),
         },
-        body: JSON.stringify({
-          alertEnabled: !currentStatus,
-        }),
-      });
+      );
 
       if (!response.ok) {
         throw new Error("Failed to update alert");
@@ -87,8 +93,10 @@ export default function AlertsPage() {
       // Update local state
       setAlerts((prev) =>
         prev.map((alert) =>
-          alert.id === alertId ? { ...alert, alertEnabled: !currentStatus } : alert
-        )
+          alert.id === alertId
+            ? { ...alert, alertEnabled: !currentStatus }
+            : alert,
+        ),
       );
     } catch (err) {
       console.error("Failed to toggle alert", err);
@@ -103,12 +111,15 @@ export default function AlertsPage() {
 
     try {
       const token = await getToken();
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/alerts/${alertId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/alerts/${alertId}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       if (!response.ok) {
         throw new Error("Failed to delete alert");
@@ -187,9 +198,12 @@ export default function AlertsPage() {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No alerts yet</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No alerts yet
+            </h3>
             <p className="text-gray-600 mb-6">
-              Create your first price alert to get notified when cruises match your criteria
+              Create your first price alert to get notified when cruises match
+              your criteria
             </p>
             <Link
               href="/alerts/new"
@@ -222,17 +236,22 @@ export default function AlertsPage() {
 
                     <div className="space-y-1 text-sm text-gray-600 mb-4">
                       <p>
-                        <span className="font-medium">Budget:</span> Up to ${alert.maxBudget} per person
+                        <span className="font-medium">Budget:</span> Up to $
+                        {alert.maxBudget} per person
                       </p>
                       <p>
                         <span className="font-medium">Cabin Types:</span>{" "}
-                        {alert.cabinTypes.map((t) => t.charAt(0).toUpperCase() + t.slice(1)).join(", ")}
+                        {alert.cabinTypes
+                          .map((t) => t.charAt(0).toUpperCase() + t.slice(1))
+                          .join(", ")}
                       </p>
                       <p>
-                        <span className="font-medium">Last Checked:</span> {formatDate(alert.lastChecked)}
+                        <span className="font-medium">Last Checked:</span>{" "}
+                        {formatDate(alert.lastChecked)}
                       </p>
                       <p>
-                        <span className="font-medium">Last Notified:</span> {formatDate(alert.lastNotified)}
+                        <span className="font-medium">Last Notified:</span>{" "}
+                        {formatDate(alert.lastNotified)}
                       </p>
                     </div>
 
@@ -245,7 +264,9 @@ export default function AlertsPage() {
                       </Link>
 
                       <button
-                        onClick={() => toggleAlert(alert.id, alert.alertEnabled)}
+                        onClick={() =>
+                          toggleAlert(alert.id, alert.alertEnabled)
+                        }
                         className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                           alert.alertEnabled
                             ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
