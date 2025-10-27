@@ -270,10 +270,14 @@ export class TraveltekApiService {
    *
    * @param targetDate - Optional target sailing date to search around
    * @param adults - Number of adults for session context (default: 2)
+   * @param children - Number of children for session context (default: 0)
+   * @param childAges - Array of child ages for session context (default: [])
    */
   async createSession(
     targetDate?: Date,
-    adults: number = 2
+    adults: number = 2,
+    children: number = 0,
+    childAges: number[] = []
   ): Promise<{ sessionkey: string; sid: string }> {
     try {
       // Perform a minimal search to generate session
@@ -301,18 +305,33 @@ export class TraveltekApiService {
         enddate = nextYear.toISOString().split('T')[0];
       }
 
+      // Calculate child DOBs from ages for Traveltek API
+      const childDobs = childAges.map((age: number) => {
+        const dob = new Date();
+        dob.setFullYear(dob.getFullYear() - age);
+        return dob.toISOString().split('T')[0];
+      });
+
       console.log(
-        `[TraveltekAPI] Creating session with adults=${adults}, startdate=${startdate}, enddate=${enddate}`
+        `[TraveltekAPI] Creating session with adults=${adults}, children=${children}, childAges=[${childAges.join(',')}], startdate=${startdate}, enddate=${enddate}`
       );
 
+      const params: any = {
+        startdate,
+        enddate,
+        lineid: '22,3', // Royal Caribbean and Celebrity
+        adults: adults, // Use provided adult count for session context
+        currency: 'USD', // Always use USD for pricing
+      };
+
+      // Add children parameters if there are children
+      if (children > 0 && childDobs.length > 0) {
+        params.children = children;
+        params.childdob = childDobs.join(','); // Comma-separated DOBs
+      }
+
       const response = await this.axiosInstance.get('/cruiseresults.pl', {
-        params: {
-          startdate,
-          enddate,
-          lineid: '22,3', // Royal Caribbean and Celebrity
-          adults: adults, // Use provided adult count for session context
-          currency: 'USD', // Always use USD for pricing
-        },
+        params,
       });
 
       // Extract sessionkey from meta.criteria.sessionkey (API structure)

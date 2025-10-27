@@ -116,10 +116,14 @@ class TraveltekSessionService {
       const sailingDate = new Date(cruiseResult[0].sailing_date);
 
       // Step 1: Create Traveltek session with date range including the cruise
-      // IMPORTANT: Pass the actual adult count so Traveltek session context matches getCabinGrades calls
+      // IMPORTANT: Pass the actual passenger counts (adults, children, ages) so Traveltek
+      // session context matches getCabinGrades calls. This is critical for accurate pricing
+      // as cruise lines charge different rates for children and infants.
       const traveltekSession = await traveltekApiService.createSession(
         sailingDate,
-        params.passengerCount.adults
+        params.passengerCount.adults,
+        params.passengerCount.children,
+        params.passengerCount.childAges || []
       );
 
       if (!traveltekSession.sessionkey) {
