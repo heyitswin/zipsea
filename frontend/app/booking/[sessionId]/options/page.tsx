@@ -312,6 +312,11 @@ export default function BookingOptionsPage() {
               </div>
             </div>
 
+            {/* Pricing Summary - Mobile Only (appears above buttons) */}
+            <div className="lg:hidden mb-6">
+              <PricingSummary sessionId={sessionId} />
+            </div>
+
             {/* Navigation Buttons */}
             <div className="flex justify-between items-center">
               <button
@@ -340,8 +345,8 @@ export default function BookingOptionsPage() {
             </div>
           </div>
 
-          {/* Right Column - Pricing Summary */}
-          <div className="lg:col-span-1">
+          {/* Right Column - Pricing Summary (Desktop Only) */}
+          <div className="lg:col-span-1 hidden lg:block">
             <div className="sticky top-[100px]">
               <PricingSummary sessionId={sessionId} />
             </div>
