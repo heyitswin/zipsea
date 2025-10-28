@@ -986,7 +986,12 @@ class TraveltekBookingService {
         );
         console.log('  - cruisedetail.pricing:', firstItem.cruisedetail?.pricing);
         console.log('  - cruisedetail.pricingbreakdown:', firstItem.cruisedetail?.pricingbreakdown);
+        console.log('  - cruisedetail.prices:', JSON.stringify(firstItem.cruisedetail?.prices));
         console.log('  - All basketitem keys:', Object.keys(firstItem).join(', '));
+
+        // Log FULL basketitem structure to understand what Traveltek provides
+        console.log('[TraveltekBooking] 📦 FULL basketitem structure (first 2000 chars):');
+        console.log(JSON.stringify(firstItem, null, 2).substring(0, 2000));
       }
 
       return basketData;
