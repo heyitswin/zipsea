@@ -112,6 +112,20 @@ router.get('/:sessionId/basket', bookingController.getBasket);
 router.post('/:sessionId/create', authenticateTokenOptional, bookingController.createBooking);
 
 /**
+ * POST /api/booking/:sessionId/initialize-pricing
+ * Initialize pricing by creating a temp hold booking with dummy data.
+ * This forces Traveltek to populate the pricing breakdown array.
+ * The dummy data will be replaced when user completes the booking flow.
+ *
+ * Auth: Optional
+ */
+router.post(
+  '/:sessionId/initialize-pricing',
+  authenticateTokenOptional,
+  bookingController.initializePricing
+);
+
+/**
  * POST /api/booking/:sessionId/hold
  * Create a hold booking without payment (reserves cabin for free)
  *
