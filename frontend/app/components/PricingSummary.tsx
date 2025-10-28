@@ -163,51 +163,15 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           });
         }
 
-        // Fallback: if breakdown is empty or doesn't exist, calculate from totalprice
-        // This happens when Traveltek hasn't populated the breakdown array yet
+        // Ultimate fallback: if no breakdown at all, use total as cruise fare
         if (breakdown.length === 0 && totalprice > 0) {
-          console.log(
-            "⚠️ No breakdown available, using estimated breakdown from totalprice",
-          );
-
-          // Estimate breakdown based on typical cruise pricing structure
-          // Usually: ~60% cruise fare, ~20% taxes/fees, ~10% port charges, ~10% gratuities
-          const estimatedFare = totalprice * 0.6;
-          const estimatedTaxes = totalprice * 0.2;
-          const estimatedPortFees = totalprice * 0.1;
-          const estimatedGratuities = totalprice * 0.1;
-
           breakdown.push({
-            description: "Cruise Fare (estimated)",
-            amount: estimatedFare,
+            description: "Cruise Fare",
+            amount: totalprice,
             isDiscount: false,
             isTax: false,
           });
-          cruiseFare = estimatedFare;
-
-          breakdown.push({
-            description: "Taxes & Fees (estimated)",
-            amount: estimatedTaxes,
-            isDiscount: false,
-            isTax: true,
-          });
-          taxes = estimatedTaxes;
-
-          breakdown.push({
-            description: "Port Charges (estimated)",
-            amount: estimatedPortFees,
-            isDiscount: false,
-            isTax: true,
-          });
-          fees = estimatedPortFees;
-
-          breakdown.push({
-            description: "Gratuities (estimated)",
-            amount: estimatedGratuities,
-            isDiscount: false,
-            isTax: false,
-          });
-          gratuities = estimatedGratuities;
+          cruiseFare = totalprice;
         }
 
         // Fetch session to get cruise line info for cancellation policy
