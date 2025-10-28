@@ -233,6 +233,17 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
       for (const cabinType of cabinTypes) {
         const cabin = pricingData[cabinType]?.[0]; // Get first cabin of this type
+        console.log(
+          `🔍 Checking ${cabinType} cabin for commissionable fare fetch:`,
+          {
+            hasCabin: !!cabin,
+            gradeNo: cabin?.gradeNo,
+            rateCode: cabin?.rateCode,
+            resultNo: cabin?.resultNo,
+            cabinKeys: cabin ? Object.keys(cabin) : [],
+          },
+        );
+
         if (cabin && cabin.gradeNo && cabin.rateCode && cabin.resultNo) {
           await fetchCommissionableFare(
             cabinType,
@@ -240,6 +251,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             cabin.rateCode,
             cabin.resultNo,
           );
+        } else {
+          console.log(`⚠️ Skipping ${cabinType} - missing required fields`);
         }
       }
     } catch (err) {
