@@ -20,6 +20,11 @@ const createAlertSchema = z.object({
     maxBudget: z.number().positive(),
     cabinTypes: z.array(z.enum(['interior', 'oceanview', 'balcony', 'suite'])).min(1),
     alertEnabled: z.boolean().optional(),
+    // Passenger information for Traveltek pricing
+    adults: z.number().int().min(1).max(9).default(2),
+    children: z.number().int().min(0).max(9).default(0),
+    childAges: z.array(z.number().int().min(0).max(17)).optional(),
+    infants: z.number().int().min(0).max(9).default(0),
   }),
 });
 
@@ -39,6 +44,11 @@ const updateAlertSchema = z.object({
     cabinTypes: z.array(z.enum(['interior', 'oceanview', 'balcony', 'suite'])).optional(),
     alertEnabled: z.boolean().optional(),
     isActive: z.boolean().optional(),
+    // Passenger information for Traveltek pricing
+    adults: z.number().int().min(1).max(9).optional(),
+    children: z.number().int().min(0).max(9).optional(),
+    childAges: z.array(z.number().int().min(0).max(17)).optional(),
+    infants: z.number().int().min(0).max(9).optional(),
   }),
 });
 

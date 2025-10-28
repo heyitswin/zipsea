@@ -20,6 +20,10 @@ class AlertController {
         maxBudget,
         cabinTypes,
         alertEnabled = true,
+        adults = 2,
+        children = 0,
+        childAges = [],
+        infants = 0,
       } = req.body;
 
       // Get user ID from Clerk
@@ -64,6 +68,10 @@ class AlertController {
           alertEnabled,
           alertFrequency: 'daily',
           isActive: true,
+          adults,
+          children,
+          childAges,
+          infants,
         })
         .returning();
 
@@ -155,10 +163,7 @@ class AlertController {
 
       // Verify alert belongs to user
       const alert = await db.query.savedSearches.findFirst({
-        where: and(
-          eq(savedSearches.id, alertId),
-          eq(savedSearches.userId, user.id)
-        ),
+        where: and(eq(savedSearches.id, alertId), eq(savedSearches.userId, user.id)),
       });
 
       if (!alert) {
@@ -202,6 +207,10 @@ class AlertController {
         cabinTypes,
         alertEnabled,
         isActive,
+        adults,
+        children,
+        childAges,
+        infants,
       } = req.body;
 
       const clerkUserId = req.headers['x-clerk-user-id'] as string;
@@ -226,10 +235,7 @@ class AlertController {
 
       // Verify alert belongs to user
       const existingAlert = await db.query.savedSearches.findFirst({
-        where: and(
-          eq(savedSearches.id, alertId),
-          eq(savedSearches.userId, user.id)
-        ),
+        where: and(eq(savedSearches.id, alertId), eq(savedSearches.userId, user.id)),
       });
 
       if (!existingAlert) {
@@ -251,6 +257,10 @@ class AlertController {
       if (cabinTypes !== undefined) updateData.cabinTypes = cabinTypes;
       if (alertEnabled !== undefined) updateData.alertEnabled = alertEnabled;
       if (isActive !== undefined) updateData.isActive = isActive;
+      if (adults !== undefined) updateData.adults = adults;
+      if (children !== undefined) updateData.children = children;
+      if (childAges !== undefined) updateData.childAges = childAges;
+      if (infants !== undefined) updateData.infants = infants;
 
       const [updatedAlert] = await db
         .update(savedSearches)
@@ -302,10 +312,7 @@ class AlertController {
 
       // Verify alert belongs to user
       const alert = await db.query.savedSearches.findFirst({
-        where: and(
-          eq(savedSearches.id, alertId),
-          eq(savedSearches.userId, user.id)
-        ),
+        where: and(eq(savedSearches.id, alertId), eq(savedSearches.userId, user.id)),
       });
 
       if (!alert) {
@@ -317,9 +324,7 @@ class AlertController {
       }
 
       // Delete alert (cascade will delete alert_matches)
-      await db
-        .delete(savedSearches)
-        .where(eq(savedSearches.id, alertId));
+      await db.delete(savedSearches).where(eq(savedSearches.id, alertId));
 
       logger.info(`[AlertController] Deleted alert ${alertId}`);
 
@@ -365,10 +370,7 @@ class AlertController {
 
       // Verify alert belongs to user
       const alert = await db.query.savedSearches.findFirst({
-        where: and(
-          eq(savedSearches.id, alertId),
-          eq(savedSearches.userId, user.id)
-        ),
+        where: and(eq(savedSearches.id, alertId), eq(savedSearches.userId, user.id)),
       });
 
       if (!alert) {
