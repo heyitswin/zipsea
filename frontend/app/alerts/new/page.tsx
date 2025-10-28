@@ -24,6 +24,12 @@ function AlertFormContent() {
   const [selectedCabinTypes, setSelectedCabinTypes] = useState<string[]>([]);
   const [regionId, setRegionId] = useState<number | null>(null);
 
+  // Passenger information
+  const [adults, setAdults] = useState(2);
+  const [children, setChildren] = useState(0);
+  const [childAges, setChildAges] = useState<number[]>([]);
+  const [infants, setInfants] = useState(0);
+
   // Data
   const [cruiseLines, setCruiseLines] = useState<CruiseLine[]>([]);
   const [loading, setLoading] = useState(false);
@@ -90,6 +96,24 @@ function AlertFormContent() {
         ? prev.filter((t) => t !== cabinType)
         : [...prev, cabinType],
     );
+  };
+
+  const handleChildrenChange = (count: number) => {
+    setChildren(count);
+    // Adjust childAges array size
+    if (count > childAges.length) {
+      // Add default ages for new children
+      setChildAges([...childAges, ...Array(count - childAges.length).fill(5)]);
+    } else if (count < childAges.length) {
+      // Remove excess ages
+      setChildAges(childAges.slice(0, count));
+    }
+  };
+
+  const handleChildAgeChange = (index: number, age: number) => {
+    const newAges = [...childAges];
+    newAges[index] = age;
+    setChildAges(newAges);
   };
 
   const generateAlertName = () => {
@@ -165,6 +189,10 @@ function AlertFormContent() {
             },
             maxBudget: parseFloat(maxBudget),
             cabinTypes: selectedCabinTypes,
+            adults,
+            children,
+            childAges,
+            infants,
           }),
         },
       );
@@ -341,6 +369,107 @@ function AlertFormContent() {
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Passenger Information */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium mb-4">Passenger Information</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Pricing will be calculated based on these passenger counts
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Adults */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Adults *
+                </label>
+                <input
+                  type="number"
+                  value={adults}
+                  onChange={(e) =>
+                    setAdults(
+                      Math.max(1, Math.min(9, parseInt(e.target.value) || 1)),
+                    )
+                  }
+                  min="1"
+                  max="9"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Children */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Children (2-17)
+                </label>
+                <input
+                  type="number"
+                  value={children}
+                  onChange={(e) =>
+                    handleChildrenChange(
+                      Math.max(0, Math.min(9, parseInt(e.target.value) || 0)),
+                    )
+                  }
+                  min="0"
+                  max="9"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Infants */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Infants (0-23 months)
+                </label>
+                <input
+                  type="number"
+                  value={infants}
+                  onChange={(e) =>
+                    setInfants(
+                      Math.max(0, Math.min(9, parseInt(e.target.value) || 0)),
+                    )
+                  }
+                  min="0"
+                  max="9"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Child Ages */}
+            {children > 0 && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium mb-2">
+                  Child Ages *
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {Array.from({ length: children }).map((_, index) => (
+                    <div key={index}>
+                      <label className="block text-xs text-gray-600 mb-1">
+                        Child {index + 1}
+                      </label>
+                      <input
+                        type="number"
+                        value={childAges[index] || 5}
+                        onChange={(e) =>
+                          handleChildAgeChange(
+                            index,
+                            Math.max(
+                              2,
+                              Math.min(17, parseInt(e.target.value) || 5),
+                            ),
+                          )
+                        }
+                        min="2"
+                        max="17"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}
