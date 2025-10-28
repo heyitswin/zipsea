@@ -88,57 +88,79 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
         let gratuities = 0;
         let discounts = 0;
 
-        // PRIMARY SOURCE: Use individual pricing fields from basketitem
-        // These are the reliable, always-populated fields from Traveltek
-        if (basketItem) {
-          const fare = parseFloat(basketItem.fare || 0);
-          const tax = parseFloat(basketItem.taxes || 0);
-          const ncf = parseFloat(basketItem.ncf || 0); // Non-commissionable fees (port fees)
-          const gratuity = parseFloat(basketItem.gratuity || 0);
+        // PRIMARY SOURCE: Use cruisedetail.breakdown array from Traveltek
+        // This is where Traveltek actually provides the detailed pricing breakdown
+        if (
+          basketItem?.cruisedetail?.breakdown &&
+          Array.isArray(basketItem.cruisedetail.breakdown)
+        ) {
+          console.log("💰 Using cruisedetail.breakdown for pricing details");
 
-          // Add cruise fare
-          if (fare > 0) {
-            breakdown.push({
-              description: "Cruise Fare",
-              amount: fare,
-              isDiscount: false,
-              isTax: false,
-            });
-            cruiseFare = fare;
-          }
+          basketItem.cruisedetail.breakdown.forEach((item: any) => {
+            const amount = parseFloat(item.totalcost || item.sprice || 0);
+            const description = item.description || "Unknown";
+            const category = item.category?.toLowerCase();
 
-          // Add taxes
-          if (tax > 0) {
-            breakdown.push({
-              description: "Taxes & Fees",
-              amount: tax,
-              isDiscount: false,
-              isTax: true,
-            });
-            taxes = tax;
-          }
+            if (amount === 0) return; // Skip zero amounts
 
-          // Add port fees (NCF - Non-Commissionable Fees)
-          if (ncf > 0) {
-            breakdown.push({
-              description: "Port Charges",
-              amount: ncf,
-              isDiscount: false,
-              isTax: true,
-            });
-            fees = ncf;
-          }
+            if (category === "fare") {
+              // Cruise fare
+              breakdown.push({
+                description: description,
+                amount: amount,
+                isDiscount: false,
+                isTax: false,
+              });
+              cruiseFare += amount;
+            } else if (category === "discount") {
+              // Discounts (negative amounts)
+              breakdown.push({
+                description: description,
+                amount: Math.abs(amount), // Display as positive with isDiscount flag
+                isDiscount: true,
+                isTax: false,
+              });
+              discounts += Math.abs(amount);
+            } else if (category === "tax") {
+              // Taxes and fees
+              breakdown.push({
+                description: description,
+                amount: amount,
+                isDiscount: false,
+                isTax: true,
+              });
 
-          // Add gratuities if present
-          if (gratuity > 0) {
-            breakdown.push({
-              description: "Prepaid Gratuities",
-              amount: gratuity,
-              isDiscount: false,
-              isTax: false,
-            });
-            gratuities = gratuity;
-          }
+              // Categorize as taxes or fees based on description
+              if (
+                description.toLowerCase().includes("non-commissionable") ||
+                description.toLowerCase().includes("port")
+              ) {
+                fees += amount;
+              } else {
+                taxes += amount;
+              }
+            } else if (
+              category === "gratuity" ||
+              description.toLowerCase().includes("gratuity")
+            ) {
+              // Gratuities
+              breakdown.push({
+                description: description,
+                amount: amount,
+                isDiscount: false,
+                isTax: false,
+              });
+              gratuities += amount;
+            } else {
+              // Other items
+              breakdown.push({
+                description: description,
+                amount: amount,
+                isDiscount: false,
+                isTax: category === "tax",
+              });
+            }
+          });
         }
 
         // Ultimate fallback: if no breakdown at all, use total as cruise fare
