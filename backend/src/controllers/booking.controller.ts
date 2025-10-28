@@ -211,11 +211,27 @@ class BookingController {
         chosenfarecode: rateCode,
       });
 
-      // Extract commissionable cruise fare (category: "fare")
-      const fareItem = breakdown.results?.find((item: any) => item.category === 'fare');
+      console.log(
+        '[BookingController] Breakdown results:',
+        JSON.stringify({
+          resultsCount: breakdown.results?.length || 0,
+          categories:
+            breakdown.results?.map((item: any) => ({
+              category: item.category,
+              description: item.description,
+              commissionable: item.commissionable,
+            })) || [],
+        })
+      );
+
+      // Extract commissionable cruise fare
+      // Look for items with commissionable: 1 (indicating it's commissionable fare)
+      const fareItem = breakdown.results?.find(
+        (item: any) => item.commissionable === 1 || item.commissionable === '1'
+      );
 
       if (!fareItem) {
-        console.log('[BookingController] No fare item found in breakdown');
+        console.log('[BookingController] No commissionable fare item found in breakdown');
         res.json({ commissionableFare: null });
         return;
       }
