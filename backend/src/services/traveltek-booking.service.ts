@@ -731,7 +731,43 @@ class TraveltekBookingService {
         }
       }
 
-      // Update session with basket data and itemkey
+      // Get pricing breakdown for display on options/passengers pages
+      // This is a separate API call that provides itemized costs (cruise fare, taxes, fees, etc.)
+      console.log('[TraveltekBooking] 💰 Fetching pricing breakdown...');
+      let pricingBreakdown = null;
+      try {
+        const breakdownResponse = await traveltekApiService.getCabinGradeBreakdown({
+          sessionkey: sessionData.sessionKey,
+          chosencruise: params.resultNo,
+          chosencabingrade: params.gradeNo,
+          chosenfarecode: params.rateCode,
+          itemkey, // Include itemkey for basket mode
+          cid: params.cruiseId,
+        });
+
+        if (breakdownResponse.results && breakdownResponse.results.length > 0) {
+          pricingBreakdown = breakdownResponse.results;
+          console.log(
+            '[TraveltekBooking] ✅ Got pricing breakdown with',
+            pricingBreakdown.length,
+            'items'
+          );
+          console.log(
+            '[TraveltekBooking] 📊 Breakdown preview:',
+            JSON.stringify(pricingBreakdown.slice(0, 2), null, 2)
+          );
+        } else {
+          console.warn('[TraveltekBooking] ⚠️  No pricing breakdown returned');
+        }
+      } catch (error) {
+        console.error(
+          '[TraveltekBooking] ⚠️  Failed to fetch pricing breakdown (non-fatal):',
+          error
+        );
+        // Don't fail the entire request if breakdown fails
+      }
+
+      // Update session with basket data, itemkey, and pricing breakdown
       // Note: We're only storing the basketData for now since we don't have complete cabin details
       // The selectedCabinGrade and selectedCabin fields in the schema expect full objects,
       // but we only have the IDs at this point. We can add them later if needed.
@@ -739,10 +775,12 @@ class TraveltekBookingService {
       console.log('  - basketData has items?', !!basketData.results?.[0]?.basketitems?.length);
       console.log('  - basketData.results[0].totalprice:', basketData.results?.[0]?.totalprice);
       console.log('  - basketData.results[0].totaldeposit:', basketData.results?.[0]?.totaldeposit);
+      console.log('  - pricingBreakdown available?', !!pricingBreakdown);
 
       await traveltekSessionService.updateSession(params.sessionId, {
         basketData,
         itemkey,
+        pricingBreakdown,
       });
 
       console.log(`[TraveltekBooking] ✅ Added cabin to basket for session ${params.sessionId}`);

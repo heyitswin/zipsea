@@ -22,6 +22,7 @@ interface SessionData {
   basketData?: any; // Cached basket data from addToBasket response
   itemkey?: string; // Item key from basket response, required for booking creation
   isHoldBooking?: boolean; // Flag for hold booking vs full payment
+  pricingBreakdown?: any[]; // Detailed pricing breakdown from cruisecabingradebreakdown.pl
 }
 
 interface CreateSessionParams {
@@ -37,6 +38,7 @@ interface UpdateSessionParams {
   cruiseResultNo?: string; // Allow updating cruise result number
   itemkey?: string; // Item key from basket response
   isHoldBooking?: boolean; // Flag for hold booking vs full payment
+  pricingBreakdown?: any[]; // Detailed pricing breakdown from cruisecabingradebreakdown.pl
 }
 
 /**

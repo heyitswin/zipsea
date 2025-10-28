@@ -524,6 +524,63 @@ export class TraveltekApiService {
   }
 
   /**
+   * Get detailed pricing breakdown for a specific cabin grade
+   * This provides itemized costs (cruise fare, taxes, fees, etc.)
+   * Can be called in search mode (before basket) or basket mode (after adding to basket)
+   */
+  async getCabinGradeBreakdown(params: {
+    sessionkey: string;
+    chosencruise: string; // resultno from getCabinGrades
+    chosencabingrade: string; // gradeno from getCabinGrades
+    chosenfarecode: string; // farecode from getCabinGrades
+    itemkey?: string; // Optional: for basket mode
+    cid?: string; // Optional: codetocruiseid
+  }): Promise<ApiResponse> {
+    try {
+      console.log('🔍 Traveltek API: getCabinGradeBreakdown request');
+      console.log('   Method: GET');
+      console.log('   URL:', `${TRAVELTEK_API_BASE_URL}/cruisecabingradebreakdown.pl`);
+      console.log('   Params:', JSON.stringify(params, null, 2));
+
+      const response = await this.axiosInstance.get('/cruisecabingradebreakdown.pl', {
+        params,
+      });
+
+      console.log('✅ Traveltek API: getCabinGradeBreakdown response status:', response.status);
+      console.log('   Response data keys:', Object.keys(response.data));
+      if (response.data.results) {
+        console.log('   Breakdown items count:', response.data.results.length);
+      }
+
+      // Log errors and warnings if present
+      if (response.data.errors && response.data.errors.length > 0) {
+        console.log(
+          '⚠️  Traveltek API: getCabinGradeBreakdown returned errors:',
+          JSON.stringify(response.data.errors, null, 2)
+        );
+      }
+      if (response.data.warnings && response.data.warnings.length > 0) {
+        console.log(
+          '⚠️  Traveltek API: getCabinGradeBreakdown returned warnings:',
+          JSON.stringify(response.data.warnings, null, 2)
+        );
+      }
+
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Traveltek API: getCabinGradeBreakdown error:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Get ship details including deck plans
    */
   async getShipDetails(params: {
