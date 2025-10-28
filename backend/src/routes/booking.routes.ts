@@ -61,6 +61,26 @@ router.patch('/session/:sessionId', bookingController.updateSession);
 router.get('/:sessionId/pricing', bookingController.getCabinPricing);
 
 /**
+ * GET /api/booking/:sessionId/commissionable-fare/:gradeNo/:rateCode/:resultNo
+ * Get commissionable cruise fare for a cabin grade (for accurate OBC calculation)
+ *
+ * Returns the base cruise fare (commissionable amount only, excluding taxes/fees)
+ * This is used to calculate onboard credit based on the actual fare rather than cached prices
+ *
+ * Path params:
+ * - sessionId: string (required)
+ * - gradeNo: string (required - cabin grade number)
+ * - rateCode: string (required - rate/fare code)
+ * - resultNo: string (required - cruise result number)
+ *
+ * Auth: Optional
+ */
+router.get(
+  '/:sessionId/commissionable-fare/:gradeNo/:rateCode/:resultNo',
+  bookingController.getCommissionableFare
+);
+
+/**
  * GET /api/booking/:sessionId/specific-cabins
  * Get list of specific cabins for a cabin grade
  *

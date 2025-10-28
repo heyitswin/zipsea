@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { traveltekBookingService } from '../services/traveltek-booking.service';
 import { traveltekSessionService } from '../services/traveltek-session.service';
+import { traveltekApiService } from '../services/traveltek-api.service';
 
 /**
  * Booking Controller
@@ -175,6 +176,75 @@ class BookingController {
 
       res.status(500).json({
         error: 'Failed to get cabin pricing',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  /**
+   * GET /api/booking/:sessionId/commissionable-fare/:gradeNo/:rateCode/:resultNo
+   * Get commissionable cruise fare for a specific cabin grade (for accurate OBC calculation)
+   */
+  async getCommissionableFare(req: Request, res: Response): Promise<void> {
+    try {
+      const { sessionId, gradeNo, rateCode, resultNo } = req.params;
+
+      console.log('[BookingController] Getting commissionable fare for cabin:', {
+        sessionId,
+        gradeNo,
+        rateCode,
+        resultNo,
+      });
+
+      // Get session to retrieve sessionkey
+      const session = await traveltekSessionService.getSession(sessionId);
+      if (!session) {
+        res.status(404).json({ error: 'Session not found' });
+        return;
+      }
+
+      // Call cruisecabingradebreakdown.pl to get detailed pricing
+      const breakdown = await traveltekApiService.getCabinGradeBreakdown({
+        sessionkey: session.sessionKey,
+        chosencruise: resultNo,
+        chosencabingrade: gradeNo,
+        chosenfarecode: rateCode,
+      });
+
+      // Extract commissionable cruise fare (category: "fare")
+      const fareItem = breakdown.results?.find((item: any) => item.category === 'fare');
+
+      if (!fareItem) {
+        console.log('[BookingController] No fare item found in breakdown');
+        res.json({ commissionableFare: null });
+        return;
+      }
+
+      // Sum up all guest prices
+      let totalFare = 0;
+      if (fareItem.prices && Array.isArray(fareItem.prices)) {
+        totalFare = fareItem.prices.reduce((sum: number, priceItem: any) => {
+          const price = parseFloat(priceItem.sprice || priceItem.price || 0);
+          return sum + price;
+        }, 0);
+      }
+
+      console.log('[BookingController] Commissionable fare calculated:', totalFare);
+
+      res.json({
+        commissionableFare: totalFare,
+        description: fareItem.description || 'Cruise Fare',
+      });
+    } catch (error: any) {
+      console.error('[BookingController] Error getting commissionable fare:', error);
+
+      if (error instanceof Error && error.message.includes('Invalid or expired')) {
+        res.status(401).json({ error: error.message });
+        return;
+      }
+
+      res.status(500).json({
+        error: 'Failed to get commissionable fare',
         message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
