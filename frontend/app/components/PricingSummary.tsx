@@ -110,7 +110,24 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
 
         if (breakdownSource) {
           breakdownSource.forEach((item: any) => {
-            const amount = parseFloat(item.totalcost || item.sprice || 0);
+            // Handle two different API response formats:
+            // 1. cruisecabingradebreakdown.pl: items have "prices" array with guest-level pricing
+            // 2. basketitem breakdown: items have direct "totalcost" or "sprice" values
+            let amount = 0;
+
+            if (item.prices && Array.isArray(item.prices)) {
+              // Sum up all guest prices for cruisecabingradebreakdown.pl format
+              amount = item.prices.reduce((sum: number, priceItem: any) => {
+                const priceValue = parseFloat(
+                  priceItem.sprice || priceItem.price || 0,
+                );
+                return sum + priceValue;
+              }, 0);
+            } else {
+              // Use direct amount for basketitem breakdown format
+              amount = parseFloat(item.totalcost || item.sprice || 0);
+            }
+
             const description = item.description || "Unknown";
             const category = item.category?.toLowerCase();
 
