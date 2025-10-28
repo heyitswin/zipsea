@@ -54,6 +54,16 @@ export const bookingSessions = pgTable('booking_sessions', {
   // Item key for booking (extracted from basket for easy access)
   itemkey: varchar('itemkey', { length: 255 }),
 
+  // Pricing breakdown from cruisecabingradebreakdown.pl API
+  pricingBreakdown: jsonb('pricing_breakdown').$type<
+    Array<{
+      description?: string;
+      totalcost?: string;
+      sprice?: string;
+      category?: string;
+    }>
+  >(),
+
   // Hold booking flag
   isHoldBooking: boolean('is_hold_booking').default(false),
 
