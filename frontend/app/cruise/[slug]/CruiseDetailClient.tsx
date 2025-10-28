@@ -76,6 +76,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     suite: false,
   }); // Load more state per category
 
+  // Store commissionable fares for accurate OBC calculation
+  const [commissionableFares, setCommissionableFares] = useState<
+    Record<string, number | null>
+  >({});
+
   // Specific cabin modal state
   const [isSpecificCabinModalOpen, setIsSpecificCabinModalOpen] =
     useState(false);
@@ -221,6 +226,22 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
       const pricingData = await pricingResponse.json();
       setLiveCabinGrades(pricingData);
+
+      // Fetch commissionable fares for each cabin type for accurate OBC calculation
+      console.log("📊 Fetching commissionable fares for OBC calculation...");
+      const cabinTypes = ["interior", "oceanview", "balcony", "suite"] as const;
+
+      for (const cabinType of cabinTypes) {
+        const cabin = pricingData[cabinType]?.[0]; // Get first cabin of this type
+        if (cabin && cabin.gradeNo && cabin.rateCode && cabin.resultNo) {
+          await fetchCommissionableFare(
+            cabinType,
+            cabin.gradeNo,
+            cabin.rateCode,
+            cabin.resultNo,
+          );
+        }
+      }
     } catch (err) {
       console.error("Failed to create booking session or fetch cabins:", err);
       showAlert("Unable to load live pricing. Please try again.");
@@ -462,10 +483,69 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     return suiteOnlyLines.includes(cruiseLineName);
   };
 
+  // Fetch commissionable cruise fare for accurate OBC calculation
+  const fetchCommissionableFare = async (
+    cabinType: "interior" | "oceanview" | "balcony" | "suite",
+    gradeNo: string,
+    rateCode: string,
+    resultNo: string,
+  ) => {
+    if (!sessionId) return null;
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/commissionable-fare/${gradeNo}/${rateCode}/${resultNo}`,
+      );
+
+      if (!response.ok) {
+        console.log(`Failed to fetch commissionable fare for ${cabinType}`);
+        return null;
+      }
+
+      const data = await response.json();
+      console.log(
+        `✅ Got commissionable fare for ${cabinType}:`,
+        data.commissionableFare,
+      );
+
+      // Store in state
+      setCommissionableFares((prev) => ({
+        ...prev,
+        [cabinType]: data.commissionableFare,
+      }));
+
+      return data.commissionableFare;
+    } catch (error) {
+      console.error(
+        `Error fetching commissionable fare for ${cabinType}:`,
+        error,
+      );
+      return null;
+    }
+  };
+
   // Helper function to calculate onboard credit based on price
-  const calculateOnboardCredit = (price: string | number | undefined) => {
-    if (!isPriceAvailable(price)) return 0;
-    const numPrice = typeof price === "string" ? parseFloat(price) : price;
+  // Prefers commissionable fare if available, falls back to cached price
+  const calculateOnboardCredit = (
+    price: string | number | undefined,
+    cabinType?: "interior" | "oceanview" | "balcony" | "suite",
+  ) => {
+    // Use commissionable fare if available (more accurate)
+    let fareToUse = price;
+    if (cabinType && commissionableFares[cabinType]) {
+      fareToUse = commissionableFares[cabinType];
+      console.log(
+        `💰 Using commissionable fare for ${cabinType} OBC: $${fareToUse}`,
+      );
+    } else if (price) {
+      console.log(
+        `💰 Using cached price for ${cabinType || "unknown"} OBC: $${price}`,
+      );
+    }
+
+    if (!isPriceAvailable(fareToUse)) return 0;
+    const numPrice =
+      typeof fareToUse === "string" ? parseFloat(fareToUse) : fareToUse;
     if (!numPrice || isNaN(numPrice)) return 0;
     // Calculate 8% of the price as onboard credit, rounded down to nearest $10
     const creditPercent = 0.08; // 8%
@@ -1881,6 +1961,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                               +$
                               {calculateOnboardCredit(
                                 getCabinPrice("interior"),
+                                "interior",
                               )}{" "}
                               onboard credit
                             </div>
@@ -1968,6 +2049,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                               +$
                               {calculateOnboardCredit(
                                 getCabinPrice("oceanview"),
+                                "oceanview",
                               )}{" "}
                               onboard credit
                             </div>
@@ -2055,6 +2137,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                               +$
                               {calculateOnboardCredit(
                                 getCabinPrice("balcony"),
+                                "balcony",
                               )}{" "}
                               onboard credit
                             </div>
@@ -2139,6 +2222,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                             +$
                             {calculateOnboardCredit(
                               getCabinPrice("suite"),
+                              "suite",
                             )}{" "}
                             onboard credit
                           </div>
