@@ -57,10 +57,12 @@ export async function authenticateToken(
 
     // Verify JWT token with Clerk
     try {
-      // Verify the JWT token - Clerk's verifyToken will automatically use the secret key from env
+      // Verify the JWT token using Clerk's publishable key for JWK resolution
       const payload = await verifyToken(token, {
         secretKey: env.CLERK_SECRET_KEY,
-        // Clerk requires issuer to be provided or will use default from publishable key
+        // Provide publishable key for JWK resolution
+        jwtKey: env.CLERK_PUBLISHABLE_KEY,
+        // Accept any HTTPS issuer from Clerk
         issuer: iss => iss.startsWith('https://'),
       });
 
@@ -131,6 +133,7 @@ export async function authenticateTokenOptional(
     try {
       const payload = await verifyToken(token, {
         secretKey: env.CLERK_SECRET_KEY,
+        jwtKey: env.CLERK_PUBLISHABLE_KEY,
         issuer: iss => iss.startsWith('https://'),
       });
 
@@ -190,6 +193,7 @@ export async function authenticateAdmin(
     try {
       const payload = await verifyToken(token, {
         secretKey: env.CLERK_SECRET_KEY,
+        jwtKey: env.CLERK_PUBLISHABLE_KEY,
         issuer: iss => iss.startsWith('https://'),
       });
 

@@ -28,6 +28,7 @@ const envSchema = z.object({
 
   // Clerk
   CLERK_SECRET_KEY: z.string().min(1).optional(),
+  CLERK_PUBLISHABLE_KEY: z.string().min(1).optional(),
   CLERK_JWT_KEY: z.string().min(1).optional(),
 
   // Traveltek FTP (required in production)
@@ -104,6 +105,7 @@ export const env = parseResult.success
       REDIS_PORT: Number(process.env.REDIS_PORT) || 6379,
       REDIS_PASSWORD: process.env.REDIS_PASSWORD,
       CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+      CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY,
       CLERK_JWT_KEY: process.env.CLERK_JWT_KEY,
       TRAVELTEK_FTP_HOST: process.env.TRAVELTEK_FTP_HOST || 'ftpeu1prod.traveltek.net',
       TRAVELTEK_FTP_USER: process.env.TRAVELTEK_FTP_USER,
