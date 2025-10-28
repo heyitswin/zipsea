@@ -324,6 +324,18 @@ class TraveltekSessionService {
         updateData.isHoldBooking = updates.isHoldBooking;
       }
 
+      if (updates.pricingBreakdown !== undefined) {
+        // Store pricing breakdown array
+        try {
+          updateData.pricingBreakdown = JSON.parse(JSON.stringify(updates.pricingBreakdown));
+        } catch (serializeError) {
+          console.warn(
+            '[TraveltekSession] Failed to serialize pricingBreakdown, skipping:',
+            serializeError
+          );
+        }
+      }
+
       // Update database
       await db.update(bookingSessions).set(updateData).where(eq(bookingSessions.id, sessionId));
 
