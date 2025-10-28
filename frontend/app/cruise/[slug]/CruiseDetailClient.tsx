@@ -225,6 +225,15 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       }
 
       const pricingData = await pricingResponse.json();
+      console.log("🔍 Pricing data structure:", {
+        topLevelKeys: Object.keys(pricingData),
+        hasInterior: !!pricingData.interior,
+        hasOceanview: !!pricingData.oceanview,
+        hasBalcony: !!pricingData.balcony,
+        hasSuite: !!pricingData.suite,
+        interiorLength: pricingData.interior?.length,
+        sampleInterior: pricingData.interior?.[0],
+      });
       setLiveCabinGrades(pricingData);
 
       // Fetch commissionable fares for each cabin type for accurate OBC calculation
