@@ -1166,6 +1166,7 @@ export default function CruisesContent() {
               )}
 
               {/* Create Price Alert Button */}
+              {/* TEMPORARILY HIDDEN - Price Alerts Feature
               <button
                 onClick={() => {
                   const params = new URLSearchParams();
@@ -1187,6 +1188,7 @@ export default function CruisesContent() {
               >
                 🔔 Create Price Alert
               </button>
+              */}
             </div>
           </aside>
 
