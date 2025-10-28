@@ -241,21 +241,22 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       console.log("📊 Fetching commissionable fares for OBC calculation...");
 
       if (pricingData.cabins && Array.isArray(pricingData.cabins)) {
-        const cabinTypes = [
-          "interior",
-          "oceanview",
-          "balcony",
-          "suite",
-        ] as const;
+        // Map frontend cabin types to backend category values
+        const cabinTypeMap = [
+          { type: "interior" as const, category: "inside" },
+          { type: "oceanview" as const, category: "outside" },
+          { type: "balcony" as const, category: "balcony" },
+          { type: "suite" as const, category: "suite" },
+        ];
 
-        for (const cabinType of cabinTypes) {
-          // Find first cabin of this type from the cabins array
+        for (const { type, category } of cabinTypeMap) {
+          // Find first cabin of this category from the cabins array
           const cabin = pricingData.cabins.find(
-            (c: any) => c.cabinType === cabinType,
+            (c: any) => c.category === category,
           );
 
           console.log(
-            `🔍 Checking ${cabinType} cabin for commissionable fare fetch:`,
+            `🔍 Checking ${type} (${category}) cabin for commissionable fare fetch:`,
             {
               hasCabin: !!cabin,
               gradeNo: cabin?.gradeNo,
@@ -266,14 +267,14 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
           if (cabin && cabin.gradeNo && cabin.rateCode && cabin.resultNo) {
             await fetchCommissionableFare(
-              cabinType,
+              type,
               cabin.gradeNo,
               cabin.rateCode,
               cabin.resultNo,
             );
           } else {
             console.log(
-              `⚠️ Skipping ${cabinType} - missing required fields or no cabin found`,
+              `⚠️ Skipping ${type} - missing required fields or no cabin found`,
             );
           }
         }
