@@ -430,7 +430,7 @@ function HomeWithParams() {
                                 setCruiseLineSearch(e.target.value)
                               }
                               placeholder="Search cruise lines..."
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-gray-400"
                               onClick={(e) => e.stopPropagation()}
                             />
                           </div>
@@ -841,7 +841,7 @@ function HomeWithParams() {
                               setCruiseLineSearch(e.target.value)
                             }
                             placeholder="Search cruise lines..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-gray-400"
                             onClick={(e) => e.stopPropagation()}
                           />
                         </div>
