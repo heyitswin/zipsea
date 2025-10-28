@@ -1788,7 +1788,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                         )}
                                         {reservingCabinId ===
                                         `${cabinPricing.resultNo}-${cabinPricing.gradeNo}-${cabinPricing.rateCode}`
-                                          ? "Creating Booking..."
+                                          ? "Creating..."
                                           : "Reserve"}
                                       </button>
                                     </div>

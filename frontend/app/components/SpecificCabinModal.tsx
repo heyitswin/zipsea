@@ -514,7 +514,7 @@ export default function SpecificCabinModal({
                 {isReserving && (
                   <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
                 )}
-                {isReserving ? "Creating Booking..." : "Reserve Selected Cabin"}
+                {isReserving ? "Creating..." : "Reserve Selected Cabin"}
               </button>
             </div>
           )}
