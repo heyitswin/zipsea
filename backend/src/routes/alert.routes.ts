@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { alertController } from '../controllers/alert.controller';
 import { validate } from '../middleware/validation';
+import { authenticateToken } from '../middleware/auth';
 import { z } from 'zod';
 
 const router = Router();
@@ -52,14 +53,19 @@ const alertIdParam = z.object({
  * @desc    Create a new price alert
  * @access  Private (requires authentication)
  */
-router.post('/', validate({ body: createAlertSchema.shape.body }), alertController.createAlert);
+router.post(
+  '/',
+  authenticateToken,
+  validate({ body: createAlertSchema.shape.body }),
+  alertController.createAlert
+);
 
 /**
  * @route   GET /api/v1/alerts
  * @desc    Get all alerts for authenticated user
  * @access  Private
  */
-router.get('/', alertController.getUserAlerts);
+router.get('/', authenticateToken, alertController.getUserAlerts);
 
 /**
  * @route   GET /api/v1/alerts/:id/matches
@@ -68,6 +74,7 @@ router.get('/', alertController.getUserAlerts);
  */
 router.get(
   '/:id/matches',
+  authenticateToken,
   validate({ params: alertIdParam.shape.params }),
   alertController.getAlertMatches
 );
@@ -79,6 +86,7 @@ router.get(
  */
 router.put(
   '/:id',
+  authenticateToken,
   validate({
     params: alertIdParam.shape.params,
     body: updateAlertSchema.shape.body,
@@ -91,7 +99,12 @@ router.put(
  * @desc    Delete an alert
  * @access  Private
  */
-router.delete('/:id', validate({ params: alertIdParam.shape.params }), alertController.deleteAlert);
+router.delete(
+  '/:id',
+  authenticateToken,
+  validate({ params: alertIdParam.shape.params }),
+  alertController.deleteAlert
+);
 
 /**
  * @route   POST /api/v1/alerts/:id/process
@@ -100,6 +113,7 @@ router.delete('/:id', validate({ params: alertIdParam.shape.params }), alertCont
  */
 router.post(
   '/:id/process',
+  authenticateToken,
   validate({ params: alertIdParam.shape.params }),
   alertController.processAlert
 );

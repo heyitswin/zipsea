@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { clerkClient } from '@clerk/clerk-sdk-node';
+import { clerkClient, verifyToken } from '@clerk/clerk-sdk-node';
+import { env } from '../config/environment';
 
 /**
  * Authentication Middleware
@@ -54,11 +55,14 @@ export async function authenticateToken(
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
-    // Verify token with Clerk
+    // Verify JWT token with Clerk
     try {
-      const session = await clerkClient.sessions.verifySession(token, token);
+      // Verify the JWT token
+      const payload = await verifyToken(token, {
+        secretKey: env.CLERK_SECRET_KEY,
+      });
 
-      if (!session || !session.userId) {
+      if (!payload || !payload.sub) {
         res.status(401).json({
           error: 'Invalid token',
           message: 'The provided authentication token is invalid or expired',
@@ -66,8 +70,8 @@ export async function authenticateToken(
         return;
       }
 
-      // Get user details from Clerk
-      const user = await clerkClient.users.getUser(session.userId);
+      // Get user details from Clerk using the user ID from token
+      const user = await clerkClient.users.getUser(payload.sub);
 
       // Attach user to request
       req.user = {
@@ -78,11 +82,11 @@ export async function authenticateToken(
       };
 
       next();
-    } catch (clerkError) {
+    } catch (clerkError: any) {
       console.error('[Auth] Clerk verification error:', clerkError);
       res.status(401).json({
         error: 'Token verification failed',
-        message: 'Unable to verify authentication token',
+        message: clerkError.message || 'Unable to verify authentication token',
       });
       return;
     }
@@ -123,11 +127,13 @@ export async function authenticateTokenOptional(
 
     // Try to verify token, but don't fail if invalid
     try {
-      const session = await clerkClient.sessions.verifySession(token, token);
+      const payload = await verifyToken(token, {
+        secretKey: env.CLERK_SECRET_KEY,
+      });
 
-      if (session && session.userId) {
+      if (payload && payload.sub) {
         // Get user details
-        const user = await clerkClient.users.getUser(session.userId);
+        const user = await clerkClient.users.getUser(payload.sub);
 
         // Attach user to request
         req.user = {
@@ -179,9 +185,11 @@ export async function authenticateAdmin(
     const token = authHeader.substring(7);
 
     try {
-      const session = await clerkClient.sessions.verifySession(token, token);
+      const payload = await verifyToken(token, {
+        secretKey: env.CLERK_SECRET_KEY,
+      });
 
-      if (!session || !session.userId) {
+      if (!payload || !payload.sub) {
         res.status(401).json({
           error: 'Invalid token',
           message: 'The provided authentication token is invalid or expired',
@@ -190,7 +198,7 @@ export async function authenticateAdmin(
       }
 
       // Get user details
-      const user = await clerkClient.users.getUser(session.userId);
+      const user = await clerkClient.users.getUser(payload.sub);
 
       // Check if user has admin role
       // Note: You'll need to configure this in Clerk dashboard
