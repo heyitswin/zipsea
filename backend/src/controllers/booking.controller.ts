@@ -1,9 +1,6 @@
 import { Request, Response } from 'express';
 import { traveltekBookingService } from '../services/traveltek-booking.service';
 import { traveltekSessionService } from '../services/traveltek-session.service';
-import { db } from '../db';
-import { bookings } from '../db/schema/bookings';
-import { eq } from 'drizzle-orm';
 
 /**
  * Booking Controller
@@ -494,74 +491,6 @@ class BookingController {
 
       res.status(500).json({
         error: 'Failed to create hold booking',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
-  }
-
-  /**
-   * POST /api/booking/:sessionId/initialize-pricing
-   * Initialize pricing by creating a temp hold booking with dummy data.
-   * This forces Traveltek to calculate final pricing with dining selection,
-   * which populates the breakdown array. The dummy data will be replaced
-   * when the user completes the booking flow with real information.
-   */
-  async initializePricing(req: Request, res: Response): Promise<void> {
-    try {
-      const { sessionId } = req.params;
-
-      console.log('[BookingController] Initializing pricing for session:', sessionId);
-
-      // Check if a booking already exists for this session (pricing already initialized)
-      const existingBooking = await db
-        .select()
-        .from(bookings)
-        .where(eq(bookings.bookingSessionId, sessionId))
-        .limit(1);
-
-      if (existingBooking.length > 0) {
-        console.log('[BookingController] Pricing already initialized - booking exists');
-        res.json({
-          success: true,
-          message: 'Pricing already initialized',
-          alreadyInitialized: true,
-        });
-        return;
-      }
-
-      // Create temp hold booking with dummy data
-      await traveltekBookingService.createHoldBooking({
-        sessionId,
-        leadPassenger: {
-          firstName: 'Pricing',
-          lastName: 'Preview',
-          email: 'preview@temp.com',
-          phone: '0000000000',
-        },
-        holdDurationDays: 7,
-      });
-
-      console.log('[BookingController] Pricing initialized successfully');
-      res.json({
-        success: true,
-        message: 'Pricing initialized',
-        alreadyInitialized: false,
-      });
-    } catch (error) {
-      console.error('[BookingController] Initialize pricing error:', error);
-
-      if (error instanceof Error && error.message.includes('Invalid or expired')) {
-        res.status(401).json({ error: error.message });
-        return;
-      }
-
-      if (error instanceof Error && error.message.includes('No itemkey')) {
-        res.status(400).json({ error: error.message });
-        return;
-      }
-
-      res.status(500).json({
-        error: 'Failed to initialize pricing',
         message: error instanceof Error ? error.message : 'Unknown error',
       });
     }

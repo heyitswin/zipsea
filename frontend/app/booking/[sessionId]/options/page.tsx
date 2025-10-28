@@ -28,33 +28,6 @@ export default function BookingOptionsPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Initialize pricing on mount
-  useEffect(() => {
-    const initializePricing = async () => {
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/initialize-pricing`,
-          { method: "POST" },
-        );
-        if (response.ok) {
-          const data = await response.json();
-          console.log("[Options] Pricing initialization:", data.message);
-        } else {
-          console.error(
-            "[Options] Failed to initialize pricing:",
-            response.statusText,
-          );
-        }
-      } catch (error) {
-        console.error("[Options] Pricing initialization error:", error);
-      }
-    };
-
-    if (sessionId) {
-      initializePricing();
-    }
-  }, [sessionId]);
-
   // Fetch cruise data for back button
   useEffect(() => {
     const fetchCruiseSlug = async () => {
