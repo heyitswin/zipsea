@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { traveltekBookingService } from '../services/traveltek-booking.service';
 import { traveltekSessionService } from '../services/traveltek-session.service';
+import { db } from '../db';
+import { bookings } from '../db/schema/bookings';
+import { eq } from 'drizzle-orm';
 
 /**
  * Booking Controller
@@ -509,10 +512,15 @@ class BookingController {
 
       console.log('[BookingController] Initializing pricing for session:', sessionId);
 
-      // Check if session already has a hold booking (pricing already initialized)
-      const sessionData = await traveltekSessionService.getSession(sessionId);
-      if (sessionData?.traveltekBookingId) {
-        console.log('[BookingController] Pricing already initialized');
+      // Check if a booking already exists for this session (pricing already initialized)
+      const existingBooking = await db
+        .select()
+        .from(bookings)
+        .where(eq(bookings.bookingSessionId, sessionId))
+        .limit(1);
+
+      if (existingBooking.length > 0) {
+        console.log('[BookingController] Pricing already initialized - booking exists');
         res.json({
           success: true,
           message: 'Pricing already initialized',
