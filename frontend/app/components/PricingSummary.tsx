@@ -88,50 +88,60 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
         let gratuities = 0;
         let discounts = 0;
 
-        // Extract pricing from Traveltek cruisedetail.breakdown array
-        // This contains the detailed pricing breakdown from the basket
-        if (basketItem?.cruisedetail?.breakdown) {
-          const breakdownItems = basketItem.cruisedetail.breakdown;
+        // PRIMARY SOURCE: Use individual pricing fields from basketitem
+        // These are the reliable, always-populated fields from Traveltek
+        if (basketItem) {
+          const fare = parseFloat(basketItem.fare || 0);
+          const tax = parseFloat(basketItem.taxes || 0);
+          const ncf = parseFloat(basketItem.ncf || 0); // Non-commissionable fees (port fees)
+          const gratuity = parseFloat(basketItem.gratuity || 0);
 
-          for (const item of breakdownItems) {
-            const amount = parseFloat(item.sprice || item.totalcost || 0);
-            const description = item.description || "";
-            const category = item.category || "";
+          // Add cruise fare
+          if (fare > 0) {
+            breakdown.push({
+              description: "Cruise Fare",
+              amount: fare,
+              isDiscount: false,
+              isTax: false,
+            });
+            cruiseFare = fare;
+          }
 
-            // Skip on-board credits that are just informational (included flag)
-            if (category === "onboardcredit" && item.included) {
-              continue;
-            }
+          // Add taxes
+          if (tax > 0) {
+            breakdown.push({
+              description: "Taxes & Fees",
+              amount: tax,
+              isDiscount: false,
+              isTax: true,
+            });
+            taxes = tax;
+          }
 
-            // Add to breakdown
-            if (amount !== 0) {
-              breakdown.push({
-                description,
-                amount: Math.abs(amount),
-                isDiscount: amount < 0 || category === "discount",
-                isTax: category === "tax",
-              });
+          // Add port fees (NCF - Non-Commissionable Fees)
+          if (ncf > 0) {
+            breakdown.push({
+              description: "Port Charges",
+              amount: ncf,
+              isDiscount: false,
+              isTax: true,
+            });
+            fees = ncf;
+          }
 
-              // Track totals by category
-              if (category === "fare") {
-                cruiseFare += amount;
-              } else if (category === "tax") {
-                if (
-                  description.toLowerCase().includes("non-commissionable") ||
-                  description.toLowerCase().includes("port")
-                ) {
-                  fees += amount;
-                } else {
-                  taxes += amount;
-                }
-              } else if (category === "discount") {
-                discounts += Math.abs(amount);
-              }
-            }
+          // Add gratuities if present
+          if (gratuity > 0) {
+            breakdown.push({
+              description: "Prepaid Gratuities",
+              amount: gratuity,
+              isDiscount: false,
+              isTax: false,
+            });
+            gratuities = gratuity;
           }
         }
 
-        // Fallback: if no breakdown, use total as cruise fare
+        // Ultimate fallback: if no breakdown at all, use total as cruise fare
         if (breakdown.length === 0 && totalprice > 0) {
           breakdown.push({
             description: "Cruise Fare",
