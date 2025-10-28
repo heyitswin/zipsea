@@ -990,6 +990,16 @@ class TraveltekBookingService {
           '[TraveltekBooking] 💵 Returning cached totaldeposit:',
           sessionData.basketData.results?.[0]?.totaldeposit
         );
+
+        // Include pricingBreakdown from session if available
+        if (sessionData.pricingBreakdown) {
+          console.log('[TraveltekBooking] 📊 Including pricing breakdown from session');
+          return {
+            ...sessionData.basketData,
+            pricingBreakdown: sessionData.pricingBreakdown,
+          };
+        }
+
         return sessionData.basketData;
       }
 
@@ -1030,6 +1040,15 @@ class TraveltekBookingService {
         // Log FULL basketitem structure to understand what Traveltek provides
         console.log('[TraveltekBooking] 📦 FULL basketitem structure (first 2000 chars):');
         console.log(JSON.stringify(firstItem, null, 2).substring(0, 2000));
+      }
+
+      // Include pricingBreakdown from session if available
+      if (sessionData.pricingBreakdown) {
+        console.log('[TraveltekBooking] 📊 Including pricing breakdown from session');
+        return {
+          ...basketData,
+          pricingBreakdown: sessionData.pricingBreakdown,
+        };
       }
 
       return basketData;

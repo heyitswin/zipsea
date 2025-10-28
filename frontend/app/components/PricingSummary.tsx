@@ -88,15 +88,28 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
         let gratuities = 0;
         let discounts = 0;
 
-        // PRIMARY SOURCE: Use cruisedetail.breakdown array from Traveltek
-        // This is where Traveltek actually provides the detailed pricing breakdown
+        // PRIMARY SOURCE: Use pricingBreakdown from session (fetched from cruisecabingradebreakdown.pl)
+        // This is the most accurate source as it comes from a dedicated breakdown API
+        let breakdownSource = null;
+
         if (
+          basketData.pricingBreakdown &&
+          Array.isArray(basketData.pricingBreakdown)
+        ) {
+          console.log(
+            "💰 Using pricingBreakdown from session (cruisecabingradebreakdown.pl API)",
+          );
+          breakdownSource = basketData.pricingBreakdown;
+        } else if (
           basketItem?.cruisedetail?.breakdown &&
           Array.isArray(basketItem.cruisedetail.breakdown)
         ) {
-          console.log("💰 Using cruisedetail.breakdown for pricing details");
+          console.log("💰 Fallback: Using cruisedetail.breakdown from basket");
+          breakdownSource = basketItem.cruisedetail.breakdown;
+        }
 
-          basketItem.cruisedetail.breakdown.forEach((item: any) => {
+        if (breakdownSource) {
+          breakdownSource.forEach((item: any) => {
             const amount = parseFloat(item.totalcost || item.sprice || 0);
             const description = item.description || "Unknown";
             const category = item.category?.toLowerCase();
