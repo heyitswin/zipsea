@@ -246,6 +246,7 @@ class TraveltekSessionService {
         cruiseResultNo: dbSession.selectedCabinGrade || undefined, // Store cruise result number
         isHoldBooking: dbSession.isHoldBooking || false,
         basketData: dbSession.basketData || undefined, // Include basket data for fallback pricing
+        pricingBreakdown: dbSession.pricingBreakdown || undefined, // Include pricing breakdown from cruisecabingradebreakdown.pl
       };
 
       // Restore to Redis
