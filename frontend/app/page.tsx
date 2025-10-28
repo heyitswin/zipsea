@@ -37,6 +37,7 @@ function HomeWithParams() {
   // Search states (cruise lines, dates, guests)
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const [selectedCruiseLines, setSelectedCruiseLines] = useState<number[]>([]);
+  const [cruiseLineSearch, setCruiseLineSearch] = useState("");
 
   // Login modal state
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -419,43 +420,65 @@ function HomeWithParams() {
                       </button>
 
                       {isCruiseLineDropdownOpen && (
-                        <div className="absolute top-full mt-2 left-0 w-72 max-h-96 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]">
-                          {cruiseLines.map((line) => (
-                            <div
-                              key={line.id}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setSelectedCruiseLines((prev) =>
-                                  prev.includes(line.id)
-                                    ? prev.filter((id) => id !== line.id)
-                                    : [...prev, line.id],
-                                );
-                              }}
-                              className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer"
-                            >
-                              <div
-                                className={`w-4 h-4 border rounded ${selectedCruiseLines.includes(line.id) ? "bg-[#0E1B4D] border-[#0E1B4D]" : "border-gray-300"}`}
-                              >
-                                {selectedCruiseLines.includes(line.id) && (
-                                  <svg
-                                    className="w-full h-full text-white"
-                                    fill="currentColor"
-                                    viewBox="0 0 20 20"
+                        <div className="absolute top-full mt-2 left-0 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]">
+                          {/* Search Input */}
+                          <div className="p-3 border-b border-gray-200">
+                            <input
+                              type="text"
+                              value={cruiseLineSearch}
+                              onChange={(e) =>
+                                setCruiseLineSearch(e.target.value)
+                              }
+                              placeholder="Search cruise lines..."
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+                          {/* Scrollable List */}
+                          <div className="max-h-80 overflow-y-auto">
+                            {cruiseLines
+                              .filter((line) =>
+                                line.name
+                                  .toLowerCase()
+                                  .includes(cruiseLineSearch.toLowerCase()),
+                              )
+                              .map((line) => (
+                                <div
+                                  key={line.id}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setSelectedCruiseLines((prev) =>
+                                      prev.includes(line.id)
+                                        ? prev.filter((id) => id !== line.id)
+                                        : [...prev, line.id],
+                                    );
+                                  }}
+                                  className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer"
+                                >
+                                  <div
+                                    className={`w-4 h-4 border rounded ${selectedCruiseLines.includes(line.id) ? "bg-[#0E1B4D] border-[#0E1B4D]" : "border-gray-300"}`}
                                   >
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                      clipRule="evenodd"
-                                    />
-                                  </svg>
-                                )}
-                              </div>
-                              <div className="font-geograph text-[16px] text-dark-blue">
-                                {line.name}
-                              </div>
-                            </div>
-                          ))}
+                                    {selectedCruiseLines.includes(line.id) && (
+                                      <svg
+                                        className="w-full h-full text-white"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                    )}
+                                  </div>
+                                  <div className="font-geograph text-[16px] text-dark-blue">
+                                    {line.name}
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -808,43 +831,65 @@ function HomeWithParams() {
                     </button>
 
                     {isCruiseLineDropdownOpen && (
-                      <div className="absolute top-full mt-2 left-0 right-0 max-h-72 overflow-y-auto bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]">
-                        {cruiseLines.map((line) => (
-                          <div
-                            key={line.id}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setSelectedCruiseLines((prev) =>
-                                prev.includes(line.id)
-                                  ? prev.filter((id) => id !== line.id)
-                                  : [...prev, line.id],
-                              );
-                            }}
-                            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer"
-                          >
-                            <div
-                              className={`w-4 h-4 border rounded ${selectedCruiseLines.includes(line.id) ? "bg-[#0E1B4D] border-[#0E1B4D]" : "border-gray-300"}`}
-                            >
-                              {selectedCruiseLines.includes(line.id) && (
-                                <svg
-                                  className="w-full h-full text-white"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
+                      <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-lg shadow-lg border border-gray-200 z-[9999]">
+                        {/* Search Input */}
+                        <div className="p-3 border-b border-gray-200">
+                          <input
+                            type="text"
+                            value={cruiseLineSearch}
+                            onChange={(e) =>
+                              setCruiseLineSearch(e.target.value)
+                            }
+                            placeholder="Search cruise lines..."
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[14px] focus:outline-none focus:border-gray-400"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                        {/* Scrollable List */}
+                        <div className="max-h-64 overflow-y-auto">
+                          {cruiseLines
+                            .filter((line) =>
+                              line.name
+                                .toLowerCase()
+                                .includes(cruiseLineSearch.toLowerCase()),
+                            )
+                            .map((line) => (
+                              <div
+                                key={line.id}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setSelectedCruiseLines((prev) =>
+                                    prev.includes(line.id)
+                                      ? prev.filter((id) => id !== line.id)
+                                      : [...prev, line.id],
+                                  );
+                                }}
+                                className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-2 cursor-pointer"
+                              >
+                                <div
+                                  className={`w-4 h-4 border rounded ${selectedCruiseLines.includes(line.id) ? "bg-[#0E1B4D] border-[#0E1B4D]" : "border-gray-300"}`}
                                 >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              )}
-                            </div>
-                            <div className="font-geograph text-[16px] text-dark-blue">
-                              {line.name}
-                            </div>
-                          </div>
-                        ))}
+                                  {selectedCruiseLines.includes(line.id) && (
+                                    <svg
+                                      className="w-full h-full text-white"
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  )}
+                                </div>
+                                <div className="font-geograph text-[16px] text-dark-blue">
+                                  {line.name}
+                                </div>
+                              </div>
+                            ))}
+                        </div>
                       </div>
                     )}
                   </div>
