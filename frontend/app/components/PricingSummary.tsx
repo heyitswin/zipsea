@@ -12,6 +12,7 @@ interface PriceBreakdownItem {
   amount: number;
   isDiscount?: boolean;
   isTax?: boolean;
+  order?: number;
 }
 
 interface PricingData {
@@ -128,7 +129,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
               amount = parseFloat(item.totalcost || item.sprice || 0);
             }
 
-            const description = item.description || "Unknown";
+            let description = item.description || "Unknown";
             const category = item.category?.toLowerCase();
 
             if (amount === 0) return; // Skip zero amounts
@@ -140,29 +141,50 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
                 amount: amount,
                 isDiscount: false,
                 isTax: false,
+                order: 1, // Display first
               });
               cruiseFare += amount;
             } else if (category === "discount") {
               // Discounts (negative amounts)
+              // Try to find promo details from basketitem
+              let discountDetails = "";
+              if (basketItem?.cruisedetail?.classificationnames) {
+                const promos =
+                  basketItem.cruisedetail.classificationnames.filter(
+                    (name: string) =>
+                      name && name.toLowerCase().includes("promo"),
+                  );
+                if (promos.length > 0) {
+                  discountDetails = ` (${promos.join(", ")})`;
+                }
+              }
+
               breakdown.push({
-                description: description,
+                description: description + discountDetails,
                 amount: Math.abs(amount), // Display as positive with isDiscount flag
                 isDiscount: true,
                 isTax: false,
+                order: 4, // Display last
               });
               discounts += Math.abs(amount);
             } else if (category === "tax") {
+              // Rename "Non-Commissionable Fare" to "Port Fees"
+              if (description.toLowerCase().includes("non-commissionable")) {
+                description = "Port Fees";
+              }
+
               // Taxes and fees
               breakdown.push({
                 description: description,
                 amount: amount,
                 isDiscount: false,
                 isTax: true,
+                order: description === "Port Fees" ? 3 : 2, // Port Fees after Taxes & Fees
               });
 
               // Categorize as taxes or fees based on description
               if (
-                description.toLowerCase().includes("non-commissionable") ||
+                description === "Port Fees" ||
                 description.toLowerCase().includes("port")
               ) {
                 fees += amount;
@@ -179,6 +201,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
                 amount: amount,
                 isDiscount: false,
                 isTax: false,
+                order: 3.5, // Between Port Fees and Discount
               });
               gratuities += amount;
             } else {
@@ -188,9 +211,13 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
                 amount: amount,
                 isDiscount: false,
                 isTax: category === "tax",
+                order: 5, // Display after everything else
               });
             }
           });
+
+          // Sort breakdown by order property
+          breakdown.sort((a, b) => (a.order || 99) - (b.order || 99));
         }
 
         // Ultimate fallback: if no breakdown at all, use total as cruise fare
