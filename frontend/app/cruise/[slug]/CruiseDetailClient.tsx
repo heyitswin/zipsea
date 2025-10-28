@@ -238,31 +238,46 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
       // Fetch commissionable fares for each cabin type for accurate OBC calculation
       console.log("📊 Fetching commissionable fares for OBC calculation...");
-      const cabinTypes = ["interior", "oceanview", "balcony", "suite"] as const;
 
-      for (const cabinType of cabinTypes) {
-        const cabin = pricingData[cabinType]?.[0]; // Get first cabin of this type
-        console.log(
-          `🔍 Checking ${cabinType} cabin for commissionable fare fetch:`,
-          {
-            hasCabin: !!cabin,
-            gradeNo: cabin?.gradeNo,
-            rateCode: cabin?.rateCode,
-            resultNo: cabin?.resultNo,
-            cabinKeys: cabin ? Object.keys(cabin) : [],
-          },
-        );
+      if (pricingData.cabins && Array.isArray(pricingData.cabins)) {
+        const cabinTypes = [
+          "interior",
+          "oceanview",
+          "balcony",
+          "suite",
+        ] as const;
 
-        if (cabin && cabin.gradeNo && cabin.rateCode && cabin.resultNo) {
-          await fetchCommissionableFare(
-            cabinType,
-            cabin.gradeNo,
-            cabin.rateCode,
-            cabin.resultNo,
+        for (const cabinType of cabinTypes) {
+          // Find first cabin of this type from the cabins array
+          const cabin = pricingData.cabins.find(
+            (c: any) => c.cabinType === cabinType,
           );
-        } else {
-          console.log(`⚠️ Skipping ${cabinType} - missing required fields`);
+
+          console.log(
+            `🔍 Checking ${cabinType} cabin for commissionable fare fetch:`,
+            {
+              hasCabin: !!cabin,
+              gradeNo: cabin?.gradeNo,
+              rateCode: cabin?.rateCode,
+              resultNo: cabin?.resultNo,
+            },
+          );
+
+          if (cabin && cabin.gradeNo && cabin.rateCode && cabin.resultNo) {
+            await fetchCommissionableFare(
+              cabinType,
+              cabin.gradeNo,
+              cabin.rateCode,
+              cabin.resultNo,
+            );
+          } else {
+            console.log(
+              `⚠️ Skipping ${cabinType} - missing required fields or no cabin found`,
+            );
+          }
         }
+      } else {
+        console.log("⚠️ No cabins array in pricing data");
       }
     } catch (err) {
       console.error("Failed to create booking session or fetch cabins:", err);
