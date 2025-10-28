@@ -227,12 +227,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       const pricingData = await pricingResponse.json();
       console.log("🔍 Pricing data structure:", {
         topLevelKeys: Object.keys(pricingData),
-        hasInterior: !!pricingData.interior,
-        hasOceanview: !!pricingData.oceanview,
-        hasBalcony: !!pricingData.balcony,
-        hasSuite: !!pricingData.suite,
-        interiorLength: pricingData.interior?.length,
-        sampleInterior: pricingData.interior?.[0],
+        hasCabins: !!pricingData.cabins,
+        cabinsIsArray: Array.isArray(pricingData.cabins),
+        cabinsLength: pricingData.cabins?.length,
+        firstCabin: pricingData.cabins?.[0],
+        firstCabinKeys: pricingData.cabins?.[0]
+          ? Object.keys(pricingData.cabins[0])
+          : [],
       });
       setLiveCabinGrades(pricingData);
 
