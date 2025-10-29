@@ -324,8 +324,8 @@ function HomeWithParams() {
             {/* Navigation + Content INSIDE the masked area */}
             <div className="absolute inset-0 z-10 flex flex-col p-4 md:p-6">
               {/* Navigation - Inside mask */}
-              <div className="flex items-center justify-between mb-auto">
-                <a href="/" className="flex items-center">
+              <div className="flex items-center justify-between mb-auto relative z-50">
+                <a href="/" className="flex items-center relative z-50">
                   <Image
                     src="/images/zipsea-logo.svg"
                     alt="Zipsea"
@@ -335,7 +335,7 @@ function HomeWithParams() {
                   />
                 </a>
 
-                <nav className="flex items-center gap-3 md:gap-6">
+                <nav className="flex items-center gap-3 md:gap-6 relative z-50">
                   <button
                     onClick={() => setIsLoginModalOpen(true)}
                     className="font-geograph text-sm md:text-base font-medium text-white hover:text-white/80 transition-colors"
