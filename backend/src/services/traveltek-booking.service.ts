@@ -488,17 +488,39 @@ class TraveltekBookingService {
         sailingDate: cruise.sailing_date,
       });
 
-      // NOTE: Removed getCabinGrades call before addToBasket
-      // Previously tried to refresh pricing by calling getCabinGrades first, but this caused issues:
-      // - Rate codes change frequently (DM996598 → DM996603, etc.)
-      // - User's selected rate code may no longer exist after getCabinGrades refresh
-      // - This resulted in addToBasket returning price: 0, paymentoption: "none"
-      // Solution: Trust the user's selection from when they loaded the pricing page
-      // The addToBasket API will return current pricing for that cabin grade
+      // CRITICAL: Must call getCabinGrades before basketadd per Traveltek docs
+      // "The price of a cruise will be up-to-date once you retrieve it using the cabingrades endpoint."
+      // This populates the breakdown[] array in basketadd response, which is required for pricing.
+      // Without this call, basketadd returns: price: 0, paymentoption: "none", breakdown: []
+      //
+      // We don't use the response from getCabinGrades - we just need to trigger it to refresh pricing.
+      // We continue using the user's originally selected resultNo, gradeNo, and rateCode.
+      // If the rate code has expired, basketadd will return an error and we handle it gracefully.
 
       console.log(
-        '[TraveltekBooking] 🚀 Adding to basket directly (no pre-refresh to avoid rate code mismatches)'
+        '[TraveltekBooking] 🔄 Calling getCabinGrades to refresh pricing (required by Traveltek API)'
       );
+
+      try {
+        await traveltekApiService.getCabinGrades({
+          sessionkey: sessionData.sessionKey,
+          sid: sessionData.sid || '52471',
+          codetocruiseid: params.cruiseId,
+          adults: sessionData.passengerCount?.adults || 2,
+          children: sessionData.passengerCount?.children || 0,
+          childDobs: sessionData.passengerCount?.childAges?.map((age: number) => {
+            const dob = new Date();
+            dob.setFullYear(dob.getFullYear() - age);
+            return dob.toISOString().split('T')[0];
+          }),
+        });
+        console.log('[TraveltekBooking] ✅ getCabinGrades completed - pricing refreshed');
+      } catch (error) {
+        console.error('[TraveltekBooking] ⚠️  getCabinGrades failed, continuing anyway:', error);
+        // Continue - if getCabinGrades fails, basketadd might still work with cached pricing
+      }
+
+      console.log('[TraveltekBooking] 🚀 Now adding to basket with user-selected rate code');
 
       // Build addToBasket params
       // For guaranteed cabins: only send resultno, gradeno, ratecode
