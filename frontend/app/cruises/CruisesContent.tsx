@@ -818,74 +818,99 @@ export default function CruisesContent() {
           {/* Left Sidebar - Filters (Desktop Only) */}
           <aside className="hidden md:block w-64 flex-shrink-0">
             <div className="space-y-4">
-              {/* Cruise Lines Filter */}
-              <div>
-                <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
-                  Cruise Lines
-                </h3>
-                {/* Search Input */}
-                <div className="mb-3">
-                  <input
-                    type="text"
-                    value={cruiseLineSearch}
-                    onChange={(e) => setCruiseLineSearch(e.target.value)}
-                    placeholder="Search cruise lines..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-gray-400"
-                  />
-                </div>
-                {/* Scrollable List */}
-                <div
-                  className="space-y-2 max-h-64 overflow-y-auto pr-2"
-                  style={{
-                    scrollbarWidth: "thin",
-                    scrollbarColor: "#d9d9d9 #f6f3ed",
-                  }}
+              {/* Cruise Lines Dropdown */}
+              <div className="relative" ref={cruiseLineDropdownRef}>
+                <button
+                  onClick={() =>
+                    setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
+                  }
+                  className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  {cruiseLines
-                    .filter((line) =>
-                      line.name
-                        .toLowerCase()
-                        .includes(cruiseLineSearch.toLowerCase()),
-                    )
-                    .map((line) => (
-                      <label
-                        key={line.id}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedCruiseLines.includes(
-                            line.id as number,
-                          )}
-                          onChange={() => {
-                            const lineId = line.id as number;
-                            const urlParams = new URLSearchParams(
-                              window.location.search,
-                            );
-                            const currentParam = urlParams.get("cruiseLines");
-                            const currentLines = currentParam
-                              ? currentParam
-                                  .split(",")
-                                  .map(Number)
-                                  .filter((n) => !isNaN(n))
-                              : [];
-                            const newSelection = currentLines.includes(lineId)
-                              ? currentLines.filter((id) => id !== lineId)
-                              : [...currentLines, lineId];
-                            updateURLParams({
-                              cruiseLines:
-                                newSelection.length > 0 ? newSelection : null,
-                              page: 1,
-                            });
-                          }}
-                          className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
-                        />
-                        <span className="font-geograph text-[14px] text-[#2F2F2F]">
-                          {line.name}
-                        </span>
-                      </label>
-                    ))}
-                </div>
+                  <span className="font-geograph font-bold text-[16px] text-[#0E1B4D]">
+                    Cruise Lines
+                    {selectedCruiseLines.length > 0 &&
+                      ` (${selectedCruiseLines.length})`}
+                  </span>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    className={`transform transition-transform ${isCruiseLineDropdownOpen ? "rotate-180" : ""}`}
+                  >
+                    <path
+                      d="M2 4L6 8L10 4"
+                      stroke="#0E1B4D"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                {isCruiseLineDropdownOpen && (
+                  <div className="absolute top-full mt-2 left-0 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="p-3 border-b border-gray-200">
+                      <input
+                        type="text"
+                        value={cruiseLineSearch}
+                        onChange={(e) => setCruiseLineSearch(e.target.value)}
+                        placeholder="Search cruise lines..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-gray-400"
+                      />
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {cruiseLines
+                        .filter((line) =>
+                          line.name
+                            .toLowerCase()
+                            .includes(cruiseLineSearch.toLowerCase()),
+                        )
+                        .map((line) => (
+                          <label
+                            key={line.id}
+                            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedCruiseLines.includes(
+                                line.id as number,
+                              )}
+                              onChange={() => {
+                                const lineId = line.id as number;
+                                const urlParams = new URLSearchParams(
+                                  window.location.search,
+                                );
+                                const currentParam =
+                                  urlParams.get("cruiseLines");
+                                const currentLines = currentParam
+                                  ? currentParam
+                                      .split(",")
+                                      .map(Number)
+                                      .filter((n) => !isNaN(n))
+                                  : [];
+                                const newSelection = currentLines.includes(
+                                  lineId,
+                                )
+                                  ? currentLines.filter((id) => id !== lineId)
+                                  : [...currentLines, lineId];
+                                updateURLParams({
+                                  cruiseLines:
+                                    newSelection.length > 0
+                                      ? newSelection
+                                      : null,
+                                  page: 1,
+                                });
+                              }}
+                              className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                            />
+                            <span className="font-geograph text-[14px] text-[#2F2F2F]">
+                              {line.name}
+                            </span>
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Cruise Dates Filter */}
@@ -1013,146 +1038,283 @@ export default function CruisesContent() {
                 </div>
               </div>
 
-              {/* Departure Port Filter */}
-              <div>
-                <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
-                  Departure Port
-                </h3>
-                {/* Search Input */}
-                <div className="mb-3">
-                  <input
-                    type="text"
-                    value={departurePortSearch}
-                    onChange={(e) => setDeparturePortSearch(e.target.value)}
-                    placeholder="Search ports..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-gray-400"
-                  />
-                </div>
-                {/* Scrollable List */}
-                <div
-                  className="space-y-2 max-h-64 overflow-y-auto pr-2"
-                  style={{
-                    scrollbarWidth: "thin",
-                    scrollbarColor: "#d9d9d9 #f6f3ed",
-                  }}
+              {/* Departure Port Dropdown */}
+              <div className="relative" ref={departurePortDropdownRef}>
+                <button
+                  onClick={() =>
+                    setIsDeparturePortDropdownOpen(!isDeparturePortDropdownOpen)
+                  }
+                  className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  {departurePorts
-                    .filter((port) =>
-                      port.name
-                        .toLowerCase()
-                        .includes(departurePortSearch.toLowerCase()),
-                    )
-                    .map((port) => (
-                      <label
-                        key={port.id}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedDeparturePorts.includes(
-                            port.id as number,
-                          )}
-                          onChange={() => {
-                            const portId = port.id as number;
-                            const urlParams = new URLSearchParams(
-                              window.location.search,
-                            );
-                            const currentParam = urlParams.get("ports");
-                            const currentPorts = currentParam
-                              ? currentParam
-                                  .split(",")
-                                  .map(Number)
-                                  .filter((n) => !isNaN(n))
-                              : [];
-                            const newSelection = currentPorts.includes(portId)
-                              ? currentPorts.filter((id) => id !== portId)
-                              : [...currentPorts, portId];
-                            updateURLParams({
-                              ports:
-                                newSelection.length > 0 ? newSelection : null,
-                              page: 1,
-                            });
-                          }}
-                          className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
-                        />
-                        <span className="font-geograph text-[14px] text-[#2F2F2F]">
-                          {port.name}
-                        </span>
-                      </label>
-                    ))}
-                </div>
+                  <span className="font-geograph font-bold text-[16px] text-[#0E1B4D]">
+                    Departure Port
+                    {selectedDeparturePorts.length > 0 &&
+                      ` (${selectedDeparturePorts.length})`}
+                  </span>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    className={`transform transition-transform ${isDeparturePortDropdownOpen ? "rotate-180" : ""}`}
+                  >
+                    <path
+                      d="M2 4L6 8L10 4"
+                      stroke="#0E1B4D"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                {isDeparturePortDropdownOpen && (
+                  <div className="absolute top-full mt-2 left-0 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="p-3 border-b border-gray-200">
+                      <input
+                        type="text"
+                        value={departurePortSearch}
+                        onChange={(e) => setDeparturePortSearch(e.target.value)}
+                        placeholder="Search ports..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-gray-400"
+                      />
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {departurePorts
+                        .filter((port) =>
+                          port.name
+                            .toLowerCase()
+                            .includes(departurePortSearch.toLowerCase()),
+                        )
+                        .map((port) => (
+                          <label
+                            key={port.id}
+                            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedDeparturePorts.includes(
+                                port.id as number,
+                              )}
+                              onChange={() => {
+                                const portId = port.id as number;
+                                const urlParams = new URLSearchParams(
+                                  window.location.search,
+                                );
+                                const currentParam = urlParams.get("ports");
+                                const currentPorts = currentParam
+                                  ? currentParam
+                                      .split(",")
+                                      .map(Number)
+                                      .filter((n) => !isNaN(n))
+                                  : [];
+                                const newSelection = currentPorts.includes(
+                                  portId,
+                                )
+                                  ? currentPorts.filter((id) => id !== portId)
+                                  : [...currentPorts, portId];
+                                updateURLParams({
+                                  ports:
+                                    newSelection.length > 0
+                                      ? newSelection
+                                      : null,
+                                  page: 1,
+                                });
+                              }}
+                              className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                            />
+                            <span className="font-geograph text-[14px] text-[#2F2F2F]">
+                              {port.name}
+                            </span>
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Region Filter */}
-              <div>
-                <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
-                  Region
-                </h3>
-                {/* Search Input */}
-                <div className="mb-3">
-                  <input
-                    type="text"
-                    value={regionSearch}
-                    onChange={(e) => setRegionSearch(e.target.value)}
-                    placeholder="Search regions..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-gray-400"
-                  />
-                </div>
-                {/* Scrollable List */}
-                <div
-                  className="space-y-2 max-h-64 overflow-y-auto pr-2"
-                  style={{
-                    scrollbarWidth: "thin",
-                    scrollbarColor: "#d9d9d9 #f6f3ed",
-                  }}
+              {/* Ships Dropdown */}
+              <div className="relative" ref={shipDropdownRef}>
+                <button
+                  onClick={() => setIsShipDropdownOpen(!isShipDropdownOpen)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  {regions
-                    .filter((region) =>
-                      region.name
-                        .toLowerCase()
-                        .includes(regionSearch.toLowerCase()),
-                    )
-                    .map((region) => (
-                      <label
-                        key={region.id}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedRegions.includes(
-                            region.id as number,
-                          )}
-                          onChange={() => {
-                            const regionId = region.id as number;
-                            const urlParams = new URLSearchParams(
-                              window.location.search,
-                            );
-                            const currentParam = urlParams.get("regions");
-                            const currentRegions = currentParam
-                              ? currentParam
-                                  .split(",")
-                                  .map(Number)
-                                  .filter((n) => !isNaN(n))
-                              : [];
-                            const newSelection = currentRegions.includes(
-                              regionId,
-                            )
-                              ? currentRegions.filter((id) => id !== regionId)
-                              : [...currentRegions, regionId];
-                            updateURLParams({
-                              regions:
-                                newSelection.length > 0 ? newSelection : null,
-                              page: 1,
-                            });
-                          }}
-                          className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
-                        />
-                        <span className="font-geograph text-[14px] text-[#2F2F2F]">
-                          {region.name}
-                        </span>
-                      </label>
-                    ))}
-                </div>
+                  <span className="font-geograph font-bold text-[16px] text-[#0E1B4D]">
+                    Ships
+                    {selectedShips.length > 0 && ` (${selectedShips.length})`}
+                  </span>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    className={`transform transition-transform ${isShipDropdownOpen ? "rotate-180" : ""}`}
+                  >
+                    <path
+                      d="M2 4L6 8L10 4"
+                      stroke="#0E1B4D"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                {isShipDropdownOpen && (
+                  <div className="absolute top-full mt-2 left-0 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="p-3 border-b border-gray-200">
+                      <input
+                        type="text"
+                        value={shipSearch}
+                        onChange={(e) => setShipSearch(e.target.value)}
+                        placeholder="Search ships..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-gray-400"
+                      />
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {ships
+                        .filter((ship) =>
+                          ship.name
+                            .toLowerCase()
+                            .includes(shipSearch.toLowerCase()),
+                        )
+                        .map((ship) => (
+                          <label
+                            key={ship.id}
+                            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedShips.includes(
+                                ship.id as number,
+                              )}
+                              onChange={() => {
+                                const shipId = ship.id as number;
+                                const urlParams = new URLSearchParams(
+                                  window.location.search,
+                                );
+                                const currentParam = urlParams.get("ships");
+                                const currentShips = currentParam
+                                  ? currentParam
+                                      .split(",")
+                                      .map(Number)
+                                      .filter((n) => !isNaN(n))
+                                  : [];
+                                const newSelection = currentShips.includes(
+                                  shipId,
+                                )
+                                  ? currentShips.filter((id) => id !== shipId)
+                                  : [...currentShips, shipId];
+                                updateURLParams({
+                                  ships:
+                                    newSelection.length > 0
+                                      ? newSelection
+                                      : null,
+                                  page: 1,
+                                });
+                              }}
+                              className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                            />
+                            <span className="font-geograph text-[14px] text-[#2F2F2F]">
+                              {ship.name}
+                            </span>
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Region Dropdown */}
+              <div className="relative" ref={regionDropdownRef}>
+                <button
+                  onClick={() => setIsRegionDropdownOpen(!isRegionDropdownOpen)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <span className="font-geograph font-bold text-[16px] text-[#0E1B4D]">
+                    Region
+                    {selectedRegions.length > 0 &&
+                      ` (${selectedRegions.length})`}
+                  </span>
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    fill="none"
+                    className={`transform transition-transform ${isRegionDropdownOpen ? "rotate-180" : ""}`}
+                  >
+                    <path
+                      d="M2 4L6 8L10 4"
+                      stroke="#0E1B4D"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+                {isRegionDropdownOpen && (
+                  <div className="absolute top-full mt-2 left-0 w-full bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="p-3 border-b border-gray-200">
+                      <input
+                        type="text"
+                        value={regionSearch}
+                        onChange={(e) => setRegionSearch(e.target.value)}
+                        placeholder="Search regions..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[16px] focus:outline-none focus:border-gray-400"
+                      />
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {regions
+                        .filter((region) =>
+                          region.name
+                            .toLowerCase()
+                            .includes(regionSearch.toLowerCase()),
+                        )
+                        .map((region) => (
+                          <label
+                            key={region.id}
+                            className="flex items-center gap-2 px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedRegions.includes(
+                                region.id as number,
+                              )}
+                              onChange={() => {
+                                const regionId = region.id as number;
+                                const urlParams = new URLSearchParams(
+                                  window.location.search,
+                                );
+                                const currentParam = urlParams.get("regions");
+                                const currentRegions = currentParam
+                                  ? currentParam
+                                      .split(",")
+                                      .map(Number)
+                                      .filter((n) => !isNaN(n))
+                                  : [];
+                                const newSelection = currentRegions.includes(
+                                  regionId,
+                                )
+                                  ? currentRegions.filter(
+                                      (id) => id !== regionId,
+                                    )
+                                  : [...currentRegions, regionId];
+                                updateURLParams({
+                                  regions:
+                                    newSelection.length > 0
+                                      ? newSelection
+                                      : null,
+                                  page: 1,
+                                });
+                              }}
+                              className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                            />
+                            <span className="font-geograph text-[14px] text-[#2F2F2F]">
+                              {region.name}
+                            </span>
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Clear All Filters Button */}
@@ -1760,72 +1922,99 @@ export default function CruisesContent() {
 
               {/* All Filter Options */}
               <div className="space-y-6">
-                {/* Cruise Lines Filter */}
-                <div>
-                  <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
-                    Cruise Lines
-                  </h3>
-                  <div className="mb-3">
-                    <input
-                      type="text"
-                      value={cruiseLineSearch}
-                      onChange={(e) => setCruiseLineSearch(e.target.value)}
-                      placeholder="Search cruise lines..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[18px] focus:outline-none focus:border-gray-400"
-                    />
-                  </div>
-                  <div
-                    className="space-y-3 max-h-64 overflow-y-auto pr-2"
-                    style={{
-                      scrollbarWidth: "thin",
-                      scrollbarColor: "#d9d9d9 #f6f3ed",
-                    }}
+                {/* Cruise Lines Dropdown */}
+                <div className="relative" ref={cruiseLineDropdownRef}>
+                  <button
+                    onClick={() =>
+                      setIsCruiseLineDropdownOpen(!isCruiseLineDropdownOpen)
+                    }
+                    className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    {cruiseLines
-                      .filter((line) =>
-                        line.name
-                          .toLowerCase()
-                          .includes(cruiseLineSearch.toLowerCase()),
-                      )
-                      .map((line) => (
-                        <label
-                          key={line.id}
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedCruiseLines.includes(
-                              line.id as number,
-                            )}
-                            onChange={() => {
-                              const lineId = line.id as number;
-                              const urlParams = new URLSearchParams(
-                                window.location.search,
-                              );
-                              const currentParam = urlParams.get("cruiseLines");
-                              const currentLines = currentParam
-                                ? currentParam
-                                    .split(",")
-                                    .map(Number)
-                                    .filter((n) => !isNaN(n))
-                                : [];
-                              const newSelection = currentLines.includes(lineId)
-                                ? currentLines.filter((id) => id !== lineId)
-                                : [...currentLines, lineId];
-                              updateURLParams({
-                                cruiseLines:
-                                  newSelection.length > 0 ? newSelection : null,
-                                page: 1,
-                              });
-                            }}
-                            className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
-                          />
-                          <span className="font-geograph text-[18px] text-[#2F2F2F]">
-                            {line.name}
-                          </span>
-                        </label>
-                      ))}
-                  </div>
+                    <span className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                      Cruise Lines
+                      {selectedCruiseLines.length > 0 &&
+                        ` (${selectedCruiseLines.length})`}
+                    </span>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      className={`transform transition-transform ${isCruiseLineDropdownOpen ? "rotate-180" : ""}`}
+                    >
+                      <path
+                        d="M2 4L6 8L10 4"
+                        stroke="#0E1B4D"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  {isCruiseLineDropdownOpen && (
+                    <div className="mt-2 bg-white rounded-lg border border-gray-200">
+                      <div className="p-3 border-b border-gray-200">
+                        <input
+                          type="text"
+                          value={cruiseLineSearch}
+                          onChange={(e) => setCruiseLineSearch(e.target.value)}
+                          placeholder="Search cruise lines..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[18px] focus:outline-none focus:border-gray-400"
+                        />
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {cruiseLines
+                          .filter((line) =>
+                            line.name
+                              .toLowerCase()
+                              .includes(cruiseLineSearch.toLowerCase()),
+                          )
+                          .map((line) => (
+                            <label
+                              key={line.id}
+                              className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedCruiseLines.includes(
+                                  line.id as number,
+                                )}
+                                onChange={() => {
+                                  const lineId = line.id as number;
+                                  const urlParams = new URLSearchParams(
+                                    window.location.search,
+                                  );
+                                  const currentParam =
+                                    urlParams.get("cruiseLines");
+                                  const currentLines = currentParam
+                                    ? currentParam
+                                        .split(",")
+                                        .map(Number)
+                                        .filter((n) => !isNaN(n))
+                                    : [];
+                                  const newSelection = currentLines.includes(
+                                    lineId,
+                                  )
+                                    ? currentLines.filter((id) => id !== lineId)
+                                    : [...currentLines, lineId];
+                                  updateURLParams({
+                                    cruiseLines:
+                                      newSelection.length > 0
+                                        ? newSelection
+                                        : null,
+                                    page: 1,
+                                  });
+                                }}
+                                className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                              />
+                              <span className="font-geograph text-[18px] text-[#2F2F2F]">
+                                {line.name}
+                              </span>
+                            </label>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Cruise Dates Filter */}
@@ -1953,142 +2142,289 @@ export default function CruisesContent() {
                   </div>
                 </div>
 
-                {/* Departure Port Filter */}
-                <div>
-                  <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
-                    Departure Port
-                  </h3>
-                  <div className="mb-3">
-                    <input
-                      type="text"
-                      value={departurePortSearch}
-                      onChange={(e) => setDeparturePortSearch(e.target.value)}
-                      placeholder="Search ports..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[18px] focus:outline-none focus:border-gray-400"
-                    />
-                  </div>
-                  <div
-                    className="space-y-3 max-h-64 overflow-y-auto pr-2"
-                    style={{
-                      scrollbarWidth: "thin",
-                      scrollbarColor: "#d9d9d9 #f6f3ed",
-                    }}
-                  >
-                    {departurePorts
-                      .filter((port) =>
-                        port.name
-                          .toLowerCase()
-                          .includes(departurePortSearch.toLowerCase()),
+                {/* Departure Port Dropdown */}
+                <div className="relative" ref={departurePortDropdownRef}>
+                  <button
+                    onClick={() =>
+                      setIsDeparturePortDropdownOpen(
+                        !isDeparturePortDropdownOpen,
                       )
-                      .map((port) => (
-                        <label
-                          key={port.id}
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedDeparturePorts.includes(
-                              port.id as number,
-                            )}
-                            onChange={() => {
-                              const portId = port.id as number;
-                              const urlParams = new URLSearchParams(
-                                window.location.search,
-                              );
-                              const currentParam = urlParams.get("ports");
-                              const currentPorts = currentParam
-                                ? currentParam
-                                    .split(",")
-                                    .map(Number)
-                                    .filter((n) => !isNaN(n))
-                                : [];
-                              const newSelection = currentPorts.includes(portId)
-                                ? currentPorts.filter((id) => id !== portId)
-                                : [...currentPorts, portId];
-                              updateURLParams({
-                                ports:
-                                  newSelection.length > 0 ? newSelection : null,
-                                page: 1,
-                              });
-                            }}
-                            className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
-                          />
-                          <span className="font-geograph text-[18px] text-[#2F2F2F]">
-                            {port.name}
-                          </span>
-                        </label>
-                      ))}
-                  </div>
+                    }
+                    className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                      Departure Port
+                      {selectedDeparturePorts.length > 0 &&
+                        ` (${selectedDeparturePorts.length})`}
+                    </span>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      className={`transform transition-transform ${isDeparturePortDropdownOpen ? "rotate-180" : ""}`}
+                    >
+                      <path
+                        d="M2 4L6 8L10 4"
+                        stroke="#0E1B4D"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  {isDeparturePortDropdownOpen && (
+                    <div className="mt-2 bg-white rounded-lg border border-gray-200">
+                      <div className="p-3 border-b border-gray-200">
+                        <input
+                          type="text"
+                          value={departurePortSearch}
+                          onChange={(e) =>
+                            setDeparturePortSearch(e.target.value)
+                          }
+                          placeholder="Search ports..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[18px] focus:outline-none focus:border-gray-400"
+                        />
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {departurePorts
+                          .filter((port) =>
+                            port.name
+                              .toLowerCase()
+                              .includes(departurePortSearch.toLowerCase()),
+                          )
+                          .map((port) => (
+                            <label
+                              key={port.id}
+                              className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedDeparturePorts.includes(
+                                  port.id as number,
+                                )}
+                                onChange={() => {
+                                  const portId = port.id as number;
+                                  const urlParams = new URLSearchParams(
+                                    window.location.search,
+                                  );
+                                  const currentParam = urlParams.get("ports");
+                                  const currentPorts = currentParam
+                                    ? currentParam
+                                        .split(",")
+                                        .map(Number)
+                                        .filter((n) => !isNaN(n))
+                                    : [];
+                                  const newSelection = currentPorts.includes(
+                                    portId,
+                                  )
+                                    ? currentPorts.filter((id) => id !== portId)
+                                    : [...currentPorts, portId];
+                                  updateURLParams({
+                                    ports:
+                                      newSelection.length > 0
+                                        ? newSelection
+                                        : null,
+                                    page: 1,
+                                  });
+                                }}
+                                className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                              />
+                              <span className="font-geograph text-[18px] text-[#2F2F2F]">
+                                {port.name}
+                              </span>
+                            </label>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Region Filter */}
-                <div>
-                  <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
-                    Region
-                  </h3>
-                  <div className="mb-3">
-                    <input
-                      type="text"
-                      value={regionSearch}
-                      onChange={(e) => setRegionSearch(e.target.value)}
-                      placeholder="Search regions..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[18px] focus:outline-none focus:border-gray-400"
-                    />
-                  </div>
-                  <div
-                    className="space-y-3 max-h-64 overflow-y-auto pr-2"
-                    style={{
-                      scrollbarWidth: "thin",
-                      scrollbarColor: "#d9d9d9 #f6f3ed",
-                    }}
+                {/* Ships Dropdown */}
+                <div className="relative" ref={shipDropdownRef}>
+                  <button
+                    onClick={() => setIsShipDropdownOpen(!isShipDropdownOpen)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    {regions
-                      .filter((region) =>
-                        region.name
-                          .toLowerCase()
-                          .includes(regionSearch.toLowerCase()),
-                      )
-                      .map((region) => (
-                        <label
-                          key={region.id}
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedRegions.includes(
-                              region.id as number,
-                            )}
-                            onChange={() => {
-                              const regionId = region.id as number;
-                              const urlParams = new URLSearchParams(
-                                window.location.search,
-                              );
-                              const currentParam = urlParams.get("regions");
-                              const currentRegions = currentParam
-                                ? currentParam
-                                    .split(",")
-                                    .map(Number)
-                                    .filter((n) => !isNaN(n))
-                                : [];
-                              const newSelection = currentRegions.includes(
-                                regionId,
-                              )
-                                ? currentRegions.filter((id) => id !== regionId)
-                                : [...currentRegions, regionId];
-                              updateURLParams({
-                                regions:
-                                  newSelection.length > 0 ? newSelection : null,
-                                page: 1,
-                              });
-                            }}
-                            className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
-                          />
-                          <span className="font-geograph text-[18px] text-[#2F2F2F]">
-                            {region.name}
-                          </span>
-                        </label>
-                      ))}
-                  </div>
+                    <span className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                      Ships
+                      {selectedShips.length > 0 && ` (${selectedShips.length})`}
+                    </span>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      className={`transform transition-transform ${isShipDropdownOpen ? "rotate-180" : ""}`}
+                    >
+                      <path
+                        d="M2 4L6 8L10 4"
+                        stroke="#0E1B4D"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  {isShipDropdownOpen && (
+                    <div className="mt-2 bg-white rounded-lg border border-gray-200">
+                      <div className="p-3 border-b border-gray-200">
+                        <input
+                          type="text"
+                          value={shipSearch}
+                          onChange={(e) => setShipSearch(e.target.value)}
+                          placeholder="Search ships..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[18px] focus:outline-none focus:border-gray-400"
+                        />
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {ships
+                          .filter((ship) =>
+                            ship.name
+                              .toLowerCase()
+                              .includes(shipSearch.toLowerCase()),
+                          )
+                          .map((ship) => (
+                            <label
+                              key={ship.id}
+                              className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedShips.includes(
+                                  ship.id as number,
+                                )}
+                                onChange={() => {
+                                  const shipId = ship.id as number;
+                                  const urlParams = new URLSearchParams(
+                                    window.location.search,
+                                  );
+                                  const currentParam = urlParams.get("ships");
+                                  const currentShips = currentParam
+                                    ? currentParam
+                                        .split(",")
+                                        .map(Number)
+                                        .filter((n) => !isNaN(n))
+                                    : [];
+                                  const newSelection = currentShips.includes(
+                                    shipId,
+                                  )
+                                    ? currentShips.filter((id) => id !== shipId)
+                                    : [...currentShips, shipId];
+                                  updateURLParams({
+                                    ships:
+                                      newSelection.length > 0
+                                        ? newSelection
+                                        : null,
+                                    page: 1,
+                                  });
+                                }}
+                                className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                              />
+                              <span className="font-geograph text-[18px] text-[#2F2F2F]">
+                                {ship.name}
+                              </span>
+                            </label>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Region Dropdown */}
+                <div className="relative" ref={regionDropdownRef}>
+                  <button
+                    onClick={() =>
+                      setIsRegionDropdownOpen(!isRegionDropdownOpen)
+                    }
+                    className="w-full flex items-center justify-between px-4 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="font-geograph font-bold text-[18px] text-[#0E1B4D]">
+                      Region
+                      {selectedRegions.length > 0 &&
+                        ` (${selectedRegions.length})`}
+                    </span>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      className={`transform transition-transform ${isRegionDropdownOpen ? "rotate-180" : ""}`}
+                    >
+                      <path
+                        d="M2 4L6 8L10 4"
+                        stroke="#0E1B4D"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
+                  {isRegionDropdownOpen && (
+                    <div className="mt-2 bg-white rounded-lg border border-gray-200">
+                      <div className="p-3 border-b border-gray-200">
+                        <input
+                          type="text"
+                          value={regionSearch}
+                          onChange={(e) => setRegionSearch(e.target.value)}
+                          placeholder="Search regions..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg font-geograph text-[18px] focus:outline-none focus:border-gray-400"
+                        />
+                      </div>
+                      <div className="max-h-80 overflow-y-auto">
+                        {regions
+                          .filter((region) =>
+                            region.name
+                              .toLowerCase()
+                              .includes(regionSearch.toLowerCase()),
+                          )
+                          .map((region) => (
+                            <label
+                              key={region.id}
+                              className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 cursor-pointer"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedRegions.includes(
+                                  region.id as number,
+                                )}
+                                onChange={() => {
+                                  const regionId = region.id as number;
+                                  const urlParams = new URLSearchParams(
+                                    window.location.search,
+                                  );
+                                  const currentParam = urlParams.get("regions");
+                                  const currentRegions = currentParam
+                                    ? currentParam
+                                        .split(",")
+                                        .map(Number)
+                                        .filter((n) => !isNaN(n))
+                                    : [];
+                                  const newSelection = currentRegions.includes(
+                                    regionId,
+                                  )
+                                    ? currentRegions.filter(
+                                        (id) => id !== regionId,
+                                      )
+                                    : [...currentRegions, regionId];
+                                  updateURLParams({
+                                    regions:
+                                      newSelection.length > 0
+                                        ? newSelection
+                                        : null,
+                                    page: 1,
+                                  });
+                                }}
+                                className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                              />
+                              <span className="font-geograph text-[18px] text-[#2F2F2F]">
+                                {region.name}
+                              </span>
+                            </label>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
