@@ -88,7 +88,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     }
   }, [commissionableFares]);
 
-  // Memoized OBC calculations that update when commissionableFares or pricing changes
+  // Memoized OBC calculations that update when commissionableFares changes
   const obcAmounts = useMemo(() => {
     console.log(
       "🔄 Recalculating OBC amounts with commissionableFares:",
@@ -100,7 +100,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
     for (const cabinType of cabinTypes) {
       const liveFare = commissionableFares[cabinType];
-      const cachedPrice = pricing?.raw?.combined?.[`${cabinType}price`];
+
+      // Get cached price from cruiseData as fallback
+      const priceField = `${cabinType}Price` as keyof typeof cruiseData;
+      const cachedPrice = cruiseData?.[priceField];
 
       // Prefer live fare, fallback to cached price
       const fareToUse = liveFare || cachedPrice;
@@ -122,7 +125,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     }
 
     return amounts;
-  }, [commissionableFares, pricing]);
+  }, [commissionableFares, cruiseData]);
 
   // Specific cabin modal state
   const [isSpecificCabinModalOpen, setIsSpecificCabinModalOpen] =
