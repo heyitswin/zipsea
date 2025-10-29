@@ -1636,7 +1636,7 @@ export default function CruisesContent() {
                               </div>
                               <div className="font-geograph font-medium text-[24px] text-[#1c1c1c]">
                                 {lowestPrice !== null
-                                  ? formatPrice(lowestPrice / 2)
+                                  ? formatPrice(lowestPrice)
                                   : "Call for price"}
                               </div>
                               {lowestPrice && (
@@ -1807,7 +1807,7 @@ export default function CruisesContent() {
                               </div>
                               <div className="font-geograph font-medium text-[24px] text-[#1c1c1c]">
                                 {lowestPrice !== null
-                                  ? formatPrice(lowestPrice / 2)
+                                  ? formatPrice(lowestPrice)
                                   : "Call for price"}
                               </div>
                               {lowestPrice && (
