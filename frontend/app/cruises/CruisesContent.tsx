@@ -2189,7 +2189,7 @@ export default function CruisesContent() {
                       onChange={(e) => {
                         const isChecked = e.target.checked;
                         updateURLParams({
-                          instantBooking: isChecked ? true : null,
+                          instantBooking: isChecked ? "true" : null,
                           page: 1,
                         });
                       }}
