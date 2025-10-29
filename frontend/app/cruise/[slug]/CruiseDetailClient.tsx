@@ -277,7 +277,20 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         }
 
         // Update state with all fares at once
+        console.log(
+          "🎯 About to call setCommissionableFares with:",
+          newCommissionableFares,
+        );
+        console.log(
+          "🎯 Keys in newCommissionableFares:",
+          Object.keys(newCommissionableFares),
+        );
+        console.log(
+          "🎯 JSON of newCommissionableFares:",
+          JSON.stringify(newCommissionableFares),
+        );
         setCommissionableFares(newCommissionableFares);
+        console.log("✅ setCommissionableFares called successfully");
       } else {
         console.log("⚠️ No cabins array in pricing data");
       }
@@ -533,7 +546,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       hasCabinType: !!cabinType,
       fareInState: cabinType ? commissionableFares[cabinType] : "no cabin type",
       allFaresInState: commissionableFares,
+      allFaresKeys: Object.keys(commissionableFares),
+      allFaresJSON: JSON.stringify(commissionableFares),
       passedPrice: price,
+      cabinTypeLookup: `commissionableFares["${cabinType}"]`,
       conditionCheck:
         cabinType && commissionableFares[cabinType]
           ? "WILL USE LIVE"
