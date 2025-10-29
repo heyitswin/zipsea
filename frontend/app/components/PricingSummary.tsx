@@ -97,27 +97,27 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
         let gratuities = 0;
         let discounts = 0;
 
-        // PRIMARY SOURCE: Use pricingBreakdown from session (fetched from cruisecabingradebreakdown.pl)
-        // This is the most accurate source as it comes from a dedicated breakdown API
-        let breakdownSource = null;
-
+        // ONLY SOURCE: Use pricingBreakdown from session (fetched from cruisecabingradebreakdown.pl)
+        // This is the ONLY trusted source - no fallbacks
         if (
-          basketData.pricingBreakdown &&
-          Array.isArray(basketData.pricingBreakdown)
+          !basketData.pricingBreakdown ||
+          !Array.isArray(basketData.pricingBreakdown) ||
+          basketData.pricingBreakdown.length === 0
         ) {
-          console.log(
-            "💰 Using pricingBreakdown from session (cruisecabingradebreakdown.pl API)",
+          console.error(
+            "💥 PricingSummary: Missing pricingBreakdown in basketData",
           );
-          breakdownSource = basketData.pricingBreakdown;
-        } else if (
-          basketItem?.cruisedetail?.breakdown &&
-          Array.isArray(basketItem.cruisedetail.breakdown)
-        ) {
-          console.log("💰 Fallback: Using cruisedetail.breakdown from basket");
-          breakdownSource = basketItem.cruisedetail.breakdown;
+          throw new Error(
+            "Pricing breakdown is not available. Please refresh the page and select your cabin again.",
+          );
         }
 
-        if (breakdownSource) {
+        console.log(
+          "💰 Using pricingBreakdown from session (cruisecabingradebreakdown.pl API)",
+        );
+        const breakdownSource = basketData.pricingBreakdown;
+
+        if (breakdownSource && breakdownSource.length > 0) {
           breakdownSource.forEach((item: any) => {
             // Handle two different API response formats:
             // 1. cruisecabingradebreakdown.pl: items have "prices" array with guest-level pricing
@@ -228,15 +228,12 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           breakdown.sort((a, b) => (a.order || 99) - (b.order || 99));
         }
 
-        // Ultimate fallback: if no breakdown at all, use total as cruise fare
-        if (breakdown.length === 0 && totalprice > 0) {
-          breakdown.push({
-            description: "Cruise Fare",
-            amount: totalprice,
-            isDiscount: false,
-            isTax: false,
-          });
-          cruiseFare = totalprice;
+        // Validate that we actually got breakdown items
+        if (breakdown.length === 0) {
+          console.error("💥 PricingSummary: No breakdown items found");
+          throw new Error(
+            "Pricing details are not available. Please refresh the page and select your cabin again.",
+          );
         }
 
         // Fetch session to get cruise line info for cancellation policy and cabin details

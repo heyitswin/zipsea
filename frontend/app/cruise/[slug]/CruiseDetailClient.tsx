@@ -1149,6 +1149,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             resultNo: pendingReservation.resultNo,
             gradeNo: pendingReservation.gradeNo,
             rateCode: pendingReservation.rateCode,
+            expectedPrice: pendingReservation.price, // Pass cabin card price for validation
             ...(pendingReservation.cabinResultNo && {
               cabinResult: pendingReservation.cabinResultNo,
             }),

@@ -33,7 +33,6 @@ export default function BookingPaymentPage() {
   const { passengerCount, clearSession } = useBooking();
 
   const [bookingSummary, setBookingSummary] = useState<BookingSummary>({});
-  const [isHoldBooking, setIsHoldBooking] = useState(false);
   const [cardNumber, setCardNumber] = useState("");
   const [cardType, setCardType] = useState<string | null>(null);
   const [cardTypeName, setCardTypeName] = useState<string | null>(null);
@@ -66,24 +65,8 @@ export default function BookingPaymentPage() {
       });
     }
 
-    // Check if this is a hold booking
-    const fetchSessionData = async () => {
-      try {
-        const sessionResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/booking/session/${sessionId}`,
-        );
-        if (sessionResponse.ok) {
-          const sessionData = await sessionResponse.json();
-          setIsHoldBooking(sessionData.isHoldBooking === true);
-        }
-      } catch (error) {
-        console.error("Error fetching session data:", error);
-      }
-    };
-
-    if (sessionId) {
-      fetchSessionData();
-    }
+    // Note: Hold booking functionality has been removed
+    // This page now only handles full payment bookings
   }, [sessionId]);
 
   useEffect(() => {
@@ -171,29 +154,27 @@ export default function BookingPaymentPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    // Skip payment validation for hold bookings
-    if (!isHoldBooking) {
-      if (!cardNumber.replace(/\s/g, "")) {
-        newErrors.cardNumber = "Card number is required";
-      } else if (cardNumber.replace(/\s/g, "").length !== 16) {
-        newErrors.cardNumber = "Card number must be 16 digits";
-      }
+    // Validate payment fields (required for all bookings)
+    if (!cardNumber.replace(/\s/g, "")) {
+      newErrors.cardNumber = "Card number is required";
+    } else if (cardNumber.replace(/\s/g, "").length !== 16) {
+      newErrors.cardNumber = "Card number must be 16 digits";
+    }
 
-      if (!expiryDate) {
-        newErrors.expiryDate = "Expiry date is required";
-      } else if (!/^\d{2}\/\d{2}$/.test(expiryDate)) {
-        newErrors.expiryDate = "Invalid format (MM/YY)";
-      }
+    if (!expiryDate) {
+      newErrors.expiryDate = "Expiry date is required";
+    } else if (!/^\d{2}\/\d{2}$/.test(expiryDate)) {
+      newErrors.expiryDate = "Invalid format (MM/YY)";
+    }
 
-      if (!cvv) {
-        newErrors.cvv = "CVV is required";
-      } else if (!/^\d{3,4}$/.test(cvv)) {
-        newErrors.cvv = "CVV must be 3 or 4 digits";
-      }
+    if (!cvv) {
+      newErrors.cvv = "CVV is required";
+    } else if (!/^\d{3,4}$/.test(cvv)) {
+      newErrors.cvv = "CVV must be 3 or 4 digits";
+    }
 
-      if (!cardName.trim()) {
-        newErrors.cardName = "Cardholder name is required";
-      }
+    if (!cardName.trim()) {
+      newErrors.cardName = "Cardholder name is required";
     }
 
     if (!agreedToTerms) {
@@ -205,7 +186,7 @@ export default function BookingPaymentPage() {
   };
 
   const handleConfirmBooking = async () => {
-    console.log("🔘 Confirm booking clicked, isHoldBooking:", isHoldBooking);
+    console.log("🔘 Confirm booking clicked");
 
     if (!validateForm()) {
       console.log("❌ Validation failed");
@@ -225,72 +206,16 @@ export default function BookingPaymentPage() {
 
       console.log("✅ Lead contact found:", bookingSummary.leadContact);
 
-      // Only check passengers for full payment bookings
-      if (!isHoldBooking) {
-        if (
-          !bookingSummary.passengers ||
-          bookingSummary.passengers.length === 0
-        ) {
-          console.error("❌ No passenger data found");
-          throw new Error("No passenger data found");
-        }
+      // Verify we have passenger data
+      if (
+        !bookingSummary.passengers ||
+        bookingSummary.passengers.length === 0
+      ) {
+        console.error("❌ No passenger data found");
+        throw new Error("No passenger data found");
       }
 
-      // Handle hold booking differently
-      if (isHoldBooking) {
-        console.log("🏗️ Creating hold booking...");
-        console.log("Hold booking data:", {
-          firstName: bookingSummary.leadContact.firstName,
-          lastName: bookingSummary.leadContact.lastName,
-          email: bookingSummary.leadContact.email,
-          phone: bookingSummary.leadContact.phone,
-        });
-        // Create hold booking
-        const holdResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/hold`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              firstName: bookingSummary.leadContact.firstName,
-              lastName: bookingSummary.leadContact.lastName,
-              email: bookingSummary.leadContact.email,
-              phone: bookingSummary.leadContact.phone,
-              holdDurationDays: 7,
-            }),
-          },
-        );
-
-        if (!holdResponse.ok) {
-          console.error(
-            "❌ Hold booking API error:",
-            holdResponse.status,
-            holdResponse.statusText,
-          );
-          const errorData = await holdResponse.json().catch(() => ({}));
-          console.error("Error response:", errorData);
-          throw new Error(errorData.error || "Failed to create hold booking");
-        }
-
-        console.log("✅ Hold booking created successfully");
-        const holdResult = await holdResponse.json();
-        console.log("Hold result:", holdResult);
-
-        // Clear session and booking data
-        clearSession();
-        if (typeof window !== "undefined") {
-          localStorage.removeItem("bookingPassengers");
-          localStorage.removeItem("leadContact");
-        }
-
-        // Redirect to hold confirmation page
-        router.push(`/hold-confirmation/${holdResult.bookingId}`);
-        return;
-      }
-
-      // Regular payment booking
+      // Process payment booking
       // Parse expiry date (MM/YY format)
       const [expiryMonth, expiryYear] = expiryDate.split("/");
 
@@ -384,7 +309,7 @@ export default function BookingPaymentPage() {
             {/* Payment Form or Hold Booking Info */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
-                {isHoldBooking ? "Hold Booking" : "Payment Information"}
+                Payment Information
               </h3>
 
               {errors.submit && (
@@ -393,260 +318,236 @@ export default function BookingPaymentPage() {
                 </div>
               )}
 
-              {isHoldBooking ? (
-                // Hold Booking Info
-                <div className="space-y-4">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="font-geograph text-[15px] text-blue-900 mb-3">
-                      <strong>Your cabin will be held for 7 days</strong>
+              {/* Payment Form */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                    Card Number *
+                  </label>
+                  <input
+                    type="text"
+                    value={cardNumber}
+                    onChange={(e) => {
+                      const input = e.target.value.slice(0, 19);
+                      const formatted = formatCardNumber(input);
+                      setCardNumber(formatted);
+
+                      // Detect card type in real-time
+                      const detected = detectCardType(input);
+                      setCardType(detected.type);
+                      setCardTypeName(detected.name);
+                      setTraveltekCardCode(detected.traveltekCode);
+
+                      if (errors.cardNumber) {
+                        const newErrors = { ...errors };
+                        delete newErrors.cardNumber;
+                        setErrors(newErrors);
+                      }
+                    }}
+                    className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
+                      errors.cardNumber ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="1234 5678 9012 3456"
+                    maxLength={19}
+                  />
+                  {errors.cardNumber && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.cardNumber}
                     </p>
-                    <p className="font-geograph text-[14px] text-blue-800">
-                      No payment required now. You'll receive an email with
-                      instructions to complete your booking and payment within 7
-                      days. The price will remain locked during this period.
+                  )}
+                  {cardTypeName && traveltekCardCode && (
+                    <p className="text-green-600 text-sm mt-1 flex items-center gap-2">
+                      <span>✓</span>
+                      <span>{cardTypeName} detected</span>
                     </p>
-                  </div>
+                  )}
+                  {cardNumber.length > 4 && !traveltekCardCode && (
+                    <p className="text-orange-600 text-sm mt-1">
+                      ⚠ Card type not supported. Please use Visa, Mastercard,
+                      American Express, Maestro, or Diners Club.
+                    </p>
+                  )}
                 </div>
-              ) : (
-                // Payment Form
-                <div className="space-y-4">
+
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                      Card Number *
+                      Expiry Date *
                     </label>
                     <input
                       type="text"
-                      value={cardNumber}
+                      value={expiryDate}
                       onChange={(e) => {
-                        const input = e.target.value.slice(0, 19);
-                        const formatted = formatCardNumber(input);
-                        setCardNumber(formatted);
-
-                        // Detect card type in real-time
-                        const detected = detectCardType(input);
-                        setCardType(detected.type);
-                        setCardTypeName(detected.name);
-                        setTraveltekCardCode(detected.traveltekCode);
-
-                        if (errors.cardNumber) {
+                        const formatted = formatExpiryDate(e.target.value);
+                        setExpiryDate(formatted);
+                        if (errors.expiryDate) {
                           const newErrors = { ...errors };
-                          delete newErrors.cardNumber;
+                          delete newErrors.expiryDate;
                           setErrors(newErrors);
                         }
                       }}
                       className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                        errors.cardNumber ? "border-red-500" : "border-gray-300"
+                        errors.expiryDate ? "border-red-500" : "border-gray-300"
                       }`}
-                      placeholder="1234 5678 9012 3456"
-                      maxLength={19}
+                      placeholder="MM/YY"
+                      maxLength={5}
                     />
-                    {errors.cardNumber && (
+                    {errors.expiryDate && (
                       <p className="text-red-500 text-sm mt-1">
-                        {errors.cardNumber}
+                        {errors.expiryDate}
                       </p>
                     )}
-                    {cardTypeName && traveltekCardCode && (
-                      <p className="text-green-600 text-sm mt-1 flex items-center gap-2">
-                        <span>✓</span>
-                        <span>{cardTypeName} detected</span>
-                      </p>
-                    )}
-                    {cardNumber.length > 4 && !traveltekCardCode && (
-                      <p className="text-orange-600 text-sm mt-1">
-                        ⚠ Card type not supported. Please use Visa, Mastercard,
-                        American Express, Maestro, or Diners Club.
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                        Expiry Date *
-                      </label>
-                      <input
-                        type="text"
-                        value={expiryDate}
-                        onChange={(e) => {
-                          const formatted = formatExpiryDate(e.target.value);
-                          setExpiryDate(formatted);
-                          if (errors.expiryDate) {
-                            const newErrors = { ...errors };
-                            delete newErrors.expiryDate;
-                            setErrors(newErrors);
-                          }
-                        }}
-                        className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                          errors.expiryDate
-                            ? "border-red-500"
-                            : "border-gray-300"
-                        }`}
-                        placeholder="MM/YY"
-                        maxLength={5}
-                      />
-                      {errors.expiryDate && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.expiryDate}
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                        CVV *
-                      </label>
-                      <input
-                        type="text"
-                        value={cvv}
-                        onChange={(e) => {
-                          const value = e.target.value
-                            .replace(/\D/g, "")
-                            .slice(0, 4);
-                          setCvv(value);
-                          if (errors.cvv) {
-                            const newErrors = { ...errors };
-                            delete newErrors.cvv;
-                            setErrors(newErrors);
-                          }
-                        }}
-                        className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                          errors.cvv ? "border-red-500" : "border-gray-300"
-                        }`}
-                        placeholder="123"
-                        maxLength={4}
-                      />
-                      {errors.cvv && (
-                        <p className="text-red-500 text-sm mt-1">
-                          {errors.cvv}
-                        </p>
-                      )}
-                    </div>
                   </div>
 
                   <div>
                     <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
-                      Cardholder Name *
+                      CVV *
                     </label>
                     <input
                       type="text"
-                      value={cardName}
+                      value={cvv}
                       onChange={(e) => {
-                        setCardName(e.target.value);
-                        if (errors.cardName) {
+                        const value = e.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, 4);
+                        setCvv(value);
+                        if (errors.cvv) {
                           const newErrors = { ...errors };
-                          delete newErrors.cardName;
+                          delete newErrors.cvv;
                           setErrors(newErrors);
                         }
                       }}
                       className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
-                        errors.cardName ? "border-red-500" : "border-gray-300"
+                        errors.cvv ? "border-red-500" : "border-gray-300"
                       }`}
-                      placeholder="John Doe"
+                      placeholder="123"
+                      maxLength={4}
                     />
-                    {errors.cardName && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.cardName}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Terms & Conditions */}
-                  <div className="pt-4">
-                    <label className="flex items-start">
-                      <input
-                        type="checkbox"
-                        checked={agreedToTerms}
-                        onChange={(e) => {
-                          setAgreedToTerms(e.target.checked);
-                          if (errors.terms) {
-                            const newErrors = { ...errors };
-                            delete newErrors.terms;
-                            setErrors(newErrors);
-                          }
-                        }}
-                        className="mt-1 mr-3 w-4 h-4"
-                      />
-                      <span className="font-geograph text-[14px] text-dark-blue">
-                        I agree to the{" "}
-                        <a href="/terms" className="text-blue-600 underline">
-                          terms and conditions
-                        </a>{" "}
-                        and{" "}
-                        <a href="/privacy" className="text-blue-600 underline">
-                          privacy policy
-                        </a>
-                      </span>
-                    </label>
-                    {errors.terms && (
-                      <p className="text-red-500 text-sm mt-1">
-                        {errors.terms}
-                      </p>
+                    {errors.cvv && (
+                      <p className="text-red-500 text-sm mt-1">{errors.cvv}</p>
                     )}
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Choose Your Free Perk - Hide for hold bookings */}
-            {!isHoldBooking && (
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-3">
-                  Choose Your Free Perk
-                </h3>
-                <p className="font-geograph text-[14px] text-gray-600 mb-4">
-                  Zipsea is providing a free gift to you for booking with us
-                </p>
-                <div className="space-y-3">
-                  <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
-                    <input
-                      type="radio"
-                      name="perk"
-                      value="wifi"
-                      checked={selectedPerk === "wifi"}
-                      onChange={(e) => setSelectedPerk(e.target.value)}
-                      className="mr-3 w-4 h-4"
-                    />
-                    <div>
-                      <div className="font-geograph font-medium text-[16px] text-dark-blue">
-                        Free WiFi for 1 Passenger
-                      </div>
-                    </div>
+                <div>
+                  <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                    Cardholder Name *
                   </label>
+                  <input
+                    type="text"
+                    value={cardName}
+                    onChange={(e) => {
+                      setCardName(e.target.value);
+                      if (errors.cardName) {
+                        const newErrors = { ...errors };
+                        delete newErrors.cardName;
+                        setErrors(newErrors);
+                      }
+                    }}
+                    className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
+                      errors.cardName ? "border-red-500" : "border-gray-300"
+                    }`}
+                    placeholder="John Doe"
+                  />
+                  {errors.cardName && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.cardName}
+                    </p>
+                  )}
+                </div>
 
-                  <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
+                {/* Terms & Conditions */}
+                <div className="pt-4">
+                  <label className="flex items-start">
                     <input
-                      type="radio"
-                      name="perk"
-                      value="drinks"
-                      checked={selectedPerk === "drinks"}
-                      onChange={(e) => setSelectedPerk(e.target.value)}
-                      className="mr-3 w-4 h-4"
+                      type="checkbox"
+                      checked={agreedToTerms}
+                      onChange={(e) => {
+                        setAgreedToTerms(e.target.checked);
+                        if (errors.terms) {
+                          const newErrors = { ...errors };
+                          delete newErrors.terms;
+                          setErrors(newErrors);
+                        }
+                      }}
+                      className="mt-1 mr-3 w-4 h-4"
                     />
-                    <div>
-                      <div className="font-geograph font-medium text-[16px] text-dark-blue">
-                        Free Drink Package for 1 Passenger
-                      </div>
-                    </div>
+                    <span className="font-geograph text-[14px] text-dark-blue">
+                      I agree to the{" "}
+                      <a href="/terms" className="text-blue-600 underline">
+                        terms and conditions
+                      </a>{" "}
+                      and{" "}
+                      <a href="/privacy" className="text-blue-600 underline">
+                        privacy policy
+                      </a>
+                    </span>
                   </label>
-
-                  <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
-                    <input
-                      type="radio"
-                      name="perk"
-                      value="dining"
-                      checked={selectedPerk === "dining"}
-                      onChange={(e) => setSelectedPerk(e.target.value)}
-                      className="mr-3 w-4 h-4"
-                    />
-                    <div>
-                      <div className="font-geograph font-medium text-[16px] text-dark-blue">
-                        2 Specialty Dining Credits
-                      </div>
-                    </div>
-                  </label>
+                  {errors.terms && (
+                    <p className="text-red-500 text-sm mt-1">{errors.terms}</p>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Choose Your Free Perk */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-3">
+                Choose Your Free Perk
+              </h3>
+              <p className="font-geograph text-[14px] text-gray-600 mb-4">
+                Zipsea is providing a free gift to you for booking with us
+              </p>
+              <div className="space-y-3">
+                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="perk"
+                    value="wifi"
+                    checked={selectedPerk === "wifi"}
+                    onChange={(e) => setSelectedPerk(e.target.value)}
+                    className="mr-3 w-4 h-4"
+                  />
+                  <div>
+                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
+                      Free WiFi for 1 Passenger
+                    </div>
+                  </div>
+                </label>
+
+                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="perk"
+                    value="drinks"
+                    checked={selectedPerk === "drinks"}
+                    onChange={(e) => setSelectedPerk(e.target.value)}
+                    className="mr-3 w-4 h-4"
+                  />
+                  <div>
+                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
+                      Free Drink Package for 1 Passenger
+                    </div>
+                  </div>
+                </label>
+
+                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
+                  <input
+                    type="radio"
+                    name="perk"
+                    value="dining"
+                    checked={selectedPerk === "dining"}
+                    onChange={(e) => setSelectedPerk(e.target.value)}
+                    className="mr-3 w-4 h-4"
+                  />
+                  <div>
+                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
+                      2 Specialty Dining Credits
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
 
             {/* Cancellation Policy */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -721,20 +622,12 @@ export default function BookingPaymentPage() {
                     : "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90"
                 }`}
               >
-                {isProcessing
-                  ? isHoldBooking
-                    ? "Creating Hold..."
-                    : "Processing..."
-                  : isHoldBooking
-                    ? "Confirm Hold Booking"
-                    : "Confirm & Pay"}
+                {isProcessing ? "Processing..." : "Confirm & Pay"}
               </button>
 
-              {!isHoldBooking && (
-                <p className="font-geograph text-[12px] text-gray-600 text-center">
-                  Your payment is secure and encrypted
-                </p>
-              )}
+              <p className="font-geograph text-[12px] text-gray-600 text-center">
+                Your payment is secure and encrypted
+              </p>
             </div>
           </div>
         </div>

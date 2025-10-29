@@ -89,15 +89,19 @@ export default function HoldBookingModal({
 
             {/* Option Cards */}
             <div className="space-y-4">
-              {/* Hold Option */}
+              {/* Hold Option - Temporarily Disabled */}
               <button
-                onClick={onHoldBooking}
-                className="w-full text-left p-6 border-2 border-gray-300 hover:border-blue-600 rounded-lg transition-all group"
+                onClick={() => {
+                  alert(
+                    'Hold booking coming soon! Please use "Book & Pay Now" for now.',
+                  );
+                }}
+                className="w-full text-left p-6 border-2 border-gray-200 bg-gray-50 rounded-lg opacity-60 cursor-not-allowed"
               >
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                  <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                     <svg
-                      className="w-6 h-6 text-blue-600 group-hover:text-white"
+                      className="w-6 h-6 text-blue-600"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -111,10 +115,15 @@ export default function HoldBookingModal({
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-2">
-                      Hold This Cabin (Free)
-                    </h3>
-                    <p className="font-geograph text-[14px] text-gray-600 mb-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-geograph font-bold text-[18px] text-gray-600">
+                        Hold This Cabin (Free)
+                      </h3>
+                      <span className="font-geograph text-[12px] text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                        Coming Soon
+                      </span>
+                    </div>
+                    <p className="font-geograph text-[14px] text-gray-500 mb-3">
                       Reserve your cabin now and complete payment later. No
                       credit card required.
                     </p>
