@@ -1840,6 +1840,31 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                           : "guests"}{" "}
                                         • Including taxes & fees
                                       </div>
+                                      {/* OBC Display - Calculate based on cabin's actual cheapestPrice */}
+                                      {(() => {
+                                        const basePrice =
+                                          cabin.cheapestPrice ||
+                                          cabinPricing.price;
+                                        if (basePrice && basePrice > 0) {
+                                          const creditPercent = 0.08;
+                                          const rawCredit =
+                                            basePrice * creditPercent;
+                                          const obcAmount =
+                                            Math.floor(rawCredit / 10) * 10;
+
+                                          if (obcAmount > 0) {
+                                            console.log(
+                                              `💳 Cabin ${cabin.code} OBC: $${obcAmount} from price $${basePrice}`,
+                                            );
+                                            return (
+                                              <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                                                +${obcAmount} onboard credit
+                                              </div>
+                                            );
+                                          }
+                                        }
+                                        return null;
+                                      })()}
                                     </div>
 
                                     {/* Reserve Button with Availability Warning */}
