@@ -648,21 +648,68 @@ export class TraveltekApiService {
         basketParams.cabinno = params.cabinno;
       }
 
-      console.log('🔍 Traveltek API: addToBasket request');
-      console.log('   Params:', JSON.stringify(basketParams, null, 2));
+      console.log('🔍 ===== TRAVELTEK BASKETADD.PL REQUEST DETAILS =====');
+      console.log('📋 Input params received by addToBasket:');
+      console.log(JSON.stringify(params, null, 2));
+      console.log('');
+      console.log('📋 Built basketParams object (before axios):');
+      console.log(JSON.stringify(basketParams, null, 2));
+      console.log('📋 Parameter count:', Object.keys(basketParams).length);
+      console.log('');
+      console.log('🔗 Full URL that will be constructed:');
+      const queryString = new URLSearchParams(basketParams).toString();
+      console.log(`${TRAVELTEK_API_BASE_URL}/basketadd.pl?${queryString}&requestid=[OAUTH_TOKEN]`);
+      console.log('');
+      console.log('📝 URL-encoded values:');
+      console.log(
+        '   gradeno:',
+        basketParams.gradeno,
+        '→',
+        encodeURIComponent(basketParams.gradeno)
+      );
+      if (basketParams.cabinresult) {
+        console.log(
+          '   cabinresult:',
+          basketParams.cabinresult,
+          '→',
+          encodeURIComponent(basketParams.cabinresult)
+        );
+      }
+      console.log('====================================================');
 
       const response = await this.axiosInstance.get('/basketadd.pl', { params: basketParams });
 
-      console.log('✅ Traveltek API: addToBasket success');
-      console.log('   Response data keys:', Object.keys(response.data));
+      console.log('');
+      console.log('✅ ===== TRAVELTEK BASKETADD.PL RESPONSE =====');
+      console.log('📊 Response status:', response.status);
+      console.log('📊 Response data keys:', Object.keys(response.data));
+      console.log('');
+      console.log('📋 FULL RESPONSE DATA:');
+      console.log(JSON.stringify(response.data, null, 2));
+      console.log('');
+
+      // Extract and log basketitem details
+      if (response.data.results?.[0]?.basketitems?.[0]) {
+        const basketItem = response.data.results[0].basketitems[0];
+        console.log('🎯 BASKET ITEM KEY FIELDS:');
+        console.log('   price:', basketItem.price);
+        console.log('   paymentoption:', basketItem.paymentoption);
+        console.log('   searchprice:', basketItem.searchprice);
+        console.log('   cruisedetailPrice:', basketItem.cruisedetailPrice);
+        console.log('   itemkey:', basketItem.itemkey);
+        console.log('');
+      }
 
       // Log any errors or warnings
       if (response.data.errors && response.data.errors.length > 0) {
-        console.error('⚠️  Traveltek API: addToBasket returned errors:', response.data.errors);
+        console.error('❌ TRAVELTEK API ERRORS:');
+        console.error(JSON.stringify(response.data.errors, null, 2));
       }
       if (response.data.warnings && response.data.warnings.length > 0) {
-        console.warn('⚠️  Traveltek API: addToBasket returned warnings:', response.data.warnings);
+        console.warn('⚠️  TRAVELTEK API WARNINGS:');
+        console.warn(JSON.stringify(response.data.warnings, null, 2));
       }
+      console.log('=============================================');
 
       return response.data;
     } catch (error: any) {
