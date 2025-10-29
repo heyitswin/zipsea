@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   getCruiseBySlug,
@@ -87,6 +87,42 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       console.log("🔄 commissionableFares state updated:", commissionableFares);
     }
   }, [commissionableFares]);
+
+  // Memoized OBC calculations that update when commissionableFares or pricing changes
+  const obcAmounts = useMemo(() => {
+    console.log(
+      "🔄 Recalculating OBC amounts with commissionableFares:",
+      commissionableFares,
+    );
+
+    const cabinTypes = ["interior", "oceanview", "balcony", "suite"] as const;
+    const amounts: Record<string, number> = {};
+
+    for (const cabinType of cabinTypes) {
+      const liveFare = commissionableFares[cabinType];
+      const cachedPrice = pricing?.raw?.combined?.[`${cabinType}price`];
+
+      // Prefer live fare, fallback to cached price
+      const fareToUse = liveFare || cachedPrice;
+
+      if (fareToUse) {
+        const numPrice =
+          typeof fareToUse === "string" ? parseFloat(fareToUse) : fareToUse;
+        if (numPrice && !isNaN(numPrice)) {
+          // Calculate 8% of the price as onboard credit, rounded down to nearest $10
+          const creditPercent = 0.08;
+          const rawCredit = numPrice * creditPercent;
+          amounts[cabinType] = Math.floor(rawCredit / 10) * 10;
+
+          console.log(
+            `💰 OBC for ${cabinType}: $${amounts[cabinType]} (from ${liveFare ? "LIVE fare" : "cached price"}: $${fareToUse})`,
+          );
+        }
+      }
+    }
+
+    return amounts;
+  }, [commissionableFares, pricing]);
 
   // Specific cabin modal state
   const [isSpecificCabinModalOpen, setIsSpecificCabinModalOpen] =
@@ -1980,16 +2016,12 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
                             {formatPrice(getCabinPrice("interior"))}
                           </div>
-                          {isPriceAvailable(getCabinPrice("interior")) && (
-                            <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                              +$
-                              {calculateOnboardCredit(
-                                getCabinPrice("interior"),
-                                "interior",
-                              )}{" "}
-                              onboard credit
-                            </div>
-                          )}
+                          {isPriceAvailable(getCabinPrice("interior")) &&
+                            obcAmounts.interior > 0 && (
+                              <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                                +${obcAmounts.interior} onboard credit
+                              </div>
+                            )}
                         </div>
 
                         {/* Quote CTA Button - Inline on mobile */}
@@ -2068,16 +2100,12 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
                             {formatPrice(getCabinPrice("oceanview"))}
                           </div>
-                          {isPriceAvailable(getCabinPrice("oceanview")) && (
-                            <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                              +$
-                              {calculateOnboardCredit(
-                                getCabinPrice("oceanview"),
-                                "oceanview",
-                              )}{" "}
-                              onboard credit
-                            </div>
-                          )}
+                          {isPriceAvailable(getCabinPrice("oceanview")) &&
+                            obcAmounts.oceanview > 0 && (
+                              <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                                +${obcAmounts.oceanview} onboard credit
+                              </div>
+                            )}
                         </div>
 
                         {/* Quote CTA Button - Inline on mobile */}
@@ -2156,16 +2184,12 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
                             {formatPrice(getCabinPrice("balcony"))}
                           </div>
-                          {isPriceAvailable(getCabinPrice("balcony")) && (
-                            <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                              +$
-                              {calculateOnboardCredit(
-                                getCabinPrice("balcony"),
-                                "balcony",
-                              )}{" "}
-                              onboard credit
-                            </div>
-                          )}
+                          {isPriceAvailable(getCabinPrice("balcony")) &&
+                            obcAmounts.balcony > 0 && (
+                              <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                                +${obcAmounts.balcony} onboard credit
+                              </div>
+                            )}
                         </div>
 
                         {/* Quote CTA Button - Inline on mobile */}
@@ -2241,16 +2265,12 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
                           {formatPrice(getCabinPrice("suite"))}
                         </div>
-                        {isPriceAvailable(getCabinPrice("suite")) && (
-                          <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                            +$
-                            {calculateOnboardCredit(
-                              getCabinPrice("suite"),
-                              "suite",
-                            )}{" "}
-                            onboard credit
-                          </div>
-                        )}
+                        {isPriceAvailable(getCabinPrice("suite")) &&
+                          obcAmounts.suite > 0 && (
+                            <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
+                              +${obcAmounts.suite} onboard credit
+                            </div>
+                          )}
                       </div>
 
                       {/* Quote CTA Button - Inline on mobile */}
