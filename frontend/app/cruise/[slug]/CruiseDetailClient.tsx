@@ -2053,7 +2053,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                             STARTING FROM
                           </div>
                           <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
-                            {formatPrice(getCabinPrice("interior"))}
+                            {isPriceAvailable(getCabinPrice("interior"))
+                              ? `$${formatPrice(getCabinPrice("interior"))}`
+                              : isLiveBookable
+                                ? "Call for price"
+                                : "Unavailable"}
                           </div>
                           {isPriceAvailable(getCabinPrice("interior")) &&
                             obcAmounts?.interior > 0 && (
@@ -2150,7 +2154,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                             STARTING FROM
                           </div>
                           <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
-                            {formatPrice(getCabinPrice("oceanview"))}
+                            {isPriceAvailable(getCabinPrice("oceanview"))
+                              ? `$${formatPrice(getCabinPrice("oceanview"))}`
+                              : isLiveBookable
+                                ? "Call for price"
+                                : "Unavailable"}
                           </div>
                           {isPriceAvailable(getCabinPrice("oceanview")) &&
                             obcAmounts?.oceanview > 0 && (
@@ -2234,7 +2242,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                             STARTING FROM
                           </div>
                           <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
-                            {formatPrice(getCabinPrice("balcony"))}
+                            {isPriceAvailable(getCabinPrice("balcony"))
+                              ? `$${formatPrice(getCabinPrice("balcony"))}`
+                              : isLiveBookable
+                                ? "Call for price"
+                                : "Unavailable"}
                           </div>
                           {isPriceAvailable(getCabinPrice("balcony")) &&
                             obcAmounts?.balcony > 0 && (
@@ -2315,7 +2327,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           STARTING FROM
                         </div>
                         <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
-                          {formatPrice(getCabinPrice("suite"))}
+                          {isPriceAvailable(getCabinPrice("suite"))
+                            ? `$${formatPrice(getCabinPrice("suite"))}`
+                            : isLiveBookable
+                              ? "Call for price"
+                              : "Unavailable"}
                         </div>
                         {isPriceAvailable(getCabinPrice("suite")) &&
                           obcAmounts?.suite > 0 && (

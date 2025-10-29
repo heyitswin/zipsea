@@ -30,6 +30,11 @@ interface PricingData {
   cruiseLineName?: string;
   cancellationPolicyUrl?: string;
   isPriceEstimated?: boolean;
+  obcAmount?: number;
+  cabinName?: string;
+  cabinCode?: string;
+  roomNumber?: string;
+  deckNumber?: string;
 }
 
 export default function PricingSummary({ sessionId }: PricingSummaryProps) {
@@ -234,11 +239,15 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           cruiseFare = totalprice;
         }
 
-        // Fetch session to get cruise line info for cancellation policy
+        // Fetch session to get cruise line info for cancellation policy and cabin details
         let shipName = basketItem?.name || undefined;
         let shipImage = basketItem?.image || undefined;
         let cruiseLineName: string | undefined;
         let cancellationPolicyUrl: string | undefined;
+        let cabinName: string | undefined;
+        let cabinCode: string | undefined;
+        let roomNumber: string | undefined;
+        let deckNumber: string | undefined;
 
         try {
           const sessionResponse = await fetch(
@@ -246,6 +255,12 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           );
           if (sessionResponse.ok) {
             const sessionData = await sessionResponse.json();
+
+            // Extract cabin details from session
+            cabinName = sessionData.selectedCabin || sessionData.cabinName;
+            cabinCode = sessionData.cabinCode;
+            roomNumber = sessionData.roomNumber;
+            deckNumber = sessionData.deckNumber || sessionData.deck;
             if (sessionData.cruiseId) {
               // Fetch cruise details to get cruise line
               const cruiseResponse = await fetch(
@@ -299,6 +314,17 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           });
         }
 
+        // Calculate OBC (10% of commissionable fare, rounded to nearest $10)
+        // The cruise fare is the commissionable amount
+        let obcAmount = 0;
+        if (cruiseFare > 0) {
+          obcAmount = Math.floor((cruiseFare * 0.1) / 10) * 10;
+          console.log("💳 Calculated OBC:", {
+            cruiseFare,
+            obcAmount,
+          });
+        }
+
         setPricingData({
           cruiseFare,
           taxes,
@@ -314,6 +340,11 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           cruiseLineName,
           cancellationPolicyUrl,
           isPriceEstimated,
+          obcAmount,
+          cabinName,
+          cabinCode,
+          roomNumber,
+          deckNumber,
         });
         setIsLoading(false);
       } catch (error) {
@@ -354,7 +385,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
   }
 
   const formatPrice = (amount: number) => {
-    return `${pricingData.currencySymbol}${Math.abs(amount).toFixed(2)}`;
+    return `${pricingData.currencySymbol}${Math.abs(amount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
@@ -378,9 +409,37 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
       )}
 
       {/* Pricing Header */}
-      <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
+      <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-2">
         Pricing Summary
       </h3>
+
+      {/* Cabin Details */}
+      {(pricingData.cabinName || pricingData.cabinCode) && (
+        <div className="mb-4 pb-3 border-b border-gray-200">
+          {pricingData.cabinName && (
+            <p className="font-geograph text-[14px] text-gray-700">
+              {pricingData.cabinName}
+            </p>
+          )}
+          <div className="flex gap-2 text-[13px] text-gray-600 font-geograph mt-1">
+            {pricingData.cabinCode && (
+              <span>Code: {pricingData.cabinCode}</span>
+            )}
+            {pricingData.roomNumber && (
+              <>
+                <span>•</span>
+                <span>Room: {pricingData.roomNumber}</span>
+              </>
+            )}
+            {pricingData.deckNumber && (
+              <>
+                <span>•</span>
+                <span>Deck: {pricingData.deckNumber}</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Detailed Breakdown */}
       <div className="space-y-2 mb-4 pb-4 border-b border-gray-200">
@@ -410,6 +469,20 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           {formatPrice(pricingData.total)}
         </span>
       </div>
+
+      {/* OBC - Extras added after booking */}
+      {pricingData.obcAmount && pricingData.obcAmount > 0 && (
+        <div className="mt-3 p-3 bg-[#1B8F57] rounded-lg">
+          <div className="flex justify-between items-center">
+            <span className="font-geograph font-medium text-[14px] text-white">
+              Extras added after booking
+            </span>
+            <span className="font-geograph font-bold text-[16px] text-white">
+              +${pricingData.obcAmount} onboard credit
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Deposit Due */}
       {pricingData.deposit > 0 && pricingData.deposit < pricingData.total && (

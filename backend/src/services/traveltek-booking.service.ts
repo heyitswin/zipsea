@@ -291,8 +291,9 @@ class TraveltekBookingService {
             // Accessibility indicator (modified:1 = accessible cabin)
             accessible: cabin.modified === 1 || cabin.modified === '1',
           });
-        } else if (cabin.gradeno && cabin.ratecode) {
+        } else if (cabin.gradeno && cabin.ratecode && cabin.available !== 'N') {
           // Fallback: If no gridpricing array, use top-level values
+          // Only include if not explicitly unavailable (waitlist/soldout)
           const singleRateByCode: Record<string, any> = {
             [cabin.ratecode]: {
               price: parseFloat(cabin.cheapestprice || '0'),
