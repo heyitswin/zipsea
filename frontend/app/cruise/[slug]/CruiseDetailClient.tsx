@@ -528,6 +528,18 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     price: string | number | undefined,
     cabinType?: "interior" | "oceanview" | "balcony" | "suite",
   ) => {
+    // Detailed debug logging
+    console.log(`🔍 OBC calculation called for ${cabinType}:`, {
+      hasCabinType: !!cabinType,
+      fareInState: cabinType ? commissionableFares[cabinType] : "no cabin type",
+      allFaresInState: commissionableFares,
+      passedPrice: price,
+      conditionCheck:
+        cabinType && commissionableFares[cabinType]
+          ? "WILL USE LIVE"
+          : "WILL USE CACHED",
+    });
+
     // Use live fare if available (more accurate)
     let fareToUse = price;
     if (cabinType && commissionableFares[cabinType]) {
