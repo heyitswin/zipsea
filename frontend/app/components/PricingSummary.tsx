@@ -469,14 +469,12 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
 
       {/* OBC - Extras added after booking */}
       {pricingData.obcAmount && pricingData.obcAmount > 0 && (
-        <div className="mt-3 p-3 bg-[#1B8F57] rounded-lg">
-          <div className="flex justify-between items-center">
-            <span className="font-geograph font-medium text-[14px] text-white">
-              Extras added after booking
-            </span>
-            <span className="font-geograph font-bold text-[16px] text-white">
-              +${pricingData.obcAmount} onboard credit
-            </span>
+        <div className="mt-3 p-3 bg-[#D4F4DD] rounded-lg">
+          <div className="font-geograph font-medium text-[14px] text-[#1B8F57] mb-1">
+            Extras added after booking
+          </div>
+          <div className="font-geograph font-bold text-[16px] text-[#1B8F57]">
+            +${pricingData.obcAmount} onboard credit
           </div>
         </div>
       )}

@@ -81,6 +81,48 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     Record<string, number | null>
   >({});
 
+  // Auto-select first available cabin type when cabin data loads
+  useEffect(() => {
+    if (liveCabinGrades?.cabins && liveCabinGrades.cabins.length > 0) {
+      const categoryMap = {
+        inside: "interior",
+        outside: "oceanview",
+        balcony: "balcony",
+        suite: "suite",
+      };
+
+      // Check if current selection has cabins
+      const currentCategoryApiName = {
+        interior: "inside",
+        oceanview: "outside",
+        balcony: "balcony",
+        suite: "suite",
+      }[selectedCabinCategory as keyof typeof categoryMap];
+
+      const currentHasCabins = liveCabinGrades.cabins.some(
+        (cabin: any) => cabin.category === currentCategoryApiName,
+      );
+
+      // If current selection has no cabins, auto-select first available
+      if (!currentHasCabins) {
+        for (const [apiCategory, displayCategory] of Object.entries(
+          categoryMap,
+        )) {
+          const hasCabins = liveCabinGrades.cabins.some(
+            (cabin: any) => cabin.category === apiCategory,
+          );
+          if (hasCabins) {
+            console.log(
+              `🔄 Auto-selecting ${displayCategory} (current ${selectedCabinCategory} has no cabins)`,
+            );
+            setSelectedCabinCategory(displayCategory);
+            break;
+          }
+        }
+      }
+    }
+  }, [liveCabinGrades, selectedCabinCategory]);
+
   // Debug: Log when commissionableFares updates
   useEffect(() => {
     if (Object.keys(commissionableFares).length > 0) {
@@ -112,8 +154,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         const numPrice =
           typeof fareToUse === "string" ? parseFloat(fareToUse) : fareToUse;
         if (numPrice && !isNaN(numPrice)) {
-          // Calculate 8% of the price as onboard credit, rounded down to nearest $10
-          const creditPercent = 0.08;
+          // Calculate 10% of the price as onboard credit, rounded down to nearest $10
+          const creditPercent = 0.1;
           const rawCredit = numPrice * creditPercent;
           amounts[cabinType] = Math.floor(rawCredit / 10) * 10;
 
@@ -618,8 +660,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     const numPrice =
       typeof fareToUse === "string" ? parseFloat(fareToUse) : fareToUse;
     if (!numPrice || isNaN(numPrice)) return 0;
-    // Calculate 8% of the price as onboard credit, rounded down to nearest $10
-    const creditPercent = 0.08; // 8%
+    // Calculate 10% of the price as onboard credit, rounded down to nearest $10
+    const creditPercent = 0.1; // 10%
     const rawCredit = numPrice * creditPercent;
     return Math.floor(rawCredit / 10) * 10; // Round down to nearest $10
   };
@@ -1646,62 +1688,71 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
                 {/* Category Tabs */}
                 <div className="flex flex-wrap gap-2 mb-6">
-                  {liveCabinGrades.cabins?.filter(
-                    (cabin: any) => cabin.category === "inside",
-                  ).length > 0 && (
-                    <button
-                      onClick={() => setSelectedCabinCategory("interior")}
-                      className={`px-5 py-2 rounded-[5px] font-geograph font-medium text-[16px] transition-colors ${
-                        selectedCabinCategory === "interior"
-                          ? "bg-dark-blue text-white"
-                          : "bg-white text-dark-blue border border-gray-300 hover:border-dark-blue"
-                      }`}
-                    >
-                      Interior
-                    </button>
-                  )}
-                  {liveCabinGrades.cabins?.filter(
-                    (cabin: any) => cabin.category === "outside",
-                  ).length > 0 && (
-                    <button
-                      onClick={() => setSelectedCabinCategory("oceanview")}
-                      className={`px-5 py-2 rounded-[5px] font-geograph font-medium text-[16px] transition-colors ${
-                        selectedCabinCategory === "oceanview"
-                          ? "bg-dark-blue text-white"
-                          : "bg-white text-dark-blue border border-gray-300 hover:border-dark-blue"
-                      }`}
-                    >
-                      Oceanview
-                    </button>
-                  )}
-                  {liveCabinGrades.cabins?.filter(
-                    (cabin: any) => cabin.category === "balcony",
-                  ).length > 0 && (
-                    <button
-                      onClick={() => setSelectedCabinCategory("balcony")}
-                      className={`px-5 py-2 rounded-[5px] font-geograph font-medium text-[16px] transition-colors ${
-                        selectedCabinCategory === "balcony"
-                          ? "bg-dark-blue text-white"
-                          : "bg-white text-dark-blue border border-gray-300 hover:border-dark-blue"
-                      }`}
-                    >
-                      Balcony
-                    </button>
-                  )}
-                  {liveCabinGrades.cabins?.filter(
-                    (cabin: any) => cabin.category === "suite",
-                  ).length > 0 && (
-                    <button
-                      onClick={() => setSelectedCabinCategory("suite")}
-                      className={`px-5 py-2 rounded-[5px] font-geograph font-medium text-[16px] transition-colors ${
-                        selectedCabinCategory === "suite"
-                          ? "bg-dark-blue text-white"
-                          : "bg-white text-dark-blue border border-gray-300 hover:border-dark-blue"
-                      }`}
-                    >
-                      Suite
-                    </button>
-                  )}
+                  {(() => {
+                    const categories = [
+                      {
+                        key: "interior",
+                        apiCategory: "inside",
+                        label: "Interior",
+                      },
+                      {
+                        key: "oceanview",
+                        apiCategory: "outside",
+                        label: "Oceanview",
+                      },
+                      {
+                        key: "balcony",
+                        apiCategory: "balcony",
+                        label: "Balcony",
+                      },
+                      { key: "suite", apiCategory: "suite", label: "Suite" },
+                    ];
+
+                    return categories.map(({ key, apiCategory, label }) => {
+                      const cabinsInCategory =
+                        liveCabinGrades.cabins?.filter(
+                          (cabin: any) => cabin.category === apiCategory,
+                        ) || [];
+                      const hasAvailability = cabinsInCategory.length > 0;
+                      const lowestPrice = hasAvailability
+                        ? Math.min(
+                            ...cabinsInCategory.map((c: any) =>
+                              parseFloat(c.totalPrice || 0),
+                            ),
+                          )
+                        : null;
+
+                      return (
+                        <div key={key} className="flex flex-col">
+                          <button
+                            onClick={() =>
+                              hasAvailability &&
+                              setSelectedCabinCategory(key as any)
+                            }
+                            disabled={!hasAvailability}
+                            className={`px-5 py-2 rounded-[5px] font-geograph font-medium text-[16px] transition-colors ${
+                              !hasAvailability
+                                ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
+                                : selectedCabinCategory === key
+                                  ? "bg-dark-blue text-white"
+                                  : "bg-white text-dark-blue border border-gray-300 hover:border-dark-blue"
+                            }`}
+                          >
+                            {label}
+                          </button>
+                          {!hasAvailability ? (
+                            <span className="text-[11px] text-gray-500 mt-1 text-center font-geograph">
+                              No cabins available
+                            </span>
+                          ) : lowestPrice ? (
+                            <span className="text-[11px] text-dark-blue mt-1 text-center font-geograph font-medium">
+                              Starting from ${Math.round(lowestPrice)}
+                            </span>
+                          ) : null}
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
 
                 {/* Cabin Cards for Selected Category */}

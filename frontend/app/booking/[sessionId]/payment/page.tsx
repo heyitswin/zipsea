@@ -47,11 +47,43 @@ export default function BookingPaymentPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   // Special requests removed from UI - keeping backend support for future use
   // const [specialRequests, setSpecialRequests] = useState<string>("");
-  const [selectedPerk, setSelectedPerk] = useState<string>("wifi");
+  // Perk selection removed from UI
+  // const [selectedPerk, setSelectedPerk] = useState<string>("wifi");
   const [cancellationPolicyUrl, setCancellationPolicyUrl] = useState<
     string | null
   >(null);
   const [cruiseLineName, setCruiseLineName] = useState<string>("");
+  const [basketData, setBasketData] = useState<any>(null);
+  const [isLoadingBasket, setIsLoadingBasket] = useState(true);
+
+  // Fetch basket data to get the actual total price
+  useEffect(() => {
+    const fetchBasketData = async () => {
+      try {
+        setIsLoadingBasket(true);
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/basket`,
+        );
+
+        if (!response.ok) {
+          console.error("Failed to fetch basket data");
+          return;
+        }
+
+        const data = await response.json();
+        console.log("🛒 Basket data fetched:", data);
+        setBasketData(data);
+      } catch (error) {
+        console.error("Error fetching basket data:", error);
+      } finally {
+        setIsLoadingBasket(false);
+      }
+    };
+
+    if (sessionId) {
+      fetchBasketData();
+    }
+  }, [sessionId]);
 
   useEffect(() => {
     // Load booking data from localStorage
@@ -219,9 +251,23 @@ export default function BookingPaymentPage() {
       // Parse expiry date (MM/YY format)
       const [expiryMonth, expiryYear] = expiryDate.split("/");
 
-      // Get total amount from the basket/pricing
-      // TODO: This should come from the basket API response
-      const totalAmount = 2487.36;
+      // Get total amount from the basket data
+      // The basket API returns totalPrice or totalDeposit depending on booking type
+      if (!basketData) {
+        console.error("❌ No basket data available");
+        throw new Error("Unable to retrieve pricing. Please try again.");
+      }
+
+      const totalAmount = basketData.totalPrice || basketData.totalDeposit || 0;
+
+      if (totalAmount === 0) {
+        console.error("❌ Invalid total amount:", totalAmount);
+        throw new Error(
+          "Invalid pricing amount. Please refresh and try again.",
+        );
+      }
+
+      console.log("💰 Using basket total amount:", totalAmount);
 
       // Format request according to backend API contract
       const requestBody = {
@@ -490,65 +536,6 @@ export default function BookingPaymentPage() {
               </div>
             </div>
 
-            {/* Choose Your Free Perk */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-3">
-                Choose Your Free Perk
-              </h3>
-              <p className="font-geograph text-[14px] text-gray-600 mb-4">
-                Zipsea is providing a free gift to you for booking with us
-              </p>
-              <div className="space-y-3">
-                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
-                  <input
-                    type="radio"
-                    name="perk"
-                    value="wifi"
-                    checked={selectedPerk === "wifi"}
-                    onChange={(e) => setSelectedPerk(e.target.value)}
-                    className="mr-3 w-4 h-4"
-                  />
-                  <div>
-                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
-                      Free WiFi for 1 Passenger
-                    </div>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
-                  <input
-                    type="radio"
-                    name="perk"
-                    value="drinks"
-                    checked={selectedPerk === "drinks"}
-                    onChange={(e) => setSelectedPerk(e.target.value)}
-                    className="mr-3 w-4 h-4"
-                  />
-                  <div>
-                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
-                      Free Drink Package for 1 Passenger
-                    </div>
-                  </div>
-                </label>
-
-                <label className="flex items-center p-4 rounded-lg border border-gray-300 hover:border-dark-blue cursor-pointer transition-colors">
-                  <input
-                    type="radio"
-                    name="perk"
-                    value="dining"
-                    checked={selectedPerk === "dining"}
-                    onChange={(e) => setSelectedPerk(e.target.value)}
-                    className="mr-3 w-4 h-4"
-                  />
-                  <div>
-                    <div className="font-geograph font-medium text-[16px] text-dark-blue">
-                      2 Specialty Dining Credits
-                    </div>
-                  </div>
-                </label>
-              </div>
-            </div>
-
             {/* Cancellation Policy */}
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <h3 className="font-geograph font-bold text-[18px] text-dark-blue mb-4">
@@ -615,14 +602,18 @@ export default function BookingPaymentPage() {
               {/* Confirm & Pay Button */}
               <button
                 onClick={handleConfirmBooking}
-                disabled={isProcessing}
+                disabled={isProcessing || isLoadingBasket}
                 className={`w-full font-geograph font-medium text-[16px] px-6 py-4 rounded-[5px] transition-colors ${
-                  isProcessing
+                  isProcessing || isLoadingBasket
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                     : "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90"
                 }`}
               >
-                {isProcessing ? "Processing..." : "Confirm & Pay"}
+                {isLoadingBasket
+                  ? "Loading pricing..."
+                  : isProcessing
+                    ? "Processing..."
+                    : "Confirm & Pay"}
               </button>
 
               <p className="font-geograph text-[12px] text-gray-600 text-center">

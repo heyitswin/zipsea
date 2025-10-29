@@ -225,14 +225,13 @@ function HomeWithParams() {
         break;
       case "caribbean":
         params.set("regions", "2");
-        params.set("minNights", "7");
-        params.set("maxNights", "7");
+        params.set("nights", "6-8");
         break;
       case "mexico":
         params.set("regions", "26");
         break;
       case "newyork":
-        params.set("departurePorts", "362,5170,5171");
+        params.set("ports", "5171,5170,207,362");
         break;
     }
 
@@ -275,8 +274,8 @@ function HomeWithParams() {
         <div className="relative mx-auto" style={{ maxWidth: "1880px" }}>
           {/* Video Background with Mask - Fixed Height Container with object-fit */}
           <div className="relative w-full" style={{ height: "700px" }}>
-            {/* Video with SVG mask - FIXED: prevent shrinking */}
-            <div className="absolute inset-0 w-full h-full">
+            {/* Video with SVG mask (Desktop only) - FIXED: prevent shrinking */}
+            <div className="hidden md:block absolute inset-0 w-full h-full">
               <video
                 autoPlay
                 loop
@@ -301,6 +300,29 @@ function HomeWithParams() {
                   type="video/mp4"
                 />
               </video>
+            </div>
+
+            {/* Static Image (Mobile only) */}
+            <div className="md:hidden absolute inset-0 w-full h-full">
+              <Image
+                src="/images/updated-homepage/homepage-video-thumbnail.jpg"
+                alt="Cruise Ship"
+                fill
+                className="absolute inset-0"
+                style={{
+                  objectFit: "cover",
+                  maskImage: "url('/images/updated-homepage/video-mask.svg')",
+                  WebkitMaskImage:
+                    "url('/images/updated-homepage/video-mask.svg')",
+                  maskSize: "cover",
+                  WebkitMaskSize: "cover",
+                  maskRepeat: "no-repeat",
+                  WebkitMaskRepeat: "no-repeat",
+                  maskPosition: "center",
+                  WebkitMaskPosition: "center",
+                }}
+                priority
+              />
             </div>
 
             {/* Radial Gradient Overlay - Increased opacity from 0.5 to 0.7 */}
@@ -1264,7 +1286,7 @@ function HomeWithParams() {
                     marginBottom: "10px",
                   }}
                 >
-                  Weekend getaways
+                  2-5 day trips
                 </p>
                 <h3
                   className="font-whitney uppercase"

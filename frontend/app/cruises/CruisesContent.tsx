@@ -103,6 +103,7 @@ export default function CruisesContent() {
   const [selectedShips, setSelectedShips] = useState<number[]>([]);
   const [selectedRegions, setSelectedRegions] = useState<number[]>([]);
   const [maxPrice, setMaxPrice] = useState<number | null>(null);
+  const [instantBookingOnly, setInstantBookingOnly] = useState<boolean>(false);
 
   // Filter dropdown states
   const [isCruiseLineDropdownOpen, setIsCruiseLineDropdownOpen] =
@@ -320,6 +321,10 @@ export default function CruisesContent() {
         params.append("maxPrice", maxPrice.toString());
       }
 
+      if (instantBookingOnly) {
+        params.append("instantBooking", "true");
+      }
+
       switch (sortBy) {
         case "soonest":
           params.append("sortBy", "date");
@@ -424,6 +429,7 @@ export default function CruisesContent() {
     const maxPriceParam = searchParams.get("maxPrice");
     const pageParam = searchParams.get("page");
     const sortParam = searchParams.get("sort");
+    const instantBookingParam = searchParams.get("instantBooking");
 
     if (cruiseLinesParam) {
       const lines = cruiseLinesParam
@@ -483,6 +489,10 @@ export default function CruisesContent() {
       setSortBy(sortParam);
     }
 
+    if (instantBookingParam) {
+      setInstantBookingOnly(instantBookingParam === "true");
+    }
+
     if (!hasInitializedRef.current) {
       console.log("=== INITIAL SYNC COMPLETE ===");
       hasInitializedRef.current = true;
@@ -518,6 +528,7 @@ export default function CruisesContent() {
     selectedRegions,
     maxPrice,
     sortBy,
+    instantBookingOnly,
   ]);
 
   // Get applied filters for display
@@ -1036,6 +1047,30 @@ export default function CruisesContent() {
                     </label>
                   ))}
                 </div>
+              </div>
+
+              {/* Instant Booking Filter */}
+              <div>
+                <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
+                  Booking Options
+                </h3>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={instantBookingOnly}
+                    onChange={(e) => {
+                      const isChecked = e.target.checked;
+                      updateURLParams({
+                        instantBooking: isChecked ? true : null,
+                        page: 1,
+                      });
+                    }}
+                    className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                  />
+                  <span className="font-geograph text-[14px] text-[#2F2F2F]">
+                    Instant Booking Only
+                  </span>
+                </label>
               </div>
 
               {/* Departure Port Dropdown */}
@@ -2140,6 +2175,30 @@ export default function CruisesContent() {
                       </label>
                     ))}
                   </div>
+                </div>
+
+                {/* Instant Booking Filter */}
+                <div>
+                  <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
+                    Booking Options
+                  </h3>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={instantBookingOnly}
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        updateURLParams({
+                          instantBooking: isChecked ? true : null,
+                          page: 1,
+                        });
+                      }}
+                      className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
+                    />
+                    <span className="font-geograph text-[18px] text-[#2F2F2F]">
+                      Instant Booking Only
+                    </span>
+                  </label>
                 </div>
 
                 {/* Departure Port Dropdown */}

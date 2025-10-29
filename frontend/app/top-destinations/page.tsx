@@ -72,7 +72,7 @@ export default function TopDestinationsPage() {
             {destinations.map((destination) => (
               <Link
                 key={destination.slug}
-                href={`/cruises/${destination.slug}`}
+                href={`/cruises/${destination.slug}?instantBooking=true`}
                 className="group block"
               >
                 <div className="bg-white rounded-[10px] border border-[#E5E5E5] p-6 hover:border-[#2238C3] transition-all duration-300">
@@ -144,7 +144,7 @@ export default function TopDestinationsPage() {
             {destinations.map((destination) => (
               <Link
                 key={destination.slug}
-                href={`/cruises/${destination.slug}`}
+                href={`/cruises/${destination.slug}?instantBooking=true`}
                 className="inline-block px-6 py-2 bg-white border border-[#E5E5E5] rounded-full hover:bg-[#2238C3] hover:text-white transition-colors font-geograph text-[14px]"
               >
                 {destination.name}

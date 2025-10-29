@@ -187,7 +187,7 @@ export default function PassengerSelector({
           <div className="flex items-center justify-between mb-4">
             <div>
               <div className="font-semibold text-gray-900">Adults</div>
-              <div className="text-sm text-gray-600">Ages 18+</div>
+              <div className="text-sm text-gray-600">Ages 12+</div>
             </div>
             <div className="flex items-center gap-3">
               <button
