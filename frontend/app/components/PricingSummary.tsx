@@ -78,8 +78,11 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
         console.log("💵 Extracted totalprice:", totalprice);
         console.log("💵 Extracted totaldeposit:", totaldeposit);
         console.log("💵 Is price estimated?", isPriceEstimated);
-        const currency = basketData.results?.[0]?.currency || "USD";
-        const currencySymbol = basketData.results?.[0]?.currencysymbol || "$";
+
+        // ALWAYS use USD - Traveltek sometimes returns CAD in scurrency field even though we request USD
+        // All our pricing is in USD, so force it here
+        const currency = "USD";
+        const currencySymbol = "$";
 
         // Get breakdown from basket item
         const breakdown: PriceBreakdownItem[] = [];
