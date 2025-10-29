@@ -282,12 +282,29 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           console.warn("⚠️ Could not fetch session/cruise data:", err);
         }
 
+        // Calculate total from breakdown if available (more accurate than basket totalprice)
+        // The breakdown comes from cruisecabingradebreakdown.pl which has the itemized costs
+        let calculatedTotal = totalprice;
+        if (breakdown.length > 0) {
+          // Sum: cruise fare + taxes + fees + gratuities - discounts
+          calculatedTotal = cruiseFare + taxes + fees + gratuities - discounts;
+          console.log("💰 Calculated total from breakdown:", {
+            cruiseFare,
+            taxes,
+            fees,
+            gratuities,
+            discounts,
+            calculatedTotal,
+            originalTotalprice: totalprice,
+          });
+        }
+
         setPricingData({
           cruiseFare,
           taxes,
           fees,
           discounts,
-          total: totalprice,
+          total: calculatedTotal,
           deposit: totaldeposit,
           currency,
           currencySymbol,
