@@ -81,6 +81,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     Record<string, number | null>
   >({});
 
+  // Debug: Log when commissionableFares updates
+  useEffect(() => {
+    if (Object.keys(commissionableFares).length > 0) {
+      console.log("🔄 commissionableFares state updated:", commissionableFares);
+    }
+  }, [commissionableFares]);
+
   // Specific cabin modal state
   const [isSpecificCabinModalOpen, setIsSpecificCabinModalOpen] =
     useState(false);
