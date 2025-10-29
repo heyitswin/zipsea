@@ -235,7 +235,32 @@ class TraveltekBookingService {
           const ratesByCode: Record<string, any> = {};
           cabin.gridpricing
             .filter((opt: any) => opt.available === 'Y')
-            .forEach((rate: any) => {
+            .forEach((rate: any, index: number) => {
+              // Debug: Log first rate to see actual field structure
+              if (index === 0) {
+                console.log('🔍 [Traveltek] Sample gridpricing rate structure:', {
+                  cabinCode: cabin.cabincode,
+                  rateCode: rate.ratecode,
+                  allFields: Object.keys(rate),
+                  price: rate.price,
+                  fare: rate.fare,
+                  taxes: rate.taxes,
+                  fees: rate.fees,
+                  gratuity: rate.gratuity,
+                  // Show all pricing-related fields
+                  allPricingFields: Object.keys(rate)
+                    .filter(
+                      k =>
+                        k.toLowerCase().includes('price') ||
+                        k.toLowerCase().includes('fare') ||
+                        k.toLowerCase().includes('tax') ||
+                        k.toLowerCase().includes('fee') ||
+                        k.toLowerCase().includes('grat')
+                    )
+                    .reduce((obj: any, k) => ({ ...obj, [k]: rate[k] }), {}),
+                });
+              }
+
               ratesByCode[rate.ratecode] = {
                 price: parseFloat(rate.price || '0'),
                 gradeno: rate.gradeno,
