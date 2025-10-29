@@ -92,12 +92,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       };
 
       // Check if current selection has cabins
-      const currentCategoryApiName = {
+      const displayToApiMap: Record<string, string> = {
         interior: "inside",
         oceanview: "outside",
         balcony: "balcony",
         suite: "suite",
-      }[selectedCabinCategory as keyof typeof categoryMap];
+      };
+      const currentCategoryApiName = displayToApiMap[selectedCabinCategory];
 
       const currentHasCabins = liveCabinGrades.cabins.some(
         (cabin: any) => cabin.category === currentCategoryApiName,
