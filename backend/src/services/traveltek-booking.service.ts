@@ -49,6 +49,7 @@ interface CabinSelectionParams {
   resultNo: string; // From cabin grades response
   gradeNo: string; // From cabin grades response
   rateCode: string; // From cabin grades response
+  expectedPrice?: number; // Expected total price from cabin card for validation
   cabinResult?: string; // Optional specific cabin result
   cabinNo?: string; // Optional specific cabin number
 }
@@ -572,109 +573,50 @@ class TraveltekBookingService {
       // This happens when rate codes expire or sell out between loading pricing and reserving
       const basketItem = basketData.results?.[0]?.basketitems?.[0];
       if (basketItem && basketItem.price === 0 && basketItem.paymentoption === 'none') {
-        console.warn(
-          '[TraveltekBooking] ⚠️  Rate no longer available (price=0, paymentoption=none)'
-        );
-        console.warn('[TraveltekBooking] ⚠️  Attempting to find alternative rate...');
-        console.warn('[TraveltekBooking] 🔍 Original request used:', {
-          rateCode: params.rateCode,
-          gradeNo: params.gradeNo,
-          resultNo: params.resultNo,
-        });
-
-        // Get fresh pricing to find current available rates
-        const { adults, children, childAges } = sessionData.passengerCount;
-        const childDobs = (childAges || []).map((age: number) => {
-          const dob = new Date();
-          dob.setFullYear(dob.getFullYear() - age);
-          return dob.toISOString().split('T')[0];
-        });
-
-        const freshPricing = await traveltekApiService.getCabinGrades({
-          sessionkey: sessionData.sessionKey,
-          sid: sessionData.sid,
-          codetocruiseid: cruise.id,
-          adults,
-          children,
-          childDobs: childDobs.length > 0 ? childDobs : undefined,
-        });
-
-        // Extract cabin type from the original gradeno (format: "201:RATECODE:TYPE")
-        const gradeNoParts = params.gradeNo.split(':');
-        const cabinTypeIndex = gradeNoParts.length >= 3 ? gradeNoParts[2] : null;
-
-        console.log(
-          '[TraveltekBooking] 🔍 Looking for alternative rate with cabin type index:',
-          cabinTypeIndex
-        );
-
-        // Find a matching cabin grade with the same type from fresh pricing
-        // IMPORTANT: Search within gridpricing array, not just top-level results
-        // Each cabin can have multiple rate codes in gridpricing, each with its own gradeno
-        // BUT the resultno comes from the parent cabin object
-        let alternativeGrade = null;
-        let parentCabinResultno = null;
-        if (cabinTypeIndex && freshPricing.results && freshPricing.results.length > 0) {
-          for (const cabin of freshPricing.results) {
-            if (cabin.gridpricing && Array.isArray(cabin.gridpricing)) {
-              // Search gridpricing array for matching cabin type
-              const matchingRate = cabin.gridpricing.find((rate: any) => {
-                const parts = rate.gradeno?.split(':');
-                return (
-                  parts &&
-                  parts.length >= 3 &&
-                  parts[2] === cabinTypeIndex &&
-                  rate.available === 'Y' &&
-                  parseFloat(rate.price || '0') > 0
-                );
-              });
-
-              if (matchingRate) {
-                alternativeGrade = matchingRate;
-                parentCabinResultno = cabin.resultno; // Get resultno from parent cabin
-                break;
-              }
-            }
+        console.error(
+          '[TraveltekBooking] ❌ Rate no longer available (price=0, paymentoption=none)',
+          {
+            rateCode: params.rateCode,
+            gradeNo: params.gradeNo,
+            resultNo: params.resultNo,
           }
+        );
+        throw new Error(
+          'The selected rate is no longer available. Please refresh the page and try again.'
+        );
+      }
+
+      // Validate basket price matches expected price from cabin card (if provided)
+      if (params.expectedPrice) {
+        const basketResult = basketData.results?.[0];
+        let actualPrice = basketResult?.totalprice || 0;
+
+        // If totalprice is 0, use searchprice as fallback (this is acceptable for validation)
+        if (actualPrice === 0 && basketItem?.searchprice) {
+          actualPrice = parseFloat(basketItem.searchprice);
         }
 
-        if (alternativeGrade && alternativeGrade.price > 0) {
-          // Extract rate code from gradeno (format: "201:RATECODE:TYPE")
-          const alternativeRateCode = alternativeGrade.gradeno?.split(':')[1];
+        console.log('[TraveltekBooking] 💰 Price validation:', {
+          expectedPrice: params.expectedPrice,
+          actualPrice,
+          difference: Math.abs(actualPrice - params.expectedPrice),
+        });
 
-          console.log('[TraveltekBooking] ✅ Found alternative rate:', {
-            originalRate: params.rateCode,
-            newRate: alternativeRateCode,
-            originalGradeNo: params.gradeNo,
-            newGradeNo: alternativeGrade.gradeno,
-            originalResultNo: params.resultNo,
-            newResultNo: parentCabinResultno,
-            originalPrice: basketItem.searchprice || 'unknown',
-            newPrice: alternativeGrade.price,
+        // Allow $1 tolerance for rounding differences
+        const priceDifference = Math.abs(actualPrice - params.expectedPrice);
+        if (priceDifference > 1) {
+          console.error('[TraveltekBooking] ❌ Price mismatch detected', {
+            expectedPrice: params.expectedPrice,
+            actualPrice,
+            difference: priceDifference,
+            rateCode: params.rateCode,
           });
-
-          // Try adding to basket with the fresh rate
-          // Use parentCabinResultno since individual rates in gridpricing don't have their own resultno
-          const retryParams = {
-            ...addToBasketParams,
-            resultno: parentCabinResultno || params.resultNo, // Fallback to original if not found
-            gradeno: alternativeGrade.gradeno,
-            ratecode: alternativeRateCode,
-          };
-
-          console.log('[TraveltekBooking] 🔄 Retrying addToBasket with fresh rate');
-          const retryBasketData = await traveltekApiService.addToBasket(retryParams);
-
-          // Update basketData to use the retry response
-          Object.assign(basketData, retryBasketData);
-
-          console.log('[TraveltekBooking] ✅ Successfully added to basket with alternative rate');
-        } else {
-          console.error('[TraveltekBooking] ❌ No alternative rates available');
           throw new Error(
-            'The selected rate is no longer available and no alternatives were found. Please refresh the page to see current pricing.'
+            `The cabin price has changed. Expected $${params.expectedPrice.toFixed(2)}, but got $${actualPrice.toFixed(2)}. Please refresh the page to see updated pricing.`
           );
         }
+
+        console.log('[TraveltekBooking] ✅ Price validation passed');
       }
 
       // Extract itemkey from basket response
@@ -759,38 +701,35 @@ class TraveltekBookingService {
 
       // Get pricing breakdown for display on options/passengers pages
       // This is a separate API call that provides itemized costs (cruise fare, taxes, fees, etc.)
+      // REQUIRED: No fallbacks - this must succeed for booking to proceed
       console.log('[TraveltekBooking] 💰 Fetching pricing breakdown...');
       let pricingBreakdown = null;
-      try {
-        const breakdownResponse = await traveltekApiService.getCabinGradeBreakdown({
-          sessionkey: sessionData.sessionKey,
-          chosencruise: params.resultNo,
-          chosencabingrade: params.gradeNo,
-          chosenfarecode: params.rateCode,
-          itemkey, // Include itemkey for basket mode
-          cid: params.cruiseId,
-        });
 
-        if (breakdownResponse.results && breakdownResponse.results.length > 0) {
-          pricingBreakdown = breakdownResponse.results;
-          console.log(
-            '[TraveltekBooking] ✅ Got pricing breakdown with',
-            pricingBreakdown.length,
-            'items'
-          );
-          console.log(
-            '[TraveltekBooking] 📊 Breakdown preview:',
-            JSON.stringify(pricingBreakdown.slice(0, 2), null, 2)
-          );
-        } else {
-          console.warn('[TraveltekBooking] ⚠️  No pricing breakdown returned');
-        }
-      } catch (error) {
-        console.error(
-          '[TraveltekBooking] ⚠️  Failed to fetch pricing breakdown (non-fatal):',
-          error
+      const breakdownResponse = await traveltekApiService.getCabinGradeBreakdown({
+        sessionkey: sessionData.sessionKey,
+        chosencruise: params.resultNo,
+        chosencabingrade: params.gradeNo,
+        chosenfarecode: params.rateCode,
+        itemkey, // Include itemkey for basket mode
+        cid: params.cruiseId,
+      });
+
+      if (breakdownResponse.results && breakdownResponse.results.length > 0) {
+        pricingBreakdown = breakdownResponse.results;
+        console.log(
+          '[TraveltekBooking] ✅ Got pricing breakdown with',
+          pricingBreakdown.length,
+          'items'
         );
-        // Don't fail the entire request if breakdown fails
+        console.log(
+          '[TraveltekBooking] 📊 Breakdown preview:',
+          JSON.stringify(pricingBreakdown.slice(0, 2), null, 2)
+        );
+      } else {
+        console.error('[TraveltekBooking] ❌ No pricing breakdown returned from API');
+        throw new Error(
+          'Unable to retrieve pricing details for this cabin. Please try again or select a different cabin.'
+        );
       }
 
       // Update session with basket data, itemkey, and pricing breakdown
@@ -982,51 +921,14 @@ class TraveltekBookingService {
         sessionkey: sessionData.sessionKey,
       });
 
-      // Check if basket is empty but we have cached basketData from selectCabin
-      // This handles race conditions where frontend requests basket before Traveltek
-      // has fully processed the addToBasket call
+      // Check if basket is empty - no fallbacks, fail fast
       const basketItems = basketData.results?.[0]?.basketitems || [];
 
-      // Debug logging to trace the issue
-      console.log('[TraveltekBooking] 🔍 Basket debug info:');
-      console.log('  - API basketItems length:', basketItems.length);
-      console.log('  - Session has basketData?', !!sessionData.basketData);
-      if (sessionData.basketData) {
-        const cachedItems = sessionData.basketData.results?.[0]?.basketitems || [];
-        console.log('  - Cached basketItems length:', cachedItems.length);
-        console.log(
-          '  - Cached basket structure:',
-          JSON.stringify(sessionData.basketData).substring(0, 200)
-        );
-      }
+      console.log('[TraveltekBooking] 🔍 Basket items count:', basketItems.length);
 
-      const hasCachedBasket =
-        sessionData.basketData && sessionData.basketData.results?.[0]?.basketitems?.length > 0;
-      console.log('  - hasCachedBasket?', hasCachedBasket);
-
-      if (basketItems.length === 0 && hasCachedBasket) {
-        console.log(
-          '[TraveltekBooking] 📦 Basket empty from API, using cached basket from session'
-        );
-        console.log(
-          '[TraveltekBooking] 💵 Returning cached totalprice:',
-          sessionData.basketData.results?.[0]?.totalprice
-        );
-        console.log(
-          '[TraveltekBooking] 💵 Returning cached totaldeposit:',
-          sessionData.basketData.results?.[0]?.totaldeposit
-        );
-
-        // Include pricingBreakdown from session if available
-        if (sessionData.pricingBreakdown) {
-          console.log('[TraveltekBooking] 📊 Including pricing breakdown from session');
-          return {
-            ...sessionData.basketData,
-            pricingBreakdown: sessionData.pricingBreakdown,
-          };
-        }
-
-        return sessionData.basketData;
+      if (basketItems.length === 0) {
+        console.error('[TraveltekBooking] ❌ Basket is empty');
+        throw new Error('Basket is empty. Please select a cabin again.');
       }
 
       console.log(
@@ -1205,10 +1107,57 @@ class TraveltekBookingService {
       console.log('📊 Booking status:', bookingData.status);
       console.log('📊 Booking details status:', bookingData.bookingdetails?.status);
 
-      // Check for fraud detection
-      const fraudCategory = bookingData.bookingdetails?.transactions?.[0]?.fraudcategory;
-      if (fraudCategory && fraudCategory !== 'Green') {
-        console.warn(`⚠️  Fraud detection: ${fraudCategory}`);
+      // Check for payment and fraud detection failures
+      const transaction = bookingData.bookingdetails?.transactions?.[0];
+      const fraudCategory = transaction?.fraudcategory;
+      const authCode = transaction?.authcode;
+      const status = bookingData.status || bookingData.bookingdetails?.status;
+
+      // Detailed fraud detection logging
+      if (fraudCategory) {
+        console.log('🔒 [TraveltekBooking] Fraud detection result:', {
+          category: fraudCategory,
+          hasAuthCode: !!authCode,
+          authCode: authCode || '(empty)',
+          status: status,
+        });
+      }
+
+      // Check for failed bookings or fraud detection issues
+      if (status === 'Failed' || (fraudCategory && fraudCategory !== 'Green')) {
+        const errorDetails = {
+          bookingId: bookingData.bookingid,
+          status: status,
+          fraudCategory: fraudCategory,
+          hasAuthCode: !!authCode,
+          transactionDetails: transaction,
+        };
+
+        console.error('❌ [TraveltekBooking] Booking failed or flagged:', errorDetails);
+
+        // Provide user-friendly error messages
+        if (fraudCategory === 'Red') {
+          throw new Error(
+            'Payment declined by fraud detection. Please verify your card details and billing address match your bank records, or try a different payment method.'
+          );
+        } else if (fraudCategory === 'Yellow') {
+          throw new Error(
+            'Payment authorization pending. Please contact your bank to authorize this transaction, or try a different payment method.'
+          );
+        } else if (status === 'Failed') {
+          throw new Error(
+            'Payment could not be processed. Please verify your card details are correct and your card has sufficient funds, or try a different payment method.'
+          );
+        } else {
+          throw new Error(
+            'Booking could not be completed. Please verify your payment information or try again.'
+          );
+        }
+      }
+
+      // Verify we have a successful payment authorization
+      if (!authCode) {
+        console.warn('⚠️  [TraveltekBooking] No authcode - payment may not be authorized');
       }
 
       // Step 5: Store booking in our database

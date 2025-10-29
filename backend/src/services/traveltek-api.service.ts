@@ -739,10 +739,12 @@ export class TraveltekApiService {
       country: string;
     };
     passengers: Array<{
+      title?: string; // Mr, Mrs, Ms, Miss, Dr, etc.
       firstname: string;
       lastname: string;
       dob: string; // YYYY-MM-DD
       gender: string; // M, F, X
+      nationality?: string; // ISO country code
       paxtype: 'adult' | 'child' | 'infant';
       age: number;
     }>;
@@ -797,10 +799,13 @@ export class TraveltekApiService {
       params.passengers.forEach((passenger, index) => {
         const paxNum = index + 1;
         passengersObject[paxNum] = {
+          paxno: paxNum, // Required by Traveltek - passenger number
+          title: passenger.title, // Optional but recommended
           firstname: passenger.firstname,
           lastname: passenger.lastname,
           dob: passenger.dob,
           gender: passenger.gender,
+          nationality: passenger.nationality, // Optional but recommended
           paxtype: passenger.paxtype,
           age: passenger.age,
         };
@@ -816,9 +821,15 @@ export class TraveltekApiService {
         allocation: {
           [params.itemkey]: {
             dining: {
-              seating: params.dining, // e.g., "early", "late", "anytime"
-              smoking: 'non-smoking', // Hardcoded to non-smoking
+              // Dining seating preference - accepted formats:
+              // - "MyTime Dining" (anytime/flexible dining)
+              // - "Traditional:2:0" (traditional with table size and smoking preference)
+              // - Simple strings like "early", "late", "anytime"
+              seating: params.dining,
+              smoking: 'non-smoking', // "non-smoking" or "smoking"
+              // tablesize: "2", // Optional: specify table size preference
             },
+            // bedconfig: "A", // Optional: "A" (Any), "T" (Twin), "D" (Double)
           },
         },
       };
@@ -832,8 +843,17 @@ export class TraveltekApiService {
         console.log('🏗️ No payment card - creating hold booking');
       }
 
-      console.log('🔍 Traveltek API: createBooking JSON request body:');
-      console.log(JSON.stringify(requestBody, null, 2));
+      // Log full request with sensitive data masked
+      console.log('📤 ===== TRAVELTEK BOOKING REQUEST (SANITIZED) =====');
+      const sanitizedRequest = JSON.parse(JSON.stringify(requestBody));
+      if (sanitizedRequest.ccard) {
+        sanitizedRequest.ccard.cardnumber = sanitizedRequest.ccard.cardnumber
+          ? `****${sanitizedRequest.ccard.cardnumber.slice(-4)}`
+          : 'MISSING';
+        sanitizedRequest.ccard.signature = '***';
+      }
+      console.log(JSON.stringify(sanitizedRequest, null, 2));
+      console.log('📤 ===================================================');
 
       // Make POST request with JSON content type
       const response = await this.axiosInstance.post('/book.pl', requestBody, {
@@ -845,6 +865,11 @@ export class TraveltekApiService {
       console.log('✅ Traveltek API: createBooking response received');
       console.log('   Response status:', response.status);
       console.log('   Response data keys:', Object.keys(response.data));
+
+      // Log complete response for debugging
+      console.log('📋 ===== COMPLETE TRAVELTEK BOOKING RESPONSE =====');
+      console.log(JSON.stringify(response.data, null, 2));
+      console.log('📋 ================================================');
 
       // Log any errors or warnings
       if (response.data.errors && response.data.errors.length > 0) {

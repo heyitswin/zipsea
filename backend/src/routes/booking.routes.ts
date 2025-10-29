@@ -132,6 +132,9 @@ router.get('/:sessionId/basket', bookingController.getBasket);
 router.post('/:sessionId/create', authenticateTokenOptional, bookingController.createBooking);
 
 /**
+ * TEMPORARILY DISABLED - Hold booking flow being rebuilt
+ * Will re-enable after pay-in-full flow is stable and tested
+ *
  * POST /api/booking/:sessionId/hold
  * Create a hold booking without payment (reserves cabin for free)
  *
@@ -144,9 +147,11 @@ router.post('/:sessionId/create', authenticateTokenOptional, bookingController.c
  *
  * Auth: Optional
  */
-router.post('/:sessionId/hold', authenticateTokenOptional, bookingController.createHoldBooking);
+// router.post('/:sessionId/hold', authenticateTokenOptional, bookingController.createHoldBooking);
 
 /**
+ * TEMPORARILY DISABLED - Hold booking flow being rebuilt
+ *
  * POST /api/booking/:bookingId/complete-payment
  * Complete payment for a held booking
  *
@@ -157,11 +162,11 @@ router.post('/:sessionId/hold', authenticateTokenOptional, bookingController.cre
  *
  * Auth: Optional (but recommended)
  */
-router.post(
-  '/:bookingId/complete-payment',
-  authenticateTokenOptional,
-  bookingController.completeHoldPayment
-);
+// router.post(
+//   '/:bookingId/complete-payment',
+//   authenticateTokenOptional,
+//   bookingController.completeHoldPayment
+// );
 
 // Booking Management (Auth Required)
 /**
