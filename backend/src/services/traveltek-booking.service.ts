@@ -501,8 +501,9 @@ class TraveltekBookingService {
         '[TraveltekBooking] 🔄 Calling getCabinGrades to refresh pricing (required by Traveltek API)'
       );
 
+      let freshCabinGrades: any = null;
       try {
-        await traveltekApiService.getCabinGrades({
+        freshCabinGrades = await traveltekApiService.getCabinGrades({
           sessionkey: sessionData.sessionKey,
           sid: sessionData.sid || '52471',
           codetocruiseid: params.cruiseId,
@@ -520,17 +521,52 @@ class TraveltekBookingService {
         // Continue - if getCabinGrades fails, basketadd might still work with cached pricing
       }
 
-      console.log('[TraveltekBooking] 🚀 Now adding to basket with user-selected rate code');
+      // CRITICAL: Extract the NEW resultno from the fresh getCabinGrades response
+      // The resultno changes with each getCabinGrades call (it includes a new searchno)
+      // We must use the fresh resultno, but match it to the user's selected rate code
+      let freshResultNo = params.resultNo; // Fallback to original if we can't find a match
 
-      // Build addToBasket params
-      // For guaranteed cabins: only send resultno, gradeno, ratecode
-      // For specific cabins: also send cabinresult and cabinno
+      if (freshCabinGrades?.results) {
+        console.log(
+          '[TraveltekBooking] 🔍 Searching for matching rate code in fresh cabin grades:',
+          params.rateCode
+        );
+
+        // Find the cabin grade that matches the user's selected rate code and grade number
+        // The gradeNo format is like "201:FJ774356:6" where the middle part is the rate code
+        const matchingGrade = freshCabinGrades.results.find((grade: any) => {
+          // Extract rate code from gradeno (format: "201:RATECODE:6")
+          const gradeRateCode = grade.gradeno?.split(':')[1];
+          return gradeRateCode === params.rateCode || grade.ratecode === params.rateCode;
+        });
+
+        if (matchingGrade) {
+          freshResultNo = matchingGrade.resultno;
+          console.log('[TraveltekBooking] ✅ Found matching grade with fresh resultno:', {
+            oldResultNo: params.resultNo,
+            newResultNo: freshResultNo,
+            rateCode: params.rateCode,
+            gradeNo: matchingGrade.gradeno,
+          });
+        } else {
+          console.warn(
+            '[TraveltekBooking] ⚠️  Could not find matching rate code in fresh grades, using original resultno'
+          );
+        }
+      }
+
+      console.log(
+        '[TraveltekBooking] 🚀 Now adding to basket with fresh resultno and user-selected rate code'
+      );
+
+      // Build addToBasket params using the FRESH resultno from getCabinGrades
+      // but keeping the user's originally selected gradeNo and rateCode
       const addToBasketParams: any = {
         sessionkey: sessionData.sessionKey,
         type: 'cruise' as const,
-        resultno: params.resultNo,
-        gradeno: params.gradeNo,
-        ratecode: params.rateCode,
+        resultno: freshResultNo, // Use fresh resultno from getCabinGrades
+        gradeno: params.gradeNo, // Keep user's selected gradeNo
+        ratecode: params.rateCode, // Keep user's selected rateCode
       };
 
       // Only add cabinresult for specific cabin selection
