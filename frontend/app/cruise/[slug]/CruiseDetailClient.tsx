@@ -237,8 +237,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       });
       setLiveCabinGrades(pricingData);
 
-      // Fetch commissionable fares for each cabin type for accurate OBC calculation
-      console.log("📊 Fetching commissionable fares for OBC calculation...");
+      // Extract cheapestPrice (base cruise fare) from cabin data for accurate OBC calculation
+      console.log(
+        "📊 Extracting base fares from cabin pricing for OBC calculation...",
+      );
 
       if (pricingData.cabins && Array.isArray(pricingData.cabins)) {
         // Map frontend cabin types to backend category values
@@ -249,35 +251,26 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           { type: "suite" as const, category: "suite" },
         ];
 
+        const newCommissionableFares: Record<string, number | null> = {};
+
         for (const { type, category } of cabinTypeMap) {
           // Find first cabin of this category from the cabins array
           const cabin = pricingData.cabins.find(
             (c: any) => c.category === category,
           );
 
-          console.log(
-            `🔍 Checking ${type} (${category}) cabin for commissionable fare fetch:`,
-            {
-              hasCabin: !!cabin,
-              gradeNo: cabin?.gradeNo,
-              rateCode: cabin?.rateCode,
-              resultNo: cabin?.resultNo,
-            },
-          );
-
-          if (cabin && cabin.gradeNo && cabin.rateCode && cabin.resultNo) {
-            await fetchCommissionableFare(
-              type,
-              cabin.gradeNo,
-              cabin.rateCode,
-              cabin.resultNo,
+          if (cabin && cabin.cheapestPrice) {
+            newCommissionableFares[type] = cabin.cheapestPrice;
+            console.log(
+              `✅ Got base fare for ${type}: $${cabin.cheapestPrice}`,
             );
           } else {
-            console.log(
-              `⚠️ Skipping ${type} - missing required fields or no cabin found`,
-            );
+            console.log(`⚠️ No cabin found for ${type}`);
           }
         }
+
+        // Update state with all fares at once
+        setCommissionableFares(newCommissionableFares);
       } else {
         console.log("⚠️ No cabins array in pricing data");
       }
@@ -522,60 +515,17 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     return suiteOnlyLines.includes(cruiseLineName);
   };
 
-  // Fetch commissionable cruise fare for accurate OBC calculation
-  const fetchCommissionableFare = async (
-    cabinType: "interior" | "oceanview" | "balcony" | "suite",
-    gradeNo: string,
-    rateCode: string,
-    resultNo: string,
-  ) => {
-    if (!sessionId) return null;
-
-    try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/commissionable-fare/${gradeNo}/${rateCode}/${resultNo}`,
-      );
-
-      if (!response.ok) {
-        console.log(`Failed to fetch commissionable fare for ${cabinType}`);
-        return null;
-      }
-
-      const data = await response.json();
-      console.log(
-        `✅ Got commissionable fare for ${cabinType}:`,
-        data.commissionableFare,
-      );
-
-      // Store in state
-      setCommissionableFares((prev) => ({
-        ...prev,
-        [cabinType]: data.commissionableFare,
-      }));
-
-      return data.commissionableFare;
-    } catch (error) {
-      console.error(
-        `Error fetching commissionable fare for ${cabinType}:`,
-        error,
-      );
-      return null;
-    }
-  };
-
   // Helper function to calculate onboard credit based on price
-  // Prefers commissionable fare if available, falls back to cached price
+  // Prefers live fare if available, falls back to cached price
   const calculateOnboardCredit = (
     price: string | number | undefined,
     cabinType?: "interior" | "oceanview" | "balcony" | "suite",
   ) => {
-    // Use commissionable fare if available (more accurate)
+    // Use live fare if available (more accurate)
     let fareToUse = price;
     if (cabinType && commissionableFares[cabinType]) {
       fareToUse = commissionableFares[cabinType];
-      console.log(
-        `💰 Using commissionable fare for ${cabinType} OBC: $${fareToUse}`,
-      );
+      console.log(`💰 Using live fare for ${cabinType} OBC: $${fareToUse}`);
     } else if (price) {
       console.log(
         `💰 Using cached price for ${cabinType || "unknown"} OBC: $${price}`,
