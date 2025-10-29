@@ -555,12 +555,61 @@ class TraveltekBookingService {
         }
       }
 
+      // CRITICAL STEP 2: Call cruisecabins.pl to get cabinresult parameter
+      // Per Traveltek docs: "From here, you can now choose the exact cabin number within the selected
+      // cabingrade using the cabins endpoint. You'll need the resultno for the cabin which is used as cabinresult."
+      //
+      // This step is REQUIRED to populate the breakdown[] array in basketadd response.
+      // The cruisecabins.pl endpoint returns cabin details and a resultno that becomes the cabinresult parameter.
+      // Even for guaranteed cabin bookings (no specific cabin selected), we need to call this endpoint.
+
       console.log(
-        '[TraveltekBooking] 🚀 Now adding to basket with fresh resultno and user-selected rate code'
+        '[TraveltekBooking] 🔄 Step 2: Calling getCabins to get cabinresult parameter (required by Traveltek API)'
       );
 
-      // Build addToBasket params using the FRESH resultno from getCabinGrades
-      // but keeping the user's originally selected gradeNo and rateCode
+      let cabinResultNo: string | undefined = undefined;
+      try {
+        const cabinsResponse = await traveltekApiService.getCabins({
+          sessionkey: sessionData.sessionKey,
+          sid: sessionData.sid || '52471',
+          resultno: freshResultNo, // Use fresh resultno from getCabinGrades
+          gradeno: params.gradeNo, // Keep user's selected gradeNo
+          ratecode: params.rateCode, // Keep user's selected rateCode
+        });
+
+        console.log('[TraveltekBooking] ✅ getCabins completed successfully');
+        console.log('[TraveltekBooking] 🔍 getCabins response keys:', Object.keys(cabinsResponse));
+
+        // Extract the first cabin's resultno to use as cabinresult
+        // For guaranteed bookings, we take the first available cabin's resultno
+        if (cabinsResponse.results && cabinsResponse.results.length > 0) {
+          cabinResultNo = cabinsResponse.results[0].resultno;
+          console.log('[TraveltekBooking] ✅ Extracted cabinresult from first cabin:', {
+            cabinResultNo,
+            cabinNumber: cabinsResponse.results[0].cabinno,
+            totalCabinsAvailable: cabinsResponse.results.length,
+          });
+        } else {
+          console.warn(
+            '[TraveltekBooking] ⚠️  getCabins returned no results, continuing without cabinresult'
+          );
+        }
+      } catch (error) {
+        console.error(
+          '[TraveltekBooking] ⚠️  getCabins failed, continuing without cabinresult:',
+          error
+        );
+        // Continue - if getCabins fails, we'll try basketadd without cabinresult
+      }
+
+      console.log(
+        '[TraveltekBooking] 🚀 Step 3: Now adding to basket with fresh resultno, cabinresult, and user-selected rate code'
+      );
+
+      // Build addToBasket params using:
+      // - FRESH resultno from getCabinGrades (Step 1)
+      // - cabinResultNo from getCabins as cabinresult parameter (Step 2)
+      // - User's originally selected gradeNo and rateCode
       const addToBasketParams: any = {
         sessionkey: sessionData.sessionKey,
         type: 'cruise' as const,
@@ -569,12 +618,17 @@ class TraveltekBookingService {
         ratecode: params.rateCode, // Keep user's selected rateCode
       };
 
-      // Only add cabinresult for specific cabin selection
-      if (params.cabinResult) {
-        addToBasketParams.cabinresult = params.cabinResult;
+      // Add cabinresult from cruisecabins.pl (CRITICAL for breakdown[] to populate)
+      if (cabinResultNo) {
+        addToBasketParams.cabinresult = cabinResultNo;
+        console.log('[TraveltekBooking] 📌 Including cabinresult in basketadd:', cabinResultNo);
+      } else {
+        console.warn(
+          '[TraveltekBooking] ⚠️  No cabinresult available, basketadd may return empty breakdown[]'
+        );
       }
 
-      // Only add cabinno for specific cabin number
+      // Only add cabinno for specific cabin number (if user selected a specific cabin)
       if (params.cabinNo) {
         addToBasketParams.cabinno = params.cabinNo;
       }
