@@ -596,12 +596,12 @@ export default function Navigation({
             ) : (
               <>
                 {/* Browse Cruises Button (Mobile Only) */}
-                <a
-                  href="/cruises"
-                  className="px-4 py-1.5 bg-[#2238C3] text-white rounded-full text-[14px] font-medium font-geograph"
+                <button
+                  onClick={() => router.push("/cruises")}
+                  className="px-4 py-1.5 bg-[#2238C3] text-white rounded-full text-[14px] font-medium font-geograph cursor-pointer"
                 >
                   Browse Cruises
-                </a>
+                </button>
 
                 {/* Hamburger Menu Button (Mobile Only) */}
                 <button
@@ -752,12 +752,12 @@ export default function Navigation({
                     )}
 
                     {/* Browse Cruises Button - After Sign in */}
-                    <a
-                      href="/cruises"
-                      className="px-4 py-1.5 bg-[#2238C3] text-white rounded-full text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300"
+                    <button
+                      onClick={() => router.push("/cruises")}
+                      className="px-4 py-1.5 bg-[#2238C3] text-white rounded-full text-[16px] font-medium font-geograph hover:opacity-80 transition-all duration-300 cursor-pointer"
                     >
                       Browse Cruises
-                    </a>
+                    </button>
                   </>
                 )}
               </>
