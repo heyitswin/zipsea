@@ -218,6 +218,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         );
         return {
           price: rateData.price,
+          fare: rateData.fare || 0,
+          taxes: rateData.taxes || 0,
+          fees: rateData.fees || 0,
+          gratuity: rateData.gratuity || 0,
           gradeNo: rateData.gradeno,
           rateCode: rateData.ratecode,
           resultNo: rateData.resultno || cabin.resultNo,
@@ -235,6 +239,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         );
         return {
           price: rateData.price,
+          fare: rateData.fare || 0,
+          taxes: rateData.taxes || 0,
+          fees: rateData.fees || 0,
+          gratuity: rateData.gratuity || 0,
           gradeNo: rateData.gradeno,
           rateCode: rateData.ratecode,
           resultNo: rateData.resultno || cabin.resultNo,
@@ -1840,21 +1848,24 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                           : "guests"}{" "}
                                         • Including taxes & fees
                                       </div>
-                                      {/* OBC Display - Calculate based on cabin's actual cheapestPrice */}
+                                      {/* OBC Display - Calculate 10% of commissionable fare (base cruise fare) */}
                                       {(() => {
-                                        const basePrice =
-                                          cabin.cheapestPrice ||
-                                          cabinPricing.price;
-                                        if (basePrice && basePrice > 0) {
-                                          const creditPercent = 0.08;
+                                        // Use fare (commissionable cruise fare) instead of total price
+                                        const commissionableFare =
+                                          cabinPricing.fare;
+                                        if (
+                                          commissionableFare &&
+                                          commissionableFare > 0
+                                        ) {
+                                          const creditPercent = 0.1; // 10% of commissionable fare
                                           const rawCredit =
-                                            basePrice * creditPercent;
+                                            commissionableFare * creditPercent;
                                           const obcAmount =
-                                            Math.floor(rawCredit / 10) * 10;
+                                            Math.floor(rawCredit / 10) * 10; // Round down to nearest $10
 
                                           if (obcAmount > 0) {
                                             console.log(
-                                              `💳 Cabin ${cabin.code} OBC: $${obcAmount} from price $${basePrice}`,
+                                              `💳 Cabin ${cabin.code} OBC: $${obcAmount} (10% of commissionable fare $${commissionableFare})`,
                                             );
                                             return (
                                               <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
