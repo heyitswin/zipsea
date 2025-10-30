@@ -688,14 +688,15 @@ export async function POST(request: NextRequest) {
             timestamp: new Date().toISOString(),
           });
 
-          // Send notification email to zipsea@manus.bot (only for Royal Caribbean and Celebrity)
-          const cruiseLineName =
-            cruiseData?.cruiseLineName?.toLowerCase() || "";
-          const isEligibleCruiseLine =
-            cruiseLineName.includes("royal caribbean") ||
-            cruiseLineName.includes("celebrity");
+          // DISABLED: Send notification email to zipsea@manus.bot (only for Royal Caribbean and Celebrity)
+          // const cruiseLineName =
+          //   cruiseData?.cruiseLineName?.toLowerCase() || "";
+          // const isEligibleCruiseLine =
+          //   cruiseLineName.includes("royal caribbean") ||
+          //   cruiseLineName.includes("celebrity");
 
-          if (isEligibleCruiseLine) {
+          if (false) {
+            // DISABLED - Manus bot notifications turned off
             try {
               console.log(
                 "📧 Sending task notification to zipsea@manus.bot for eligible cruise line:",
