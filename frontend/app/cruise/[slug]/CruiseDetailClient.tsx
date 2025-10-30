@@ -141,6 +141,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     const cabinTypes = ["interior", "oceanview", "balcony", "suite"] as const;
     const amounts: Record<string, number> = {};
 
+    // Get total passenger count for per-guest calculation
+    const totalPassengers =
+      localPassengerCount.adults + localPassengerCount.children;
+
     for (const cabinType of cabinTypes) {
       const liveFare = commissionableFares[cabinType];
 
@@ -154,21 +158,33 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       if (fareToUse) {
         const numPrice =
           typeof fareToUse === "string" ? parseFloat(fareToUse) : fareToUse;
-        if (numPrice && !isNaN(numPrice)) {
+        if (numPrice && !isNaN(numPrice) && totalPassengers > 0) {
           // Live bookings use 10% OBC, non-live use 8%
           const creditPercent = isLiveBookable ? 0.1 : 0.08;
-          const rawCredit = numPrice * creditPercent;
-          amounts[cabinType] = Math.floor(rawCredit / 10) * 10;
+
+          // Calculate OBC per guest (matching booking page logic)
+          // Total cabin price includes all guests, so divide to get per-guest fare
+          const perGuestFare = numPrice / totalPassengers;
+
+          // Calculate OBC per guest, round down to nearest $10, then sum for all guests
+          let totalObc = 0;
+          for (let i = 0; i < totalPassengers; i++) {
+            const guestObc =
+              Math.floor((perGuestFare * creditPercent) / 10) * 10;
+            totalObc += guestObc;
+          }
+
+          amounts[cabinType] = totalObc;
 
           console.log(
-            `💰 OBC for ${cabinType}: $${amounts[cabinType]} (${creditPercent * 100}% from ${liveFare ? "LIVE fare" : "cached price"}: $${fareToUse})`,
+            `💰 OBC for ${cabinType}: $${amounts[cabinType]} (${creditPercent * 100}% per guest, ${totalPassengers} guests, from ${liveFare ? "LIVE fare" : "cached price"}: $${fareToUse})`,
           );
         }
       }
     }
 
     return amounts;
-  }, [commissionableFares, cruiseData, isLiveBookable]);
+  }, [commissionableFares, cruiseData, isLiveBookable, localPassengerCount]);
 
   // Specific cabin modal state
   const [isSpecificCabinModalOpen, setIsSpecificCabinModalOpen] =
@@ -669,10 +685,23 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     const numPrice =
       typeof fareToUse === "string" ? parseFloat(fareToUse) : fareToUse;
     if (!numPrice || isNaN(numPrice)) return 0;
-    // Calculate 10% of the price as onboard credit, rounded down to nearest $10
-    const creditPercent = 0.1; // 10%
-    const rawCredit = numPrice * creditPercent;
-    return Math.floor(rawCredit / 10) * 10; // Round down to nearest $10
+
+    // Calculate OBC per guest (matching booking page logic)
+    const totalPassengers =
+      localPassengerCount.adults + localPassengerCount.children;
+    if (totalPassengers === 0) return 0;
+
+    const creditPercent = 0.1; // 10% for live bookings
+    const perGuestFare = numPrice / totalPassengers;
+
+    // Calculate OBC per guest, round down to nearest $10, then sum for all guests
+    let totalObc = 0;
+    for (let i = 0; i < totalPassengers; i++) {
+      const guestObc = Math.floor((perGuestFare * creditPercent) / 10) * 10;
+      totalObc += guestObc;
+    }
+
+    return totalObc;
   };
 
   // Helper function to get cabin details using price codes
