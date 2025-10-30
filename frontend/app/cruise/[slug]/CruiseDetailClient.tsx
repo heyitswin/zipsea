@@ -1724,14 +1724,14 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         : null;
 
                       return (
-                        <div key={key} className="flex flex-col">
+                        <div key={key}>
                           <button
                             onClick={() =>
                               hasAvailability &&
                               setSelectedCabinCategory(key as any)
                             }
                             disabled={!hasAvailability}
-                            className={`px-5 py-2 rounded-[5px] font-geograph font-medium text-[16px] transition-colors ${
+                            className={`px-5 py-3 rounded-[5px] font-geograph transition-colors ${
                               !hasAvailability
                                 ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
                                 : selectedCabinCategory === key
@@ -1739,17 +1739,26 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                   : "bg-white text-dark-blue border border-gray-300 hover:border-dark-blue"
                             }`}
                           >
-                            {label}
+                            <div className="flex flex-col items-center">
+                              <span className="font-medium text-[16px]">
+                                {label}
+                              </span>
+                              {!hasAvailability ? (
+                                <span className="text-[11px] mt-1">
+                                  No cabins available
+                                </span>
+                              ) : lowestPrice ? (
+                                <>
+                                  <span className="text-[10px] mt-1 opacity-80">
+                                    Starting from
+                                  </span>
+                                  <span className="text-[14px] font-bold mt-0.5">
+                                    ${Math.round(lowestPrice)}
+                                  </span>
+                                </>
+                              ) : null}
+                            </div>
                           </button>
-                          {!hasAvailability ? (
-                            <span className="text-[11px] text-gray-500 mt-1 text-center font-geograph">
-                              No cabins available
-                            </span>
-                          ) : lowestPrice ? (
-                            <span className="text-[11px] text-dark-blue mt-1 text-center font-geograph font-medium">
-                              Starting from ${Math.round(lowestPrice)}
-                            </span>
-                          ) : null}
                         </div>
                       );
                     });
@@ -2117,29 +2126,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                               : "bg-gray-300 text-gray-500 cursor-not-allowed"
                           }`}
                         >
-                          <div className="flex flex-col items-center gap-1">
-                            {isPriceAvailable(getCabinPrice("interior")) ? (
-                              <>
-                                <div className="text-[10px] uppercase tracking-wider opacity-90">
-                                  Starting from
-                                </div>
-                                <div className="text-[20px] md:text-[24px] font-bold">
-                                  ${formatPrice(getCabinPrice("interior"))}
-                                </div>
-                                {obcAmounts?.interior > 0 && (
-                                  <div className="text-[11px] md:text-[12px] bg-[#1B8F57] px-2 py-0.5 rounded-[3px] mt-0.5">
-                                    +${obcAmounts.interior} OBC
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              <div className="text-[14px] md:text-[16px]">
-                                {isLiveBookable
-                                  ? "Call for price"
-                                  : "No cabins available"}
-                              </div>
-                            )}
-                          </div>
+                          Get quote
                         </button>
                       </div>
                     </div>
@@ -2207,29 +2194,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                               : "bg-gray-300 text-gray-500 cursor-not-allowed"
                           }`}
                         >
-                          <div className="flex flex-col items-center gap-1">
-                            {isPriceAvailable(getCabinPrice("oceanview")) ? (
-                              <>
-                                <div className="text-[10px] uppercase tracking-wider opacity-90">
-                                  Starting from
-                                </div>
-                                <div className="text-[20px] md:text-[24px] font-bold">
-                                  ${formatPrice(getCabinPrice("oceanview"))}
-                                </div>
-                                {obcAmounts?.oceanview > 0 && (
-                                  <div className="text-[11px] md:text-[12px] bg-[#1B8F57] px-2 py-0.5 rounded-[3px] mt-0.5">
-                                    +${obcAmounts.oceanview} OBC
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              <div className="text-[14px] md:text-[16px]">
-                                {isLiveBookable
-                                  ? "Call for price"
-                                  : "No cabins available"}
-                              </div>
-                            )}
-                          </div>
+                          Get quote
                         </button>
                       </div>
                     </div>
@@ -2295,29 +2260,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                               : "bg-gray-300 text-gray-500 cursor-not-allowed"
                           }`}
                         >
-                          <div className="flex flex-col items-center gap-1">
-                            {isPriceAvailable(getCabinPrice("balcony")) ? (
-                              <>
-                                <div className="text-[10px] uppercase tracking-wider opacity-90">
-                                  Starting from
-                                </div>
-                                <div className="text-[20px] md:text-[24px] font-bold">
-                                  ${formatPrice(getCabinPrice("balcony"))}
-                                </div>
-                                {obcAmounts?.balcony > 0 && (
-                                  <div className="text-[11px] md:text-[12px] bg-[#1B8F57] px-2 py-0.5 rounded-[3px] mt-0.5">
-                                    +${obcAmounts.balcony} OBC
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              <div className="text-[14px] md:text-[16px]">
-                                {isLiveBookable
-                                  ? "Call for price"
-                                  : "No cabins available"}
-                              </div>
-                            )}
-                          </div>
+                          Get quote
                         </button>
                       </div>
                     </div>
@@ -2382,29 +2325,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                             : "bg-gray-300 text-gray-500 cursor-not-allowed"
                         }`}
                       >
-                        <div className="flex flex-col items-center gap-1">
-                          {isPriceAvailable(getCabinPrice("suite")) ? (
-                            <>
-                              <div className="text-[10px] uppercase tracking-wider opacity-90">
-                                Starting from
-                              </div>
-                              <div className="text-[20px] md:text-[24px] font-bold">
-                                ${formatPrice(getCabinPrice("suite"))}
-                              </div>
-                              {obcAmounts?.suite > 0 && (
-                                <div className="text-[11px] md:text-[12px] bg-[#1B8F57] px-2 py-0.5 rounded-[3px] mt-0.5">
-                                  +${obcAmounts.suite} OBC
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <div className="text-[14px] md:text-[16px]">
-                              {isLiveBookable
-                                ? "Call for price"
-                                : "No cabins available"}
-                            </div>
-                          )}
-                        </div>
+                        Get quote
                       </button>
                     </div>
                   </div>
