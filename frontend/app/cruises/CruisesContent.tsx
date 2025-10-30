@@ -896,7 +896,7 @@ export default function CruisesContent() {
                 }}
                 className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-full font-geograph font-medium text-[14px] transition-colors ${
                   instantBookingOnly
-                    ? "bg-[#0E1B4D] text-white"
+                    ? "bg-[#2238C3] text-white"
                     : "bg-white text-[#0E1B4D] border border-gray-300 hover:bg-gray-50"
                 }`}
               >
@@ -1079,7 +1079,7 @@ export default function CruisesContent() {
                                 }}
                                 className={`px-2 py-1 rounded text-[12px] font-geograph transition-colors ${
                                   isSelected
-                                    ? "bg-[#0E1B4D] text-white"
+                                    ? "bg-[#2238C3] text-white"
                                     : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200"
                                 }`}
                               >
@@ -1418,7 +1418,7 @@ export default function CruisesContent() {
               {appliedFilters.length > 0 && (
                 <button
                   onClick={clearAllFilters}
-                  className="w-full py-2 px-4 bg-[#0E1B4D] text-white font-geograph font-medium text-[14px] rounded-lg hover:bg-[#0E1B4D]/90 transition-colors"
+                  className="w-full py-2 px-4 bg-[#2238C3] text-white font-geograph font-medium text-[14px] rounded-lg hover:bg-[#2238C3]/90 transition-colors"
                 >
                   Clear All Filters
                 </button>
@@ -1443,7 +1443,7 @@ export default function CruisesContent() {
                     `/alerts/new${queryString ? `?${queryString}` : ""}`,
                   );
                 }}
-                className="w-full py-2 px-4 bg-white border-2 border-[#0E1B4D] text-[#0E1B4D] font-geograph font-medium text-[14px] rounded-lg hover:bg-[#0E1B4D] hover:text-white transition-colors"
+                className="w-full py-2 px-4 bg-white border-2 border-[#0E1B4D] text-[#0E1B4D] font-geograph font-medium text-[14px] rounded-lg hover:bg-[#2238C3] hover:text-white transition-colors"
               >
                 🔔 Create Price Alert
               </button>
@@ -1987,7 +1987,7 @@ export default function CruisesContent() {
                     {appliedFilters.map((filter, index) => (
                       <div
                         key={index}
-                        className="flex items-center gap-2 px-3 py-1 bg-[#0E1B4D] rounded-full"
+                        className="flex items-center gap-2 px-3 py-1 bg-[#2238C3] rounded-full"
                       >
                         <span className="font-geograph font-medium text-[14px] text-white">
                           {filter.label}
@@ -2036,7 +2036,7 @@ export default function CruisesContent() {
                   }}
                   className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full font-geograph font-medium text-[16px] transition-colors ${
                     instantBookingOnly
-                      ? "bg-[#0E1B4D] text-white"
+                      ? "bg-[#2238C3] text-white"
                       : "bg-white text-[#0E1B4D] border border-gray-300 hover:bg-gray-50"
                   }`}
                 >
@@ -2219,7 +2219,7 @@ export default function CruisesContent() {
                                   }}
                                   className={`px-2 py-1 rounded text-[16px] font-geograph transition-colors ${
                                     isSelected
-                                      ? "bg-[#0E1B4D] text-white"
+                                      ? "bg-[#2238C3] text-white"
                                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                   }`}
                                 >
@@ -2566,7 +2566,7 @@ export default function CruisesContent() {
             <div className="bg-white px-4 py-4 border-t">
               <button
                 onClick={() => setIsFilterModalOpen(false)}
-                className="w-full px-6 py-3 bg-[#0E1B4D] text-white font-geograph font-medium text-[16px] rounded-full hover:bg-[#0E1B4D]/90 transition-colors"
+                className="w-full px-6 py-3 bg-[#2238C3] text-white font-geograph font-medium text-[16px] rounded-full hover:bg-[#2238C3]/90 transition-colors"
               >
                 Show Results
               </button>

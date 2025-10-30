@@ -1750,7 +1750,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                               !hasAvailability
                                 ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
                                 : selectedCabinCategory === key
-                                  ? "bg-dark-blue text-white"
+                                  ? "bg-[#2238C3] text-white"
                                   : "bg-white text-dark-blue border border-gray-300 hover:border-dark-blue"
                             }`}
                           >
