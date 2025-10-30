@@ -18,6 +18,7 @@ import bookingRoutes from './booking.routes';
 import debugRoutes from './debug.routes';
 import promotionRoutes from './promotion.routes';
 import alertRoutes from './alert.routes';
+import cruiseLineRoutes from './cruise-line.routes';
 
 const router = Router();
 
@@ -60,6 +61,7 @@ apiRouter.use('/filter-options', filterOptionsRoutes);
 // Keep old search routes as fallback at different path if needed
 // apiRouter.use('/search-old', searchRoutes);
 apiRouter.use('/cruises', cruiseRoutes);
+apiRouter.use('/cruise-lines', cruiseLineRoutes);
 apiRouter.use('/ships', shipRoutes);
 apiRouter.use('/quotes', quoteRoutes);
 apiRouter.use('/price-history', priceHistoryRoutes);
