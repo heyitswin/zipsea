@@ -12,6 +12,7 @@ interface PriceBreakdownItem {
   amount: number;
   isDiscount?: boolean;
   isTax?: boolean;
+  isOnboardCredit?: boolean;
   order?: number;
 }
 
@@ -213,13 +214,21 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
               });
               gratuities += amount;
             } else {
+              // Check if this is an onboard credit from the cruise line/API
+              const isOnboardCredit =
+                description.toLowerCase().includes("onboard credit") ||
+                description.toLowerCase().includes("obc") ||
+                category === "credit" ||
+                category === "onboard_credit";
+
               // Other items
               breakdown.push({
                 description: description,
                 amount: amount,
                 isDiscount: false,
                 isTax: category === "tax",
-                order: 5, // Display after everything else
+                isOnboardCredit: isOnboardCredit, // Flag for special styling
+                order: isOnboardCredit ? 6 : 5, // OBC displays last
               });
             }
           });
@@ -489,21 +498,49 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
 
       {/* Detailed Breakdown */}
       <div className="space-y-2 mb-4 pb-4 border-b border-gray-200">
-        {pricingData.breakdown.map((item, index) => (
-          <div key={index} className="flex justify-between items-start">
-            <span
-              className={`font-geograph text-[14px] ${item.isDiscount ? "text-green-600" : "text-gray-700"}`}
-            >
-              {item.description}
-            </span>
-            <span
-              className={`font-geograph text-[14px] ${item.isDiscount ? "text-green-600" : "text-gray-900"}`}
-            >
-              {item.isDiscount && item.amount > 0 ? "-" : ""}
-              {formatPrice(item.amount)}
-            </span>
-          </div>
-        ))}
+        {pricingData.breakdown.map((item, index) => {
+          // Check if this is an OBC item and if previous item was not OBC (for separator)
+          const isFirstOBC =
+            item.isOnboardCredit &&
+            (index === 0 || !pricingData.breakdown[index - 1].isOnboardCredit);
+
+          return (
+            <div key={index}>
+              {/* Add separator before first OBC item */}
+              {isFirstOBC && (
+                <div className="border-t border-gray-300 my-3 -mx-2"></div>
+              )}
+
+              <div className="flex justify-between items-start">
+                <span
+                  className={`font-geograph text-[14px] ${
+                    item.isOnboardCredit
+                      ? "text-green-600 font-medium"
+                      : item.isDiscount
+                        ? "text-green-600"
+                        : "text-gray-700"
+                  }`}
+                >
+                  {item.isOnboardCredit && "+"}
+                  {item.description}
+                </span>
+                <span
+                  className={`font-geograph text-[14px] ${
+                    item.isOnboardCredit
+                      ? "text-green-600 font-medium"
+                      : item.isDiscount
+                        ? "text-green-600"
+                        : "text-gray-900"
+                  }`}
+                >
+                  {item.isDiscount && item.amount > 0 ? "-" : ""}
+                  {item.isOnboardCredit && "+"}
+                  {formatPrice(item.amount)}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Total */}
@@ -518,14 +555,16 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
 
       {/* OBC - Extras added after booking (only show if > 0) */}
       {pricingData.obcAmount && pricingData.obcAmount > 0 && (
-        <div className="mt-3 p-3 bg-[#D4F4DD] rounded-lg text-center">
-          <div className="font-geograph font-normal text-[14px] text-[#1B8F57]">
-            +$
-            {pricingData.obcAmount.toLocaleString("en-US", {
-              minimumFractionDigits: 0,
-              maximumFractionDigits: 0,
-            })}{" "}
-            onboard credit
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="p-3 bg-[#D4F4DD] rounded-lg text-center">
+            <div className="font-geograph font-normal text-[14px] text-[#1B8F57]">
+              +$
+              {pricingData.obcAmount.toLocaleString("en-US", {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              })}{" "}
+              onboard credit
+            </div>
           </div>
         </div>
       )}
