@@ -17,6 +17,7 @@ export default function BookingOptionsPage() {
 
   // Lead contact fields
   const [leadContact, setLeadContact] = useState({
+    title: "",
     firstName: "",
     lastName: "",
     email: "",
@@ -65,6 +66,9 @@ export default function BookingOptionsPage() {
     // Validate lead contact fields
     const newErrors: Record<string, string> = {};
 
+    if (!leadContact.title.trim()) {
+      newErrors.title = "Title is required";
+    }
     if (!leadContact.firstName.trim()) {
       newErrors.firstName = "First name is required";
     }
@@ -131,6 +135,31 @@ export default function BookingOptionsPage() {
               <p className="font-geograph text-[14px] text-gray-600 mb-6">
                 We'll use this information for booking confirmation and updates
               </p>
+
+              <div className="mb-4">
+                <label className="block font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                  Title *
+                </label>
+                <select
+                  value={leadContact.title}
+                  onChange={(e) =>
+                    setLeadContact({ ...leadContact, title: e.target.value })
+                  }
+                  className={`w-full px-4 py-3 border rounded-lg font-geograph text-[16px] focus:outline-none focus:border-dark-blue ${
+                    errors.title ? "border-red-500" : "border-gray-300"
+                  }`}
+                >
+                  <option value="">Select title</option>
+                  <option value="Mr">Mr</option>
+                  <option value="Mrs">Mrs</option>
+                  <option value="Ms">Ms</option>
+                  <option value="Miss">Miss</option>
+                  <option value="Dr">Dr</option>
+                </select>
+                {errors.title && (
+                  <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+                )}
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>

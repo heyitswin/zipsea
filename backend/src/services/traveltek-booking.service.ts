@@ -22,6 +22,7 @@ interface PassengerDetails {
 }
 
 interface ContactDetails {
+  title: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -1158,21 +1159,15 @@ class TraveltekBookingService {
       const cardType = this.determineCardType(params.payment.cardNumber);
       console.log(`💳 [TraveltekBooking] Detected card type: ${cardType}`);
 
-      // Get title from lead passenger or first passenger for cardholder
-      const leadPassenger = params.passengers.find(p => p.isLeadPassenger) || params.passengers[0];
-      const cardholderTitle = leadPassenger.title;
+      // Use title from contact form (collected in step 1)
+      const cardholderTitle = params.contact.title;
 
       const bookingResponse = await traveltekApiService.createBooking({
         sessionkey: sessionData.sessionKey,
         sid: sessionData.sid,
         itemkey: sessionData.itemkey,
         contact: {
-          title:
-            leadPassenger.title ||
-            this.getDefaultTitle(
-              leadPassenger.gender,
-              this.calculateAge(leadPassenger.dateOfBirth)
-            ),
+          title: params.contact.title,
           firstname: params.contact.firstName,
           lastname: params.contact.lastName,
           email: params.contact.email,
@@ -1200,6 +1195,7 @@ class TraveltekBookingService {
         depositBooking: false, // Full payment for now
         // Include payment card in booking request (per Traveltek docs)
         ccard: {
+          passthroughitem: parseInt(sessionData.itemkey), // CRITICAL: Enable passthrough payments - use itemkey value per Traveltek docs
           amount: params.payment.amount,
           nameoncard: params.payment.cardholderName,
           cardtype: cardType,
@@ -1212,7 +1208,7 @@ class TraveltekBookingService {
           lastname: params.contact.lastName,
           postcode: params.contact.postalCode,
           address1: params.contact.address,
-          homecity: params.contact.city,
+          homecity: params.contact.city, // Correct per Traveltek docs: use 'homecity' not 'city'
           county: params.contact.state,
           country: params.contact.country,
         },

@@ -813,7 +813,7 @@ export class TraveltekApiService {
       postcode: string;
       address1: string;
       address2?: string;
-      homecity: string;
+      homecity: string; // Correct per Traveltek docs example
       county: string;
       country: string;
     };
@@ -868,11 +868,9 @@ export class TraveltekApiService {
         allocation: {
           [params.itemkey]: {
             dining: {
-              // Dining seating preference - accepted formats:
-              // - "MyTime Dining" (anytime/flexible dining)
-              // - "Traditional:2:0" (traditional with table size and smoking preference)
-              // - Simple strings like "early", "late", "anytime"
-              seating: params.dining,
+              // HARDCODED: Use exact Traveltek format for flexible dining
+              // Per Traveltek docs: "MyTime Dining" enables flexible/anytime dining
+              seating: 'MyTime Dining',
               smoking: 'non-smoking', // "non-smoking" or "smoking"
               // tablesize: "2", // Optional: specify table size preference
             },

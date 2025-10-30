@@ -13,6 +13,7 @@ import {
 interface BookingSummary {
   passengers?: any[];
   leadContact?: {
+    title: string;
     firstName: string;
     lastName: string;
     email: string;
@@ -295,6 +296,7 @@ export default function BookingPaymentPage() {
       const requestBody = {
         passengers: bookingSummary.passengers,
         contact: {
+          title: bookingSummary.leadContact.title,
           firstName: bookingSummary.leadContact.firstName,
           lastName: bookingSummary.leadContact.lastName,
           email: bookingSummary.leadContact.email,
