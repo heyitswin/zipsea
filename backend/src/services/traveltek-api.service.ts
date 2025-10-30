@@ -868,10 +868,10 @@ export class TraveltekApiService {
         allocation: {
           [params.itemkey]: {
             dining: {
-              // HARDCODED: Use exact Traveltek format for flexible dining
+              // Use exact Traveltek format for flexible dining
               // Per Traveltek docs: "MyTime Dining" enables flexible/anytime dining
               seating: 'MyTime Dining',
-              smoking: 'non-smoking', // "non-smoking" or "smoking"
+              smoking: 'N', // Per Traveltek docs: "N" for non-smoking, "Y" for smoking
               // tablesize: "2", // Optional: specify table size preference
             },
             // bedconfig: "A", // Optional: "A" (Any), "T" (Twin), "D" (Double)
