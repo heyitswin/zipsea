@@ -37,6 +37,8 @@ export const bookingSessions = pgTable('booking_sessions', {
     description: string;
     totalPrice: number;
     obcAmount?: number; // Onboard credit amount from cabin card (8% of commissionable fare)
+    roomNumber?: string; // Cabin number
+    deckNumber?: string; // Deck number
   }>(),
 
   // Booking options
