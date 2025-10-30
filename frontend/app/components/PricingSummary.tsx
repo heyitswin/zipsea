@@ -306,15 +306,15 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
         const liveBookingEnabled =
           process.env.NEXT_PUBLIC_ENABLE_LIVE_BOOKING === "true";
         // Parse live booking line IDs from environment variable
-        // Default: Royal Caribbean (22) and Celebrity (3)
-        const liveBookingLineIds = (
-          process.env.NEXT_PUBLIC_LIVE_BOOKING_LINE_IDS || "22,3"
-        )
-          .split(",")
-          .map((id) => parseInt(id.trim(), 10))
-          .filter((id) => !isNaN(id));
+        const liveBookingLineIds = process.env.NEXT_PUBLIC_LIVE_BOOKING_LINE_IDS
+          ? process.env.NEXT_PUBLIC_LIVE_BOOKING_LINE_IDS.split(",")
+              .map((id) => parseInt(id.trim(), 10))
+              .filter((id) => !isNaN(id))
+          : [];
         const isLiveBooking =
-          liveBookingEnabled && cruise?.cruiseLineId
+          liveBookingEnabled &&
+          cruise?.cruiseLineId &&
+          liveBookingLineIds.length > 0
             ? liveBookingLineIds.includes(Number(cruise.cruiseLineId))
             : false;
 
