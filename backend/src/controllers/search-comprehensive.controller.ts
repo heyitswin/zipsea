@@ -43,6 +43,11 @@ class SearchComprehensiveController {
         // Location filters - support both single and array values
         // Support both 'cruiseLineId' and 'cruiseLines' parameter names
         cruiseLineId: (() => {
+          // If instant booking filter is active, restrict to live-bookable cruise lines
+          if (req.query.instantBooking === 'true') {
+            return [22, 3]; // Royal Caribbean and Celebrity
+          }
+
           const param = req.query.cruiseLineId || req.query.cruiseLines;
           console.log(
             'Raw cruiseLineId param:',

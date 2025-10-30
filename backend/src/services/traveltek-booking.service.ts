@@ -844,20 +844,33 @@ class TraveltekBookingService {
         );
       }
 
-      // Update session with basket data, itemkey, and pricing breakdown
-      // Note: We're only storing the basketData for now since we don't have complete cabin details
-      // The selectedCabinGrade and selectedCabin fields in the schema expect full objects,
-      // but we only have the IDs at this point. We can add them later if needed.
+      // Update session with basket data, itemkey, pricing breakdown, and cabin details
       console.log('[TraveltekBooking] 💾 Saving basketData to session:');
       console.log('  - basketData has items?', !!basketData.results?.[0]?.basketitems?.length);
       console.log('  - basketData.results[0].totalprice:', basketData.results?.[0]?.totalprice);
       console.log('  - basketData.results[0].totaldeposit:', basketData.results?.[0]?.totaldeposit);
       console.log('  - pricingBreakdown available?', !!pricingBreakdown);
 
+      // Extract cabin details from basket item for display in pricing summary
+      const basketItem = basketData.results?.[0]?.basketitems?.[0];
+      const cabinDetails = basketItem?.cruisedetail;
+      const selectedCabinGrade = {
+        resultno: params.resultNo,
+        gradeno: params.gradeNo,
+        ratecode: params.rateCode,
+        cabinCode: params.cabinNo || cabinDetails?.cabincode || '',
+        cabinType: params.cabinResult || '',
+        description: cabinDetails?.cabindescription || cabinDetails?.categoryname || '',
+        totalPrice: basketData.results?.[0]?.totalprice || 0,
+        roomNumber: params.cabinNo,
+        deckNumber: cabinDetails?.deck,
+      };
+
       await traveltekSessionService.updateSession(params.sessionId, {
         basketData,
         itemkey,
         pricingBreakdown,
+        selectedCabinGrade,
       });
 
       console.log(`[TraveltekBooking] ✅ Added cabin to basket for session ${params.sessionId}`);

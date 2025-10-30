@@ -220,8 +220,7 @@ function HomeWithParams() {
     switch (destination) {
       case "bahamas":
         params.set("regions", "28");
-        params.set("minNights", "2");
-        params.set("maxNights", "5");
+        params.set("nights", "2-5");
         break;
       case "caribbean":
         params.set("regions", "2");

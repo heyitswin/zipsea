@@ -155,20 +155,20 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         const numPrice =
           typeof fareToUse === "string" ? parseFloat(fareToUse) : fareToUse;
         if (numPrice && !isNaN(numPrice)) {
-          // Calculate 10% of the price as onboard credit, rounded down to nearest $10
-          const creditPercent = 0.1;
+          // Live bookings use 10% OBC, non-live use 8%
+          const creditPercent = isLiveBookable ? 0.1 : 0.08;
           const rawCredit = numPrice * creditPercent;
           amounts[cabinType] = Math.floor(rawCredit / 10) * 10;
 
           console.log(
-            `💰 OBC for ${cabinType}: $${amounts[cabinType]} (from ${liveFare ? "LIVE fare" : "cached price"}: $${fareToUse})`,
+            `💰 OBC for ${cabinType}: $${amounts[cabinType]} (${creditPercent * 100}% from ${liveFare ? "LIVE fare" : "cached price"}: $${fareToUse})`,
           );
         }
       }
     }
 
     return amounts;
-  }, [commissionableFares, cruiseData]);
+  }, [commissionableFares, cruiseData, isLiveBookable]);
 
   // Specific cabin modal state
   const [isSpecificCabinModalOpen, setIsSpecificCabinModalOpen] =
@@ -2099,41 +2099,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         </p>
                       </div>
 
-                      {/* Pricing Block and Button - Mobile optimized */}
-                      <div className="flex flex-row items-end justify-between flex-1 px-0 md:px-8">
-                        <div className="text-left">
-                          <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                            STARTING FROM
-                          </div>
-                          <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
-                            {isPriceAvailable(getCabinPrice("interior"))
-                              ? `$${formatPrice(getCabinPrice("interior"))}`
-                              : isLiveBookable
-                                ? "Call for price"
-                                : "Unavailable"}
-                          </div>
-                          {isPriceAvailable(getCabinPrice("interior")) &&
-                            obcAmounts?.interior > 0 && (
-                              <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                                +${obcAmounts.interior} onboard credit
-                              </div>
-                            )}
-                          {(() => {
-                            console.log("🎨 Interior OBC render check:", {
-                              isPriceAvailable: isPriceAvailable(
-                                getCabinPrice("interior"),
-                              ),
-                              obcAmounts,
-                              interiorAmount: obcAmounts?.interior,
-                              shouldShow:
-                                isPriceAvailable(getCabinPrice("interior")) &&
-                                obcAmounts?.interior > 0,
-                            });
-                            return null;
-                          })()}
-                        </div>
-
-                        {/* Quote CTA Button - Inline on mobile */}
+                      {/* Button with Pricing Inside */}
+                      <div className="flex flex-1 justify-end px-0 md:px-8">
                         <button
                           onClick={() =>
                             handleGetQuote(
@@ -2144,13 +2111,35 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           disabled={
                             !isPriceAvailable(getCabinPrice("interior"))
                           }
-                          className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors self-end ${
+                          className={`font-geograph font-medium px-6 md:px-8 py-3 md:py-4 rounded-full transition-colors ${
                             isPriceAvailable(getCabinPrice("interior"))
                               ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
                               : "bg-gray-300 text-gray-500 cursor-not-allowed"
                           }`}
                         >
-                          Get quote
+                          <div className="flex flex-col items-center gap-1">
+                            {isPriceAvailable(getCabinPrice("interior")) ? (
+                              <>
+                                <div className="text-[10px] uppercase tracking-wider opacity-90">
+                                  Starting from
+                                </div>
+                                <div className="text-[20px] md:text-[24px] font-bold">
+                                  ${formatPrice(getCabinPrice("interior"))}
+                                </div>
+                                {obcAmounts?.interior > 0 && (
+                                  <div className="text-[11px] md:text-[12px] bg-[#1B8F57] px-2 py-0.5 rounded-[3px] mt-0.5">
+                                    +${obcAmounts.interior} OBC
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <div className="text-[14px] md:text-[16px]">
+                                {isLiveBookable
+                                  ? "Call for price"
+                                  : "No cabins available"}
+                              </div>
+                            )}
+                          </div>
                         </button>
                       </div>
                     </div>
@@ -2200,28 +2189,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         </p>
                       </div>
 
-                      {/* Pricing Block and Button - Mobile optimized */}
-                      <div className="flex flex-row items-end justify-between flex-1 px-0 md:px-8">
-                        <div className="text-left">
-                          <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                            STARTING FROM
-                          </div>
-                          <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
-                            {isPriceAvailable(getCabinPrice("oceanview"))
-                              ? `$${formatPrice(getCabinPrice("oceanview"))}`
-                              : isLiveBookable
-                                ? "Call for price"
-                                : "Unavailable"}
-                          </div>
-                          {isPriceAvailable(getCabinPrice("oceanview")) &&
-                            obcAmounts?.oceanview > 0 && (
-                              <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                                +${obcAmounts.oceanview} onboard credit
-                              </div>
-                            )}
-                        </div>
-
-                        {/* Quote CTA Button - Inline on mobile */}
+                      {/* Button with Pricing Inside */}
+                      <div className="flex flex-1 justify-end px-0 md:px-8">
                         <button
                           onClick={() =>
                             handleGetQuote(
@@ -2232,13 +2201,35 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           disabled={
                             !isPriceAvailable(getCabinPrice("oceanview"))
                           }
-                          className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors self-end ${
+                          className={`font-geograph font-medium px-6 md:px-8 py-3 md:py-4 rounded-full transition-colors ${
                             isPriceAvailable(getCabinPrice("oceanview"))
                               ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
                               : "bg-gray-300 text-gray-500 cursor-not-allowed"
                           }`}
                         >
-                          Get quote
+                          <div className="flex flex-col items-center gap-1">
+                            {isPriceAvailable(getCabinPrice("oceanview")) ? (
+                              <>
+                                <div className="text-[10px] uppercase tracking-wider opacity-90">
+                                  Starting from
+                                </div>
+                                <div className="text-[20px] md:text-[24px] font-bold">
+                                  ${formatPrice(getCabinPrice("oceanview"))}
+                                </div>
+                                {obcAmounts?.oceanview > 0 && (
+                                  <div className="text-[11px] md:text-[12px] bg-[#1B8F57] px-2 py-0.5 rounded-[3px] mt-0.5">
+                                    +${obcAmounts.oceanview} OBC
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <div className="text-[14px] md:text-[16px]">
+                                {isLiveBookable
+                                  ? "Call for price"
+                                  : "No cabins available"}
+                              </div>
+                            )}
+                          </div>
                         </button>
                       </div>
                     </div>
@@ -2288,28 +2279,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         </p>
                       </div>
 
-                      {/* Pricing Block and Button - Mobile optimized */}
-                      <div className="flex flex-row items-end justify-between flex-1 px-0 md:px-8">
-                        <div className="text-left">
-                          <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                            STARTING FROM
-                          </div>
-                          <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
-                            {isPriceAvailable(getCabinPrice("balcony"))
-                              ? `$${formatPrice(getCabinPrice("balcony"))}`
-                              : isLiveBookable
-                                ? "Call for price"
-                                : "Unavailable"}
-                          </div>
-                          {isPriceAvailable(getCabinPrice("balcony")) &&
-                            obcAmounts?.balcony > 0 && (
-                              <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                                +${obcAmounts.balcony} onboard credit
-                              </div>
-                            )}
-                        </div>
-
-                        {/* Quote CTA Button - Inline on mobile */}
+                      {/* Button with Pricing Inside */}
+                      <div className="flex flex-1 justify-end px-0 md:px-8">
                         <button
                           onClick={() =>
                             handleGetQuote(
@@ -2318,13 +2289,35 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                             )
                           }
                           disabled={!isPriceAvailable(getCabinPrice("balcony"))}
-                          className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors self-end ${
+                          className={`font-geograph font-medium px-6 md:px-8 py-3 md:py-4 rounded-full transition-colors ${
                             isPriceAvailable(getCabinPrice("balcony"))
                               ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
                               : "bg-gray-300 text-gray-500 cursor-not-allowed"
                           }`}
                         >
-                          Get quote
+                          <div className="flex flex-col items-center gap-1">
+                            {isPriceAvailable(getCabinPrice("balcony")) ? (
+                              <>
+                                <div className="text-[10px] uppercase tracking-wider opacity-90">
+                                  Starting from
+                                </div>
+                                <div className="text-[20px] md:text-[24px] font-bold">
+                                  ${formatPrice(getCabinPrice("balcony"))}
+                                </div>
+                                {obcAmounts?.balcony > 0 && (
+                                  <div className="text-[11px] md:text-[12px] bg-[#1B8F57] px-2 py-0.5 rounded-[3px] mt-0.5">
+                                    +${obcAmounts.balcony} OBC
+                                  </div>
+                                )}
+                              </>
+                            ) : (
+                              <div className="text-[14px] md:text-[16px]">
+                                {isLiveBookable
+                                  ? "Call for price"
+                                  : "No cabins available"}
+                              </div>
+                            )}
+                          </div>
                         </button>
                       </div>
                     </div>
@@ -2373,28 +2366,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       </p>
                     </div>
 
-                    {/* Pricing Block and Button - Mobile optimized */}
-                    <div className="flex flex-row items-end justify-between flex-1 px-0 md:px-8">
-                      <div className="text-left">
-                        <div className="font-geograph font-bold text-[10px] text-gray-500 uppercase tracking-wider">
-                          STARTING FROM
-                        </div>
-                        <div className="font-geograph font-bold text-[20px] md:text-[24px] text-dark-blue">
-                          {isPriceAvailable(getCabinPrice("suite"))
-                            ? `$${formatPrice(getCabinPrice("suite"))}`
-                            : isLiveBookable
-                              ? "Call for price"
-                              : "Unavailable"}
-                        </div>
-                        {isPriceAvailable(getCabinPrice("suite")) &&
-                          obcAmounts?.suite > 0 && (
-                            <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
-                              +${obcAmounts.suite} onboard credit
-                            </div>
-                          )}
-                      </div>
-
-                      {/* Quote CTA Button - Inline on mobile */}
+                    {/* Button with Pricing Inside */}
+                    <div className="flex flex-1 justify-end px-0 md:px-8">
                       <button
                         onClick={() =>
                           handleGetQuote(
@@ -2403,13 +2376,35 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           )
                         }
                         disabled={!isPriceAvailable(getCabinPrice("suite"))}
-                        className={`font-geograph font-medium text-[14px] md:text-[16px] px-4 md:px-6 py-2 md:py-3 rounded-full transition-colors self-end ${
+                        className={`font-geograph font-medium px-6 md:px-8 py-3 md:py-4 rounded-full transition-colors ${
                           isPriceAvailable(getCabinPrice("suite"))
                             ? "bg-[#2f7ddd] text-white hover:bg-[#2f7ddd]/90 cursor-pointer"
                             : "bg-gray-300 text-gray-500 cursor-not-allowed"
                         }`}
                       >
-                        Get quote
+                        <div className="flex flex-col items-center gap-1">
+                          {isPriceAvailable(getCabinPrice("suite")) ? (
+                            <>
+                              <div className="text-[10px] uppercase tracking-wider opacity-90">
+                                Starting from
+                              </div>
+                              <div className="text-[20px] md:text-[24px] font-bold">
+                                ${formatPrice(getCabinPrice("suite"))}
+                              </div>
+                              {obcAmounts?.suite > 0 && (
+                                <div className="text-[11px] md:text-[12px] bg-[#1B8F57] px-2 py-0.5 rounded-[3px] mt-0.5">
+                                  +${obcAmounts.suite} OBC
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div className="text-[14px] md:text-[16px]">
+                              {isLiveBookable
+                                ? "Call for price"
+                                : "No cabins available"}
+                            </div>
+                          )}
+                        </div>
                       </button>
                     </div>
                   </div>

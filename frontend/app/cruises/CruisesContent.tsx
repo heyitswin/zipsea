@@ -489,8 +489,48 @@ export default function CruisesContent() {
       setSortBy(sortParam);
     }
 
-    if (instantBookingParam) {
-      setInstantBookingOnly(instantBookingParam === "true");
+    // Handle instant booking filter with localStorage persistence
+    // Priority: URL param > localStorage > default (true)
+    if (instantBookingParam !== null) {
+      // URL has explicit value, use it and save to localStorage
+      const isChecked = instantBookingParam === "true";
+      setInstantBookingOnly(isChecked);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("instantBookingPreference", String(isChecked));
+      }
+    } else {
+      // No URL param - check localStorage, default to true
+      if (typeof window !== "undefined") {
+        const savedPreference = localStorage.getItem(
+          "instantBookingPreference",
+        );
+        if (savedPreference !== null) {
+          // User has a saved preference
+          const isChecked = savedPreference === "true";
+          setInstantBookingOnly(isChecked);
+          // Update URL to reflect the preference
+          if (!hasInitializedRef.current) {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set("instantBooking", String(isChecked));
+            const newUrl = `${window.location.pathname}?${params.toString()}`;
+            window.history.replaceState({}, "", newUrl);
+          }
+        } else {
+          // No saved preference - default to true (checked)
+          setInstantBookingOnly(true);
+          localStorage.setItem("instantBookingPreference", "true");
+          // Update URL to reflect default
+          if (!hasInitializedRef.current) {
+            const params = new URLSearchParams(searchParams.toString());
+            params.set("instantBooking", "true");
+            const newUrl = `${window.location.pathname}?${params.toString()}`;
+            window.history.replaceState({}, "", newUrl);
+          }
+        }
+      } else {
+        // Server-side, default to true
+        setInstantBookingOnly(true);
+      }
     }
 
     if (!hasInitializedRef.current) {
@@ -1060,6 +1100,13 @@ export default function CruisesContent() {
                     checked={instantBookingOnly}
                     onChange={(e) => {
                       const isChecked = e.target.checked;
+                      // Save preference to localStorage
+                      if (typeof window !== "undefined") {
+                        localStorage.setItem(
+                          "instantBookingPreference",
+                          String(isChecked),
+                        );
+                      }
                       updateURLParams({
                         instantBooking: isChecked ? "true" : null,
                         page: 1,

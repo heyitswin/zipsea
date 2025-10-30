@@ -102,6 +102,11 @@ class BookingController {
         passengerCount: sessionData.passengerCount,
         cruiseId: sessionData.cruiseId,
         isHoldBooking: sessionData.isHoldBooking,
+        selectedCabin: sessionData.selectedCabinGrade?.description,
+        cabinName: sessionData.selectedCabinGrade?.description,
+        cabinCode: sessionData.selectedCabinGrade?.cabinCode,
+        roomNumber: sessionData.selectedCabinGrade?.roomNumber,
+        deckNumber: sessionData.selectedCabinGrade?.deckNumber,
       });
     } catch (error) {
       console.error('[BookingController] Get session error:', error);

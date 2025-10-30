@@ -274,7 +274,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
                   cruise.shipImageHd ||
                   shipImage;
 
-                // Fetch cruise line for cancellation policy
+                // Fetch cruise line for cancellation policy and determine if live booking
                 if (cruise.cruiseLineId) {
                   const lineResponse = await fetch(
                     `${process.env.NEXT_PUBLIC_API_URL}/cruise-lines/${cruise.cruiseLineId}`,
@@ -294,6 +294,15 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           console.warn("⚠️ Could not fetch session/cruise data:", err);
         }
 
+        // Determine if this is a live booking cruise (Royal Caribbean #22 or Celebrity #3)
+        const liveBookingEnabled =
+          process.env.NEXT_PUBLIC_ENABLE_LIVE_BOOKING === "true";
+        const liveBookingLineIds = [22, 3];
+        const isLiveBooking =
+          liveBookingEnabled && cruise?.cruiseLineId
+            ? liveBookingLineIds.includes(Number(cruise.cruiseLineId))
+            : false;
+
         // Calculate total from breakdown if available (more accurate than basket totalprice)
         // The breakdown comes from cruisecabingradebreakdown.pl which has the itemized costs
         let calculatedTotal = totalprice;
@@ -311,14 +320,17 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           });
         }
 
-        // Calculate OBC (10% of commissionable fare, rounded to nearest $10)
+        // Calculate OBC (10% for live bookings, 8% for non-live, rounded to nearest $10)
         // The cruise fare is the commissionable amount
         let obcAmount = 0;
         if (cruiseFare > 0) {
-          obcAmount = Math.floor((cruiseFare * 0.1) / 10) * 10;
+          const obcPercent = isLiveBooking ? 0.1 : 0.08;
+          obcAmount = Math.floor((cruiseFare * obcPercent) / 10) * 10;
           console.log("💳 Calculated OBC:", {
             cruiseFare,
             obcAmount,
+            isLiveBooking,
+            obcPercent: `${obcPercent * 100}%`,
           });
         }
 
@@ -469,7 +481,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
 
       {/* OBC - Extras added after booking */}
       {pricingData.obcAmount && pricingData.obcAmount > 0 && (
-        <div className="mt-3 p-3 bg-[#D4F4DD] rounded-lg">
+        <div className="mt-3 p-3 bg-[#D4F4DD] rounded-lg text-center">
           <div className="font-geograph font-medium text-[14px] text-[#1B8F57] mb-1">
             Extras added after booking
           </div>
