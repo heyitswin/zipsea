@@ -272,6 +272,77 @@ class BookingController {
   }
 
   /**
+   * GET /api/booking/:sessionId/cabin-breakdown
+   * Get detailed pricing breakdown for a specific cabin grade (search mode)
+   * Used on cruise detail page to calculate accurate per-guest OBC
+   */
+  async getCabinBreakdown(req: Request, res: Response): Promise<void> {
+    try {
+      const { sessionId } = req.params;
+      const { resultNo, gradeNo, rateCode, cruiseId } = req.query;
+
+      if (!resultNo || typeof resultNo !== 'string') {
+        res.status(400).json({ error: 'resultNo query parameter is required' });
+        return;
+      }
+
+      if (!gradeNo || typeof gradeNo !== 'string') {
+        res.status(400).json({ error: 'gradeNo query parameter is required' });
+        return;
+      }
+
+      if (!rateCode || typeof rateCode !== 'string') {
+        res.status(400).json({ error: 'rateCode query parameter is required' });
+        return;
+      }
+
+      console.log('[BookingController] Getting cabin breakdown:', {
+        sessionId,
+        resultNo,
+        gradeNo,
+        rateCode,
+        cruiseId,
+      });
+
+      // Get session to retrieve sessionkey
+      const session = await traveltekSessionService.getSession(sessionId);
+      if (!session) {
+        res.status(404).json({ error: 'Session not found' });
+        return;
+      }
+
+      // Call cruisecabingradebreakdown.pl in search mode (no itemkey)
+      const breakdown = await traveltekApiService.getCabinGradeBreakdown({
+        sessionkey: session.sessionKey,
+        chosencruise: resultNo,
+        chosencabingrade: gradeNo,
+        chosenfarecode: rateCode,
+        cid: typeof cruiseId === 'string' ? cruiseId : undefined,
+      });
+
+      console.log('[BookingController] Breakdown response:', {
+        resultsCount: breakdown.results?.length || 0,
+        hasErrors: !!breakdown.errors?.length,
+      });
+
+      // Return the full breakdown for frontend to calculate OBC
+      res.json(breakdown);
+    } catch (error: any) {
+      console.error('[BookingController] Error getting cabin breakdown:', error);
+
+      if (error instanceof Error && error.message.includes('Invalid or expired')) {
+        res.status(401).json({ error: error.message });
+        return;
+      }
+
+      res.status(500).json({
+        error: 'Failed to get cabin breakdown',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  /**
    * POST /api/booking/:sessionId/select-cabin
    * Select cabin and add to basket
    */
