@@ -852,8 +852,8 @@ class TraveltekBookingService {
       console.log('  - pricingBreakdown available?', !!pricingBreakdown);
 
       // Extract cabin details from basket item for display in pricing summary
-      const basketItem = basketData.results?.[0]?.basketitems?.[0];
-      const cabinDetails = basketItem?.cruisedetail;
+      const firstBasketItem = basketData.results?.[0]?.basketitems?.[0];
+      const cabinDetails = firstBasketItem?.cruisedetail;
       const selectedCabinGrade = {
         resultno: params.resultNo,
         gradeno: params.gradeNo,

@@ -245,6 +245,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
         let cabinCode: string | undefined;
         let roomNumber: string | undefined;
         let deckNumber: string | undefined;
+        let cruise: any = null;
 
         try {
           const sessionResponse = await fetch(
@@ -265,7 +266,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
               );
               if (cruiseResponse.ok) {
                 const cruiseData = await cruiseResponse.json();
-                const cruise = cruiseData.data || cruiseData;
+                cruise = cruiseData.data || cruiseData;
 
                 shipName = cruise.shipName || cruise.ship?.name || shipName;
                 shipImage =

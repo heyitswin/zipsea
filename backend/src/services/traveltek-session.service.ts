@@ -23,6 +23,18 @@ interface SessionData {
   itemkey?: string; // Item key from basket response, required for booking creation
   isHoldBooking?: boolean; // Flag for hold booking vs full payment
   pricingBreakdown?: any[]; // Detailed pricing breakdown from cruisecabingradebreakdown.pl
+  selectedCabinGrade?: {
+    resultno: string;
+    gradeno: string;
+    ratecode: string;
+    cabinCode: string;
+    cabinType: string;
+    description: string;
+    totalPrice: number;
+    obcAmount?: number;
+    roomNumber?: string;
+    deckNumber?: string;
+  };
 }
 
 interface CreateSessionParams {
@@ -32,7 +44,18 @@ interface CreateSessionParams {
 }
 
 interface UpdateSessionParams {
-  selectedCabinGrade?: string;
+  selectedCabinGrade?: {
+    resultno: string;
+    gradeno: string;
+    ratecode: string;
+    cabinCode: string;
+    cabinType: string;
+    description: string;
+    totalPrice: number;
+    obcAmount?: number;
+    roomNumber?: string;
+    deckNumber?: string;
+  };
   selectedCabin?: string;
   basketData?: any;
   cruiseResultNo?: string; // Allow updating cruise result number
