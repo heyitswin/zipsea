@@ -879,6 +879,42 @@ export default function CruisesContent() {
           {/* Left Sidebar - Filters (Desktop Only) */}
           <aside className="hidden md:block w-64 flex-shrink-0">
             <div className="space-y-4">
+              {/* Instant Booking Filter - Pill Style */}
+              <button
+                onClick={() => {
+                  const newValue = !instantBookingOnly;
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem(
+                      "instantBookingPreference",
+                      String(newValue),
+                    );
+                  }
+                  updateURLParams({
+                    instantBooking: newValue ? "true" : null,
+                    page: 1,
+                  });
+                }}
+                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-full font-geograph font-medium text-[14px] transition-colors ${
+                  instantBookingOnly
+                    ? "bg-[#0E1B4D] text-white"
+                    : "bg-white text-[#0E1B4D] border border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                <Image
+                  src="/images/bolt.svg"
+                  alt="Instant Booking"
+                  width={10}
+                  height={15}
+                  className={instantBookingOnly ? "" : "brightness-0"}
+                  style={{
+                    filter: instantBookingOnly
+                      ? "brightness(0) invert(1)"
+                      : "none",
+                  }}
+                />
+                <span>Instant Booking</span>
+              </button>
+
               {/* Cruise Lines Dropdown */}
               <div className="relative" ref={cruiseLineDropdownRef}>
                 <button
@@ -1097,37 +1133,6 @@ export default function CruisesContent() {
                     </label>
                   ))}
                 </div>
-              </div>
-
-              {/* Instant Booking Filter */}
-              <div>
-                <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
-                  Booking Options
-                </h3>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={instantBookingOnly}
-                    onChange={(e) => {
-                      const isChecked = e.target.checked;
-                      // Save preference to localStorage
-                      if (typeof window !== "undefined") {
-                        localStorage.setItem(
-                          "instantBookingPreference",
-                          String(isChecked),
-                        );
-                      }
-                      updateURLParams({
-                        instantBooking: isChecked ? "true" : null,
-                        page: 1,
-                      });
-                    }}
-                    className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
-                  />
-                  <span className="font-geograph text-[14px] text-[#2F2F2F]">
-                    Instant Booking Only
-                  </span>
-                </label>
               </div>
 
               {/* Departure Port Dropdown */}
@@ -2014,6 +2019,42 @@ export default function CruisesContent() {
 
               {/* All Filter Options */}
               <div className="space-y-6">
+                {/* Instant Booking Filter - Pill Style */}
+                <button
+                  onClick={() => {
+                    const newValue = !instantBookingOnly;
+                    if (typeof window !== "undefined") {
+                      localStorage.setItem(
+                        "instantBookingPreference",
+                        String(newValue),
+                      );
+                    }
+                    updateURLParams({
+                      instantBooking: newValue ? "true" : null,
+                      page: 1,
+                    });
+                  }}
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full font-geograph font-medium text-[16px] transition-colors ${
+                    instantBookingOnly
+                      ? "bg-[#0E1B4D] text-white"
+                      : "bg-white text-[#0E1B4D] border border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  <Image
+                    src="/images/bolt.svg"
+                    alt="Instant Booking"
+                    width={10}
+                    height={15}
+                    className={instantBookingOnly ? "" : "brightness-0"}
+                    style={{
+                      filter: instantBookingOnly
+                        ? "brightness(0) invert(1)"
+                        : "none",
+                    }}
+                  />
+                  <span>Instant Booking</span>
+                </button>
+
                 {/* Cruise Lines Dropdown */}
                 <div className="relative" ref={cruiseLineDropdownRef}>
                   <button
@@ -2232,30 +2273,6 @@ export default function CruisesContent() {
                       </label>
                     ))}
                   </div>
-                </div>
-
-                {/* Instant Booking Filter */}
-                <div>
-                  <h3 className="font-geograph font-bold text-[16px] text-[#0E1B4D] mb-3">
-                    Booking Options
-                  </h3>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={instantBookingOnly}
-                      onChange={(e) => {
-                        const isChecked = e.target.checked;
-                        updateURLParams({
-                          instantBooking: isChecked ? "true" : null,
-                          page: 1,
-                        });
-                      }}
-                      className="w-4 h-4 rounded border-gray-300 text-[#0E1B4D] focus:ring-[#0E1B4D]"
-                    />
-                    <span className="font-geograph text-[18px] text-[#2F2F2F]">
-                      Instant Booking Only
-                    </span>
-                  </label>
                 </div>
 
                 {/* Departure Port Dropdown */}
