@@ -731,12 +731,6 @@ export default function CruisesContent() {
     router.push("/cruises", { scroll: false });
   };
 
-  const handleOpenMissive = () => {
-    if (typeof window !== "undefined" && (window as any).MissiveChat) {
-      (window as any).MissiveChat.open();
-    }
-  };
-
   const totalPages = useMemo(
     () => Math.ceil(totalCount / ITEMS_PER_PAGE),
     [totalCount],

@@ -9,7 +9,6 @@ import ClerkProviderWrapper from "./components/ClerkProviderWrapper";
 import PostHogProviderWrapper, {
   PostHogPageView,
 } from "./providers/PosthogProvider";
-import MissiveChat from "./components/MissiveChat";
 import { BookingProvider } from "./context/BookingContext";
 import { Suspense } from "react";
 import ConditionalFooter from "./components/ConditionalFooter";
@@ -218,7 +217,6 @@ export default function RootLayout({
                 <Navigation />
                 {children}
                 <ConditionalFooter />
-                <MissiveChat />
               </BookingProvider>
             </GlobalAlertProvider>
           </PostHogProviderWrapper>
