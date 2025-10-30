@@ -526,13 +526,13 @@ export default function CruisesContent() {
             window.history.replaceState({}, "", newUrl);
           }
         } else {
-          // No saved preference - default to false (instant booking off by default)
-          setInstantBookingOnly(false);
-          localStorage.setItem("instantBookingPreference", "false");
+          // No saved preference - default to true (instant booking on by default)
+          setInstantBookingOnly(true);
+          localStorage.setItem("instantBookingPreference", "true");
           // Update URL to reflect default
           if (!hasInitializedRef.current) {
             const params = new URLSearchParams(searchParams.toString());
-            params.set("instantBooking", "false");
+            params.set("instantBooking", "true");
             const newUrl = `${window.location.pathname}?${params.toString()}`;
             window.history.replaceState({}, "", newUrl);
           }
