@@ -318,6 +318,15 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
             ? liveBookingLineIds.includes(Number(cruise.cruiseLineId))
             : false;
 
+        // Debug logging
+        console.log("🔍 PricingSummary Live Booking Debug:", {
+          envVar: process.env.NEXT_PUBLIC_LIVE_BOOKING_LINE_IDS,
+          liveBookingEnabled,
+          liveBookingLineIds,
+          cruiseLineId: cruise?.cruiseLineId,
+          isLiveBooking,
+        });
+
         // Calculate total from breakdown if available (more accurate than basket totalprice)
         // The breakdown comes from cruisecabingradebreakdown.pl which has the itemized costs
         let calculatedTotal = totalprice;
