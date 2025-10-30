@@ -81,6 +81,23 @@ router.get(
 );
 
 /**
+ * GET /api/booking/:sessionId/cabin-breakdown
+ * Get detailed pricing breakdown for a specific cabin grade (search mode)
+ *
+ * Returns per-guest pricing breakdown for accurate OBC calculation on cruise detail page
+ * Used before basket creation to show accurate OBC amounts on cabin cards
+ *
+ * Query params:
+ * - resultNo: string (required - from getCabinGrades response)
+ * - gradeNo: string (required - from getCabinGrades response)
+ * - rateCode: string (required - from getCabinGrades response)
+ * - cruiseId: string (optional - cruise ID for additional context)
+ *
+ * Auth: Optional
+ */
+router.get('/:sessionId/cabin-breakdown', bookingController.getCabinBreakdown);
+
+/**
  * GET /api/booking/:sessionId/specific-cabins
  * Get list of specific cabins for a cabin grade
  *
