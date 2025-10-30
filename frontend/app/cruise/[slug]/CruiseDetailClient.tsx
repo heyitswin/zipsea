@@ -525,17 +525,6 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       liveBookingEnabled && cruiseLineId && liveBookingLineIds.length > 0
         ? liveBookingLineIds.includes(Number(cruiseLineId))
         : false;
-
-    // Debug logging
-    console.log("🔍 Live Booking Debug:", {
-      envVar: process.env.NEXT_PUBLIC_LIVE_BOOKING_LINE_IDS,
-      liveBookingEnabled,
-      liveBookingLineIds,
-      cruiseLineId,
-      cruiseLineName: cruiseData.cruiseLine?.name,
-      isLiveBooking,
-    });
-
     setIsLiveBookable(isLiveBooking);
   }, [cruiseData]);
 
