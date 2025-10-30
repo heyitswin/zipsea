@@ -81,6 +81,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     Record<string, number | null>
   >({});
 
+  // Local passenger count state for steppers (must be declared before obcAmounts useMemo)
+  const [localPassengerCount, setLocalPassengerCount] = useState({
+    adults: 2,
+    children: 0,
+    childAges: [] as number[],
+  });
+
   // Auto-select first available cabin type when cabin data loads
   useEffect(() => {
     if (liveCabinGrades?.cabins && liveCabinGrades.cabins.length > 0) {
@@ -194,13 +201,6 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     rateCode: string;
     gradeName: string;
   } | null>(null);
-
-  // Local passenger count state for steppers
-  const [localPassengerCount, setLocalPassengerCount] = useState({
-    adults: 2,
-    children: 0,
-    childAges: [] as number[],
-  });
 
   // Cabin details modal state
   const [isCabinDetailsModalOpen, setIsCabinDetailsModalOpen] = useState(false);
