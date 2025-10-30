@@ -1688,7 +1688,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   )}
 
                 {/* Category Tabs */}
-                <div className="flex flex-wrap gap-2 mb-6">
+                <div className="grid grid-cols-2 gap-2 mb-6 md:flex md:flex-wrap">
                   {(() => {
                     const categories = [
                       {
@@ -1739,14 +1739,14 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       console.log(`💰 ${label} lowestPrice:`, lowestPrice);
 
                       return (
-                        <div key={key}>
+                        <div key={key} className="w-full">
                           <button
                             onClick={() =>
                               hasAvailability &&
                               setSelectedCabinCategory(key as any)
                             }
                             disabled={!hasAvailability}
-                            className={`px-5 py-3 rounded-[5px] font-geograph transition-colors ${
+                            className={`w-full px-5 py-3 rounded-[5px] font-geograph transition-colors ${
                               !hasAvailability
                                 ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
                                 : selectedCabinCategory === key
