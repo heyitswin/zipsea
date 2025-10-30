@@ -1715,13 +1715,28 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                           (cabin: any) => cabin.category === apiCategory,
                         ) || [];
                       const hasAvailability = cabinsInCategory.length > 0;
+
+                      // Debug logging
+                      console.log(`🔍 ${label} (${apiCategory}):`, {
+                        hasAvailability,
+                        cabinCount: cabinsInCategory.length,
+                        cabins: cabinsInCategory.map((c: any) => ({
+                          code: c.code,
+                          category: c.category,
+                          totalPrice: c.totalPrice,
+                          parsed: parseFloat(c.totalPrice || 0),
+                        })),
+                      });
+
                       const lowestPrice = hasAvailability
                         ? Math.min(
                             ...cabinsInCategory.map((c: any) =>
-                              parseFloat(c.totalPrice || 0),
+                              parseFloat(c.cheapestPrice || 0),
                             ),
                           )
                         : null;
+
+                      console.log(`💰 ${label} lowestPrice:`, lowestPrice);
 
                       return (
                         <div key={key}>
