@@ -10,6 +10,7 @@ import type {
   SearchOptions,
 } from '../services/search-comprehensive.service';
 import logger from '../config/logger';
+import env from '../config/environment';
 
 class SearchComprehensiveController {
   /**
@@ -63,9 +64,14 @@ class SearchComprehensiveController {
             userSelectedLines = !isNaN(num) ? num : undefined;
           }
 
-          // If instant booking filter is active, restrict to live-bookable cruise lines (Royal Caribbean=22, Celebrity=3)
+          // If instant booking filter is active, restrict to live-bookable cruise lines
           if (req.query.instantBooking === 'true') {
-            const liveBookableLines = [22, 3];
+            // Parse live booking line IDs from environment variable
+            const liveBookableLines = env.TRAVELTEK_LIVE_BOOKING_LINE_IDS
+              ? env.TRAVELTEK_LIVE_BOOKING_LINE_IDS.split(',')
+                  .map(id => parseInt(id.trim(), 10))
+                  .filter(id => !isNaN(id))
+              : [];
 
             // If user selected specific cruise lines, only show those that are also live-bookable
             if (userSelectedLines !== undefined) {
