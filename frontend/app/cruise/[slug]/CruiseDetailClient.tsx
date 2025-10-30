@@ -200,7 +200,9 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     cabinName: string;
     cabinCode?: string; // Cabin grade code (e.g., "ZI", "4D")
     price: number;
-    cabinResultNo?: string; // For specific cabin selection
+    cabinResultNo?: string; // For specific cabin selection (resultNo from API)
+    cabinNumber?: string; // Specific cabin number (e.g., "8372")
+    deckNumber?: string; // Deck number (e.g., "Deck 5")
   } | null>(null);
 
   // Time tracking
@@ -1195,6 +1197,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             rateCode: pendingReservation.rateCode,
             cabinName: pendingReservation.cabinName,
             cabinCode: pendingReservation.cabinCode,
+            cabinNumber: pendingReservation.cabinNumber,
+            deckNumber: pendingReservation.deckNumber,
             expectedPrice: pendingReservation.price, // Pass cabin card price for validation
             ...(pendingReservation.cabinResultNo && {
               cabinResult: pendingReservation.cabinResultNo,
@@ -1262,6 +1266,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             rateCode: pendingReservation.rateCode,
             cabinName: pendingReservation.cabinName,
             cabinCode: pendingReservation.cabinCode,
+            cabinNumber: pendingReservation.cabinNumber,
+            deckNumber: pendingReservation.deckNumber,
             ...(pendingReservation.cabinResultNo && {
               cabinResult: pendingReservation.cabinResultNo,
             }),
@@ -2661,7 +2667,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             setSelectedCabinGrade(null);
           }}
           isReserving={isReserving}
-          onSelect={async (cabinResultNo: string) => {
+          onSelect={async (
+            cabinResultNo: string,
+            cabinNo: string,
+            deck: string,
+          ) => {
             // User selected a specific cabin - show hold modal
             // Close specific cabin modal and open hold modal with cabin details
             setIsSpecificCabinModalOpen(false);
@@ -2680,10 +2690,12 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               resultNo: selectedCabinGrade.resultNo,
               gradeNo: selectedCabinGrade.gradeNo,
               rateCode: selectedCabinGrade.rateCode,
-              cabinName: selectedCabinGrade.gradeName,
+              cabinName: `${selectedCabinGrade.gradeName} - Cabin ${cabinNo}`,
               cabinCode: cabinGrade?.code,
               price: cabinPricing?.price || 0,
               cabinResultNo, // Store specific cabin number for later
+              cabinNumber: cabinNo, // Store cabin number for display
+              deckNumber: deck, // Store deck for display
             });
             setIsHoldModalOpen(true);
           }}

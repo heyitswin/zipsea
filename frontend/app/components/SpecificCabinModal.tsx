@@ -31,7 +31,7 @@ interface DeckPlan {
 interface SpecificCabinModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (cabinNo: string) => void;
+  onSelect: (cabinResultNo: string, cabinNo: string, deck: string) => void;
   sessionId: string;
   cruiseId: string;
   resultNo: string;
@@ -171,13 +171,18 @@ export default function SpecificCabinModal({
     if (selectedCabinNo) {
       const selectedCabin = cabins.find((c) => c.cabinNo === selectedCabinNo);
       if (selectedCabin && selectedCabin.resultNo) {
-        onSelect(selectedCabin.resultNo);
+        onSelect(
+          selectedCabin.resultNo,
+          selectedCabin.cabinNo,
+          selectedCabin.deck,
+        );
       } else {
         console.error(
           "Selected cabin not found or missing resultNo:",
           selectedCabinNo,
         );
-        onSelect(selectedCabinNo);
+        // Fallback with empty values if cabin not found
+        onSelect(selectedCabinNo, selectedCabinNo, "");
       }
       onClose();
     }
