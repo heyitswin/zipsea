@@ -1759,18 +1759,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                 {label}
                               </span>
                               {!hasAvailability ? (
-                                <span className="text-[11px] mt-1">
+                                <span className="text-[11px]">
                                   No cabins available
                                 </span>
                               ) : lowestPrice ? (
-                                <>
-                                  <span className="text-[10px] mt-1 opacity-80">
-                                    Starting from
-                                  </span>
-                                  <span className="text-[14px] font-bold mt-0.5">
-                                    ${Math.round(lowestPrice)}
-                                  </span>
-                                </>
+                                <span className="text-[11px]">
+                                  Starting from ${Math.round(lowestPrice)}
+                                </span>
                               ) : null}
                             </div>
                           </button>
