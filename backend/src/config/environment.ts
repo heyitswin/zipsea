@@ -45,7 +45,7 @@ const envSchema = z.object({
     .transform(val => val === 'true')
     .optional()
     .default('false'),
-  TRAVELTEK_LIVE_BOOKING_LINE_IDS: z.string().optional().default('22,3'), // Royal Caribbean (22) and Celebrity (3)
+  TRAVELTEK_LIVE_BOOKING_LINE_IDS: z.string().optional(),
 
   // Sentry
   SENTRY_DSN: z
@@ -114,7 +114,7 @@ export const env = parseResult.success
       TRAVELTEK_API_PASSWORD: process.env.TRAVELTEK_API_PASSWORD,
       TRAVELTEK_API_BASE_URL: process.env.TRAVELTEK_API_BASE_URL,
       TRAVELTEK_LIVE_BOOKING_ENABLED: process.env.TRAVELTEK_LIVE_BOOKING_ENABLED === 'true',
-      TRAVELTEK_LIVE_BOOKING_LINE_IDS: process.env.TRAVELTEK_LIVE_BOOKING_LINE_IDS || '22,3',
+      TRAVELTEK_LIVE_BOOKING_LINE_IDS: process.env.TRAVELTEK_LIVE_BOOKING_LINE_IDS,
       SENTRY_DSN: process.env.SENTRY_DSN,
       RESEND_API_KEY: process.env.RESEND_API_KEY,
       TEAM_NOTIFICATION_EMAIL: process.env.TEAM_NOTIFICATION_EMAIL || 'win@zipsea.com',

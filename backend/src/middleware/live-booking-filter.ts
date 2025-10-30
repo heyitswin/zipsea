@@ -18,6 +18,13 @@ export function liveBookingFilter(req: Request, res: Response, next: NextFunctio
   }
 
   // Parse the allowed cruise line IDs from env
+  if (!env.TRAVELTEK_LIVE_BOOKING_LINE_IDS) {
+    console.warn(
+      '[LiveBookingFilter] TRAVELTEK_LIVE_BOOKING_LINE_IDS not configured, skipping filter'
+    );
+    return next();
+  }
+
   const allowedLineIds = env.TRAVELTEK_LIVE_BOOKING_LINE_IDS.split(',')
     .map(id => parseInt(id.trim(), 10))
     .filter(id => !isNaN(id));
