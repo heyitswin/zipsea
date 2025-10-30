@@ -509,11 +509,16 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
         </span>
       </div>
 
-      {/* OBC - Extras added after booking */}
+      {/* OBC - Extras added after booking (only show if > 0) */}
       {pricingData.obcAmount && pricingData.obcAmount > 0 && (
         <div className="mt-3 p-3 bg-[#D4F4DD] rounded-lg text-center">
           <div className="font-geograph font-normal text-[14px] text-[#1B8F57]">
-            +${pricingData.obcAmount} onboard credit
+            +$
+            {pricingData.obcAmount.toLocaleString("en-US", {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            })}{" "}
+            onboard credit
           </div>
         </div>
       )}
