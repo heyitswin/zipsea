@@ -131,54 +131,53 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     }
   }, [commissionableFares]);
 
-  // Memoized OBC calculations that update when commissionableFares changes
+  // Memoized OBC amounts - commissionableFares now contains pre-calculated OBC values from breakdown API
   const obcAmounts = useMemo(() => {
     console.log(
-      "🔄 Recalculating OBC amounts with commissionableFares:",
+      "🔄 Using pre-calculated OBC amounts from breakdown API:",
       commissionableFares,
     );
 
     const cabinTypes = ["interior", "oceanview", "balcony", "suite"] as const;
     const amounts: Record<string, number> = {};
 
-    // Get total passenger count for per-guest calculation
+    // Get total passenger count for fallback calculation
     const totalPassengers =
       localPassengerCount.adults + localPassengerCount.children;
 
     for (const cabinType of cabinTypes) {
-      const liveFare = commissionableFares[cabinType];
+      const obcAmount = commissionableFares[cabinType];
 
-      // Get cached price from cruiseData as fallback
-      const priceField = `${cabinType}Price` as keyof typeof cruiseData;
-      const cachedPrice = cruiseData?.[priceField];
+      if (obcAmount && obcAmount > 0) {
+        // Use pre-calculated OBC from breakdown API (live bookings)
+        amounts[cabinType] = obcAmount;
+        console.log(
+          `💰 OBC for ${cabinType}: $${obcAmount} (from breakdown API)`,
+        );
+      } else {
+        // Fallback to cached price calculation for non-live bookings
+        const priceField = `${cabinType}Price` as keyof typeof cruiseData;
+        const cachedPrice = cruiseData?.[priceField];
 
-      // Prefer live fare, fallback to cached price
-      const fareToUse = liveFare || cachedPrice;
-
-      if (fareToUse) {
-        const numPrice =
-          typeof fareToUse === "string" ? parseFloat(fareToUse) : fareToUse;
-        if (numPrice && !isNaN(numPrice) && totalPassengers > 0) {
-          // Live bookings use 10% OBC, non-live use 8%
-          const creditPercent = isLiveBookable ? 0.1 : 0.08;
-
-          // Calculate OBC per guest (matching booking page logic)
-          // Total cabin price includes all guests, so divide to get per-guest fare
-          const perGuestFare = numPrice / totalPassengers;
-
-          // Calculate OBC per guest, round down to nearest $10, then sum for all guests
-          let totalObc = 0;
-          for (let i = 0; i < totalPassengers; i++) {
-            const guestObc =
-              Math.floor((perGuestFare * creditPercent) / 10) * 10;
-            totalObc += guestObc;
+        if (cachedPrice && !isLiveBookable && totalPassengers > 0) {
+          const numPrice =
+            typeof cachedPrice === "string"
+              ? parseFloat(cachedPrice)
+              : cachedPrice;
+          if (numPrice && !isNaN(numPrice)) {
+            const creditPercent = 0.08; // 8% for non-live bookings
+            const perGuestFare = numPrice / totalPassengers;
+            let totalObc = 0;
+            for (let i = 0; i < totalPassengers; i++) {
+              const guestObc =
+                Math.floor((perGuestFare * creditPercent) / 10) * 10;
+              totalObc += guestObc;
+            }
+            amounts[cabinType] = totalObc;
+            console.log(
+              `💰 OBC for ${cabinType}: $${totalObc} (fallback from cached price)`,
+            );
           }
-
-          amounts[cabinType] = totalObc;
-
-          console.log(
-            `💰 OBC for ${cabinType}: $${amounts[cabinType]} (${creditPercent * 100}% per guest, ${totalPassengers} guests, from ${liveFare ? "LIVE fare" : "cached price"}: $${fareToUse})`,
-          );
         }
       }
     }
@@ -353,9 +352,9 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       });
       setLiveCabinGrades(pricingData);
 
-      // Extract cheapestPrice (base cruise fare) from cabin data for accurate OBC calculation
+      // Fetch per-guest breakdown for accurate OBC calculation
       console.log(
-        "📊 Extracting base fares from cabin pricing for OBC calculation...",
+        "📊 Fetching per-guest breakdowns for accurate OBC calculation...",
       );
 
       if (pricingData.cabins && Array.isArray(pricingData.cabins)) {
@@ -367,39 +366,81 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           { type: "suite" as const, category: "suite" },
         ];
 
-        const newCommissionableFares: Record<string, number | null> = {};
-
-        for (const { type, category } of cabinTypeMap) {
-          // Find first cabin of this category from the cabins array
-          const cabin = pricingData.cabins.find(
-            (c: any) => c.category === category,
-          );
-
-          if (cabin && cabin.cheapestPrice) {
-            newCommissionableFares[type] = cabin.cheapestPrice;
-            console.log(
-              `✅ Got base fare for ${type}: $${cabin.cheapestPrice}`,
+        // Fetch breakdowns for all cabin categories in parallel
+        const breakdownPromises = cabinTypeMap.map(
+          async ({ type, category }) => {
+            const cabin = pricingData.cabins.find(
+              (c: any) => c.category === category,
             );
-          } else {
-            console.log(`⚠️ No cabin found for ${type}`);
-          }
-        }
 
-        // Update state with all fares at once
+            if (!cabin) {
+              console.log(`⚠️ No cabin found for ${type}`);
+              return { type, obcAmount: null };
+            }
+
+            try {
+              // Call cabin-breakdown endpoint to get per-guest fares
+              const breakdownResponse = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/booking/${newSessionId}/cabin-breakdown?resultNo=${cabin.resultNo}&gradeNo=${cabin.gradeNo}&rateCode=${cabin.rateCode}&cruiseId=${cruiseData.cruise.id}`,
+              );
+
+              if (!breakdownResponse.ok) {
+                console.error(`Failed to fetch breakdown for ${type}`);
+                return { type, obcAmount: null };
+              }
+
+              const breakdown = await breakdownResponse.json();
+
+              // Calculate OBC from per-guest fares (matching booking page logic)
+              let totalObc = 0;
+              if (breakdown.results && Array.isArray(breakdown.results)) {
+                // Find fare items with per-guest pricing
+                const fareItems = breakdown.results.filter(
+                  (item: any) => item.category?.toLowerCase() === "fare",
+                );
+
+                fareItems.forEach((fareItem: any) => {
+                  if (fareItem.prices && Array.isArray(fareItem.prices)) {
+                    fareItem.prices.forEach((priceItem: any) => {
+                      const guestFare = parseFloat(
+                        priceItem.sprice || priceItem.price || 0,
+                      );
+                      if (guestFare > 0) {
+                        // Calculate OBC for this guest, rounded down to nearest $10
+                        const guestObc =
+                          Math.floor((guestFare * 0.1) / 10) * 10;
+                        totalObc += guestObc;
+                      }
+                    });
+                  }
+                });
+              }
+
+              console.log(
+                `✅ Calculated accurate OBC for ${type}: $${totalObc}`,
+              );
+              return { type, obcAmount: totalObc };
+            } catch (err) {
+              console.error(`Error fetching breakdown for ${type}:`, err);
+              return { type, obcAmount: null };
+            }
+          },
+        );
+
+        // Wait for all breakdowns to complete
+        const breakdownResults = await Promise.all(breakdownPromises);
+
+        // Build OBC amounts object
+        const newCommissionableFares: Record<string, number | null> = {};
+        breakdownResults.forEach(({ type, obcAmount }) => {
+          newCommissionableFares[type] = obcAmount;
+        });
+
         console.log(
-          "🎯 About to call setCommissionableFares with:",
+          "🎯 Setting accurate per-guest OBC amounts:",
           newCommissionableFares,
         );
-        console.log(
-          "🎯 Keys in newCommissionableFares:",
-          Object.keys(newCommissionableFares),
-        );
-        console.log(
-          "🎯 JSON of newCommissionableFares:",
-          JSON.stringify(newCommissionableFares),
-        );
         setCommissionableFares(newCommissionableFares);
-        console.log("✅ setCommissionableFares called successfully");
       } else {
         console.log("⚠️ No cabins array in pricing data");
       }
@@ -647,61 +688,6 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       "Regent Seven Seas Cruises",
     ];
     return suiteOnlyLines.includes(cruiseLineName);
-  };
-
-  // Helper function to calculate onboard credit based on price
-  // Prefers live fare if available, falls back to cached price
-  const calculateOnboardCredit = (
-    price: string | number | undefined,
-    cabinType?: "interior" | "oceanview" | "balcony" | "suite",
-  ) => {
-    // Detailed debug logging
-    console.log(`🔍 OBC calculation called for ${cabinType}:`, {
-      hasCabinType: !!cabinType,
-      fareInState: cabinType ? commissionableFares[cabinType] : "no cabin type",
-      allFaresInState: commissionableFares,
-      allFaresKeys: Object.keys(commissionableFares),
-      allFaresJSON: JSON.stringify(commissionableFares),
-      passedPrice: price,
-      cabinTypeLookup: `commissionableFares["${cabinType}"]`,
-      conditionCheck:
-        cabinType && commissionableFares[cabinType]
-          ? "WILL USE LIVE"
-          : "WILL USE CACHED",
-    });
-
-    // Use live fare if available (more accurate)
-    let fareToUse = price;
-    if (cabinType && commissionableFares[cabinType]) {
-      fareToUse = commissionableFares[cabinType];
-      console.log(`💰 Using live fare for ${cabinType} OBC: $${fareToUse}`);
-    } else if (price) {
-      console.log(
-        `💰 Using cached price for ${cabinType || "unknown"} OBC: $${price}`,
-      );
-    }
-
-    if (!isPriceAvailable(fareToUse)) return 0;
-    const numPrice =
-      typeof fareToUse === "string" ? parseFloat(fareToUse) : fareToUse;
-    if (!numPrice || isNaN(numPrice)) return 0;
-
-    // Calculate OBC per guest (matching booking page logic)
-    const totalPassengers =
-      localPassengerCount.adults + localPassengerCount.children;
-    if (totalPassengers === 0) return 0;
-
-    const creditPercent = 0.1; // 10% for live bookings
-    const perGuestFare = numPrice / totalPassengers;
-
-    // Calculate OBC per guest, round down to nearest $10, then sum for all guests
-    let totalObc = 0;
-    for (let i = 0; i < totalPassengers; i++) {
-      const guestObc = Math.floor((perGuestFare * creditPercent) / 10) * 10;
-      totalObc += guestObc;
-    }
-
-    return totalObc;
   };
 
   // Helper function to get cabin details using price codes
