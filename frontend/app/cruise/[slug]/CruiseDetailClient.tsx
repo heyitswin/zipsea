@@ -1739,14 +1739,14 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       console.log(`💰 ${label} lowestPrice:`, lowestPrice);
 
                       return (
-                        <div key={key} className="w-full">
+                        <div key={key} className="w-full md:w-auto">
                           <button
                             onClick={() =>
                               hasAvailability &&
                               setSelectedCabinCategory(key as any)
                             }
                             disabled={!hasAvailability}
-                            className={`w-full px-5 py-3 rounded-[5px] font-geograph transition-colors ${
+                            className={`w-full md:w-auto px-5 py-3 rounded-[5px] font-geograph transition-colors ${
                               !hasAvailability
                                 ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
                                 : selectedCabinCategory === key
