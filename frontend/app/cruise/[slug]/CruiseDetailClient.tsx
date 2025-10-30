@@ -198,6 +198,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     gradeNo: string;
     rateCode: string;
     cabinName: string;
+    cabinCode?: string; // Cabin grade code (e.g., "ZI", "4D")
     price: number;
     cabinResultNo?: string; // For specific cabin selection
   } | null>(null);
@@ -1192,6 +1193,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             resultNo: pendingReservation.resultNo,
             gradeNo: pendingReservation.gradeNo,
             rateCode: pendingReservation.rateCode,
+            cabinName: pendingReservation.cabinName,
+            cabinCode: pendingReservation.cabinCode,
             expectedPrice: pendingReservation.price, // Pass cabin card price for validation
             ...(pendingReservation.cabinResultNo && {
               cabinResult: pendingReservation.cabinResultNo,
@@ -1257,6 +1260,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             resultNo: pendingReservation.resultNo,
             gradeNo: pendingReservation.gradeNo,
             rateCode: pendingReservation.rateCode,
+            cabinName: pendingReservation.cabinName,
+            cabinCode: pendingReservation.cabinCode,
             ...(pendingReservation.cabinResultNo && {
               cabinResult: pendingReservation.cabinResultNo,
             }),
@@ -2002,6 +2007,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                               rateCode: cabinPricing.rateCode,
                                               cabinName:
                                                 cabin.name || cabin.category,
+                                              cabinCode: cabin.code,
                                               price: cabinPricing.price,
                                             });
                                             setIsHoldModalOpen(true);
@@ -2675,6 +2681,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               gradeNo: selectedCabinGrade.gradeNo,
               rateCode: selectedCabinGrade.rateCode,
               cabinName: selectedCabinGrade.gradeName,
+              cabinCode: cabinGrade?.code,
               price: cabinPricing?.price || 0,
               cabinResultNo, // Store specific cabin number for later
             });
