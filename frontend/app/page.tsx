@@ -304,7 +304,7 @@ function HomeWithParams() {
             {/* Static Image (Mobile only) */}
             <div className="md:hidden absolute inset-0 w-full h-full">
               <Image
-                src="/images/updated-homepage/homepage-video-thumbnail.jpg"
+                src="/images/homepage-mobile-hero.png"
                 alt="Cruise Ship"
                 fill
                 className="absolute inset-0"
