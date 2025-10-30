@@ -43,11 +43,6 @@ class SearchComprehensiveController {
         // Location filters - support both single and array values
         // Support both 'cruiseLineId' and 'cruiseLines' parameter names
         cruiseLineId: (() => {
-          // If instant booking filter is active, restrict to live-bookable cruise lines
-          if (req.query.instantBooking === 'true') {
-            return [22, 3]; // Royal Caribbean and Celebrity
-          }
-
           const param = req.query.cruiseLineId || req.query.cruiseLines;
           console.log(
             'Raw cruiseLineId param:',
@@ -57,12 +52,38 @@ class SearchComprehensiveController {
             'IsArray:',
             Array.isArray(param)
           );
-          if (!param) return undefined;
-          if (Array.isArray(param)) {
-            return param.map(Number).filter(n => !isNaN(n));
+
+          let userSelectedLines: number[] | number | undefined;
+          if (!param) {
+            userSelectedLines = undefined;
+          } else if (Array.isArray(param)) {
+            userSelectedLines = param.map(Number).filter(n => !isNaN(n));
+          } else {
+            const num = Number(param);
+            userSelectedLines = !isNaN(num) ? num : undefined;
           }
-          const num = Number(param);
-          return !isNaN(num) ? num : undefined;
+
+          // If instant booking filter is active, restrict to live-bookable cruise lines (Royal Caribbean=22, Celebrity=3)
+          if (req.query.instantBooking === 'true') {
+            const liveBookableLines = [22, 3];
+
+            // If user selected specific cruise lines, only show those that are also live-bookable
+            if (userSelectedLines !== undefined) {
+              const selectedArray = Array.isArray(userSelectedLines)
+                ? userSelectedLines
+                : [userSelectedLines];
+              const intersection = selectedArray.filter(id => liveBookableLines.includes(id));
+
+              // If user selected cruise lines but none are live-bookable, return empty array (no results)
+              return intersection.length > 0 ? intersection : [];
+            }
+
+            // No user selection - show all live-bookable lines
+            return liveBookableLines;
+          }
+
+          // Instant booking off - return user selection or undefined (all cruise lines)
+          return userSelectedLines;
         })(),
         shipId: (() => {
           const param = req.query.shipId;

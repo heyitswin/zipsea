@@ -516,7 +516,7 @@ export default function CruisesContent() {
             window.history.replaceState({}, "", newUrl);
           }
         } else {
-          // No saved preference - default to true (checked)
+          // No saved preference - default to true (instant booking on by default)
           setInstantBookingOnly(true);
           localStorage.setItem("instantBookingPreference", "true");
           // Update URL to reflect default
@@ -528,7 +528,7 @@ export default function CruisesContent() {
           }
         }
       } else {
-        // Server-side, default to true
+        // Server-side, default to true (instant booking on by default)
         setInstantBookingOnly(true);
       }
     }
