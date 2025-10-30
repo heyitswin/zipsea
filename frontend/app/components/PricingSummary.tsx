@@ -253,12 +253,19 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           );
           if (sessionResponse.ok) {
             const sessionData = await sessionResponse.json();
+            console.log("🛏️ Session data for cabin details:", {
+              selectedCabin: sessionData.selectedCabin,
+              cabinName: sessionData.cabinName,
+              cabinCode: sessionData.cabinCode,
+              roomNumber: sessionData.roomNumber,
+              deckNumber: sessionData.deckNumber,
+            });
 
             // Extract cabin details from session
-            cabinName = sessionData.selectedCabin || sessionData.cabinName;
+            cabinName = sessionData.cabinName || sessionData.selectedCabin;
             cabinCode = sessionData.cabinCode;
             roomNumber = sessionData.roomNumber;
-            deckNumber = sessionData.deckNumber || sessionData.deck;
+            deckNumber = sessionData.deckNumber;
             if (sessionData.cruiseId) {
               // Fetch cruise details to get cruise line
               const cruiseResponse = await fetch(

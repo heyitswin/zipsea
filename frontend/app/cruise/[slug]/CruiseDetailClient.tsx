@@ -1764,7 +1764,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                 </span>
                               ) : lowestPrice ? (
                                 <span className="text-[11px]">
-                                  Starting from ${Math.round(lowestPrice)}
+                                  Starting from $
+                                  {lowestPrice.toLocaleString("en-US", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
                                 </span>
                               ) : null}
                             </div>
