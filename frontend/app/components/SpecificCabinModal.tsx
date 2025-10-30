@@ -346,7 +346,7 @@ export default function SpecificCabinModal({
                           )}
                         </div>
                         <div className="text-sm text-gray-600">
-                          Deck {cabin.deck}
+                          {cabin.deck}
                         </div>
                       </div>
 
