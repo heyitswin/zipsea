@@ -252,16 +252,38 @@ export default function BookingPaymentPage() {
       const [expiryMonth, expiryYear] = expiryDate.split("/");
 
       // Get total amount from the basket data
-      // The basket API returns totalPrice or totalDeposit depending on booking type
+      // The basket API returns results[0].totalprice or results[0].totaldeposit
       if (!basketData) {
         console.error("❌ No basket data available");
         throw new Error("Unable to retrieve pricing. Please try again.");
       }
 
-      const totalAmount = basketData.totalPrice || basketData.totalDeposit || 0;
+      // Extract total from Traveltek basket response structure
+      const basketResult = basketData.results?.[0];
+      let totalAmount = 0;
+
+      if (basketResult) {
+        // Try totalprice first (full payment), then totaldeposit (deposit payment)
+        totalAmount = parseFloat(
+          basketResult.totalprice || basketResult.totaldeposit || 0,
+        );
+
+        // If still 0, try searchprice from basket item as fallback
+        if (totalAmount === 0) {
+          const basketItem = basketResult.basketitems?.[0];
+          if (basketItem?.searchprice) {
+            totalAmount = parseFloat(basketItem.searchprice);
+            console.log("💵 Using searchprice as fallback:", totalAmount);
+          }
+        }
+      }
 
       if (totalAmount === 0) {
         console.error("❌ Invalid total amount:", totalAmount);
+        console.error(
+          "❌ Basket data structure:",
+          JSON.stringify(basketData, null, 2),
+        );
         throw new Error(
           "Invalid pricing amount. Please refresh and try again.",
         );

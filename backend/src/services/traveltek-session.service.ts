@@ -266,10 +266,11 @@ class TraveltekSessionService {
         cruiseId: dbSession.cruiseId,
         userId: dbSession.userId || undefined,
         itemkey: dbSession.itemkey || undefined,
-        cruiseResultNo: dbSession.selectedCabinGrade || undefined, // Store cruise result number
+        cruiseResultNo: dbSession.selectedCabinGrade?.resultno || undefined, // Store cruise result number
         isHoldBooking: dbSession.isHoldBooking || false,
         basketData: dbSession.basketData || undefined, // Include basket data for fallback pricing
         pricingBreakdown: dbSession.pricingBreakdown || undefined, // Include pricing breakdown from cruisecabingradebreakdown.pl
+        selectedCabinGrade: dbSession.selectedCabinGrade as SessionData['selectedCabinGrade'], // Include full cabin details
       };
 
       // Restore to Redis

@@ -321,17 +321,39 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           });
         }
 
-        // Calculate OBC (10% for live bookings, 8% for non-live, rounded to nearest $10)
-        // The cruise fare is the commissionable amount
+        // Calculate OBC per guest, then sum (commission rates may differ per guest)
+        // OBC = 10% for live bookings, 8% for non-live, rounded DOWN to nearest $10 increment
         let obcAmount = 0;
-        if (cruiseFare > 0) {
+        if (breakdownSource && breakdownSource.length > 0) {
           const obcPercent = isLiveBooking ? 0.1 : 0.08;
-          obcAmount = Math.floor((cruiseFare * obcPercent) / 10) * 10;
-          console.log("💳 Calculated OBC:", {
-            cruiseFare,
-            obcAmount,
+
+          // Find fare items in the breakdown
+          const fareItems = breakdownSource.filter(
+            (item: any) => item.category?.toLowerCase() === "fare",
+          );
+
+          // Calculate OBC per guest from the prices array, then sum
+          fareItems.forEach((fareItem: any) => {
+            if (fareItem.prices && Array.isArray(fareItem.prices)) {
+              fareItem.prices.forEach((priceItem: any) => {
+                const guestFare = parseFloat(
+                  priceItem.sprice || priceItem.price || 0,
+                );
+                if (guestFare > 0) {
+                  // Calculate OBC for this guest, rounded down to nearest $10
+                  const guestObc =
+                    Math.floor((guestFare * obcPercent) / 10) * 10;
+                  obcAmount += guestObc;
+                }
+              });
+            }
+          });
+
+          console.log("💳 Calculated OBC per guest:", {
+            totalObcAmount: obcAmount,
             isLiveBooking,
             obcPercent: `${obcPercent * 100}%`,
+            fareItemsCount: fareItems.length,
           });
         }
 
@@ -483,24 +505,9 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
       {/* OBC - Extras added after booking */}
       {pricingData.obcAmount && pricingData.obcAmount > 0 && (
         <div className="mt-3 p-3 bg-[#D4F4DD] rounded-lg text-center">
-          <div className="font-geograph font-medium text-[14px] text-[#1B8F57] mb-1">
-            Extras added after booking
-          </div>
-          <div className="font-geograph font-bold text-[16px] text-[#1B8F57]">
+          <div className="font-geograph font-normal text-[14px] text-[#1B8F57]">
             +${pricingData.obcAmount} onboard credit
           </div>
-        </div>
-      )}
-
-      {/* Deposit Due */}
-      {pricingData.deposit > 0 && pricingData.deposit < pricingData.total && (
-        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
-          <span className="font-geograph text-[14px] text-gray-700">
-            Deposit Due Today
-          </span>
-          <span className="font-geograph font-bold text-[16px] text-[#2f7ddd]">
-            {formatPrice(pricingData.deposit)}
-          </span>
         </div>
       )}
 

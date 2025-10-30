@@ -2,6 +2,35 @@
  07/28
  525
 
+ DATABASE_URL="postgresql://zipsea_user:aOLItWeqKie3hDgFOd2k8wjJNU2KtLVd@dpg-d2idqjjipnbc73abma3g-a/zipsea_db" npx tsx scripts/deduplicate-cruises.ts
+
+ next, following the same structure and styling as the other destination guides (bermuda as an example), please create this one, add it to the destination guides index page, and ensure everything is SEO optimized so that search engines can pick it up. ensure the callouts that link to /cruises with the correct region filter parameter(s) applied and are styled properly with the yellow bg and also duplicates sprinkled throughout the article, not just to the root /cruises view. use the links below to replace the image placeholders in the markdown as well in order:
+
+alicianne notes
+- BRAND SHIFT: picture of places, not just boats, waterparks
+- VALUE PROP: the most value for families, consolidated place, and price
+- CONTENT: tables for direct vs zipsea, price comparison, value comparison
+- go deep into target demo, compare cruise offers
+- STRATEGY: repost influencers and cruise line content, work with influencers to create tik toks
+- BRAND FEEDBACK: more lifestyle, see experience theyre gonna get, disney, celebrity
+
+TO DO:
+- COMPILE LIST OF CRUISE LINE PARTNERS AND LINKS TO FOOTAGE FOR MARKETING TO USE
+- START FOLLOWING FAMILY TRAVEL INFLUENCERS AND CRUISE INFLUENCERS TO REPOST CONTENT
+- AUTO COMMENT ON INFLUENCER POSTS
+-
+
+target messaging in hampton
+
+organic, partnership, paid
+controlling answers, partnerships
+high volume, winnable keywords, younger people making it sexier
+
+
+posthog mcp api key - phx_lSfFifEfsJu06asPXzVfYVenVCq8IR3tH87edUXEqIOlaJC
+
+25 posts - 50 comments + 50 jump ins
+75 + 300
 
 curl -X POST "https://zipsea-production.onrender.com/api/webhooks/traveltek/cruiseline-pricing-updated" \
   -H "Content-Type: application/json" \
@@ -88,22 +117,201 @@ for i in {1..10}; do
   sleep 10
 done
 
-frontend tweaks
-- last minute deal images on the homepage only show if the user is logged in i believe, it should be viewable for all users even logged out
-- "starting from" text block on the cabin details page should be all right aligned
-- most importantly, cruises that should be in the database are not showing up in search on the homepage or from the nav bar
--
-
 Shameless plug: I'm the co-founder of a new modern cruise agency called Zipsea where we try to offer the absolutely highest onboard credits back (obc) from our own commission. This is not automated at all and if this feels too salesy feel free to ignore me!
 
 booking through us vs booking directly graphic on homepage
 
-please deep dive into the recent webhook work. we need to get the traveltek webhook to a point where:
-- pricing but most important cheapest pricing including cabins in the combined field is being extracted and populated in our database
-- syncing happens efficient for all cruise lines starting from [current year /current month] until [final year/final month] of what's available in the ftp server
-- batching and queuing works in case there are a lot of files or another webhook comes in while we're processing one already
+node scripts/monitor-redis-memory.js
+node scripts/redis-cleanup-jobs.js
+node scripts/retry-failed-webhook-jobs.js
+test-ftp-connection-prod.js
+monitor-ftp-recovery.js
 
-there's a recent file in /documentation that has more context about what files to use and not use
+customer request quote modal
+- add the option to add a custom note immediately below the "I'm interested in travel insurance.." row, style it like the "Loyalty Number" field. The placeholder should be "Additional comments"
+- add this note from the user to quote request slack and email notifs, and also in the quote request modal on the /admin side
+- im not sure if this field exists in the schema so may need to add it
 
-# Stop the queue (pauses processing, removes waiting jobs)
-node scripts/stop-webhook-queue.js --force
+some tweaks to /admin
+- move all the content down 100px so it doesnt overlap the nav
+- the cruises tab is broken, get it to show and also ensure the stats are being displayed correctly, mainly want to know when it was last updated, keep all the columns that were there before but make sure they work and the data is accurate
+
+node scripts/test-master-pipeline.js
+node scripts/validate-prices-by-cruise-line.js
+
+node scripts/fix-pricing-complete.js --dry-run
+
+https://thesocialcat.com/influencer-marketplace
+
+ok, here comes a big planning session to support LIVE BOOKING, a brand new feature will move us from a manual quote based process to a fully automated one. We will need to integrate with the traveltek API to enable live booking for selected cruise lines.
+
+Summary/context of work: Currently users can search for cruises, view details, and request a quote from us. After that if they'd like to book we do it manually on their behalf. Well we now have access to live booking for some cruise lines via traveltek.
+
+Things we need to do in order during this planning:
+1) Understand and document the docs below in it's own .md file in zipsea/documentation
+2) Match it to our current systems to ensure we can work with their api
+3) Figure out what preliminary changes we need to make before creating new functionality to support live booking
+4) Execute preliminary changes
+5) Execute net new live booking functionality
+6) Test live booking functionality on staging
+7) Deploy live booking functionality to production
+
+Assumptions
+- First do preliminary work
+- Then get live booking to a feature complete state (no styling)
+- Then style front end with live booking functionality
+- Then test live booking functionality on staging
+
+Live booking flow (tell me if this is or is not possible when it comes to working with the api):
+- User starts on homepage or any page - they must enter the number of passengers in their cabin
+- User can browse cruises as they exists today, we may change the layout and styling as we go
+- Cruise detail, here's where things change - instead of room types and Get Quote CTAs. We want to replace with actual cabins and their category IDs. The rooms are shown by type Interior/Outside/Balcony/Suite in a tabbed button group so only one type is shown at a time.
+- itinerary and other content stay on the cruise detail page
+- if a user clicks "reserve" on any of the real cabins they proceed to the next step: options like if they want insurance, choose their dining option times, etc will be here. CTA of continue
+- Next page is entering both the booker's details (first name, last name, email, phone number) and also each passenger details that they originally entered (first name, last name, date of birth, citizenship, gender, street address, city, state, zip code for each passenger). Continue
+- Last step: they enter credit card details (full name on card, card number, expiration date, cvv/security code, zip code). Review details. Confirm and Pay CTA.
+- Then the booking should be created and the user lands on a success page which we will figure out later
+
+
+https://docs.traveltek.com/FKpitwn16WopwZedCaW17
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/getting-started/authentication
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/getting-started/token
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/how-to-guides/getting-started-with-cruise (IMPORTANT)
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/how-to-guides/cruise-groups
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/how-to-guides/cruise-with-flights
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/how-to-guides/cruise-special-rates
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/cruise/search
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/cruise/rate-codes
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/cruise/cabin-grades
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/cruise/cabin-grade-pricing-breakdown
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/cruise/cabins
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/cruise/cruise-content
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/cruise/get-passenger-data
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/cruise/line-details
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/cruise/cruise-tours
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/cruise/rate-details
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/cruise/ship-details
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/basket-management/add-to-basket
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/basket-management/remove-from-basket
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/basket-management/retrieve-basket
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/basket-management/add-extra
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/basket-management/remove-extra
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/booking/create-booking
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/booking/post-booking-payment
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/booking/get-booking-payment-info
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/booking/import-booking
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/supporting-resources/cruise-line-ids
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/supporting-resources/cruise-ship-ids-a-c
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/supporting-resources/cruise-ship-ids-d-l
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/supporting-resources/cruise-ship-ids-m-s
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/supporting-resources/cruise-ship-ids-t-z
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/supporting-resources/region-ids
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/supporting-resources/cruise-port-ids
+https://docs.traveltek.com/FKpitwn16WopwZdCaW17/supporting-resources/faq
+
+referral, most efficint
+ads by volume, IG, you can control, more of a moat
+bloggers/influencers, credibility annd trust, challenge is you dont own those channels
+hired former travel writer, helpful
+garry tan travel planning businesses
+arb on ads
+3-6-12 month ROAS
+biggest challenge is how to keep people around
+hopper, getting people on low intent moments, for people not looking for flights, run fb ads - INSPIRATION
+
+
+KEVIN notes
+- google conversion tracking updated, sign up, purchase, add to cart, next step. give aov to google
+- google search console, see organic
+- reddit ads cheaper than google
+- google tag manager
+- keyword detection, geo, device, audiences, people looking for trips, in market to destinations,
+- finding core set of keywords, breathing room, once you find areas, double down
+- good landing page, good site speed, good ad copy, mobile/desktop/geo modifiers
+- scotts cheap flights, deals always go the farthest,
+- make sure sitemap has all the pages, where google naturally sees queries
+- these are the competitors, find keyword set in rush, find low cost keywords, and prioritize those
+- campaigns - geo, language, targeting goals, you can do diff ad groups instead, good ad copy that matches the ad group
+
+ads 2 things - sell the product and hook so you watch it
+use cues in the product, design things that are marketable, show it. someone in a hotel, on a flight with narrative that hopper allowed me to book (look how nice this place is, hopper allowed me to book it)
+
+alejandro notes:
+- play to emotion - jack of 1 trade, we do one thing only, we know cruises, "just do it", dont antagonize
+- something people aspire to as a differentiator
+-
+
+todos
+- design post booking states
+    - my bookings - show days till, after sailing convert to past booking state
+    - price alerts
+    - saved cruises
+    - notification settings
+    - account settings
+- emails
+    - new sign up from first time cruiser guide or save or price alert or cabin hold
+        - welcome email
+        - features like saving, price alerts, do 1 email at a time
+        - deal emails (RECURRING) -  pick your own, $x/% off, gratuities paid, swag
+        - content emails - new articles, tools, resources, top x lists (blog), etc
+    - post booking
+        - booking confirmation with details, booking number, how to hook it up to the cruise line
+- contact us page
+
+
+cruise goals
+- shoot footage
+- talk to people for website feedback
+- get more ideas
+
+sk_test_RvwWHhKDgCsCrPVV2iq4v2I7IYolN5K5cqrhGT6SbR
+pk_test_YXNzdXJlZC13ZWFzZWwtMjEuY2xlcmsuYWNjb3VudHMuZGV2JA
+
+i noticed for the same cruise, when i changed to 3 guests we show Interior cabin V4 but on cruisingpower the cabin is shown as waitlist and not available. Can we check if we're possibly showing cabins that are not available (waitlist)? we shouldnt be showing those as able to book
+
+FOR WIN:
+- change out homepage graphics to cruise partners, specific ships, etc
+-
+
+Few more minor changes:
+- change "Ages 18+" to "Ages 12+" under Adults in the Passengers drop down in cruise detail page
+- it seems that either $350 onboard credit in pricing summary is hardcoded or not being passed from the cabin card on cruise detail properly, please check. also make the design look like how we had it before with a lighter green bg and the title on it's own line (look at old commits)
+- take out choose perk section from step 3 on the booking flow
+- replace cancellation policy link for royal caribbean to this link - https://www.royalcaribbean.com/faq/questions/booking-cancellation-refund-policy
+ - add filter for instant booking in both desktop and mobile filter area, this will only show cruises for env variable "TRAVELTEK_LIVE_BOOKING_LINE_IDS" in /cruises and no other cruise lines
+- if there are no cabins available for a cabin type (like interior), we currently hide the button but we should keep the button there, disable it, and have the caption say "No cabins available". we should also add a caption to every button regardless that says "Starting from $x" where x is the lowest price available for that cabin type that is available and would normally be shown in the grid below (dont show prices that wouldnt be shown in cards)
+- if there are no Interior cabins available on a cruise detail page, select/activate the next available cabin type button to show cabin cards. continue this logic down the line for each cabin type (if no interior cabins, show oceanview. if there are interior or oceanview, show balcony, etc)
+- for the cards in top destinations, turn on the Live Booking filter for them automatically
+- change the text from "Weekend Getaways" to "2-5 day trips" on the bahamas destination card
+- ensure the 6-8 nights filter is applied on the caribbean destination card instead of using min/max nights = 7
+- use this link for the cruises from New York destination card - https://zipsea-frontend-staging.onrender.com/cruises?ports=5171%2C5170%2C207%2C362&page=1
+- on mobile homepage show this thumbnail instead of the video, ensure the video isnt served at all into the dom so it doesnt take up user bandwidth -
+- insert the cabin details (name + cabin code below Pricing Summary title and above pricing in the pricing summary section on /booking
+
+FOUND IT!** 🎯
+
+Line 224:
+```typescript
+const totalAmount = 2487.36;
+```
+
+The amount is **hardcoded** to `$2,487.36`! This is a TODO that was never completed. The comment even says:
+
+```typescript
+// Get total amount from the basket/pricing
+// TODO: This should come from the basket API response
+const totalAmount = 2487.36;
+```
+
+## The Fix
+
+We need to get the actual total from the basket data instead of using a hardcoded value. Let me check if the basket data is available on this page:
+Good, they're using `useBooking` context. Let me check if the basket data is available in the session or if we need to fetch it:
+
+I can see the page doesn't currently fetch basket data. We need to fetch it from the `/booking/${sessionId}/basket` endpoint. Let me create a fix:
+
+Now let me add state for basket data and fetch it, then use the real total amount:
+
+Now let me update the hardcoded amount to use the basket data:
+
+Perfect! Now let me update the "Confirm Booking" button to be disabled while the basket is loading:
