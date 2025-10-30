@@ -211,6 +211,12 @@ export default function CruisesContent() {
           setRegions(data.regions || []);
         }
       } catch (error) {
+        // Check if this is an AbortError (from timeout)
+        if (error instanceof Error && error.name === "AbortError") {
+          console.log("Filter options request was aborted (timeout)");
+          return;
+        }
+
         console.error("Error fetching filter options:", error);
         setCruiseLines([]);
         setDeparturePorts([]);
@@ -391,10 +397,14 @@ export default function CruisesContent() {
       setCruises(cruisesData);
       setTotalCount(data.pagination?.total || data.total || cruisesData.length);
     } catch (error) {
-      console.error("Error fetching cruises:", error);
-      if (error instanceof Error && error.message.includes("abort")) {
-        console.log("Request was aborted (timeout)");
+      // Check if this is an AbortError (from timeout or cancellation)
+      if (error instanceof Error && error.name === "AbortError") {
+        console.log("Request was aborted (timeout or cancelled)");
+        // Don't set error state for aborts - they're intentional
+        return;
       }
+
+      console.error("Error fetching cruises:", error);
       setError(true);
       setCruises([]);
       setTotalCount(0);
