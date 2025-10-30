@@ -53,6 +53,8 @@ interface CabinSelectionParams {
   expectedPrice?: number; // Expected total price from cabin card for validation
   cabinResult?: string; // Optional specific cabin result
   cabinNo?: string; // Optional specific cabin number
+  cabinName?: string; // Cabin name/description from frontend (e.g., "Interior Stateroom")
+  cabinCode?: string; // Cabin grade code from frontend (e.g., "ZI")
 }
 
 interface BookingParams {
@@ -852,26 +854,27 @@ class TraveltekBookingService {
       console.log('  - basketData.results[0].totaldeposit:', basketData.results?.[0]?.totaldeposit);
       console.log('  - pricingBreakdown available?', !!pricingBreakdown);
 
-      // Extract cabin details from basket item for display in pricing summary
+      // Extract cabin details - use params from frontend since basket doesn't include these
       const selectedBasketItem = basketData.results?.[0]?.basketitems?.[0];
       const cabinDetails = selectedBasketItem?.cruisedetail;
 
-      console.log('[TraveltekBooking] 🛏️ Extracting cabin details:', {
+      console.log('[TraveltekBooking] 🛏️ Building cabin details from params:', {
+        cabinName: params.cabinName,
+        cabinCode: params.cabinCode,
         cabinNo: params.cabinNo,
-        cabincode: cabinDetails?.cabincode,
-        cabindescription: cabinDetails?.cabindescription,
-        categoryname: cabinDetails?.categoryname,
-        deck: cabinDetails?.deck,
         cabinResult: params.cabinResult,
+        basketCabincode: cabinDetails?.cabincode,
+        basketDeck: cabinDetails?.deck,
       });
 
       const selectedCabinGrade = {
         resultno: params.resultNo,
         gradeno: params.gradeNo,
         ratecode: params.rateCode,
-        cabinCode: params.cabinNo || cabinDetails?.cabincode || '',
+        cabinCode: params.cabinCode || params.cabinNo || cabinDetails?.cabincode || '',
         cabinType: params.cabinResult || '',
-        description: cabinDetails?.cabindescription || cabinDetails?.categoryname || '',
+        description:
+          params.cabinName || cabinDetails?.cabindescription || cabinDetails?.categoryname || '',
         totalPrice: basketData.results?.[0]?.totalprice || 0,
         roomNumber: params.cabinNo,
         deckNumber: cabinDetails?.deck,
