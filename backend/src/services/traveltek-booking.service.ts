@@ -52,9 +52,11 @@ interface CabinSelectionParams {
   rateCode: string; // From cabin grades response
   expectedPrice?: number; // Expected total price from cabin card for validation
   cabinResult?: string; // Optional specific cabin result
-  cabinNo?: string; // Optional specific cabin number
+  cabinNo?: string; // Optional specific cabin number (for API call)
   cabinName?: string; // Cabin name/description from frontend (e.g., "Interior Stateroom")
   cabinCode?: string; // Cabin grade code from frontend (e.g., "ZI")
+  cabinNumber?: string; // Specific cabin number for display (e.g., "8372")
+  deckNumber?: string; // Deck number for display (e.g., "Deck 5")
 }
 
 interface BookingParams {
@@ -862,6 +864,8 @@ class TraveltekBookingService {
         cabinName: params.cabinName,
         cabinCode: params.cabinCode,
         cabinNo: params.cabinNo,
+        cabinNumber: params.cabinNumber,
+        deckNumber: params.deckNumber,
         cabinResult: params.cabinResult,
         basketCabincode: cabinDetails?.cabincode,
         basketDeck: cabinDetails?.deck,
@@ -876,8 +880,8 @@ class TraveltekBookingService {
         description:
           params.cabinName || cabinDetails?.cabindescription || cabinDetails?.categoryname || '',
         totalPrice: basketData.results?.[0]?.totalprice || 0,
-        roomNumber: params.cabinNo,
-        deckNumber: cabinDetails?.deck,
+        roomNumber: params.cabinNumber || params.cabinNo,
+        deckNumber: params.deckNumber || cabinDetails?.deck,
       };
 
       console.log(
