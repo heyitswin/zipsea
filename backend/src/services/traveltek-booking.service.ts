@@ -855,6 +855,16 @@ class TraveltekBookingService {
       // Extract cabin details from basket item for display in pricing summary
       const selectedBasketItem = basketData.results?.[0]?.basketitems?.[0];
       const cabinDetails = selectedBasketItem?.cruisedetail;
+
+      console.log('[TraveltekBooking] 🛏️ Extracting cabin details:', {
+        cabinNo: params.cabinNo,
+        cabincode: cabinDetails?.cabincode,
+        cabindescription: cabinDetails?.cabindescription,
+        categoryname: cabinDetails?.categoryname,
+        deck: cabinDetails?.deck,
+        cabinResult: params.cabinResult,
+      });
+
       const selectedCabinGrade = {
         resultno: params.resultNo,
         gradeno: params.gradeNo,
@@ -867,12 +877,19 @@ class TraveltekBookingService {
         deckNumber: cabinDetails?.deck,
       };
 
+      console.log(
+        '[TraveltekBooking] 🛏️ Created selectedCabinGrade object:',
+        JSON.stringify(selectedCabinGrade, null, 2)
+      );
+
       await traveltekSessionService.updateSession(params.sessionId, {
         basketData,
         itemkey,
         pricingBreakdown,
         selectedCabinGrade,
       });
+
+      console.log('[TraveltekBooking] 💾 Session updated with cabin details');
 
       console.log(`[TraveltekBooking] ✅ Added cabin to basket for session ${params.sessionId}`);
       return basketData;
