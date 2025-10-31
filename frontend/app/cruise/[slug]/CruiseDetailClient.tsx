@@ -76,9 +76,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     suite: false,
   }); // Load more state per category
 
-  // Store commissionable fares for accurate OBC calculation
+  // Store commissionable fares (OBC amounts) per individual cabin
+  // Key format: "resultNo-gradeNo-rateCode" for unique cabin identification
   const [commissionableFares, setCommissionableFares] = useState<
-    Record<string, number | null>
+    Record<string, number>
   >({});
 
   // Auto-select first available cabin type when cabin data loads
@@ -340,141 +341,129 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       });
       setLiveCabinGrades(pricingData);
 
-      // Fetch breakdown API for each cabin type to get accurate per-guest commissionable fares
+      // Fetch breakdown API for ALL cabins to get accurate per-guest commissionable fares
       console.log(
-        "📊 Fetching per-guest breakdowns for accurate OBC calculation...",
+        "📊 Fetching per-guest breakdowns for ALL cabins to calculate accurate OBC per cabin...",
       );
 
       if (pricingData.cabins && Array.isArray(pricingData.cabins)) {
-        // Map frontend cabin types to backend category values
-        const cabinTypeMap = [
-          { type: "interior" as const, category: "inside" },
-          { type: "oceanview" as const, category: "outside" },
-          { type: "balcony" as const, category: "balcony" },
-          { type: "suite" as const, category: "suite" },
-        ];
-
         const newCommissionableFares: Record<string, number> = {};
 
-        // Fetch breakdown for each cabin type to calculate OBC
-        for (const { type, category } of cabinTypeMap) {
-          // Find first cabin of this category from the cabins array
-          const cabin = pricingData.cabins.find(
-            (c: any) => c.category === category,
+        // Helper function to calculate OBC from breakdown data
+        const calculateObcFromBreakdown = (breakdownData: any): number => {
+          const breakdownItems = breakdownData.results || [];
+
+          // Extract fare and discount items
+          const fareItems = breakdownItems.filter(
+            (item: any) => item.category?.toLowerCase() === "fare",
+          );
+          const discountItems = breakdownItems.filter(
+            (item: any) => item.category?.toLowerCase() === "discount",
           );
 
-          if (cabin && cabin.resultNo && cabin.gradeNo && cabin.rateCode) {
+          // Build per-guest commissionable fares (fare + discount per guest)
+          const guestCommissionableFares = new Map<string, number>();
+
+          // Add base fares per guest
+          fareItems.forEach((fareItem: any) => {
+            if (fareItem.prices && Array.isArray(fareItem.prices)) {
+              fareItem.prices.forEach((priceItem: any) => {
+                const guestNo =
+                  priceItem.guestno ||
+                  String(guestCommissionableFares.size + 1);
+                const guestFare = parseFloat(
+                  priceItem.sprice || priceItem.price || 0,
+                );
+                if (guestFare > 0) {
+                  guestCommissionableFares.set(
+                    guestNo,
+                    (guestCommissionableFares.get(guestNo) || 0) + guestFare,
+                  );
+                }
+              });
+            }
+          });
+
+          // Apply discounts per guest
+          discountItems.forEach((discountItem: any) => {
+            if (discountItem.prices && Array.isArray(discountItem.prices)) {
+              discountItem.prices.forEach((priceItem: any) => {
+                const guestNo =
+                  priceItem.guestno || String(guestCommissionableFares.size);
+                const discountAmount = parseFloat(
+                  priceItem.sprice || priceItem.price || 0,
+                );
+                guestCommissionableFares.set(
+                  guestNo,
+                  (guestCommissionableFares.get(guestNo) || 0) + discountAmount,
+                );
+              });
+            }
+          });
+
+          // Calculate total OBC (10% of net commissionable fares per guest, rounded down to nearest $10)
+          let totalObc = 0;
+          guestCommissionableFares.forEach((commissionableFare) => {
+            if (commissionableFare > 0) {
+              const guestObc = Math.floor((commissionableFare * 0.1) / 10) * 10;
+              totalObc += guestObc;
+            }
+          });
+
+          return totalObc;
+        };
+
+        // Fetch breakdowns for ALL cabins in parallel
+        const breakdownPromises = pricingData.cabins
+          .filter(
+            (cabin: any) => cabin.resultNo && cabin.gradeNo && cabin.rateCode,
+          )
+          .map(async (cabin: any) => {
+            const cabinKey = `${cabin.resultNo}-${cabin.gradeNo}-${cabin.rateCode}`;
+
             try {
-              // Fetch breakdown for this cabin
               const breakdownResponse = await fetch(
                 `${process.env.NEXT_PUBLIC_API_URL}/booking/${newSessionId}/cabin-breakdown?resultNo=${cabin.resultNo}&gradeNo=${cabin.gradeNo}&rateCode=${cabin.rateCode}`,
               );
 
               if (breakdownResponse.ok) {
                 const breakdownData = await breakdownResponse.json();
+                const obc = calculateObcFromBreakdown(breakdownData);
 
-                // The API returns { results: [...] }, extract the results array
-                const breakdownItems = breakdownData.results || [];
-
-                // Extract fare and discount items
-                const fareItems = breakdownItems.filter(
-                  (item: any) => item.category?.toLowerCase() === "fare",
-                );
-                const discountItems = breakdownItems.filter(
-                  (item: any) => item.category?.toLowerCase() === "discount",
-                );
-
-                // Build per-guest commissionable fares (fare + discount per guest)
-                const guestCommissionableFares = new Map<string, number>();
-
-                // Add base fares per guest
-                fareItems.forEach((fareItem: any) => {
-                  if (fareItem.prices && Array.isArray(fareItem.prices)) {
-                    fareItem.prices.forEach((priceItem: any) => {
-                      const guestNo =
-                        priceItem.guestno ||
-                        String(guestCommissionableFares.size + 1);
-                      const guestFare = parseFloat(
-                        priceItem.sprice || priceItem.price || 0,
-                      );
-                      if (guestFare > 0) {
-                        guestCommissionableFares.set(
-                          guestNo,
-                          (guestCommissionableFares.get(guestNo) || 0) +
-                            guestFare,
-                        );
-                      }
-                    });
-                  }
-                });
-
-                // Apply discounts per guest
-                discountItems.forEach((discountItem: any) => {
-                  if (
-                    discountItem.prices &&
-                    Array.isArray(discountItem.prices)
-                  ) {
-                    discountItem.prices.forEach((priceItem: any) => {
-                      const guestNo =
-                        priceItem.guestno ||
-                        String(guestCommissionableFares.size);
-                      const discountAmount = parseFloat(
-                        priceItem.sprice || priceItem.price || 0,
-                      );
-                      guestCommissionableFares.set(
-                        guestNo,
-                        (guestCommissionableFares.get(guestNo) || 0) +
-                          discountAmount,
-                      );
-                    });
-                  }
-                });
-
-                // Calculate total OBC for this cabin type (10% of net commissionable fares per guest)
-                let totalObc = 0;
-                const guestFares: number[] = [];
-                guestCommissionableFares.forEach((commissionableFare) => {
-                  guestFares.push(commissionableFare);
-                  if (commissionableFare > 0) {
-                    const guestObc =
-                      Math.floor((commissionableFare * 0.1) / 10) * 10;
-                    totalObc += guestObc;
-                  }
-                });
-
-                newCommissionableFares[type] = totalObc;
-                console.log(`💰 OBC Calculation for ${type}:`, {
-                  guestFares,
-                  totalObc,
-                  guestCount: guestFares.length,
-                });
                 console.log(
-                  `✅ Calculated accurate OBC for ${type}: $${totalObc}`,
+                  `💰 OBC for cabin ${cabin.code || cabinKey}: $${obc}`,
                 );
+
+                return { cabinKey, obc };
               } else {
-                console.log(`⚠️ Failed to fetch breakdown for ${type}`);
+                console.log(
+                  `⚠️ Failed to fetch breakdown for cabin ${cabin.code || cabinKey}`,
+                );
+                return { cabinKey, obc: 0 };
               }
             } catch (err) {
-              console.error(`Error fetching breakdown for ${type}:`, err);
+              console.error(
+                `Error fetching breakdown for cabin ${cabin.code || cabinKey}:`,
+                err,
+              );
+              return { cabinKey, obc: 0 };
             }
-          } else {
-            console.log(
-              `⚠️ No cabin found for ${type} or missing required data`,
-              {
-                hasCabin: !!cabin,
-                hasResultNo: cabin?.resultNo,
-                hasGradeNo: cabin?.gradeNo,
-                hasRateCode: cabin?.rateCode,
-              },
-            );
-          }
-        }
+          });
 
-        // Update state with OBC amounts
+        // Wait for all breakdowns to complete
+        const breakdownResults = await Promise.all(breakdownPromises);
+
+        // Build the commissionableFares object
+        breakdownResults.forEach(({ cabinKey, obc }) => {
+          newCommissionableFares[cabinKey] = obc;
+        });
+
         console.log(
-          "🎯 Setting accurate per-guest OBC amounts:",
+          `✅ Calculated OBC for ${breakdownResults.length} cabins`,
           newCommissionableFares,
         );
+
+        // Update state with per-cabin OBC amounts
         setCommissionableFares(newCommissionableFares);
       } else {
         console.log("⚠️ No cabins array in pricing data");
@@ -2025,15 +2014,15 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                           : "guests"}{" "}
                                         • Including taxes & fees
                                       </div>
-                                      {/* OBC Display - Use pre-calculated OBC for cabin type */}
+                                      {/* OBC Display - Use per-cabin OBC amount */}
                                       {(() => {
-                                        // Use pre-calculated OBC amount from breakdown API for the cabin type
-                                        const obcAmount =
-                                          obcAmounts[selectedCabinCategory];
+                                        // Build the cabin key to lookup OBC amount
+                                        const cabinKey = `${cabinPricing.resultNo}-${cabinPricing.gradeNo}-${cabinPricing.rateCode}`;
+                                        const obcAmount = obcAmounts[cabinKey];
 
                                         if (obcAmount && obcAmount > 0) {
                                           console.log(
-                                            `💳 Cabin ${cabin.code} OBC: $${obcAmount} (from ${selectedCabinCategory} type pre-calculated amount)`,
+                                            `💳 Cabin ${cabin.code} (${cabinKey}) OBC: $${obcAmount}`,
                                           );
                                           return (
                                             <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1">
