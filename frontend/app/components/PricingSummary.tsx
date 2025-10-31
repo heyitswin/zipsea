@@ -12,7 +12,6 @@ interface PriceBreakdownItem {
   amount: number;
   isDiscount?: boolean;
   isTax?: boolean;
-  isOnboardCredit?: boolean;
   order?: number;
 }
 
@@ -31,7 +30,8 @@ interface PricingData {
   cruiseLineName?: string;
   cancellationPolicyUrl?: string;
   isPriceEstimated?: boolean;
-  obcAmount?: number;
+  obcAmount?: number; // ZipSea calculated OBC (displayed in green box at bottom)
+  apiObcAmount?: number; // Cruise line API OBC (displayed after Total)
   cabinName?: string;
   cabinCode?: string;
   roomNumber?: string;
@@ -117,6 +117,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           "💰 Using pricingBreakdown from session (cruisecabingradebreakdown.pl API)",
         );
         const breakdownSource = basketData.pricingBreakdown;
+        let apiObcAmount = 0;
 
         if (breakdownSource && breakdownSource.length > 0) {
           breakdownSource.forEach((item: any) => {
@@ -142,6 +143,20 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
             const category = item.category?.toLowerCase();
 
             if (amount === 0) return; // Skip zero amounts
+
+            // Check if this is an onboard credit from the cruise line/API
+            const isOnboardCredit =
+              description.toLowerCase().includes("onboard credit") ||
+              description.toLowerCase().includes("on-board credit") ||
+              description.toLowerCase().includes("obc") ||
+              category === "credit" ||
+              category === "onboard_credit";
+
+            // Extract API OBC separately - don't add to breakdown
+            if (isOnboardCredit) {
+              apiObcAmount = amount;
+              return; // Skip adding to breakdown
+            }
 
             if (category === "fare") {
               // Cruise fare
@@ -214,21 +229,13 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
               });
               gratuities += amount;
             } else {
-              // Check if this is an onboard credit from the cruise line/API
-              const isOnboardCredit =
-                description.toLowerCase().includes("onboard credit") ||
-                description.toLowerCase().includes("obc") ||
-                category === "credit" ||
-                category === "onboard_credit";
-
               // Other items
               breakdown.push({
                 description: description,
                 amount: amount,
                 isDiscount: false,
                 isTax: category === "tax",
-                isOnboardCredit: isOnboardCredit, // Flag for special styling
-                order: isOnboardCredit ? 6 : 5, // OBC displays last
+                order: 5,
               });
             }
           });
@@ -400,6 +407,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           cancellationPolicyUrl,
           isPriceEstimated,
           obcAmount,
+          apiObcAmount, // OBC from cruise line API (displayed after Total)
           cabinName,
           cabinCode,
           roomNumber,
@@ -502,49 +510,21 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
 
       {/* Detailed Breakdown */}
       <div className="space-y-2 mb-4 pb-4 border-b border-gray-200">
-        {pricingData.breakdown.map((item, index) => {
-          // Check if this is an OBC item and if previous item was not OBC (for separator)
-          const isFirstOBC =
-            item.isOnboardCredit &&
-            (index === 0 || !pricingData.breakdown[index - 1].isOnboardCredit);
-
-          return (
-            <div key={index}>
-              {/* Add separator before first OBC item */}
-              {isFirstOBC && (
-                <div className="border-t border-gray-300 my-3 -mx-2"></div>
-              )}
-
-              <div className="flex justify-between items-start">
-                <span
-                  className={`font-geograph text-[14px] ${
-                    item.isOnboardCredit
-                      ? "text-green-600 font-medium"
-                      : item.isDiscount
-                        ? "text-green-600"
-                        : "text-gray-700"
-                  }`}
-                >
-                  {item.isOnboardCredit && "+"}
-                  {item.description}
-                </span>
-                <span
-                  className={`font-geograph text-[14px] ${
-                    item.isOnboardCredit
-                      ? "text-green-600 font-medium"
-                      : item.isDiscount
-                        ? "text-green-600"
-                        : "text-gray-900"
-                  }`}
-                >
-                  {item.isDiscount && item.amount > 0 ? "-" : ""}
-                  {item.isOnboardCredit && "+"}
-                  {formatPrice(item.amount)}
-                </span>
-              </div>
-            </div>
-          );
-        })}
+        {pricingData.breakdown.map((item, index) => (
+          <div key={index} className="flex justify-between items-start">
+            <span
+              className={`font-geograph text-[14px] ${item.isDiscount ? "text-green-600" : "text-gray-700"}`}
+            >
+              {item.description}
+            </span>
+            <span
+              className={`font-geograph text-[14px] ${item.isDiscount ? "text-green-600" : "text-gray-900"}`}
+            >
+              {item.isDiscount && item.amount > 0 ? "-" : ""}
+              {formatPrice(item.amount)}
+            </span>
+          </div>
+        ))}
       </div>
 
       {/* Total */}
@@ -556,6 +536,18 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           {formatPrice(pricingData.total)}
         </span>
       </div>
+
+      {/* API OBC - Onboard credit from cruise line (displayed after Total) */}
+      {pricingData.apiObcAmount && pricingData.apiObcAmount > 0 && (
+        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
+          <span className="font-geograph text-[14px] text-green-600 font-medium">
+            On-Board Credit
+          </span>
+          <span className="font-geograph text-[14px] text-green-600 font-medium">
+            +{formatPrice(pricingData.apiObcAmount)}
+          </span>
+        </div>
+      )}
 
       {/* OBC - Extras added after booking (only show if > 0) */}
       {pricingData.obcAmount && pricingData.obcAmount > 0 && (
