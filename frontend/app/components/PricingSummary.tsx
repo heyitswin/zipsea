@@ -561,6 +561,9 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
       {pricingData.obcAmount && pricingData.obcAmount > 0 && (
         <div className="mt-4 pt-4 border-t border-gray-200">
           <div className="p-3 bg-[#D4F4DD] rounded-lg text-center">
+            <div className="font-geograph font-bold text-[14px] text-[#1B8F57] mb-1">
+              Extra perks on us
+            </div>
             <div className="font-geograph font-normal text-[14px] text-[#1B8F57]">
               +$
               {pricingData.obcAmount.toLocaleString("en-US", {
