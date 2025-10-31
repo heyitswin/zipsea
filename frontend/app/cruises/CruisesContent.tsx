@@ -392,8 +392,20 @@ export default function CruisesContent() {
 
       console.log(`=== UPDATING CRUISES FROM REQUEST #${currentRequestId} ===`);
       console.log(`Found ${cruisesData.length} cruises matching filters`);
+      console.log(
+        `First 3 cruise IDs:`,
+        cruisesData.slice(0, 3).map((c: any) => c.id),
+      );
+      console.log(
+        `First 3 cruise names:`,
+        cruisesData.slice(0, 3).map((c: any) => c.name),
+      );
+      console.log(
+        `About to call setCruises with ${cruisesData.length} cruises`,
+      );
 
       setCruises(cruisesData);
+      console.log(`setCruises called successfully`);
       setTotalCount(data.pagination?.total || data.total || cruisesData.length);
     } catch (error) {
       // Check if this is an AbortError (from timeout or cancellation)
@@ -1567,6 +1579,18 @@ export default function CruisesContent() {
               </div>
             ) : (
               <div className="space-y-4">
+                {(() => {
+                  console.log(`🎨 RENDERING: ${cruises.length} cruises in UI`);
+                  console.log(
+                    `🎨 First 3 cruise IDs in render:`,
+                    cruises.slice(0, 3).map((c) => c.id),
+                  );
+                  console.log(
+                    `🎨 First 3 cruise names in render:`,
+                    cruises.slice(0, 3).map((c) => c.name),
+                  );
+                  return null;
+                })()}
                 {cruises.map((cruise) => {
                   const slug = createSlugFromCruise({
                     id: cruise.id,
