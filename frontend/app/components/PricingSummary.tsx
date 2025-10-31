@@ -599,16 +599,18 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
       </div>
 
       {/* API OBC - Onboard credit from cruise line (displayed after Total) */}
-      {pricingData.apiObcAmount && pricingData.apiObcAmount > 0 && (
-        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
-          <span className="font-geograph text-[14px] text-green-600 font-normal">
-            On-Board Credit
-          </span>
-          <span className="font-geograph text-[14px] text-green-600 font-normal">
-            +{formatPrice(pricingData.apiObcAmount)}
-          </span>
-        </div>
-      )}
+      {pricingData.apiObcAmount &&
+        typeof pricingData.apiObcAmount === "number" &&
+        pricingData.apiObcAmount > 0 && (
+          <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
+            <span className="font-geograph text-[14px] text-green-600 font-normal">
+              On-Board Credit
+            </span>
+            <span className="font-geograph text-[14px] text-green-600 font-normal">
+              +{formatPrice(pricingData.apiObcAmount)}
+            </span>
+          </div>
+        )}
 
       {/* OBC - Extras added after booking (only show if > 0) */}
       {pricingData.obcAmount && pricingData.obcAmount > 0 && (
