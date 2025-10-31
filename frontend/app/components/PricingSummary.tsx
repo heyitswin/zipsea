@@ -599,6 +599,19 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
       </div>
 
       {/* API OBC - Onboard credit from cruise line (displayed after Total) */}
+      {(() => {
+        console.log("🔍 API OBC Debug:", {
+          apiObcAmount: pricingData.apiObcAmount,
+          type: typeof pricingData.apiObcAmount,
+          isNumber: typeof pricingData.apiObcAmount === "number",
+          greaterThanZero: pricingData.apiObcAmount > 0,
+          shouldShow:
+            pricingData.apiObcAmount &&
+            typeof pricingData.apiObcAmount === "number" &&
+            pricingData.apiObcAmount > 0,
+        });
+        return null;
+      })()}
       {pricingData.apiObcAmount &&
         typeof pricingData.apiObcAmount === "number" &&
         pricingData.apiObcAmount > 0 && (
