@@ -393,6 +393,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
 
               // Calculate OBC from per-guest fares (matching booking page logic)
               let totalObc = 0;
+              const guestFares: number[] = [];
               if (breakdown.results && Array.isArray(breakdown.results)) {
                 // Find fare items with per-guest pricing
                 const fareItems = breakdown.results.filter(
@@ -406,6 +407,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         priceItem.sprice || priceItem.price || 0,
                       );
                       if (guestFare > 0) {
+                        guestFares.push(guestFare);
                         // Calculate OBC for this guest, rounded down to nearest $10
                         const guestObc =
                           Math.floor((guestFare * 0.1) / 10) * 10;
@@ -415,6 +417,12 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   }
                 });
               }
+
+              console.log(`💰 OBC Calculation for ${type}:`, {
+                guestFares,
+                totalObc,
+                guestCount: guestFares.length,
+              });
 
               console.log(
                 `✅ Calculated accurate OBC for ${type}: $${totalObc}`,

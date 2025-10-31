@@ -356,6 +356,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           );
 
           // Calculate OBC per guest from the prices array, then sum
+          const guestFares: number[] = [];
           fareItems.forEach((fareItem: any) => {
             if (fareItem.prices && Array.isArray(fareItem.prices)) {
               fareItem.prices.forEach((priceItem: any) => {
@@ -363,6 +364,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
                   priceItem.sprice || priceItem.price || 0,
                 );
                 if (guestFare > 0) {
+                  guestFares.push(guestFare);
                   // Calculate OBC for this guest, rounded down to nearest $10
                   const guestObc =
                     Math.floor((guestFare * obcPercent) / 10) * 10;
@@ -373,10 +375,12 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           });
 
           console.log("💳 Calculated OBC per guest:", {
+            guestFares,
             totalObcAmount: obcAmount,
             isLiveBooking,
             obcPercent: `${obcPercent * 100}%`,
             fareItemsCount: fareItems.length,
+            guestCount: guestFares.length,
           });
         }
 
