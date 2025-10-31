@@ -628,20 +628,6 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           </div>
         </div>
       )}
-
-      {/* Cancellation Policy Link */}
-      {pricingData.cancellationPolicyUrl && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <a
-            href={pricingData.cancellationPolicyUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-geograph text-[13px] text-[#2f7ddd] hover:underline"
-          >
-            View {pricingData.cruiseLineName || ""} Cancellation Policy →
-          </a>
-        </div>
-      )}
     </div>
   );
 }
