@@ -358,11 +358,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             (c: any) => c.category === category,
           );
 
-          if (cabin && cabin.resultNo && cabin.gradeNo) {
+          if (cabin && cabin.resultNo && cabin.gradeNo && cabin.rateCode) {
             try {
               // Fetch breakdown for this cabin
               const breakdownResponse = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/booking/${newSessionId}/cabin-breakdown?resultNo=${cabin.resultNo}&gradeNo=${cabin.gradeNo}`,
+                `${process.env.NEXT_PUBLIC_API_URL}/booking/${newSessionId}/cabin-breakdown?resultNo=${cabin.resultNo}&gradeNo=${cabin.gradeNo}&rateCode=${cabin.rateCode}`,
               );
 
               if (breakdownResponse.ok) {
@@ -450,7 +450,15 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               console.error(`Error fetching breakdown for ${type}:`, err);
             }
           } else {
-            console.log(`⚠️ No cabin found for ${type}`);
+            console.log(
+              `⚠️ No cabin found for ${type} or missing required data`,
+              {
+                hasCabin: !!cabin,
+                hasResultNo: cabin?.resultNo,
+                hasGradeNo: cabin?.gradeNo,
+                hasRateCode: cabin?.rateCode,
+              },
+            );
           }
         }
 
