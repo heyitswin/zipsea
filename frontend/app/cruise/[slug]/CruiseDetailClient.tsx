@@ -1659,6 +1659,30 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 </div>
               </div>
 
+              {isLiveBookable && liveCabinGrades ? (
+                <PassengerSelector
+                  value={localPassengerCount}
+                  onChange={(newPassengerCount) => {
+                    // Enforce max 4 people per cabin
+                    const totalPassengers =
+                      newPassengerCount.adults + newPassengerCount.children;
+                    if (totalPassengers > 4) {
+                      showAlert("Maximum 4 passengers per cabin");
+                      return;
+                    }
+
+                    setLocalPassengerCount(newPassengerCount);
+                    // Update context - this will trigger price refetch when Update Prices is clicked
+                    setPassengerCount(newPassengerCount);
+                  }}
+                  onUpdatePrices={async () => {
+                    // Refetch prices when user clicks Update Prices
+                    await createBookingSessionAndFetchCabins();
+                  }}
+                  className="w-full md:w-96"
+                />
+              ) : null}
+
               {isLiveBookable ? (
                 <p
                   className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5]"

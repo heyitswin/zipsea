@@ -614,8 +614,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
         });
         return null;
       })()}
-      {pricingData.apiObcAmount &&
-        typeof pricingData.apiObcAmount === "number" &&
+      {typeof pricingData.apiObcAmount === "number" &&
         pricingData.apiObcAmount > 0 && (
           <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
             <span className="font-geograph text-[14px] text-green-600 font-normal">
