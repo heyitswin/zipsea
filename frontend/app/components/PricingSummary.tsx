@@ -599,8 +599,22 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
       </div>
 
       {/* API OBC - Onboard credit from cruise line (displayed after Total) */}
-      {pricingData.apiObcAmount &&
-        typeof pricingData.apiObcAmount === "number" &&
+      {(() => {
+        console.log("🔍 API OBC Debug:", {
+          apiObcAmount: pricingData.apiObcAmount,
+          type: typeof pricingData.apiObcAmount,
+          isNumber: typeof pricingData.apiObcAmount === "number",
+          greaterThanZero: pricingData.apiObcAmount
+            ? pricingData.apiObcAmount > 0
+            : false,
+          shouldShow:
+            pricingData.apiObcAmount &&
+            typeof pricingData.apiObcAmount === "number" &&
+            pricingData.apiObcAmount > 0,
+        });
+        return null;
+      })()}
+      {typeof pricingData.apiObcAmount === "number" &&
         pricingData.apiObcAmount > 0 && (
           <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
             <span className="font-geograph text-[14px] text-green-600 font-normal">
