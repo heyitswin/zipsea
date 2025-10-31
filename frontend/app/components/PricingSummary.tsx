@@ -551,10 +551,10 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
       {/* API OBC - Onboard credit from cruise line (displayed after Total) */}
       {pricingData.apiObcAmount && pricingData.apiObcAmount > 0 && (
         <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
-          <span className="font-geograph text-[14px] text-green-600 font-medium">
+          <span className="font-geograph text-[14px] text-green-600 font-normal">
             On-Board Credit
           </span>
-          <span className="font-geograph text-[14px] text-green-600 font-medium">
+          <span className="font-geograph text-[14px] text-green-600 font-normal">
             +{formatPrice(pricingData.apiObcAmount)}
           </span>
         </div>
