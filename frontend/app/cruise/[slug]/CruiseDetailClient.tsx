@@ -335,9 +335,9 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       });
       setLiveCabinGrades(pricingData);
 
-      // Extract cheapestPrice (base cruise fare) from cabin data for accurate OBC calculation
+      // Fetch breakdown API for each cabin type to get accurate per-guest commissionable fares
       console.log(
-        "📊 Extracting base fares from cabin pricing for OBC calculation...",
+        "📊 Fetching per-guest breakdowns for accurate OBC calculation...",
       );
 
       if (pricingData.cabins && Array.isArray(pricingData.cabins)) {
@@ -349,39 +349,117 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           { type: "suite" as const, category: "suite" },
         ];
 
-        const newCommissionableFares: Record<string, number | null> = {};
+        const newCommissionableFares: Record<string, number> = {};
 
+        // Fetch breakdown for each cabin type to calculate OBC
         for (const { type, category } of cabinTypeMap) {
           // Find first cabin of this category from the cabins array
           const cabin = pricingData.cabins.find(
             (c: any) => c.category === category,
           );
 
-          if (cabin && cabin.cheapestPrice) {
-            newCommissionableFares[type] = cabin.cheapestPrice;
-            console.log(
-              `✅ Got base fare for ${type}: $${cabin.cheapestPrice}`,
-            );
+          if (cabin && cabin.resultNo && cabin.gradeNo) {
+            try {
+              // Fetch breakdown for this cabin
+              const breakdownResponse = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/booking/${newSessionId}/cabin-breakdown?resultNo=${cabin.resultNo}&gradeNo=${cabin.gradeNo}`,
+              );
+
+              if (breakdownResponse.ok) {
+                const breakdownData = await breakdownResponse.json();
+
+                // Extract fare and discount items
+                const fareItems = breakdownData.filter(
+                  (item: any) => item.category?.toLowerCase() === "fare",
+                );
+                const discountItems = breakdownData.filter(
+                  (item: any) => item.category?.toLowerCase() === "discount",
+                );
+
+                // Build per-guest commissionable fares (fare + discount per guest)
+                const guestCommissionableFares = new Map<string, number>();
+
+                // Add base fares per guest
+                fareItems.forEach((fareItem: any) => {
+                  if (fareItem.prices && Array.isArray(fareItem.prices)) {
+                    fareItem.prices.forEach((priceItem: any) => {
+                      const guestNo =
+                        priceItem.guestno ||
+                        String(guestCommissionableFares.size + 1);
+                      const guestFare = parseFloat(
+                        priceItem.sprice || priceItem.price || 0,
+                      );
+                      if (guestFare > 0) {
+                        guestCommissionableFares.set(
+                          guestNo,
+                          (guestCommissionableFares.get(guestNo) || 0) +
+                            guestFare,
+                        );
+                      }
+                    });
+                  }
+                });
+
+                // Apply discounts per guest
+                discountItems.forEach((discountItem: any) => {
+                  if (
+                    discountItem.prices &&
+                    Array.isArray(discountItem.prices)
+                  ) {
+                    discountItem.prices.forEach((priceItem: any) => {
+                      const guestNo =
+                        priceItem.guestno ||
+                        String(guestCommissionableFares.size);
+                      const discountAmount = parseFloat(
+                        priceItem.sprice || priceItem.price || 0,
+                      );
+                      guestCommissionableFares.set(
+                        guestNo,
+                        (guestCommissionableFares.get(guestNo) || 0) +
+                          discountAmount,
+                      );
+                    });
+                  }
+                });
+
+                // Calculate total OBC for this cabin type (10% of net commissionable fares per guest)
+                let totalObc = 0;
+                const guestFares: number[] = [];
+                guestCommissionableFares.forEach((commissionableFare) => {
+                  guestFares.push(commissionableFare);
+                  if (commissionableFare > 0) {
+                    const guestObc =
+                      Math.floor((commissionableFare * 0.1) / 10) * 10;
+                    totalObc += guestObc;
+                  }
+                });
+
+                newCommissionableFares[type] = totalObc;
+                console.log(`💰 OBC Calculation for ${type}:`, {
+                  guestFares,
+                  totalObc,
+                  guestCount: guestFares.length,
+                });
+                console.log(
+                  `✅ Calculated accurate OBC for ${type}: $${totalObc}`,
+                );
+              } else {
+                console.log(`⚠️ Failed to fetch breakdown for ${type}`);
+              }
+            } catch (err) {
+              console.error(`Error fetching breakdown for ${type}:`, err);
+            }
           } else {
             console.log(`⚠️ No cabin found for ${type}`);
           }
         }
 
-        // Update state with all fares at once
+        // Update state with OBC amounts
         console.log(
-          "🎯 About to call setCommissionableFares with:",
+          "🎯 Setting accurate per-guest OBC amounts:",
           newCommissionableFares,
         );
-        console.log(
-          "🎯 Keys in newCommissionableFares:",
-          Object.keys(newCommissionableFares),
-        );
-        console.log(
-          "🎯 JSON of newCommissionableFares:",
-          JSON.stringify(newCommissionableFares),
-        );
         setCommissionableFares(newCommissionableFares);
-        console.log("✅ setCommissionableFares called successfully");
       } else {
         console.log("⚠️ No cabins array in pricing data");
       }
