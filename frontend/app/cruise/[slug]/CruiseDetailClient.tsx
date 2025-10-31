@@ -1683,15 +1683,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 />
               ) : null}
 
-              {isLiveBookable ? (
-                <p
-                  className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5]"
-                  style={{ letterSpacing: "-0.02em" }}
-                >
-                  Prices shown are per person based on double occupancy (2
-                  adults)
-                </p>
-              ) : (
+              {!isLiveBookable && (
                 <p
                   className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5]"
                   style={{ letterSpacing: "-0.02em" }}
