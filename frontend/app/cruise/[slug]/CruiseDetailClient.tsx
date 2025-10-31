@@ -368,11 +368,14 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
               if (breakdownResponse.ok) {
                 const breakdownData = await breakdownResponse.json();
 
+                // The API returns { results: [...] }, extract the results array
+                const breakdownItems = breakdownData.results || [];
+
                 // Extract fare and discount items
-                const fareItems = breakdownData.filter(
+                const fareItems = breakdownItems.filter(
                   (item: any) => item.category?.toLowerCase() === "fare",
                 );
-                const discountItems = breakdownData.filter(
+                const discountItems = breakdownItems.filter(
                   (item: any) => item.category?.toLowerCase() === "discount",
                 );
 
