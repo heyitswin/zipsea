@@ -163,14 +163,25 @@ export class ComprehensiveSearchService {
           ? filters.cruiseLineId
           : [filters.cruiseLineId];
         logger.info('Applying cruise line filter:', { lineIds });
-        conditions.push(inArray(cruises.cruiseLineId, lineIds));
+        // Only apply filter if lineIds has elements
+        // Empty array means no valid cruise lines match the criteria (e.g., user selected non-live-bookable lines)
+        if (lineIds.length > 0) {
+          conditions.push(inArray(cruises.cruiseLineId, lineIds));
+        } else {
+          // Empty array means no results should be returned
+          conditions.push(sql`1 = 0`);
+        }
       }
 
       // Ship filter
       if (filters.shipId) {
         const shipIds = Array.isArray(filters.shipId) ? filters.shipId : [filters.shipId];
         logger.info('Applying ship filter:', { shipIds });
-        conditions.push(inArray(cruises.shipId, shipIds));
+        if (shipIds.length > 0) {
+          conditions.push(inArray(cruises.shipId, shipIds));
+        } else {
+          conditions.push(sql`1 = 0`);
+        }
       }
 
       // Departure port filter
@@ -179,7 +190,11 @@ export class ComprehensiveSearchService {
           ? filters.departurePortId
           : [filters.departurePortId];
         logger.info('Applying departure port filter:', { portIds });
-        conditions.push(inArray(cruises.embarkPortId, portIds));
+        if (portIds.length > 0) {
+          conditions.push(inArray(cruises.embarkPortId, portIds));
+        } else {
+          conditions.push(sql`1 = 0`);
+        }
       }
 
       // Arrival port filter
@@ -188,7 +203,11 @@ export class ComprehensiveSearchService {
           ? filters.arrivalPortId
           : [filters.arrivalPortId];
         logger.info('Applying arrival port filter:', { portIds });
-        conditions.push(inArray(cruises.disembarkPortId, portIds));
+        if (portIds.length > 0) {
+          conditions.push(inArray(cruises.disembarkPortId, portIds));
+        } else {
+          conditions.push(sql`1 = 0`);
+        }
       }
 
       // Region filter - handle comma-separated string in DB
