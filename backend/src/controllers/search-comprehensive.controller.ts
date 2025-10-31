@@ -243,14 +243,17 @@ class SearchComprehensiveController {
         });
       }
 
-      // Add headers to prevent caching
+      // Add headers to prevent caching - extremely aggressive to bust browser/CDN cache
       res.set({
-        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        'Cache-Control':
+          'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
         Pragma: 'no-cache',
         Expires: '0',
         'Surrogate-Control': 'no-store',
         'X-Response-Time': `${Date.now() - startTime}ms`,
         'X-Request-ID': `search-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        Vary: '*', // Force CDN/browser to treat every request as unique
+        'X-Accel-Expires': '0', // Nginx cache
       });
 
       res.json(results);
