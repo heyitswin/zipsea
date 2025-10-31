@@ -1217,35 +1217,6 @@ function HomeWithParams() {
         </div>
       </section>
 
-      {/* Banners Section - Stack at larger breakpoint */}
-      <section className="bg-sand py-8 md:py-12">
-        <div className="mx-auto px-4 md:px-8" style={{ maxWidth: "1464px" }}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            <a
-              href="https://www.zipsea.com/first-time-cruisers-guide"
-              className="block"
-            >
-              <Image
-                src="/images/updated-homepage/banner-first-time.png"
-                alt="First Time Cruiser Benefits"
-                width={724}
-                height={168}
-                className="w-full h-auto rounded-lg hover:opacity-95 transition-opacity"
-              />
-            </a>
-            <a href="/cruises" className="block">
-              <Image
-                src="/images/updated-homepage/banner-free-gift.png"
-                alt="Free Gift with Every Booking"
-                width={724}
-                height={168}
-                className="w-full h-auto rounded-lg hover:opacity-95 transition-opacity"
-              />
-            </a>
-          </div>
-        </div>
-      </section>
-
       {/* Top Destinations Section - Removed gradients, adjusted heights, line-height */}
       <section className="bg-sand pt-12 md:pt-20">
         <div className="mx-auto px-4 md:px-8" style={{ maxWidth: "1464px" }}>
