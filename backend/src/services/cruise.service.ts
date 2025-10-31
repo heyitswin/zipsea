@@ -44,6 +44,7 @@ export interface CruiseDetails {
   cheapestPrice?: any;
   embarkPort?: PortInfo;
   disembarkPort?: PortInfo;
+  cruiseLineId?: number;
   cruiseLine: CruiseLineInfo;
   ship: ShipInfo;
   regions: RegionInfo[];
@@ -605,6 +606,7 @@ export class CruiseService {
         cheapestPrice: cruise.cheapestPrice,
         embarkPort: embarkPort ? this.transformPortInfo(embarkPort) : undefined,
         disembarkPort: disembarkPortData ? this.transformPortInfo(disembarkPortData) : undefined,
+        cruiseLineId: cruise.cruiseLineId,
         cruiseLine: this.transformCruiseLineInfo(cruiseLine),
         ship: this.transformShipInfo(ship),
         regions: regionsData,
