@@ -327,6 +327,17 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
               .map((id) => parseInt(id.trim(), 10))
               .filter((id) => !isNaN(id))
           : [];
+        console.log("🔍 isLiveBooking check:", {
+          liveBookingEnabled,
+          cruiseLineId: cruise?.cruiseLineId,
+          cruiseLineIdType: typeof cruise?.cruiseLineId,
+          liveBookingLineIds,
+          liveBookingLineIdsLength: liveBookingLineIds.length,
+          includes:
+            cruise?.cruiseLineId &&
+            liveBookingLineIds.includes(Number(cruise.cruiseLineId)),
+        });
+
         const isLiveBooking =
           liveBookingEnabled &&
           cruise?.cruiseLineId &&
