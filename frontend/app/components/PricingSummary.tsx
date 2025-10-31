@@ -364,6 +364,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
 
         // Calculate OBC per guest, then sum (commission rates may differ per guest)
         // OBC = 10% for live bookings, 8% for non-live, rounded DOWN to nearest $10 increment
+        // Must account for discounts per-guest as they affect commissionable amounts
         let obcAmount = 0;
         if (breakdownSource && breakdownSource.length > 0) {
           const obcPercent = isLiveBooking ? 0.1 : 0.08;
@@ -373,33 +374,80 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
             (item: any) => item.category?.toLowerCase() === "fare",
           );
 
-          // Calculate OBC per guest from the prices array, then sum
-          const guestFares: number[] = [];
+          // Find discount items in the breakdown (BOGO, percentage discounts, etc.)
+          const discountItems = breakdownSource.filter(
+            (item: any) => item.category?.toLowerCase() === "discount",
+          );
+
+          // Build per-guest commissionable fares (fare + discount per guest)
+          // Use a map to track fares by guest number
+          const guestCommissionableFares = new Map<string, number>();
+
+          // First, add base fares per guest
           fareItems.forEach((fareItem: any) => {
             if (fareItem.prices && Array.isArray(fareItem.prices)) {
               fareItem.prices.forEach((priceItem: any) => {
+                const guestNo =
+                  priceItem.guestno ||
+                  String(guestCommissionableFares.size + 1);
                 const guestFare = parseFloat(
                   priceItem.sprice || priceItem.price || 0,
                 );
                 if (guestFare > 0) {
-                  guestFares.push(guestFare);
-                  // Calculate OBC for this guest, rounded down to nearest $10
-                  const guestObc =
-                    Math.floor((guestFare * obcPercent) / 10) * 10;
-                  obcAmount += guestObc;
+                  guestCommissionableFares.set(
+                    guestNo,
+                    (guestCommissionableFares.get(guestNo) || 0) + guestFare,
+                  );
                 }
               });
             }
           });
 
-          console.log("💳 Calculated OBC per guest:", {
+          // Then, apply discounts per guest (discounts are negative amounts)
+          discountItems.forEach((discountItem: any) => {
+            if (discountItem.prices && Array.isArray(discountItem.prices)) {
+              discountItem.prices.forEach((priceItem: any) => {
+                const guestNo =
+                  priceItem.guestno || String(guestCommissionableFares.size);
+                const discountAmount = parseFloat(
+                  priceItem.sprice || priceItem.price || 0,
+                );
+                // Discounts are negative, so adding them reduces the commissionable fare
+                guestCommissionableFares.set(
+                  guestNo,
+                  (guestCommissionableFares.get(guestNo) || 0) + discountAmount,
+                );
+              });
+            }
+          });
+
+          // Calculate OBC per guest from net commissionable fares
+          const guestFares: number[] = [];
+          const guestObcs: number[] = [];
+          guestCommissionableFares.forEach((commissionableFare, guestNo) => {
+            guestFares.push(commissionableFare);
+            // Only calculate OBC if commissionable fare is positive
+            if (commissionableFare > 0) {
+              const guestObc =
+                Math.floor((commissionableFare * obcPercent) / 10) * 10;
+              guestObcs.push(guestObc);
+              obcAmount += guestObc;
+            } else {
+              guestObcs.push(0);
+            }
+          });
+
+          console.log("💳 Calculated OBC per guest (with discounts):", {
             guestFares,
             guestFare1: guestFares[0],
             guestFare2: guestFares[1],
+            guestObc1: guestObcs[0],
+            guestObc2: guestObcs[1],
             totalObcAmount: obcAmount,
             isLiveBooking,
             obcPercent: `${obcPercent * 100}%`,
             fareItemsCount: fareItems.length,
+            discountItemsCount: discountItems.length,
             guestCount: guestFares.length,
           });
         }
