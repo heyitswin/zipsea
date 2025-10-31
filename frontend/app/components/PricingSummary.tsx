@@ -30,7 +30,8 @@ interface PricingData {
   cruiseLineName?: string;
   cancellationPolicyUrl?: string;
   isPriceEstimated?: boolean;
-  obcAmount?: number;
+  obcAmount?: number; // ZipSea calculated OBC (displayed in green box at bottom)
+  apiObcAmount?: number; // Cruise line API OBC (displayed after Total)
   cabinName?: string;
   cabinCode?: string;
   roomNumber?: string;
@@ -116,6 +117,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           "💰 Using pricingBreakdown from session (cruisecabingradebreakdown.pl API)",
         );
         const breakdownSource = basketData.pricingBreakdown;
+        let apiObcAmount = 0;
 
         if (breakdownSource && breakdownSource.length > 0) {
           breakdownSource.forEach((item: any) => {
@@ -141,6 +143,20 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
             const category = item.category?.toLowerCase();
 
             if (amount === 0) return; // Skip zero amounts
+
+            // Check if this is an onboard credit from the cruise line/API
+            const isOnboardCredit =
+              description.toLowerCase().includes("onboard credit") ||
+              description.toLowerCase().includes("on-board credit") ||
+              description.toLowerCase().includes("obc") ||
+              category === "credit" ||
+              category === "onboard_credit";
+
+            // Extract API OBC separately - don't add to breakdown
+            if (isOnboardCredit) {
+              apiObcAmount = amount;
+              return; // Skip adding to breakdown
+            }
 
             if (category === "fare") {
               // Cruise fare
@@ -219,7 +235,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
                 amount: amount,
                 isDiscount: false,
                 isTax: category === "tax",
-                order: 5, // Display after everything else
+                order: 5,
               });
             }
           });
@@ -302,12 +318,30 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           console.warn("⚠️ Could not fetch session/cruise data:", err);
         }
 
-        // Determine if this is a live booking cruise (Royal Caribbean #22 or Celebrity #3)
+        // Determine if this is a live booking cruise
         const liveBookingEnabled =
           process.env.NEXT_PUBLIC_ENABLE_LIVE_BOOKING === "true";
-        const liveBookingLineIds = [22, 3];
+        // Parse live booking line IDs from environment variable
+        const liveBookingLineIds = process.env.NEXT_PUBLIC_LIVE_BOOKING_LINE_IDS
+          ? process.env.NEXT_PUBLIC_LIVE_BOOKING_LINE_IDS.split(",")
+              .map((id) => parseInt(id.trim(), 10))
+              .filter((id) => !isNaN(id))
+          : [];
+        console.log("🔍 isLiveBooking check:", {
+          liveBookingEnabled,
+          cruiseLineId: cruise?.cruiseLineId,
+          cruiseLineIdType: typeof cruise?.cruiseLineId,
+          liveBookingLineIds,
+          liveBookingLineIdsLength: liveBookingLineIds.length,
+          includes:
+            cruise?.cruiseLineId &&
+            liveBookingLineIds.includes(Number(cruise.cruiseLineId)),
+        });
+
         const isLiveBooking =
-          liveBookingEnabled && cruise?.cruiseLineId
+          liveBookingEnabled &&
+          cruise?.cruiseLineId &&
+          liveBookingLineIds.length > 0
             ? liveBookingLineIds.includes(Number(cruise.cruiseLineId))
             : false;
 
@@ -330,6 +364,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
 
         // Calculate OBC per guest, then sum (commission rates may differ per guest)
         // OBC = 10% for live bookings, 8% for non-live, rounded DOWN to nearest $10 increment
+        // Must account for discounts per-guest as they affect commissionable amounts
         let obcAmount = 0;
         if (breakdownSource && breakdownSource.length > 0) {
           const obcPercent = isLiveBooking ? 0.1 : 0.08;
@@ -339,28 +374,81 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
             (item: any) => item.category?.toLowerCase() === "fare",
           );
 
-          // Calculate OBC per guest from the prices array, then sum
+          // Find discount items in the breakdown (BOGO, percentage discounts, etc.)
+          const discountItems = breakdownSource.filter(
+            (item: any) => item.category?.toLowerCase() === "discount",
+          );
+
+          // Build per-guest commissionable fares (fare + discount per guest)
+          // Use a map to track fares by guest number
+          const guestCommissionableFares = new Map<string, number>();
+
+          // First, add base fares per guest
           fareItems.forEach((fareItem: any) => {
             if (fareItem.prices && Array.isArray(fareItem.prices)) {
               fareItem.prices.forEach((priceItem: any) => {
+                const guestNo =
+                  priceItem.guestno ||
+                  String(guestCommissionableFares.size + 1);
                 const guestFare = parseFloat(
                   priceItem.sprice || priceItem.price || 0,
                 );
                 if (guestFare > 0) {
-                  // Calculate OBC for this guest, rounded down to nearest $10
-                  const guestObc =
-                    Math.floor((guestFare * obcPercent) / 10) * 10;
-                  obcAmount += guestObc;
+                  guestCommissionableFares.set(
+                    guestNo,
+                    (guestCommissionableFares.get(guestNo) || 0) + guestFare,
+                  );
                 }
               });
             }
           });
 
-          console.log("💳 Calculated OBC per guest:", {
+          // Then, apply discounts per guest (discounts are negative amounts)
+          discountItems.forEach((discountItem: any) => {
+            if (discountItem.prices && Array.isArray(discountItem.prices)) {
+              discountItem.prices.forEach((priceItem: any) => {
+                const guestNo =
+                  priceItem.guestno || String(guestCommissionableFares.size);
+                const discountAmount = parseFloat(
+                  priceItem.sprice || priceItem.price || 0,
+                );
+                // Discounts are negative, so adding them reduces the commissionable fare
+                guestCommissionableFares.set(
+                  guestNo,
+                  (guestCommissionableFares.get(guestNo) || 0) + discountAmount,
+                );
+              });
+            }
+          });
+
+          // Calculate OBC per guest from net commissionable fares
+          const guestFares: number[] = [];
+          const guestObcs: number[] = [];
+          guestCommissionableFares.forEach((commissionableFare, guestNo) => {
+            guestFares.push(commissionableFare);
+            // Only calculate OBC if commissionable fare is positive
+            if (commissionableFare > 0) {
+              const guestObc =
+                Math.floor((commissionableFare * obcPercent) / 10) * 10;
+              guestObcs.push(guestObc);
+              obcAmount += guestObc;
+            } else {
+              guestObcs.push(0);
+            }
+          });
+
+          console.log("💳 Calculated OBC per guest (with discounts):", {
+            guestFares,
+            guestFare1: guestFares[0],
+            guestFare2: guestFares[1],
+            guestObc1: guestObcs[0],
+            guestObc2: guestObcs[1],
             totalObcAmount: obcAmount,
             isLiveBooking,
             obcPercent: `${obcPercent * 100}%`,
             fareItemsCount: fareItems.length,
+            discountItemsCount: discountItems.length,
+            guestCount: guestFares.length,
           });
         }
 
@@ -380,6 +468,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           cancellationPolicyUrl,
           isPriceEstimated,
           obcAmount,
+          apiObcAmount, // OBC from cruise line API (displayed after Total)
           cabinName,
           cabinCode,
           roomNumber,
@@ -509,26 +598,34 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
         </span>
       </div>
 
-      {/* OBC - Extras added after booking */}
-      {pricingData.obcAmount && pricingData.obcAmount > 0 && (
-        <div className="mt-3 p-3 bg-[#D4F4DD] rounded-lg text-center">
-          <div className="font-geograph font-normal text-[14px] text-[#1B8F57]">
-            +${pricingData.obcAmount} onboard credit
-          </div>
+      {/* API OBC - Onboard credit from cruise line (displayed after Total) */}
+      {pricingData.apiObcAmount && pricingData.apiObcAmount > 0 && (
+        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-200">
+          <span className="font-geograph text-[14px] text-green-600 font-normal">
+            On-Board Credit
+          </span>
+          <span className="font-geograph text-[14px] text-green-600 font-normal">
+            +{formatPrice(pricingData.apiObcAmount)}
+          </span>
         </div>
       )}
 
-      {/* Cancellation Policy Link */}
-      {pricingData.cancellationPolicyUrl && (
+      {/* OBC - Extras added after booking (only show if > 0) */}
+      {pricingData.obcAmount && pricingData.obcAmount > 0 && (
         <div className="mt-4 pt-4 border-t border-gray-200">
-          <a
-            href={pricingData.cancellationPolicyUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-geograph text-[13px] text-[#2f7ddd] hover:underline"
-          >
-            View {pricingData.cruiseLineName || ""} Cancellation Policy →
-          </a>
+          <div className="p-3 bg-[#D4F4DD] rounded-lg text-center">
+            <div className="font-geograph font-bold text-[14px] text-[#1B8F57] mb-1">
+              Extra perks on us
+            </div>
+            <div className="font-geograph font-normal text-[14px] text-[#1B8F57]">
+              +$
+              {pricingData.obcAmount.toLocaleString("en-US", {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              })}{" "}
+              onboard credit
+            </div>
+          </div>
         </div>
       )}
     </div>
