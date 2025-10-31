@@ -142,27 +142,32 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     const amounts: Record<string, number> = {};
 
     for (const cabinType of cabinTypes) {
-      const liveFare = commissionableFares[cabinType];
+      // For live bookings, commissionableFares already contains the calculated OBC amounts
+      const liveObc = commissionableFares[cabinType];
 
-      // Get cached price from cruiseData as fallback
-      const priceField = `${cabinType}Price` as keyof typeof cruiseData;
-      const cachedPrice = cruiseData?.[priceField];
+      if (liveObc && isLiveBookable) {
+        // Use the pre-calculated OBC amount directly (already 10% of commissionable fares)
+        amounts[cabinType] = liveObc;
+        console.log(
+          `💰 OBC for ${cabinType}: $${liveObc} (from per-guest breakdown)`,
+        );
+      } else {
+        // For non-live bookings, calculate 8% from cached prices
+        const priceField = `${cabinType}Price` as keyof typeof cruiseData;
+        const cachedPrice = cruiseData?.[priceField];
 
-      // Prefer live fare, fallback to cached price
-      const fareToUse = liveFare || cachedPrice;
-
-      if (fareToUse) {
-        const numPrice =
-          typeof fareToUse === "string" ? parseFloat(fareToUse) : fareToUse;
-        if (numPrice && !isNaN(numPrice)) {
-          // Live bookings use 10% OBC, non-live use 8%
-          const creditPercent = isLiveBookable ? 0.1 : 0.08;
-          const rawCredit = numPrice * creditPercent;
-          amounts[cabinType] = Math.floor(rawCredit / 10) * 10;
-
-          console.log(
-            `💰 OBC for ${cabinType}: $${amounts[cabinType]} (${creditPercent * 100}% from ${liveFare ? "LIVE fare" : "cached price"}: $${fareToUse})`,
-          );
+        if (cachedPrice) {
+          const numPrice =
+            typeof cachedPrice === "string"
+              ? parseFloat(cachedPrice)
+              : cachedPrice;
+          if (numPrice && !isNaN(numPrice)) {
+            const rawCredit = numPrice * 0.08;
+            amounts[cabinType] = Math.floor(rawCredit / 10) * 10;
+            console.log(
+              `💰 OBC for ${cabinType}: $${amounts[cabinType]} (8% from cached price: $${cachedPrice})`,
+            );
+          }
         }
       }
     }
@@ -1654,28 +1659,14 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 </div>
               </div>
 
-              {isLiveBookable && liveCabinGrades ? (
-                <PassengerSelector
-                  value={localPassengerCount}
-                  onChange={(newPassengerCount) => {
-                    // Enforce max 4 people per cabin
-                    const totalPassengers =
-                      newPassengerCount.adults + newPassengerCount.children;
-                    if (totalPassengers > 4) {
-                      showAlert("Maximum 4 passengers per cabin");
-                      return;
-                    }
-
-                    setLocalPassengerCount(newPassengerCount);
-                    // Update context - this will trigger price refetch when Update Prices is clicked
-                    setPassengerCount(newPassengerCount);
-                  }}
-                  onUpdatePrices={async () => {
-                    // Refetch prices when user clicks Update Prices
-                    await createBookingSessionAndFetchCabins();
-                  }}
-                  className="w-full md:w-96"
-                />
+              {isLiveBookable ? (
+                <p
+                  className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5]"
+                  style={{ letterSpacing: "-0.02em" }}
+                >
+                  Prices shown are per person based on double occupancy (2
+                  adults)
+                </p>
               ) : (
                 <p
                   className="font-geograph text-[18px] text-[#2f2f2f] leading-[1.5]"
