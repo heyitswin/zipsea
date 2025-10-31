@@ -604,7 +604,9 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           apiObcAmount: pricingData.apiObcAmount,
           type: typeof pricingData.apiObcAmount,
           isNumber: typeof pricingData.apiObcAmount === "number",
-          greaterThanZero: pricingData.apiObcAmount > 0,
+          greaterThanZero: pricingData.apiObcAmount
+            ? pricingData.apiObcAmount > 0
+            : false,
           shouldShow:
             pricingData.apiObcAmount &&
             typeof pricingData.apiObcAmount === "number" &&
