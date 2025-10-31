@@ -394,6 +394,8 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
 
           console.log("💳 Calculated OBC per guest:", {
             guestFares,
+            guestFare1: guestFares[0],
+            guestFare2: guestFares[1],
             totalObcAmount: obcAmount,
             isLiveBooking,
             obcPercent: `${obcPercent * 100}%`,
