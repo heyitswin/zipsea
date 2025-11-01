@@ -139,36 +139,34 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       commissionableFares,
     );
 
+    // For live bookings, commissionableFares contains per-cabin OBC amounts with cabin keys
+    // For non-live bookings, calculate category-level OBC from cached prices
+    if (isLiveBookable && Object.keys(commissionableFares).length > 0) {
+      console.log(
+        `💰 Using pre-calculated per-cabin OBC for ${Object.keys(commissionableFares).length} cabins`,
+      );
+      return commissionableFares;
+    }
+
+    // Non-live bookings: calculate category-level OBC from cached prices
     const cabinTypes = ["interior", "oceanview", "balcony", "suite"] as const;
     const amounts: Record<string, number> = {};
 
     for (const cabinType of cabinTypes) {
-      // For live bookings, commissionableFares already contains the calculated OBC amounts
-      const liveObc = commissionableFares[cabinType];
+      const priceField = `${cabinType}Price` as keyof typeof cruiseData;
+      const cachedPrice = cruiseData?.[priceField];
 
-      if (liveObc && isLiveBookable) {
-        // Use the pre-calculated OBC amount directly (already 10% of commissionable fares)
-        amounts[cabinType] = liveObc;
-        console.log(
-          `💰 OBC for ${cabinType}: $${liveObc} (from per-guest breakdown)`,
-        );
-      } else {
-        // For non-live bookings, calculate 8% from cached prices
-        const priceField = `${cabinType}Price` as keyof typeof cruiseData;
-        const cachedPrice = cruiseData?.[priceField];
-
-        if (cachedPrice) {
-          const numPrice =
-            typeof cachedPrice === "string"
-              ? parseFloat(cachedPrice)
-              : cachedPrice;
-          if (numPrice && !isNaN(numPrice)) {
-            const rawCredit = numPrice * 0.08;
-            amounts[cabinType] = Math.floor(rawCredit / 10) * 10;
-            console.log(
-              `💰 OBC for ${cabinType}: $${amounts[cabinType]} (8% from cached price: $${cachedPrice})`,
-            );
-          }
+      if (cachedPrice) {
+        const numPrice =
+          typeof cachedPrice === "string"
+            ? parseFloat(cachedPrice)
+            : cachedPrice;
+        if (numPrice && !isNaN(numPrice)) {
+          const rawCredit = numPrice * 0.08;
+          amounts[cabinType] = Math.floor(rawCredit / 10) * 10;
+          console.log(
+            `💰 OBC for ${cabinType}: $${amounts[cabinType]} (8% from cached price: $${cachedPrice})`,
+          );
         }
       }
     }
@@ -184,6 +182,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     gradeNo: string;
     rateCode: string;
     gradeName: string;
+    obc?: number; // Our bonus on-board credit (10% of commissionable fare)
   } | null>(null);
 
   // Local passenger count state for steppers
@@ -206,6 +205,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     cabinName: string;
     cabinCode?: string; // Cabin grade code (e.g., "ZI", "4D")
     price: number;
+    bonusObc?: number; // Our bonus on-board credit (10% of commissionable fare)
     cabinResultNo?: string; // For specific cabin selection
   } | null>(null);
 
@@ -349,117 +349,34 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       if (pricingData.cabins && Array.isArray(pricingData.cabins)) {
         const newCommissionableFares: Record<string, number> = {};
 
-        // Helper function to calculate OBC from breakdown data
-        const calculateObcFromBreakdown = (breakdownData: any): number => {
-          const breakdownItems = breakdownData.results || [];
+        // Extract pre-calculated OBC values from backend response
+        // Backend now calculates OBC for all cabin rates, eliminating 159 frontend API calls
+        pricingData.cabins.forEach((cabin: any) => {
+          if (cabin.ratesByCode && typeof cabin.ratesByCode === "object") {
+            Object.entries(cabin.ratesByCode).forEach(
+              ([rateCode, rateData]: [string, any]) => {
+                const resultNo = rateData.resultno || cabin.resultNo;
+                const gradeNo = rateData.gradeno;
+                const actualRateCode = rateData.ratecode;
+                const obc = rateData.obc || 0; // OBC pre-calculated by backend
 
-          // Extract fare and discount items
-          const fareItems = breakdownItems.filter(
-            (item: any) => item.category?.toLowerCase() === "fare",
-          );
-          const discountItems = breakdownItems.filter(
-            (item: any) => item.category?.toLowerCase() === "discount",
-          );
+                if (resultNo && gradeNo && actualRateCode) {
+                  const cabinKey = `${resultNo}-${gradeNo}-${actualRateCode}`;
+                  newCommissionableFares[cabinKey] = obc;
 
-          // Build per-guest commissionable fares (fare + discount per guest)
-          const guestCommissionableFares = new Map<string, number>();
-
-          // Add base fares per guest
-          fareItems.forEach((fareItem: any) => {
-            if (fareItem.prices && Array.isArray(fareItem.prices)) {
-              fareItem.prices.forEach((priceItem: any) => {
-                const guestNo =
-                  priceItem.guestno ||
-                  String(guestCommissionableFares.size + 1);
-                const guestFare = parseFloat(
-                  priceItem.sprice || priceItem.price || 0,
-                );
-                if (guestFare > 0) {
-                  guestCommissionableFares.set(
-                    guestNo,
-                    (guestCommissionableFares.get(guestNo) || 0) + guestFare,
-                  );
+                  if (obc > 0) {
+                    console.log(
+                      `💰 OBC for cabin ${cabin.code || cabin.name} (${actualRateCode}): $${obc}`,
+                    );
+                  }
                 }
-              });
-            }
-          });
-
-          // Apply discounts per guest
-          discountItems.forEach((discountItem: any) => {
-            if (discountItem.prices && Array.isArray(discountItem.prices)) {
-              discountItem.prices.forEach((priceItem: any) => {
-                const guestNo =
-                  priceItem.guestno || String(guestCommissionableFares.size);
-                const discountAmount = parseFloat(
-                  priceItem.sprice || priceItem.price || 0,
-                );
-                guestCommissionableFares.set(
-                  guestNo,
-                  (guestCommissionableFares.get(guestNo) || 0) + discountAmount,
-                );
-              });
-            }
-          });
-
-          // Calculate total OBC (10% of net commissionable fares per guest, rounded down to nearest $10)
-          let totalObc = 0;
-          guestCommissionableFares.forEach((commissionableFare) => {
-            if (commissionableFare > 0) {
-              const guestObc = Math.floor((commissionableFare * 0.1) / 10) * 10;
-              totalObc += guestObc;
-            }
-          });
-
-          return totalObc;
-        };
-
-        // Fetch breakdowns for ALL cabins in parallel
-        const breakdownPromises = pricingData.cabins
-          .filter(
-            (cabin: any) => cabin.resultNo && cabin.gradeNo && cabin.rateCode,
-          )
-          .map(async (cabin: any) => {
-            const cabinKey = `${cabin.resultNo}-${cabin.gradeNo}-${cabin.rateCode}`;
-
-            try {
-              const breakdownResponse = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/booking/${newSessionId}/cabin-breakdown?resultNo=${cabin.resultNo}&gradeNo=${cabin.gradeNo}&rateCode=${cabin.rateCode}`,
-              );
-
-              if (breakdownResponse.ok) {
-                const breakdownData = await breakdownResponse.json();
-                const obc = calculateObcFromBreakdown(breakdownData);
-
-                console.log(
-                  `💰 OBC for cabin ${cabin.code || cabinKey}: $${obc}`,
-                );
-
-                return { cabinKey, obc };
-              } else {
-                console.log(
-                  `⚠️ Failed to fetch breakdown for cabin ${cabin.code || cabinKey}`,
-                );
-                return { cabinKey, obc: 0 };
-              }
-            } catch (err) {
-              console.error(
-                `Error fetching breakdown for cabin ${cabin.code || cabinKey}:`,
-                err,
-              );
-              return { cabinKey, obc: 0 };
-            }
-          });
-
-        // Wait for all breakdowns to complete
-        const breakdownResults = await Promise.all(breakdownPromises);
-
-        // Build the commissionableFares object
-        breakdownResults.forEach(({ cabinKey, obc }) => {
-          newCommissionableFares[cabinKey] = obc;
+              },
+            );
+          }
         });
 
         console.log(
-          `✅ Calculated OBC for ${breakdownResults.length} cabins`,
+          `✅ Loaded pre-calculated OBC for ${Object.keys(newCommissionableFares).length} cabins`,
           newCommissionableFares,
         );
 
@@ -1279,6 +1196,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             cabinName: pendingReservation.cabinName,
             cabinCode: pendingReservation.cabinCode,
             expectedPrice: pendingReservation.price, // Pass cabin card price for validation
+            bonusObc: pendingReservation.bonusObc || 0, // Our bonus on-board credit (10% of commissionable fare)
             ...(pendingReservation.cabinResultNo && {
               cabinResult: pendingReservation.cabinResultNo,
             }),
@@ -1345,6 +1263,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             rateCode: pendingReservation.rateCode,
             cabinName: pendingReservation.cabinName,
             cabinCode: pendingReservation.cabinCode,
+            bonusObc: pendingReservation.bonusObc || 0, // Our bonus on-board credit (10% of commissionable fare)
             ...(pendingReservation.cabinResultNo && {
               cabinResult: pendingReservation.cabinResultNo,
             }),
@@ -2016,9 +1935,22 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                       </div>
                                       {/* OBC Display - Use per-cabin OBC amount */}
                                       {(() => {
-                                        // Build the cabin key to lookup OBC amount
-                                        const cabinKey = `${cabinPricing.resultNo}-${cabinPricing.gradeNo}-${cabinPricing.rateCode}`;
+                                        // Extract rate code from gradeNo (format: "201:CJ923867:3")
+                                        const gradeNo = cabinPricing.gradeNo;
+                                        const gradeNoParts =
+                                          gradeNo?.split(":") || [];
+                                        const rateCodeFromGrade =
+                                          gradeNoParts.length >= 2
+                                            ? gradeNoParts[1]
+                                            : cabinPricing.rateCode;
+
+                                        // Build the cabin key using the rate code from gradeNo
+                                        const cabinKey = `${cabinPricing.resultNo}-${cabinPricing.gradeNo}-${rateCodeFromGrade}`;
                                         const obcAmount = obcAmounts[cabinKey];
+
+                                        console.log(
+                                          `🔍 OBC Lookup for ${cabin.code}: key="${cabinKey}", obcAmount=${obcAmount}, gradeNo=${gradeNo}, rateCodeFromGrade=${rateCodeFromGrade}`,
+                                        );
 
                                         if (obcAmount && obcAmount > 0) {
                                           console.log(
@@ -2059,6 +1991,19 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                               return;
                                             }
 
+                                            // Get OBC amount for this cabin
+                                            const gradeNo =
+                                              cabinPricing.gradeNo;
+                                            const gradeNoParts =
+                                              gradeNo?.split(":") || [];
+                                            const rateCodeFromGrade =
+                                              gradeNoParts.length >= 2
+                                                ? gradeNoParts[1]
+                                                : cabinPricing.rateCode;
+                                            const cabinKey = `${cabinPricing.resultNo}-${cabinPricing.gradeNo}-${rateCodeFromGrade}`;
+                                            const obcAmount =
+                                              obcAmounts[cabinKey] || 0;
+
                                             // Store pending reservation and show hold modal
                                             console.log(
                                               "💰 RESERVE CLICKED - Cabin Pricing Data:",
@@ -2073,6 +2018,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                                 gradeNo: cabinPricing.gradeNo,
                                                 rateCode: cabinPricing.rateCode,
                                                 cabinName: cabin.name,
+                                                obc: obcAmount,
                                                 note: "Price from Traveltek cabin grades is TOTAL for all passengers, not per-person",
                                               },
                                             );
@@ -2084,9 +2030,23 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                                 cabin.name || cabin.category,
                                               cabinCode: cabin.code,
                                               price: cabinPricing.price,
+                                              bonusObc: obcAmount,
                                             });
                                             setIsHoldModalOpen(true);
                                           } else {
+                                            // Get OBC amount for this cabin
+                                            const gradeNo =
+                                              cabinPricing.gradeNo;
+                                            const gradeNoParts =
+                                              gradeNo?.split(":") || [];
+                                            const rateCodeFromGrade =
+                                              gradeNoParts.length >= 2
+                                                ? gradeNoParts[1]
+                                                : cabinPricing.rateCode;
+                                            const cabinKey = `${cabinPricing.resultNo}-${cabinPricing.gradeNo}-${rateCodeFromGrade}`;
+                                            const obcAmount =
+                                              obcAmounts[cabinKey] || 0;
+
                                             // For specific cabins, open modal (using selected rate)
                                             console.log(
                                               "Opening specific cabin modal with data:",
@@ -2096,6 +2056,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                                 rateCode: cabinPricing.rateCode,
                                                 selectedRateCode:
                                                   selectedRateCode,
+                                                obc: obcAmount,
                                                 fullCabin: cabin,
                                               },
                                             );
@@ -2108,6 +2069,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                                 cabin.name ||
                                                 cabin.gradeName ||
                                                 cabin.category,
+                                              obc: obcAmount,
                                             });
                                             setIsSpecificCabinModalOpen(true);
                                           }
@@ -2203,8 +2165,28 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         </p>
                       </div>
 
-                      {/* Button with Pricing Inside */}
-                      <div className="flex flex-1 justify-end px-0 md:px-8">
+                      {/* Button with Pricing Next to It */}
+                      <div className="flex flex-1 justify-end items-center gap-4 px-0 md:px-8">
+                        {/* Pricing Display for Non-Live-Bookable Cruises */}
+                        {!isLiveBookable && (
+                          <div className="font-geograph text-right">
+                            {isPriceAvailable(getCabinPrice("interior")) ? (
+                              <div className="text-dark-blue">
+                                <div className="text-[12px] text-gray-600">
+                                  Starting from
+                                </div>
+                                <div className="text-[20px] font-bold">
+                                  ${formatPrice(getCabinPrice("interior"))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-[14px] text-gray-500">
+                                Unavailable
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <button
                           onClick={() =>
                             handleGetQuote(
@@ -2271,8 +2253,28 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         </p>
                       </div>
 
-                      {/* Button with Pricing Inside */}
-                      <div className="flex flex-1 justify-end px-0 md:px-8">
+                      {/* Button with Pricing Next to It */}
+                      <div className="flex flex-1 justify-end items-center gap-4 px-0 md:px-8">
+                        {/* Pricing Display for Non-Live-Bookable Cruises */}
+                        {!isLiveBookable && (
+                          <div className="font-geograph text-right">
+                            {isPriceAvailable(getCabinPrice("oceanview")) ? (
+                              <div className="text-dark-blue">
+                                <div className="text-[12px] text-gray-600">
+                                  Starting from
+                                </div>
+                                <div className="text-[20px] font-bold">
+                                  ${formatPrice(getCabinPrice("oceanview"))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-[14px] text-gray-500">
+                                Unavailable
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <button
                           onClick={() =>
                             handleGetQuote(
@@ -2339,8 +2341,28 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         </p>
                       </div>
 
-                      {/* Button with Pricing Inside */}
-                      <div className="flex flex-1 justify-end px-0 md:px-8">
+                      {/* Button with Pricing Next to It */}
+                      <div className="flex flex-1 justify-end items-center gap-4 px-0 md:px-8">
+                        {/* Pricing Display for Non-Live-Bookable Cruises */}
+                        {!isLiveBookable && (
+                          <div className="font-geograph text-right">
+                            {isPriceAvailable(getCabinPrice("balcony")) ? (
+                              <div className="text-dark-blue">
+                                <div className="text-[12px] text-gray-600">
+                                  Starting from
+                                </div>
+                                <div className="text-[20px] font-bold">
+                                  ${formatPrice(getCabinPrice("balcony"))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-[14px] text-gray-500">
+                                Unavailable
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <button
                           onClick={() =>
                             handleGetQuote(
@@ -2404,8 +2426,28 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       </p>
                     </div>
 
-                    {/* Button with Pricing Inside */}
-                    <div className="flex flex-1 justify-end px-0 md:px-8">
+                    {/* Button with Pricing Next to It */}
+                    <div className="flex flex-1 justify-end items-center gap-4 px-0 md:px-8">
+                      {/* Pricing Display for Non-Live-Bookable Cruises */}
+                      {!isLiveBookable && (
+                        <div className="font-geograph text-right">
+                          {isPriceAvailable(getCabinPrice("suite")) ? (
+                            <div className="text-dark-blue">
+                              <div className="text-[12px] text-gray-600">
+                                Starting from
+                              </div>
+                              <div className="text-[20px] font-bold">
+                                ${formatPrice(getCabinPrice("suite"))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-[14px] text-gray-500">
+                              Unavailable
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <button
                         onClick={() =>
                           handleGetQuote(
