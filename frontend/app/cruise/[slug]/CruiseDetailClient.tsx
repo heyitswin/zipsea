@@ -413,42 +413,58 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           return totalObc;
         };
 
-        // Fetch breakdowns for ALL cabins in parallel
-        const breakdownPromises = pricingData.cabins
-          .filter(
-            (cabin: any) => cabin.resultNo && cabin.gradeNo && cabin.rateCode,
-          )
-          .map(async (cabin: any) => {
-            const cabinKey = `${cabin.resultNo}-${cabin.gradeNo}-${cabin.rateCode}`;
+        // Fetch breakdowns for ALL cabin rate variants in parallel
+        const breakdownPromises: Promise<{ cabinKey: string; obc: number }>[] =
+          [];
 
-            try {
-              const breakdownResponse = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/booking/${newSessionId}/cabin-breakdown?resultNo=${cabin.resultNo}&gradeNo=${cabin.gradeNo}&rateCode=${cabin.rateCode}`,
-              );
+        pricingData.cabins.forEach((cabin: any) => {
+          // Each cabin can have multiple rate codes in ratesByCode
+          if (cabin.ratesByCode && typeof cabin.ratesByCode === "object") {
+            Object.entries(cabin.ratesByCode).forEach(
+              ([rateCode, rateData]: [string, any]) => {
+                const resultNo = rateData.resultno || cabin.resultNo;
+                const gradeNo = rateData.gradeno;
+                const actualRateCode = rateData.ratecode;
 
-              if (breakdownResponse.ok) {
-                const breakdownData = await breakdownResponse.json();
-                const obc = calculateObcFromBreakdown(breakdownData);
+                if (resultNo && gradeNo && actualRateCode) {
+                  const cabinKey = `${resultNo}-${gradeNo}-${actualRateCode}`;
 
-                console.log(
-                  `💰 OBC for cabin ${cabin.code || cabinKey}: $${obc}`,
-                );
+                  const promise = (async () => {
+                    try {
+                      const breakdownResponse = await fetch(
+                        `${process.env.NEXT_PUBLIC_API_URL}/booking/${newSessionId}/cabin-breakdown?resultNo=${resultNo}&gradeNo=${gradeNo}&rateCode=${actualRateCode}`,
+                      );
 
-                return { cabinKey, obc };
-              } else {
-                console.log(
-                  `⚠️ Failed to fetch breakdown for cabin ${cabin.code || cabinKey}`,
-                );
-                return { cabinKey, obc: 0 };
-              }
-            } catch (err) {
-              console.error(
-                `Error fetching breakdown for cabin ${cabin.code || cabinKey}:`,
-                err,
-              );
-              return { cabinKey, obc: 0 };
-            }
-          });
+                      if (breakdownResponse.ok) {
+                        const breakdownData = await breakdownResponse.json();
+                        const obc = calculateObcFromBreakdown(breakdownData);
+
+                        console.log(
+                          `💰 OBC for cabin ${cabin.code || cabin.name} (${actualRateCode}): $${obc}`,
+                        );
+
+                        return { cabinKey, obc };
+                      } else {
+                        console.log(
+                          `⚠️ Failed to fetch breakdown for cabin ${cabin.code || cabin.name} (${actualRateCode})`,
+                        );
+                        return { cabinKey, obc: 0 };
+                      }
+                    } catch (err) {
+                      console.error(
+                        `Error fetching breakdown for cabin ${cabin.code || cabin.name} (${actualRateCode}):`,
+                        err,
+                      );
+                      return { cabinKey, obc: 0 };
+                    }
+                  })();
+
+                  breakdownPromises.push(promise);
+                }
+              },
+            );
+          }
+        });
 
         // Wait for all breakdowns to complete
         const breakdownResults = await Promise.all(breakdownPromises);
