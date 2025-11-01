@@ -82,6 +82,11 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     Record<string, number>
   >({});
 
+  // Track which cabin codes are currently having OBC calculated
+  const [loadingObcCabins, setLoadingObcCabins] = useState<Set<string>>(
+    new Set(),
+  );
+
   // Auto-select first available cabin type when cabin data loads
   useEffect(() => {
     if (liveCabinGrades?.cabins && liveCabinGrades.cabins.length > 0) {
@@ -182,8 +187,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       return;
     }
 
-    // Check if OBC is already calculated for these cabins
-    const needsObc = visibleCabins.some((cabin: any) => {
+    // Filter to only cabins that need OBC calculated
+    const cabinsNeedingObc = visibleCabins.filter((cabin: any) => {
       if (cabin.ratesByCode && typeof cabin.ratesByCode === "object") {
         const firstRateCode = Object.keys(cabin.ratesByCode)[0];
         if (firstRateCode) {
@@ -200,17 +205,22 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       return false;
     });
 
-    if (!needsObc) {
+    if (cabinsNeedingObc.length === 0) {
       console.log("⏭️ OBC already calculated for all visible cabins");
       return;
     }
 
+    // Extract codes only for cabins needing OBC
+    const cabinCodesToCalculate = cabinsNeedingObc
+      .map((cabin: any) => cabin.code)
+      .filter((code: string) => code);
+
     console.log(
-      `⚡ Progressive loading triggered for category: ${selectedCabinCategory}, visible cabins: ${visibleCabinCodes.length}`,
+      `⚡ Progressive loading triggered for category: ${selectedCabinCategory}, calculating OBC for ${cabinCodesToCalculate.length} cabins out of ${visibleCabinCodes.length} visible`,
     );
 
-    // Calculate OBC for visible cabins only
-    calculateObcForCabins(visibleCabinCodes);
+    // Calculate OBC for only the cabins that need it
+    calculateObcForCabins(cabinCodesToCalculate);
   }, [
     isLiveBookable,
     liveCabinGrades,
@@ -342,6 +352,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       cabinCodes,
     );
 
+    // Mark these cabins as loading
+    setLoadingObcCabins((prev) => {
+      const updated = new Set(prev);
+      cabinCodes.forEach((code) => updated.add(code));
+      return updated;
+    });
+
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/calculate-obc`,
@@ -404,6 +421,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     } catch (err) {
       console.error("Failed to calculate OBC for cabins:", err);
       // Don't show alert - OBC is optional bonus, not critical
+    } finally {
+      // Remove these cabins from loading state
+      setLoadingObcCabins((prev) => {
+        const updated = new Set(prev);
+        cabinCodes.forEach((code) => updated.delete(code));
+        return updated;
+      });
     }
   };
 
@@ -2151,6 +2175,19 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                         console.log(
                                           `🔍 OBC Lookup for ${cabin.code}: key="${cabinKey}", obcAmount=${obcAmount}, gradeNo=${gradeNo}, rateCodeFromGrade=${rateCodeFromGrade}`,
                                         );
+
+                                        // Check if this cabin's OBC is currently being calculated
+                                        const isLoadingObc =
+                                          loadingObcCabins.has(cabin.code);
+
+                                        if (isLoadingObc) {
+                                          // Show shimmer while OBC is being calculated
+                                          return (
+                                            <div className="font-geograph font-medium text-[11px] md:text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[3px] inline-block mt-1 animate-pulse">
+                                              <div className="h-3 w-32 bg-white/30 rounded"></div>
+                                            </div>
+                                          );
+                                        }
 
                                         if (obcAmount && obcAmount > 0) {
                                           console.log(
