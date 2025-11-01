@@ -735,8 +735,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     const liveBookingEnabled =
       process.env.NEXT_PUBLIC_ENABLE_LIVE_BOOKING === "true";
 
-    // Royal Caribbean (22) and Celebrity (3) are live-bookable
-    const liveBookingLineIds = [22, 3];
+    // Royal Caribbean (22), Celebrity (3), and Carnival (8) are live-bookable
+    const liveBookingLineIds = [22, 3, 8];
     const cruiseLineId = cruiseData.cruiseLine?.id;
     const isLiveBooking =
       liveBookingEnabled && cruiseLineId
