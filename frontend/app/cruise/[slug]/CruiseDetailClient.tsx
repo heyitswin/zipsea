@@ -459,16 +459,19 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         // DEBUG: Log first cabin's ratesByCode to see actual structure
         if (pricingData.cabins && pricingData.cabins[0]) {
           const firstCabin = pricingData.cabins[0];
+          const firstRateCode = Object.keys(firstCabin.ratesByCode || {})[0];
+          const firstRateData = firstCabin.ratesByCode?.[firstRateCode];
           console.log("🔍 DEBUG First cabin structure:", {
             code: firstCabin.code,
             rateCode: firstCabin.rateCode,
             gradeNo: firstCabin.gradeNo,
             resultNo: firstCabin.resultNo,
             ratesByCodeKeys: Object.keys(firstCabin.ratesByCode || {}),
-            firstRateData:
-              firstCabin.ratesByCode?.[
-                Object.keys(firstCabin.ratesByCode || {})[0]
-              ],
+            firstRateCode: firstRateCode,
+            firstRateData: firstRateData,
+            hasBreakdown: !!firstRateData?.breakdown,
+            breakdownLength: firstRateData?.breakdown?.length || 0,
+            breakdownSample: firstRateData?.breakdown?.slice(0, 2),
           });
         }
 
