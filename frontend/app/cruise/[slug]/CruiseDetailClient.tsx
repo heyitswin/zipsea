@@ -139,36 +139,34 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       commissionableFares,
     );
 
+    // For live bookings, commissionableFares contains per-cabin OBC amounts with cabin keys
+    // For non-live bookings, calculate category-level OBC from cached prices
+    if (isLiveBookable && Object.keys(commissionableFares).length > 0) {
+      console.log(
+        `💰 Using pre-calculated per-cabin OBC for ${Object.keys(commissionableFares).length} cabins`,
+      );
+      return commissionableFares;
+    }
+
+    // Non-live bookings: calculate category-level OBC from cached prices
     const cabinTypes = ["interior", "oceanview", "balcony", "suite"] as const;
     const amounts: Record<string, number> = {};
 
     for (const cabinType of cabinTypes) {
-      // For live bookings, commissionableFares already contains the calculated OBC amounts
-      const liveObc = commissionableFares[cabinType];
+      const priceField = `${cabinType}Price` as keyof typeof cruiseData;
+      const cachedPrice = cruiseData?.[priceField];
 
-      if (liveObc && isLiveBookable) {
-        // Use the pre-calculated OBC amount directly (already 10% of commissionable fares)
-        amounts[cabinType] = liveObc;
-        console.log(
-          `💰 OBC for ${cabinType}: $${liveObc} (from per-guest breakdown)`,
-        );
-      } else {
-        // For non-live bookings, calculate 8% from cached prices
-        const priceField = `${cabinType}Price` as keyof typeof cruiseData;
-        const cachedPrice = cruiseData?.[priceField];
-
-        if (cachedPrice) {
-          const numPrice =
-            typeof cachedPrice === "string"
-              ? parseFloat(cachedPrice)
-              : cachedPrice;
-          if (numPrice && !isNaN(numPrice)) {
-            const rawCredit = numPrice * 0.08;
-            amounts[cabinType] = Math.floor(rawCredit / 10) * 10;
-            console.log(
-              `💰 OBC for ${cabinType}: $${amounts[cabinType]} (8% from cached price: $${cachedPrice})`,
-            );
-          }
+      if (cachedPrice) {
+        const numPrice =
+          typeof cachedPrice === "string"
+            ? parseFloat(cachedPrice)
+            : cachedPrice;
+        if (numPrice && !isNaN(numPrice)) {
+          const rawCredit = numPrice * 0.08;
+          amounts[cabinType] = Math.floor(rawCredit / 10) * 10;
+          console.log(
+            `💰 OBC for ${cabinType}: $${amounts[cabinType]} (8% from cached price: $${cachedPrice})`,
+          );
         }
       }
     }
