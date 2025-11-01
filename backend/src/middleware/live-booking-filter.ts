@@ -2,18 +2,28 @@ import { Request, Response, NextFunction } from 'express';
 import { env } from '../config/environment';
 
 /**
- * Middleware to automatically filter searches to only live-bookable cruise lines
+ * Middleware to filter searches to only live-bookable cruise lines when requested
  *
- * When TRAVELTEK_LIVE_BOOKING_ENABLED is true, this middleware:
- * 1. Adds cruise line filter to all search requests
- * 2. Only shows Royal Caribbean (22) and Celebrity (3)
+ * When instantBooking=true query parameter is set, this middleware:
+ * 1. Adds cruise line filter to search requests
+ * 2. Only shows Royal Caribbean (22), Celebrity (3), and Carnival (8)
  * 3. Improves performance by reducing the search space
  *
- * This ensures users only see cruises they can actually book live.
+ * When instantBooking=false or not set:
+ * - Does nothing - shows all cruise lines
+ *
+ * Note: instantBooking filter is OFF by default
  */
 export function liveBookingFilter(req: Request, res: Response, next: NextFunction): void {
-  // Only apply filter if live booking is enabled
+  // Only apply filter if instant booking is explicitly requested
+  // The filter is OFF by default - user must toggle it ON
+  if (req.query.instantBooking !== 'true') {
+    return next();
+  }
+
+  // Check if live booking is enabled in environment
   if (!env.TRAVELTEK_LIVE_BOOKING_ENABLED) {
+    // If not enabled, show all cruises even if filter is toggled
     return next();
   }
 
