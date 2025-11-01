@@ -1288,7 +1288,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             cabinName: pendingReservation.cabinName,
             cabinCode: pendingReservation.cabinCode,
             expectedPrice: pendingReservation.price, // Pass cabin card price for validation
-            obc: pendingReservation.obc || 0, // On-board credit amount for this cabin
+            bonusObc: pendingReservation.bonusObc || 0, // Our bonus on-board credit (10% of commissionable fare)
             ...(pendingReservation.cabinResultNo && {
               cabinResult: pendingReservation.cabinResultNo,
             }),
@@ -1355,7 +1355,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             rateCode: pendingReservation.rateCode,
             cabinName: pendingReservation.cabinName,
             cabinCode: pendingReservation.cabinCode,
-            obc: pendingReservation.obc || 0, // On-board credit amount for this cabin
+            bonusObc: pendingReservation.bonusObc || 0, // Our bonus on-board credit (10% of commissionable fare)
             ...(pendingReservation.cabinResultNo && {
               cabinResult: pendingReservation.cabinResultNo,
             }),
