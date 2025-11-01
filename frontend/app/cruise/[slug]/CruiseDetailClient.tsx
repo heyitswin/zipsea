@@ -1949,8 +1949,17 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                       </div>
                                       {/* OBC Display - Use per-cabin OBC amount */}
                                       {(() => {
-                                        // Build the cabin key to lookup OBC amount
-                                        const cabinKey = `${cabinPricing.resultNo}-${cabinPricing.gradeNo}-${cabinPricing.rateCode}`;
+                                        // Extract rate code from gradeNo (format: "201:CJ923867:3")
+                                        const gradeNo = cabinPricing.gradeNo;
+                                        const gradeNoParts =
+                                          gradeNo?.split(":") || [];
+                                        const rateCodeFromGrade =
+                                          gradeNoParts.length >= 2
+                                            ? gradeNoParts[1]
+                                            : cabinPricing.rateCode;
+
+                                        // Build the cabin key using the rate code from gradeNo
+                                        const cabinKey = `${cabinPricing.resultNo}-${cabinPricing.gradeNo}-${rateCodeFromGrade}`;
                                         const obcAmount = obcAmounts[cabinKey];
 
                                         if (obcAmount && obcAmount > 0) {
