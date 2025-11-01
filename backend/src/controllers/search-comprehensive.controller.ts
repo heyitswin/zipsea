@@ -107,6 +107,11 @@ class SearchComprehensiveController {
           }
 
           // Instant booking off - return user selection or undefined (all cruise lines)
+          logger.info('❌ Instant booking filter OFF', {
+            instantBookingParam: req.query.instantBooking,
+            userSelectedLines,
+            willShowAllLines: userSelectedLines === undefined,
+          });
           return userSelectedLines;
         })(),
         shipId: (() => {
