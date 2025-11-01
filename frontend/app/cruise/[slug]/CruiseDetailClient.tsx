@@ -383,7 +383,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             }
           });
 
-          // Apply discounts per guest
+          // Apply discounts per guest (subtract from commissionable fare)
+          // OBC = (commissionable fare for guest 1 - discounts for guest 1) * 10%
           discountItems.forEach((discountItem: any) => {
             if (discountItem.prices && Array.isArray(discountItem.prices)) {
               discountItem.prices.forEach((priceItem: any) => {
@@ -392,9 +393,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 const discountAmount = parseFloat(
                   priceItem.sprice || priceItem.price || 0,
                 );
+                // Discounts may come as negative or positive values
+                // Always subtract to ensure correct calculation
+                const discountToApply = Math.abs(discountAmount);
                 guestCommissionableFares.set(
                   guestNo,
-                  (guestCommissionableFares.get(guestNo) || 0) + discountAmount,
+                  (guestCommissionableFares.get(guestNo) || 0) -
+                    discountToApply,
                 );
               });
             }
