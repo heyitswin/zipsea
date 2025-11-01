@@ -884,41 +884,43 @@ export default function CruisesContent() {
           {/* Left Sidebar - Filters (Desktop Only) */}
           <aside className="hidden md:block w-64 flex-shrink-0">
             <div className="space-y-4">
-              {/* Instant Booking Filter - Pill Style */}
-              <button
-                onClick={() => {
-                  const newValue = !instantBookingOnly;
-                  if (typeof window !== "undefined") {
-                    localStorage.setItem(
-                      "instantBookingPreference",
-                      String(newValue),
-                    );
-                  }
-                  updateURLParams({
-                    instantBooking: newValue ? "true" : "false",
-                    page: 1,
-                  });
-                }}
-                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-full font-geograph font-medium text-[14px] transition-colors ${
-                  instantBookingOnly
-                    ? "bg-[#2238C3] text-white"
-                    : "bg-white text-[#0E1B4D] border border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                <Image
-                  src="/images/bolt.svg"
-                  alt="Instant Booking"
-                  width={10}
-                  height={15}
-                  className={instantBookingOnly ? "" : "brightness-0"}
-                  style={{
-                    filter: instantBookingOnly
-                      ? "brightness(0) invert(1)"
-                      : "none",
+              {/* Instant Booking Filter - Pill Style (only show if live booking is enabled) */}
+              {process.env.NEXT_PUBLIC_ENABLE_LIVE_BOOKING === "true" && (
+                <button
+                  onClick={() => {
+                    const newValue = !instantBookingOnly;
+                    if (typeof window !== "undefined") {
+                      localStorage.setItem(
+                        "instantBookingPreference",
+                        String(newValue),
+                      );
+                    }
+                    updateURLParams({
+                      instantBooking: newValue ? "true" : "false",
+                      page: 1,
+                    });
                   }}
-                />
-                <span>Instant Booking</span>
-              </button>
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-full font-geograph font-medium text-[14px] transition-colors ${
+                    instantBookingOnly
+                      ? "bg-[#2238C3] text-white"
+                      : "bg-white text-[#0E1B4D] border border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  <Image
+                    src="/images/bolt.svg"
+                    alt="Instant Booking"
+                    width={10}
+                    height={15}
+                    className={instantBookingOnly ? "" : "brightness-0"}
+                    style={{
+                      filter: instantBookingOnly
+                        ? "brightness(0) invert(1)"
+                        : "none",
+                    }}
+                  />
+                  <span>Instant Booking</span>
+                </button>
+              )}
 
               {/* Cruise Lines Dropdown */}
               <div className="relative" ref={cruiseLineDropdownRef}>
@@ -2036,41 +2038,43 @@ export default function CruisesContent() {
 
               {/* All Filter Options */}
               <div className="space-y-6">
-                {/* Instant Booking Filter - Pill Style */}
-                <button
-                  onClick={() => {
-                    const newValue = !instantBookingOnly;
-                    if (typeof window !== "undefined") {
-                      localStorage.setItem(
-                        "instantBookingPreference",
-                        String(newValue),
-                      );
-                    }
-                    updateURLParams({
-                      instantBooking: newValue ? "true" : "false",
-                      page: 1,
-                    });
-                  }}
-                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full font-geograph font-medium text-[16px] transition-colors ${
-                    instantBookingOnly
-                      ? "bg-[#2238C3] text-white"
-                      : "bg-white text-[#0E1B4D] border border-gray-300 hover:bg-gray-50"
-                  }`}
-                >
-                  <Image
-                    src="/images/bolt.svg"
-                    alt="Instant Booking"
-                    width={10}
-                    height={15}
-                    className={instantBookingOnly ? "" : "brightness-0"}
-                    style={{
-                      filter: instantBookingOnly
-                        ? "brightness(0) invert(1)"
-                        : "none",
+                {/* Instant Booking Filter - Pill Style (only show if live booking is enabled) */}
+                {process.env.NEXT_PUBLIC_ENABLE_LIVE_BOOKING === "true" && (
+                  <button
+                    onClick={() => {
+                      const newValue = !instantBookingOnly;
+                      if (typeof window !== "undefined") {
+                        localStorage.setItem(
+                          "instantBookingPreference",
+                          String(newValue),
+                        );
+                      }
+                      updateURLParams({
+                        instantBooking: newValue ? "true" : "false",
+                        page: 1,
+                      });
                     }}
-                  />
-                  <span>Instant Booking</span>
-                </button>
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full font-geograph font-medium text-[16px] transition-colors ${
+                      instantBookingOnly
+                        ? "bg-[#2238C3] text-white"
+                        : "bg-white text-[#0E1B4D] border border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    <Image
+                      src="/images/bolt.svg"
+                      alt="Instant Booking"
+                      width={10}
+                      height={15}
+                      className={instantBookingOnly ? "" : "brightness-0"}
+                      style={{
+                        filter: instantBookingOnly
+                          ? "brightness(0) invert(1)"
+                          : "none",
+                      }}
+                    />
+                    <span>Instant Booking</span>
+                  </button>
+                )}
 
                 {/* Cruise Lines Dropdown */}
                 <div className="relative" ref={cruiseLineDropdownRef}>
