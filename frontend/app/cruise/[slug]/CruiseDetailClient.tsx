@@ -184,6 +184,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     gradeNo: string;
     rateCode: string;
     gradeName: string;
+    obc?: number; // Our bonus on-board credit (10% of commissionable fare)
   } | null>(null);
 
   // Local passenger count state for steppers
@@ -206,6 +207,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     cabinName: string;
     cabinCode?: string; // Cabin grade code (e.g., "ZI", "4D")
     price: number;
+    bonusObc?: number; // Our bonus on-board credit (10% of commissionable fare)
     cabinResultNo?: string; // For specific cabin selection
   } | null>(null);
 
@@ -349,8 +351,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       if (pricingData.cabins && Array.isArray(pricingData.cabins)) {
         const newCommissionableFares: Record<string, number> = {};
 
-        // Helper function to calculate our bonus OBC from breakdown data
-        // Bonus OBC = 10% of commissionable fare per guest, rounded down to nearest $10
+        // Helper function to calculate OBC from breakdown data
+        // OBC = 10% of commissionable fare per guest, rounded down to nearest $10
         const calculateObcFromBreakdown = (breakdownItems: any[]): number => {
           // Extract fare and discount items
           const fareItems = breakdownItems.filter(
@@ -384,7 +386,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           });
 
           // Apply discounts per guest (subtract from commissionable fare)
-          // Bonus OBC = (commissionable fare for guest 1 - discounts for guest 1) * 10%
+          // OBC = (commissionable fare for guest 1 - discounts for guest 1) * 10%
           discountItems.forEach((discountItem: any) => {
             if (discountItem.prices && Array.isArray(discountItem.prices)) {
               discountItem.prices.forEach((priceItem: any) => {
@@ -405,7 +407,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             }
           });
 
-          // Calculate total bonus OBC (10% of net commissionable fares per guest, rounded down to nearest $10)
+          // Calculate total OBC (10% of net commissionable fares per guest, rounded down to nearest $10)
           let totalObc = 0;
           guestCommissionableFares.forEach((commissionableFare) => {
             if (commissionableFare > 0) {
@@ -417,8 +419,8 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           return totalObc;
         };
 
-        // Calculate our bonus OBC from breakdown data for each cabin rate
-        // Backend provides breakdown data, frontend calculates bonus OBC based on actual passenger count
+        // Calculate OBC from breakdown data for each cabin rate
+        // Backend provides breakdown data, frontend calculates OBC based on actual passenger count
         pricingData.cabins.forEach((cabin: any) => {
           if (cabin.ratesByCode && typeof cabin.ratesByCode === "object") {
             Object.entries(cabin.ratesByCode).forEach(
@@ -435,12 +437,12 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   breakdown.length > 0
                 ) {
                   const cabinKey = `${resultNo}-${gradeNo}-${actualRateCode}`;
-                  const bonusObc = calculateObcFromBreakdown(breakdown);
-                  newCommissionableFares[cabinKey] = bonusObc;
+                  const obc = calculateObcFromBreakdown(breakdown);
+                  newCommissionableFares[cabinKey] = obc;
 
-                  if (bonusObc > 0) {
+                  if (obc > 0) {
                     console.log(
-                      `💰 Bonus OBC for cabin ${cabin.code || cabin.name} (${actualRateCode}): $${bonusObc}`,
+                      `💰 OBC for cabin ${cabin.code || cabin.name} (${actualRateCode}): $${obc}`,
                     );
                   }
                 }
@@ -450,7 +452,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         });
 
         console.log(
-          `✅ Calculated bonus OBC for ${Object.keys(newCommissionableFares).length} cabins`,
+          `✅ Calculated OBC for ${Object.keys(newCommissionableFares).length} cabins`,
           newCommissionableFares,
         );
 
@@ -1286,7 +1288,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             cabinName: pendingReservation.cabinName,
             cabinCode: pendingReservation.cabinCode,
             expectedPrice: pendingReservation.price, // Pass cabin card price for validation
-            obc: pendingReservation.bonusObc || 0, // On-board credit amount for this cabin
+            obc: pendingReservation.obc || 0, // On-board credit amount for this cabin
             ...(pendingReservation.cabinResultNo && {
               cabinResult: pendingReservation.cabinResultNo,
             }),
@@ -1353,7 +1355,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
             rateCode: pendingReservation.rateCode,
             cabinName: pendingReservation.cabinName,
             cabinCode: pendingReservation.cabinCode,
-            obc: pendingReservation.bonusObc || 0, // On-board credit amount for this cabin
+            obc: pendingReservation.obc || 0, // On-board credit amount for this cabin
             ...(pendingReservation.cabinResultNo && {
               cabinResult: pendingReservation.cabinResultNo,
             }),
@@ -2108,7 +2110,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                                 gradeNo: cabinPricing.gradeNo,
                                                 rateCode: cabinPricing.rateCode,
                                                 cabinName: cabin.name,
-                                                bonusObc: obcAmount,
+                                                obc: obcAmount,
                                                 note: "Price from Traveltek cabin grades is TOTAL for all passengers, not per-person",
                                               },
                                             );
@@ -2120,7 +2122,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                                 cabin.name || cabin.category,
                                               cabinCode: cabin.code,
                                               price: cabinPricing.price,
-                                              bonusObc: obcAmount,
+                                              obc: obcAmount,
                                             });
                                             setIsHoldModalOpen(true);
                                           } else {
@@ -2146,7 +2148,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                                 rateCode: cabinPricing.rateCode,
                                                 selectedRateCode:
                                                   selectedRateCode,
-                                                bonusObc: obcAmount,
+                                                obc: obcAmount,
                                                 fullCabin: cabin,
                                               },
                                             );
@@ -2159,7 +2161,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                                 cabin.name ||
                                                 cabin.gradeName ||
                                                 cabin.category,
-                                              bonusObc: obcAmount,
+                                              obc: obcAmount,
                                             });
                                             setIsSpecificCabinModalOpen(true);
                                           }
