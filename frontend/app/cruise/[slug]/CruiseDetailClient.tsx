@@ -132,6 +132,94 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     }
   }, [commissionableFares]);
 
+  // Progressive OBC loading: Calculate OBC for visible cabins
+  useEffect(() => {
+    if (!isLiveBookable || !liveCabinGrades?.cabins || !sessionId) {
+      return;
+    }
+
+    // Check if OBC is already calculated (skip if pre-calculated)
+    const hasPreCalculatedObc = liveCabinGrades.cabins.some((cabin: any) => {
+      if (cabin.ratesByCode && typeof cabin.ratesByCode === "object") {
+        return Object.values(cabin.ratesByCode).some(
+          (rateData: any) =>
+            rateData.obc !== null && rateData.obc !== undefined,
+        );
+      }
+      return false;
+    });
+
+    if (hasPreCalculatedObc) {
+      console.log(
+        "⏭️ Skipping progressive OBC loading - already pre-calculated",
+      );
+      return;
+    }
+
+    // Get visible cabins for the selected category
+    const categoryMap: Record<string, string> = {
+      interior: "inside",
+      oceanview: "outside",
+      balcony: "balcony",
+      suite: "suite",
+    };
+
+    const filteredCabins = liveCabinGrades.cabins.filter(
+      (cabin: any) => cabin.category === categoryMap[selectedCabinCategory],
+    );
+
+    const visibleCabins = showAllCabins[selectedCabinCategory]
+      ? filteredCabins
+      : filteredCabins.slice(0, 6);
+
+    // Extract cabin codes from visible cabins
+    const visibleCabinCodes = visibleCabins
+      .map((cabin: any) => cabin.code)
+      .filter((code: string) => code); // Remove any null/undefined codes
+
+    if (visibleCabinCodes.length === 0) {
+      console.log("⏭️ No visible cabins to calculate OBC for");
+      return;
+    }
+
+    // Check if OBC is already calculated for these cabins
+    const needsObc = visibleCabins.some((cabin: any) => {
+      if (cabin.ratesByCode && typeof cabin.ratesByCode === "object") {
+        const firstRateCode = Object.keys(cabin.ratesByCode)[0];
+        if (firstRateCode) {
+          const rateData = cabin.ratesByCode[firstRateCode];
+          const resultNo = rateData.resultno || cabin.resultNo;
+          const gradeNo = rateData.gradeno;
+          const actualRateCode = rateData.ratecode;
+          if (resultNo && gradeNo && actualRateCode) {
+            const cabinKey = `${resultNo}-${gradeNo}-${actualRateCode}`;
+            return !commissionableFares[cabinKey]; // Needs OBC if not in state
+          }
+        }
+      }
+      return false;
+    });
+
+    if (!needsObc) {
+      console.log("⏭️ OBC already calculated for all visible cabins");
+      return;
+    }
+
+    console.log(
+      `⚡ Progressive loading triggered for category: ${selectedCabinCategory}, visible cabins: ${visibleCabinCodes.length}`,
+    );
+
+    // Calculate OBC for visible cabins only
+    calculateObcForCabins(visibleCabinCodes);
+  }, [
+    isLiveBookable,
+    liveCabinGrades,
+    sessionId,
+    selectedCabinCategory,
+    showAllCabins,
+    commissionableFares,
+  ]);
+
   // Memoized OBC calculations that update when commissionableFares changes
   const obcAmounts = useMemo(() => {
     console.log(
@@ -243,6 +331,82 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     });
   };
 
+  // Helper function to calculate OBC for specific cabin codes (progressive loading)
+  const calculateObcForCabins = async (cabinCodes: string[]) => {
+    if (!sessionId || !cruiseData?.cruise?.id || cabinCodes.length === 0) {
+      return;
+    }
+
+    console.log(
+      `⚡ Calculating OBC for ${cabinCodes.length} cabins:`,
+      cabinCodes,
+    );
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/booking/${sessionId}/calculate-obc`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            cruiseId: cruiseData.cruise.id.toString(),
+            cabinCodes: cabinCodes,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to calculate OBC");
+      }
+
+      const { obcResults } = await response.json();
+      console.log("✅ Received OBC results:", obcResults);
+
+      // Merge OBC results into commissionableFares state
+      // obcResults format: { "ZI": { "DM996596": 80, "CJ923869": 80 }, "4V": { ... } }
+      setCommissionableFares((prev) => {
+        const updated = { ...prev };
+
+        // Find all cabins with these codes and update their OBC values
+        if (liveCabinGrades?.cabins) {
+          liveCabinGrades.cabins.forEach((cabin: any) => {
+            const cabinCode = cabin.code;
+            if (obcResults[cabinCode]) {
+              // This cabin has OBC calculated
+              const cabinObcMap = obcResults[cabinCode];
+
+              // Update OBC for all rate codes of this cabin
+              if (cabin.ratesByCode && typeof cabin.ratesByCode === "object") {
+                Object.keys(cabin.ratesByCode).forEach((rateCode) => {
+                  const rateData = cabin.ratesByCode[rateCode];
+                  const resultNo = rateData.resultno || cabin.resultNo;
+                  const gradeNo = rateData.gradeno;
+                  const actualRateCode = rateData.ratecode;
+
+                  if (resultNo && gradeNo && actualRateCode) {
+                    const cabinKey = `${resultNo}-${gradeNo}-${actualRateCode}`;
+                    const obc = cabinObcMap[rateCode] || 0;
+                    updated[cabinKey] = obc;
+                  }
+                });
+              }
+            }
+          });
+        }
+
+        console.log(
+          `🔄 Updated commissionableFares with ${Object.keys(updated).length} total rates`,
+        );
+        return updated;
+      });
+    } catch (err) {
+      console.error("Failed to calculate OBC for cabins:", err);
+      // Don't show alert - OBC is optional bonus, not critical
+    }
+  };
+
   // Helper function to get cabin pricing for selected rate code
   const getCabinPricingForRate = (cabin: any) => {
     console.log("🔍 getCabinPricingForRate called for cabin:", cabin.name, {
@@ -341,69 +505,83 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       });
       setLiveCabinGrades(pricingData);
 
-      // Extract pre-calculated OBC values from backend response
-      // Backend calculates OBC once per cabin and applies to all rate codes
+      // PROGRESSIVE LOADING: Backend returns obc: null, we calculate on-demand
       console.log(
-        "💰 Loading pre-calculated OBC values from backend (no API calls)...",
+        "⚡ Progressive loading enabled - OBC will be calculated for visible cabins only",
       );
 
       if (pricingData.cabins && Array.isArray(pricingData.cabins)) {
-        const newCommissionableFares: Record<string, number> = {};
-        const cabinObcSummary: Array<{
-          code: string;
-          obc: number;
-          rateCount: number;
-        }> = [];
-
-        // Extract pre-calculated OBC values from backend response
-        // Backend now calculates OBC for all cabin rates, eliminating 159 frontend API calls
-        pricingData.cabins.forEach((cabin: any) => {
-          let cabinDefaultObc = 0;
-          let rateCount = 0;
-
+        // Check if backend returned pre-calculated OBC or null (progressive loading)
+        const hasPreCalculatedObc = pricingData.cabins.some((cabin: any) => {
           if (cabin.ratesByCode && typeof cabin.ratesByCode === "object") {
-            Object.entries(cabin.ratesByCode).forEach(
-              ([rateCode, rateData]: [string, any]) => {
-                const resultNo = rateData.resultno || cabin.resultNo;
-                const gradeNo = rateData.gradeno;
-                const actualRateCode = rateData.ratecode;
-                const obc = rateData.obc || 0; // OBC pre-calculated by backend
-
-                if (resultNo && gradeNo && actualRateCode) {
-                  const cabinKey = `${resultNo}-${gradeNo}-${actualRateCode}`;
-                  newCommissionableFares[cabinKey] = obc;
-
-                  // Track cabin OBC for summary logging (only once per cabin)
-                  if (rateCount === 0) {
-                    cabinDefaultObc = obc;
-                  }
-                  rateCount++;
-                }
-              },
+            return Object.values(cabin.ratesByCode).some(
+              (rateData: any) =>
+                rateData.obc !== null && rateData.obc !== undefined,
             );
-
-            // Log once per cabin instead of per rate to reduce console spam
-            if (rateCount > 0 && cabinDefaultObc > 0) {
-              cabinObcSummary.push({
-                code: cabin.code || cabin.name,
-                obc: cabinDefaultObc,
-                rateCount,
-              });
-            }
           }
+          return false;
         });
 
-        console.log(
-          `✅ Loaded pre-calculated OBC for ${pricingData.cabins.length} cabins (${Object.keys(newCommissionableFares).length} total rates):`,
-        );
+        if (hasPreCalculatedObc) {
+          // Legacy path: Extract pre-calculated OBC values (if backend calculated them)
+          console.log(
+            "💰 Loading pre-calculated OBC values from backend (no API calls)...",
+          );
+          const newCommissionableFares: Record<string, number> = {};
+          const cabinObcSummary: Array<{
+            code: string;
+            obc: number;
+            rateCount: number;
+          }> = [];
 
-        // Log cabin OBC summary (one line per cabin, not per rate)
-        cabinObcSummary.forEach(({ code, obc, rateCount }) => {
-          console.log(`   ${code}: $${obc} (applied to ${rateCount} rates)`);
-        });
+          pricingData.cabins.forEach((cabin: any) => {
+            let cabinDefaultObc = 0;
+            let rateCount = 0;
 
-        // Update state with per-cabin OBC amounts
-        setCommissionableFares(newCommissionableFares);
+            if (cabin.ratesByCode && typeof cabin.ratesByCode === "object") {
+              Object.entries(cabin.ratesByCode).forEach(
+                ([rateCode, rateData]: [string, any]) => {
+                  const resultNo = rateData.resultno || cabin.resultNo;
+                  const gradeNo = rateData.gradeno;
+                  const actualRateCode = rateData.ratecode;
+                  const obc = rateData.obc || 0;
+
+                  if (resultNo && gradeNo && actualRateCode) {
+                    const cabinKey = `${resultNo}-${gradeNo}-${actualRateCode}`;
+                    newCommissionableFares[cabinKey] = obc;
+
+                    if (rateCount === 0) {
+                      cabinDefaultObc = obc;
+                    }
+                    rateCount++;
+                  }
+                },
+              );
+
+              if (rateCount > 0 && cabinDefaultObc > 0) {
+                cabinObcSummary.push({
+                  code: cabin.code || cabin.name,
+                  obc: cabinDefaultObc,
+                  rateCount,
+                });
+              }
+            }
+          });
+
+          console.log(
+            `✅ Loaded pre-calculated OBC for ${pricingData.cabins.length} cabins (${Object.keys(newCommissionableFares).length} total rates):`,
+          );
+          cabinObcSummary.forEach(({ code, obc, rateCount }) => {
+            console.log(`   ${code}: $${obc} (applied to ${rateCount} rates)`);
+          });
+
+          setCommissionableFares(newCommissionableFares);
+        } else {
+          // Progressive loading path: OBC will be calculated on-demand for visible cabins
+          console.log(
+            "⚡ OBC not pre-calculated - will load progressively for visible cabins",
+          );
+        }
       } else {
         console.log("⚠️ No cabins array in pricing data");
       }
