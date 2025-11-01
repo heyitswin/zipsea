@@ -735,11 +735,16 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
     const liveBookingEnabled =
       process.env.NEXT_PUBLIC_ENABLE_LIVE_BOOKING === "true";
 
-    // Royal Caribbean (22), Celebrity (3), and Carnival (8) are live-bookable
-    const liveBookingLineIds = [22, 3, 8];
+    // Get live-bookable cruise line IDs from environment variable
+    const liveBookingLineIds = process.env.NEXT_PUBLIC_LIVE_BOOKING_LINE_IDS
+      ? process.env.NEXT_PUBLIC_LIVE_BOOKING_LINE_IDS.split(",").map((id) =>
+          parseInt(id.trim(), 10),
+        )
+      : [];
+
     const cruiseLineId = cruiseData.cruiseLine?.id;
     const isLiveBooking =
-      liveBookingEnabled && cruiseLineId
+      liveBookingEnabled && cruiseLineId && liveBookingLineIds.length > 0
         ? liveBookingLineIds.includes(Number(cruiseLineId))
         : false;
     setIsLiveBookable(isLiveBooking);
