@@ -341,17 +341,26 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       });
       setLiveCabinGrades(pricingData);
 
-      // Fetch breakdown API for ALL cabins to get accurate per-guest commissionable fares
+      // Extract pre-calculated OBC values from backend response
+      // Backend calculates OBC once per cabin and applies to all rate codes
       console.log(
-        "📊 Fetching per-guest breakdowns for ALL cabins to calculate accurate OBC per cabin...",
+        "💰 Loading pre-calculated OBC values from backend (no API calls)...",
       );
 
       if (pricingData.cabins && Array.isArray(pricingData.cabins)) {
         const newCommissionableFares: Record<string, number> = {};
+        const cabinObcSummary: Array<{
+          code: string;
+          obc: number;
+          rateCount: number;
+        }> = [];
 
         // Extract pre-calculated OBC values from backend response
         // Backend now calculates OBC for all cabin rates, eliminating 159 frontend API calls
         pricingData.cabins.forEach((cabin: any) => {
+          let cabinDefaultObc = 0;
+          let rateCount = 0;
+
           if (cabin.ratesByCode && typeof cabin.ratesByCode === "object") {
             Object.entries(cabin.ratesByCode).forEach(
               ([rateCode, rateData]: [string, any]) => {
@@ -364,21 +373,34 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                   const cabinKey = `${resultNo}-${gradeNo}-${actualRateCode}`;
                   newCommissionableFares[cabinKey] = obc;
 
-                  if (obc > 0) {
-                    console.log(
-                      `💰 OBC for cabin ${cabin.code || cabin.name} (${actualRateCode}): $${obc}`,
-                    );
+                  // Track cabin OBC for summary logging (only once per cabin)
+                  if (rateCount === 0) {
+                    cabinDefaultObc = obc;
                   }
+                  rateCount++;
                 }
               },
             );
+
+            // Log once per cabin instead of per rate to reduce console spam
+            if (rateCount > 0 && cabinDefaultObc > 0) {
+              cabinObcSummary.push({
+                code: cabin.code || cabin.name,
+                obc: cabinDefaultObc,
+                rateCount,
+              });
+            }
           }
         });
 
         console.log(
-          `✅ Loaded pre-calculated OBC for ${Object.keys(newCommissionableFares).length} cabins`,
-          newCommissionableFares,
+          `✅ Loaded pre-calculated OBC for ${pricingData.cabins.length} cabins (${Object.keys(newCommissionableFares).length} total rates):`,
         );
+
+        // Log cabin OBC summary (one line per cabin, not per rate)
+        cabinObcSummary.forEach(({ code, obc, rateCount }) => {
+          console.log(`   ${code}: $${obc} (applied to ${rateCount} rates)`);
+        });
 
         // Update state with per-cabin OBC amounts
         setCommissionableFares(newCommissionableFares);
