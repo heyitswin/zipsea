@@ -6,7 +6,7 @@ import { env } from '../config/environment';
  *
  * When instantBooking=true query parameter is set, this middleware:
  * 1. Adds cruise line filter to search requests
- * 2. Only shows Royal Caribbean (22), Celebrity (3), and Carnival (8)
+ * 2. Only shows cruise lines configured in TRAVELTEK_LIVE_BOOKING_LINE_IDS env var
  * 3. Improves performance by reducing the search space
  *
  * When instantBooking=false or not set:
