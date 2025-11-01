@@ -15,6 +15,15 @@ interface PriceBreakdownItem {
   order?: number;
 }
 
+interface GuestBreakdownItem {
+  guestNumber: number;
+  fareAmount: number;
+  taxAmount: number;
+  feeAmount: number;
+  discountAmount: number;
+  total: number;
+}
+
 interface PricingData {
   cruiseFare: number;
   taxes: number;
@@ -25,6 +34,7 @@ interface PricingData {
   currency: string;
   currencySymbol: string;
   breakdown: PriceBreakdownItem[];
+  guestBreakdown?: GuestBreakdownItem[]; // Per-guest itemization
   shipName?: string;
   shipImage?: string;
   cruiseLineName?: string;
@@ -42,6 +52,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
   const [pricingData, setPricingData] = useState<PricingData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showGuestBreakdown, setShowGuestBreakdown] = useState(false);
 
   useEffect(() => {
     const fetchPricingData = async () => {
@@ -192,8 +203,27 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
               });
               discounts += Math.abs(amount);
             } else if (category === "tax") {
+              // Handle Non-Commissionable Fare (NCF) carefully
+              // NCF can appear as:
+              // 1. Positive amounts (the actual fee per guest)
+              // 2. Negative discount (when waived/reduced)
+              // We need to NET these out to avoid double-counting
+
+              let isNonCommissionableFare = description
+                .toLowerCase()
+                .includes("non-commissionable");
+
+              // Skip "Non-Commissionable Fare Discount" - it's already netted in the positive NCF
+              if (isNonCommissionableFare && amount < 0) {
+                console.log("⏭️ Skipping NCF discount (already netted):", {
+                  description,
+                  amount,
+                });
+                return; // Skip this item
+              }
+
               // Rename "Non-Commissionable Fare" to "Port Fees"
-              if (description.toLowerCase().includes("non-commissionable")) {
+              if (isNonCommissionableFare) {
                 description = "Port Fees";
               }
 
@@ -242,6 +272,80 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
 
           // Sort breakdown by order property
           breakdown.sort((a, b) => (a.order || 99) - (b.order || 99));
+        }
+
+        // Calculate per-guest breakdown for transparency
+        const guestBreakdown: GuestBreakdownItem[] = [];
+        if (breakdownSource && breakdownSource.length > 0) {
+          const guestMap = new Map<string, GuestBreakdownItem>();
+
+          breakdownSource.forEach((item: any) => {
+            if (!item.prices || !Array.isArray(item.prices)) return;
+
+            const category = item.category?.toLowerCase();
+            const description = item.description || "";
+            const isNonCommissionableFare = description
+              .toLowerCase()
+              .includes("non-commissionable");
+
+            // Skip NCF discount (negative) - it's netted in the positive NCF
+            if (isNonCommissionableFare && category === "tax") {
+              const amount = item.prices.reduce(
+                (sum: number, p: any) =>
+                  sum + parseFloat(p.sprice || p.price || 0),
+                0,
+              );
+              if (amount < 0) return; // Skip discount
+            }
+
+            item.prices.forEach((priceItem: any) => {
+              const guestNo = priceItem.guestno || "1";
+              const amount = parseFloat(
+                priceItem.sprice || priceItem.price || 0,
+              );
+
+              if (!guestMap.has(guestNo)) {
+                guestMap.set(guestNo, {
+                  guestNumber: parseInt(guestNo),
+                  fareAmount: 0,
+                  taxAmount: 0,
+                  feeAmount: 0,
+                  discountAmount: 0,
+                  total: 0,
+                });
+              }
+
+              const guest = guestMap.get(guestNo)!;
+
+              if (category === "fare") {
+                guest.fareAmount += amount;
+              } else if (category === "discount") {
+                guest.discountAmount += Math.abs(amount);
+              } else if (category === "tax") {
+                if (
+                  isNonCommissionableFare ||
+                  description.toLowerCase().includes("port")
+                ) {
+                  guest.feeAmount += amount;
+                } else {
+                  guest.taxAmount += amount;
+                }
+              }
+            });
+          });
+
+          // Calculate totals
+          guestMap.forEach((guest) => {
+            guest.total =
+              guest.fareAmount +
+              guest.taxAmount +
+              guest.feeAmount -
+              guest.discountAmount;
+            guestBreakdown.push(guest);
+          });
+
+          // Sort by guest number
+          guestBreakdown.sort((a, b) => a.guestNumber - b.guestNumber);
         }
 
         // Validate that we actually got breakdown items
@@ -462,6 +566,7 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           currency,
           currencySymbol,
           breakdown,
+          guestBreakdown, // Per-guest itemization
           shipName,
           shipImage,
           cruiseLineName,
@@ -587,6 +692,93 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           </div>
         ))}
       </div>
+
+      {/* Per-Guest Breakdown (Collapsible) */}
+      {pricingData.guestBreakdown && pricingData.guestBreakdown.length > 0 && (
+        <div className="mb-4 pb-4 border-b border-gray-200">
+          <button
+            onClick={() => setShowGuestBreakdown(!showGuestBreakdown)}
+            className="flex items-center justify-between w-full text-left font-geograph text-[14px] text-blue-600 hover:text-blue-700"
+          >
+            <span>View per-passenger breakdown</span>
+            <svg
+              className={`w-4 h-4 transform transition-transform ${showGuestBreakdown ? "rotate-180" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+              />
+            </svg>
+          </button>
+
+          {showGuestBreakdown && (
+            <div className="mt-3 space-y-4">
+              {pricingData.guestBreakdown.map((guest, index) => (
+                <div key={index} className="bg-gray-50 rounded-lg p-3">
+                  <div className="font-geograph font-medium text-[14px] text-dark-blue mb-2">
+                    Passenger {guest.guestNumber}
+                  </div>
+                  <div className="space-y-1">
+                    {guest.fareAmount > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="font-geograph text-[13px] text-gray-600">
+                          Cruise Fare
+                        </span>
+                        <span className="font-geograph text-[13px] text-gray-900">
+                          {formatPrice(guest.fareAmount)}
+                        </span>
+                      </div>
+                    )}
+                    {guest.taxAmount > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="font-geograph text-[13px] text-gray-600">
+                          Taxes & Fees
+                        </span>
+                        <span className="font-geograph text-[13px] text-gray-900">
+                          {formatPrice(guest.taxAmount)}
+                        </span>
+                      </div>
+                    )}
+                    {guest.feeAmount > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="font-geograph text-[13px] text-gray-600">
+                          Port Fees
+                        </span>
+                        <span className="font-geograph text-[13px] text-gray-900">
+                          {formatPrice(guest.feeAmount)}
+                        </span>
+                      </div>
+                    )}
+                    {guest.discountAmount > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="font-geograph text-[13px] text-green-600">
+                          Discount
+                        </span>
+                        <span className="font-geograph text-[13px] text-green-600">
+                          -{formatPrice(guest.discountAmount)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center pt-2 mt-2 border-t border-gray-300">
+                      <span className="font-geograph font-medium text-[13px] text-dark-blue">
+                        Passenger {guest.guestNumber} Total
+                      </span>
+                      <span className="font-geograph font-medium text-[13px] text-dark-blue">
+                        {formatPrice(guest.total)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Total */}
       <div className="flex justify-between items-center mb-2">
