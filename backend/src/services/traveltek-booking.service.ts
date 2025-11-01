@@ -52,6 +52,7 @@ interface CabinSelectionParams {
   gradeNo: string; // From cabin grades response
   rateCode: string; // From cabin grades response
   expectedPrice?: number; // Expected total price from cabin card for validation
+  obc?: number; // On-board credit amount for this cabin (calculated from breakdown)
   cabinResult?: string; // Optional specific cabin result
   cabinNo?: string; // Optional specific cabin number (for API call)
   cabinName?: string; // Cabin name/description from frontend (e.g., "Interior Stateroom")
@@ -416,55 +417,64 @@ class TraveltekBookingService {
         );
       });
 
-      console.log('[TraveltekBooking] 💰 Starting OBC calculation for all cabin rates...');
+      console.log('[TraveltekBooking] 💰 Starting OBC calculation for default cabin rates only...');
       const obcCalculationStart = Date.now();
 
-      // Calculate OBC for all cabin rates in parallel
-      // This replaces the 159 individual frontend API calls with efficient backend batch processing
+      // PERFORMANCE OPTIMIZATION: Only calculate OBC for the DEFAULT rate of each cabin
+      // The default rate is what displays initially. Other rates are calculated on-demand
+      // when user changes rate selector, avoiding 159 API calls on page load
       const obcPromises: Promise<void>[] = [];
 
       cabins.forEach((cabin: any) => {
-        if (cabin.ratesByCode && typeof cabin.ratesByCode === 'object') {
-          Object.entries(cabin.ratesByCode).forEach(([rateCode, rateData]: [string, any]) => {
-            const promise = (async () => {
-              try {
-                // Fetch breakdown for this specific cabin/rate combination
-                const breakdown = await traveltekApiService.getCabinGradeBreakdown({
-                  sessionkey: sessionData.sessionKey,
-                  chosencruise: rateData.resultno,
-                  chosencabingrade: rateData.gradeno,
-                  chosenfarecode: rateData.ratecode,
-                  cid: cruiseId,
-                });
+        // Only calculate OBC for the cabin's default rate code (what displays by default)
+        if (cabin.rateCode && cabin.ratesByCode && cabin.ratesByCode[cabin.rateCode]) {
+          const rateData = cabin.ratesByCode[cabin.rateCode];
 
-                // Calculate OBC from breakdown
-                const obc = calculateObcFromBreakdown(breakdown);
+          const promise = (async () => {
+            try {
+              // Fetch breakdown for the default rate only
+              const breakdown = await traveltekApiService.getCabinGradeBreakdown({
+                sessionkey: sessionData.sessionKey,
+                chosencruise: rateData.resultno,
+                chosencabingrade: rateData.gradeno,
+                chosenfarecode: rateData.ratecode,
+                cid: cruiseId,
+              });
 
-                // Add OBC to the rate data
-                rateData.obc = obc;
+              // Calculate OBC from breakdown
+              const obc = calculateObcFromBreakdown(breakdown);
 
-                console.log(`[TraveltekBooking] 💰 OBC for ${cabin.code} (${rateCode}): $${obc}`);
-              } catch (err) {
-                console.error(
-                  `[TraveltekBooking] ⚠️ Failed to calculate OBC for ${cabin.code} (${rateCode}):`,
-                  err
-                );
-                // Set OBC to 0 on error to avoid breaking the response
-                rateData.obc = 0;
-              }
-            })();
+              // Apply the same OBC to ALL rate codes for this cabin
+              // This allows rate code dropdown to still function while only making one API call per cabin
+              Object.keys(cabin.ratesByCode).forEach(rateCode => {
+                cabin.ratesByCode[rateCode].obc = obc;
+              });
 
-            obcPromises.push(promise);
-          });
+              console.log(
+                `[TraveltekBooking] 💰 OBC for ${cabin.code} (${cabin.rateCode}): $${obc} - applied to all ${Object.keys(cabin.ratesByCode).length} rates`
+              );
+            } catch (err) {
+              console.error(
+                `[TraveltekBooking] ⚠️ Failed to calculate OBC for ${cabin.code} (${cabin.rateCode}):`,
+                err
+              );
+              // Set OBC to 0 on error for all rates to avoid breaking the response
+              Object.keys(cabin.ratesByCode).forEach(rateCode => {
+                cabin.ratesByCode[rateCode].obc = 0;
+              });
+            }
+          })();
+
+          obcPromises.push(promise);
         }
       });
 
-      // Wait for all OBC calculations to complete
+      // Wait for all default OBC calculations to complete
       await Promise.all(obcPromises);
 
       const obcCalculationTime = Date.now() - obcCalculationStart;
       console.log(
-        `[TraveltekBooking] ✅ Completed OBC calculation for ${obcPromises.length} rates in ${obcCalculationTime}ms`
+        `[TraveltekBooking] ✅ Completed OBC calculation for ${obcPromises.length} default rates in ${obcCalculationTime}ms (avg: ${Math.round(obcCalculationTime / obcPromises.length)}ms per rate)`
       );
 
       const result = {
