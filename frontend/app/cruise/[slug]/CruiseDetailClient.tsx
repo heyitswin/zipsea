@@ -349,8 +349,71 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
       if (pricingData.cabins && Array.isArray(pricingData.cabins)) {
         const newCommissionableFares: Record<string, number> = {};
 
-        // Extract pre-calculated OBC values from backend response
-        // Backend now calculates OBC for all cabin rates, eliminating 159 frontend API calls
+        // Helper function to calculate OBC from breakdown data
+        // OBC = 10% of commissionable fare per guest, rounded down to nearest $10
+        const calculateObcFromBreakdown = (breakdownItems: any[]): number => {
+          // Extract fare and discount items
+          const fareItems = breakdownItems.filter(
+            (item: any) => item.category?.toLowerCase() === "fare",
+          );
+          const discountItems = breakdownItems.filter(
+            (item: any) => item.category?.toLowerCase() === "discount",
+          );
+
+          // Build per-guest commissionable fares (fare + discount per guest)
+          const guestCommissionableFares = new Map<string, number>();
+
+          // Add base fares per guest
+          fareItems.forEach((fareItem: any) => {
+            if (fareItem.prices && Array.isArray(fareItem.prices)) {
+              fareItem.prices.forEach((priceItem: any) => {
+                const guestNo =
+                  priceItem.guestno ||
+                  String(guestCommissionableFares.size + 1);
+                const guestFare = parseFloat(
+                  priceItem.sprice || priceItem.price || 0,
+                );
+                if (guestFare > 0) {
+                  guestCommissionableFares.set(
+                    guestNo,
+                    (guestCommissionableFares.get(guestNo) || 0) + guestFare,
+                  );
+                }
+              });
+            }
+          });
+
+          // Apply discounts per guest
+          discountItems.forEach((discountItem: any) => {
+            if (discountItem.prices && Array.isArray(discountItem.prices)) {
+              discountItem.prices.forEach((priceItem: any) => {
+                const guestNo =
+                  priceItem.guestno || String(guestCommissionableFares.size);
+                const discountAmount = parseFloat(
+                  priceItem.sprice || priceItem.price || 0,
+                );
+                guestCommissionableFares.set(
+                  guestNo,
+                  (guestCommissionableFares.get(guestNo) || 0) + discountAmount,
+                );
+              });
+            }
+          });
+
+          // Calculate total OBC (10% of net commissionable fares per guest, rounded down to nearest $10)
+          let totalObc = 0;
+          guestCommissionableFares.forEach((commissionableFare) => {
+            if (commissionableFare > 0) {
+              const guestObc = Math.floor((commissionableFare * 0.1) / 10) * 10;
+              totalObc += guestObc;
+            }
+          });
+
+          return totalObc;
+        };
+
+        // Calculate OBC from breakdown data for each cabin rate
+        // Backend provides breakdown data, frontend calculates OBC based on actual passenger count
         pricingData.cabins.forEach((cabin: any) => {
           if (cabin.ratesByCode && typeof cabin.ratesByCode === "object") {
             Object.entries(cabin.ratesByCode).forEach(
@@ -358,10 +421,16 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 const resultNo = rateData.resultno || cabin.resultNo;
                 const gradeNo = rateData.gradeno;
                 const actualRateCode = rateData.ratecode;
-                const obc = rateData.obc || 0; // OBC pre-calculated by backend
+                const breakdown = rateData.breakdown || [];
 
-                if (resultNo && gradeNo && actualRateCode) {
+                if (
+                  resultNo &&
+                  gradeNo &&
+                  actualRateCode &&
+                  breakdown.length > 0
+                ) {
                   const cabinKey = `${resultNo}-${gradeNo}-${actualRateCode}`;
+                  const obc = calculateObcFromBreakdown(breakdown);
                   newCommissionableFares[cabinKey] = obc;
 
                   if (obc > 0) {
@@ -376,7 +445,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
         });
 
         console.log(
-          `✅ Loaded pre-calculated OBC for ${Object.keys(newCommissionableFares).length} cabins`,
+          `✅ Calculated OBC for ${Object.keys(newCommissionableFares).length} cabins`,
           newCommissionableFares,
         );
 
