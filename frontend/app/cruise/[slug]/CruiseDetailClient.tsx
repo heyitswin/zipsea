@@ -2122,7 +2122,7 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                                 cabin.name || cabin.category,
                                               cabinCode: cabin.code,
                                               price: cabinPricing.price,
-                                              obc: obcAmount,
+                                              bonusObc: obcAmount,
                                             });
                                             setIsHoldModalOpen(true);
                                           } else {
