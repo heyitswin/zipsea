@@ -1772,14 +1772,13 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                   No cabins available
                                 </span>
                               ) : lowestPrice ? (
-                                <>
-                                  <span className="text-[10px] mt-1 opacity-80">
-                                    Starting from
-                                  </span>
-                                  <span className="text-[14px] font-bold mt-0.5">
-                                    ${Math.round(lowestPrice)}
-                                  </span>
-                                </>
+                                <span className="text-[11px]">
+                                  Starting from $
+                                  {lowestPrice.toLocaleString("en-US", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
+                                </span>
                               ) : null}
                             </div>
                           </button>
