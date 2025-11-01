@@ -380,6 +380,22 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
           newCommissionableFares,
         );
 
+        // DEBUG: Log first cabin's ratesByCode to see actual structure
+        if (pricingData.cabins && pricingData.cabins[0]) {
+          const firstCabin = pricingData.cabins[0];
+          console.log("🔍 DEBUG First cabin structure:", {
+            code: firstCabin.code,
+            rateCode: firstCabin.rateCode,
+            gradeNo: firstCabin.gradeNo,
+            resultNo: firstCabin.resultNo,
+            ratesByCodeKeys: Object.keys(firstCabin.ratesByCode || {}),
+            firstRateData:
+              firstCabin.ratesByCode?.[
+                Object.keys(firstCabin.ratesByCode || {})[0]
+              ],
+          });
+        }
+
         // Update state with per-cabin OBC amounts
         setCommissionableFares(newCommissionableFares);
       } else {
