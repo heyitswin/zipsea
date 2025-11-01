@@ -426,8 +426,17 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                 const gradeNo = rateData.gradeno;
                 const actualRateCode = rateData.ratecode;
 
+                console.log(`🔑 Building OBC key for cabin ${cabin.code}:`, {
+                  resultNo,
+                  gradeNo,
+                  actualRateCode,
+                  rateDataResultno: rateData.resultno,
+                  cabinResultNo: cabin.resultNo,
+                });
+
                 if (resultNo && gradeNo && actualRateCode) {
                   const cabinKey = `${resultNo}-${gradeNo}-${actualRateCode}`;
+                  console.log(`📦 OBC key created: "${cabinKey}"`);
 
                   const promise = (async () => {
                     try {
