@@ -5,6 +5,7 @@ import { db, sql } from '../db/connection';
 import { bookings, bookingPassengers, bookingPayments } from '../db/schema';
 import { cruises, cruiseLines, ships } from '../db/schema';
 import { eq } from 'drizzle-orm';
+import { calculateObcFromBreakdown } from '../utils/obc-calculator';
 
 interface PassengerDetails {
   passengerNumber: number;
@@ -414,6 +415,57 @@ class TraveltekBookingService {
           `   - ${rate.code}${rate.isRefundable ? ' (REFUNDABLE)' : ''}: ${rate.description}`
         );
       });
+
+      console.log('[TraveltekBooking] 💰 Starting OBC calculation for all cabin rates...');
+      const obcCalculationStart = Date.now();
+
+      // Calculate OBC for all cabin rates in parallel
+      // This replaces the 159 individual frontend API calls with efficient backend batch processing
+      const obcPromises: Promise<void>[] = [];
+
+      cabins.forEach((cabin: any) => {
+        if (cabin.ratesByCode && typeof cabin.ratesByCode === 'object') {
+          Object.entries(cabin.ratesByCode).forEach(([rateCode, rateData]: [string, any]) => {
+            const promise = (async () => {
+              try {
+                // Fetch breakdown for this specific cabin/rate combination
+                const breakdown = await traveltekApiService.getCabinGradeBreakdown({
+                  sessionkey: sessionData.sessionKey,
+                  chosencruise: rateData.resultno,
+                  chosencabingrade: rateData.gradeno,
+                  chosenfarecode: rateData.ratecode,
+                  cid: cruiseId,
+                });
+
+                // Calculate OBC from breakdown
+                const obc = calculateObcFromBreakdown(breakdown);
+
+                // Add OBC to the rate data
+                rateData.obc = obc;
+
+                console.log(`[TraveltekBooking] 💰 OBC for ${cabin.code} (${rateCode}): $${obc}`);
+              } catch (err) {
+                console.error(
+                  `[TraveltekBooking] ⚠️ Failed to calculate OBC for ${cabin.code} (${rateCode}):`,
+                  err
+                );
+                // Set OBC to 0 on error to avoid breaking the response
+                rateData.obc = 0;
+              }
+            })();
+
+            obcPromises.push(promise);
+          });
+        }
+      });
+
+      // Wait for all OBC calculations to complete
+      await Promise.all(obcPromises);
+
+      const obcCalculationTime = Date.now() - obcCalculationStart;
+      console.log(
+        `[TraveltekBooking] ✅ Completed OBC calculation for ${obcPromises.length} rates in ${obcCalculationTime}ms`
+      );
 
       const result = {
         cabins,
