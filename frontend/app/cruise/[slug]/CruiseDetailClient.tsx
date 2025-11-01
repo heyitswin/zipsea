@@ -2228,8 +2228,28 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         </p>
                       </div>
 
-                      {/* Button with Pricing Inside */}
-                      <div className="flex flex-1 justify-end px-0 md:px-8">
+                      {/* Button with Pricing Next to It */}
+                      <div className="flex flex-1 justify-end items-center gap-4 px-0 md:px-8">
+                        {/* Pricing Display for Non-Live-Bookable Cruises */}
+                        {!isLiveBookable && (
+                          <div className="font-geograph text-right">
+                            {isPriceAvailable(getCabinPrice("interior")) ? (
+                              <div className="text-dark-blue">
+                                <div className="text-[12px] text-gray-600">
+                                  Starting from
+                                </div>
+                                <div className="text-[20px] font-bold">
+                                  ${formatPrice(getCabinPrice("interior"))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-[14px] text-gray-500">
+                                Unavailable
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <button
                           onClick={() =>
                             handleGetQuote(
@@ -2296,8 +2316,28 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         </p>
                       </div>
 
-                      {/* Button with Pricing Inside */}
-                      <div className="flex flex-1 justify-end px-0 md:px-8">
+                      {/* Button with Pricing Next to It */}
+                      <div className="flex flex-1 justify-end items-center gap-4 px-0 md:px-8">
+                        {/* Pricing Display for Non-Live-Bookable Cruises */}
+                        {!isLiveBookable && (
+                          <div className="font-geograph text-right">
+                            {isPriceAvailable(getCabinPrice("oceanview")) ? (
+                              <div className="text-dark-blue">
+                                <div className="text-[12px] text-gray-600">
+                                  Starting from
+                                </div>
+                                <div className="text-[20px] font-bold">
+                                  ${formatPrice(getCabinPrice("oceanview"))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-[14px] text-gray-500">
+                                Unavailable
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <button
                           onClick={() =>
                             handleGetQuote(
@@ -2364,8 +2404,28 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                         </p>
                       </div>
 
-                      {/* Button with Pricing Inside */}
-                      <div className="flex flex-1 justify-end px-0 md:px-8">
+                      {/* Button with Pricing Next to It */}
+                      <div className="flex flex-1 justify-end items-center gap-4 px-0 md:px-8">
+                        {/* Pricing Display for Non-Live-Bookable Cruises */}
+                        {!isLiveBookable && (
+                          <div className="font-geograph text-right">
+                            {isPriceAvailable(getCabinPrice("balcony")) ? (
+                              <div className="text-dark-blue">
+                                <div className="text-[12px] text-gray-600">
+                                  Starting from
+                                </div>
+                                <div className="text-[20px] font-bold">
+                                  ${formatPrice(getCabinPrice("balcony"))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-[14px] text-gray-500">
+                                Unavailable
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <button
                           onClick={() =>
                             handleGetQuote(
@@ -2429,8 +2489,28 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                       </p>
                     </div>
 
-                    {/* Button with Pricing Inside */}
-                    <div className="flex flex-1 justify-end px-0 md:px-8">
+                    {/* Button with Pricing Next to It */}
+                    <div className="flex flex-1 justify-end items-center gap-4 px-0 md:px-8">
+                      {/* Pricing Display for Non-Live-Bookable Cruises */}
+                      {!isLiveBookable && (
+                        <div className="font-geograph text-right">
+                          {isPriceAvailable(getCabinPrice("suite")) ? (
+                            <div className="text-dark-blue">
+                              <div className="text-[12px] text-gray-600">
+                                Starting from
+                              </div>
+                              <div className="text-[20px] font-bold">
+                                ${formatPrice(getCabinPrice("suite"))}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-[14px] text-gray-500">
+                              Unavailable
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       <button
                         onClick={() =>
                           handleGetQuote(
