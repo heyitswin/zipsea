@@ -1962,6 +1962,10 @@ export default function CruiseDetailPage({}: CruiseDetailPageProps) {
                                         const cabinKey = `${cabinPricing.resultNo}-${cabinPricing.gradeNo}-${rateCodeFromGrade}`;
                                         const obcAmount = obcAmounts[cabinKey];
 
+                                        console.log(
+                                          `🔍 OBC Lookup for ${cabin.code}: key="${cabinKey}", obcAmount=${obcAmount}, gradeNo=${gradeNo}, rateCodeFromGrade=${rateCodeFromGrade}`,
+                                        );
+
                                         if (obcAmount && obcAmount > 0) {
                                           console.log(
                                             `💳 Cabin ${cabin.code} (${cabinKey}) OBC: $${obcAmount}`,
