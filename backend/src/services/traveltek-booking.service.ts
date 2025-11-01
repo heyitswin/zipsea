@@ -218,36 +218,50 @@ class TraveltekBookingService {
 
       // Transform cabin grades - each cabin should appear ONCE with its cheapest rate
       // Per Traveltek docs: gridpricing array contains multiple rate codes for the SAME cabin grade
-      const cabins: any[] = [];
+      //
+      // CRITICAL FIX: Group all results by cabin code FIRST to avoid duplicates
+      // Traveltek may return multiple results for the same cabin (one per rate code)
+      // We need to consolidate these into a single cabin entry with all rates
+      const cabinsByCode = new Map<string, any>();
 
       (pricingData.results || []).forEach((cabin: any) => {
-        // Find the cheapest available rate from gridpricing array
-        let cheapestOption = null;
+        const cabinCode = cabin.cabincode || cabin.code || cabin.gradecode;
 
-        if (cabin.gridpricing && Array.isArray(cabin.gridpricing) && cabin.gridpricing.length > 0) {
-          // Filter to available options and find cheapest
-          const availableOptions = cabin.gridpricing.filter((opt: any) => opt.available === 'Y');
-
-          if (availableOptions.length > 0) {
-            cheapestOption = availableOptions.reduce((cheapest: any, current: any) => {
-              const cheapestPrice = parseFloat(cheapest.price || '99999');
-              const currentPrice = parseFloat(current.price || '99999');
-              return currentPrice < cheapestPrice ? current : cheapest;
-            });
-          }
+        if (!cabinCode) {
+          console.warn('[TraveltekBooking] ⚠️ Skipping cabin with no code:', cabin);
+          return;
         }
 
-        // Only add cabin if we have a valid pricing option
-        if (cheapestOption) {
-          // Transform all available rates for this cabin to be easily accessible by rate code
-          const ratesByCode: Record<string, any> = {};
+        // Check if we already have this cabin code
+        if (!cabinsByCode.has(cabinCode)) {
+          // First time seeing this cabin code - initialize it
+          cabinsByCode.set(cabinCode, {
+            code: cabinCode,
+            name: cabin.name,
+            description: cabin.description,
+            category: cabin.codtype,
+            imageUrl: cabin.imageurlhd || cabin.imageurl,
+            resultNo: cabin.resultno,
+            isGuaranteed:
+              cabin.code?.toLowerCase().includes('guarantee') ||
+              cabin.name?.toLowerCase().includes('guarantee'),
+            accessible: cabin.modified === 1 || cabin.modified === '1',
+            ratesByCode: {},
+            allRates: [], // Temporary array to collect all rates
+          });
+        }
+
+        const cabinEntry = cabinsByCode.get(cabinCode)!;
+
+        // Add rates from gridpricing array if available
+        if (cabin.gridpricing && Array.isArray(cabin.gridpricing) && cabin.gridpricing.length > 0) {
           cabin.gridpricing
             .filter((opt: any) => opt.available === 'Y')
             .forEach((rate: any, index: number) => {
-              // Debug: Log first rate to see actual field structure
-              if (index === 0) {
+              // Debug: Log first rate to see actual field structure (only once per cabin code)
+              if (index === 0 && cabinEntry.allRates.length === 0) {
                 console.log('🔍 [Traveltek] Sample gridpricing rate structure:', {
-                  cabinCode: cabin.cabincode,
+                  cabinCode: cabinCode,
                   rateCode: rate.ratecode,
                   allFields: Object.keys(rate),
                   price: rate.price,
@@ -269,41 +283,27 @@ class TraveltekBookingService {
                 });
               }
 
-              ratesByCode[rate.ratecode] = {
-                price: parseFloat(rate.price || '0'),
-                gradeno: rate.gradeno,
-                ratecode: rate.ratecode,
-                resultno: rate.resultno || cabin.resultno, // Use rate-specific resultno if available, fallback to cabin resultno
-                fare: parseFloat(rate.fare || '0'),
-                taxes: parseFloat(rate.taxes || '0'),
-                fees: parseFloat(rate.fees || '0'),
-                gratuity: parseFloat(rate.gratuity || '0'),
-              };
+              // Only add rate if not already present
+              if (!cabinEntry.ratesByCode[rate.ratecode]) {
+                const rateData = {
+                  price: parseFloat(rate.price || '0'),
+                  gradeno: rate.gradeno,
+                  ratecode: rate.ratecode,
+                  resultno: rate.resultno || cabin.resultno,
+                  fare: parseFloat(rate.fare || '0'),
+                  taxes: parseFloat(rate.taxes || '0'),
+                  fees: parseFloat(rate.fees || '0'),
+                  gratuity: parseFloat(rate.gratuity || '0'),
+                };
+                cabinEntry.ratesByCode[rate.ratecode] = rateData;
+                cabinEntry.allRates.push(rateData);
+              }
             });
-
-          cabins.push({
-            code: cabin.cabincode || cabin.code || cabin.gradecode,
-            name: cabin.name,
-            description: cabin.description,
-            category: cabin.codtype, // 'inside', 'outside', 'balcony', 'suite'
-            imageUrl: cabin.imageurlhd || cabin.imageurl,
-            cheapestPrice: parseFloat(cheapestOption.price || cabin.cheapestprice || '0'),
-            isGuaranteed:
-              cabin.code?.toLowerCase().includes('guarantee') ||
-              cabin.name?.toLowerCase().includes('guarantee'),
-            resultNo: cabin.resultno,
-            gradeNo: cheapestOption.gradeno, // Use gradeno from cheapest pricing option
-            rateCode: cheapestOption.ratecode || '', // Use ratecode from cheapest pricing option
-            // Include all rate options indexed by rate code for easy lookup when user changes selection
-            ratesByCode,
-            // Accessibility indicator (modified:1 = accessible cabin)
-            accessible: cabin.modified === 1 || cabin.modified === '1',
-          });
         } else if (cabin.gradeno && cabin.ratecode && cabin.available !== 'N') {
-          // Fallback: If no gridpricing array, use top-level values
-          // Only include if not explicitly unavailable (waitlist/soldout)
-          const singleRateByCode: Record<string, any> = {
-            [cabin.ratecode]: {
+          // Fallback: No gridpricing array, use top-level values
+          // Only add if not already present
+          if (!cabinEntry.ratesByCode[cabin.ratecode]) {
+            const rateData = {
               price: parseFloat(cabin.cheapestprice || '0'),
               gradeno: cabin.gradeno,
               ratecode: cabin.ratecode,
@@ -312,28 +312,50 @@ class TraveltekBookingService {
               taxes: 0,
               fees: 0,
               gratuity: 0,
-            },
-          };
-
-          cabins.push({
-            code: cabin.cabincode || cabin.code || cabin.gradecode,
-            name: cabin.name,
-            description: cabin.description,
-            category: cabin.codtype,
-            imageUrl: cabin.imageurlhd || cabin.imageurl,
-            cheapestPrice: parseFloat(cabin.cheapestprice || '0'),
-            isGuaranteed:
-              cabin.code?.toLowerCase().includes('guarantee') ||
-              cabin.name?.toLowerCase().includes('guarantee'),
-            resultNo: cabin.resultno,
-            gradeNo: cabin.gradeno,
-            rateCode: cabin.ratecode || '',
-            ratesByCode: singleRateByCode,
-            // Accessibility indicator (modified:1 = accessible cabin)
-            accessible: cabin.modified === 1 || cabin.modified === '1',
-          });
+            };
+            cabinEntry.ratesByCode[cabin.ratecode] = rateData;
+            cabinEntry.allRates.push(rateData);
+          }
         }
       });
+
+      // Now convert the grouped cabins into the final array format
+      const cabins: any[] = [];
+
+      cabinsByCode.forEach((cabinEntry, cabinCode) => {
+        // Skip cabins with no rates
+        if (cabinEntry.allRates.length === 0) {
+          console.warn(`[TraveltekBooking] ⚠️ Skipping cabin ${cabinCode} with no available rates`);
+          return;
+        }
+
+        // Find the cheapest rate
+        const cheapestOption = cabinEntry.allRates.reduce((cheapest: any, current: any) => {
+          const cheapestPrice = parseFloat(cheapest.price || '99999');
+          const currentPrice = parseFloat(current.price || '99999');
+          return currentPrice < cheapestPrice ? current : cheapest;
+        });
+
+        // Create the final cabin object
+        cabins.push({
+          code: cabinEntry.code,
+          name: cabinEntry.name,
+          description: cabinEntry.description,
+          category: cabinEntry.category,
+          imageUrl: cabinEntry.imageUrl,
+          cheapestPrice: parseFloat(cheapestOption.price || '0'),
+          isGuaranteed: cabinEntry.isGuaranteed,
+          resultNo: cabinEntry.resultNo,
+          gradeNo: cheapestOption.gradeno,
+          rateCode: cheapestOption.ratecode || '',
+          ratesByCode: cabinEntry.ratesByCode, // All rates indexed by rate code
+          accessible: cabinEntry.accessible,
+        });
+      });
+
+      console.log(
+        `[TraveltekBooking] 📊 Consolidated ${pricingData.results?.length || 0} results into ${cabins.length} unique cabins`
+      );
 
       // Extract rate code metadata from meta.criteria.ratecodes (per Traveltek docs)
       const rateCodeMetadata = new Map<string, any>();
