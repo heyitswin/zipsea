@@ -1757,7 +1757,7 @@ export default function CruisesContent() {
                               </div>
                               {lowestPrice && (
                                 <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[5px] inline-block">
-                                  +${Math.floor((lowestPrice * 0.2) / 10) * 10}{" "}
+                                  +${Math.floor((lowestPrice * 0.08) / 10) * 10}{" "}
                                   onboard credit
                                 </div>
                               )}
@@ -1928,7 +1928,7 @@ export default function CruisesContent() {
                               </div>
                               {lowestPrice && (
                                 <div className="font-geograph font-medium text-[12px] text-white bg-[#1B8F57] px-2 py-1 rounded-[5px] mt-2 inline-block">
-                                  +${Math.floor((lowestPrice * 0.2) / 10) * 10}{" "}
+                                  +${Math.floor((lowestPrice * 0.08) / 10) * 10}{" "}
                                   onboard credit
                                 </div>
                               )}
