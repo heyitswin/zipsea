@@ -274,79 +274,16 @@ export default function PricingSummary({ sessionId }: PricingSummaryProps) {
           breakdown.sort((a, b) => (a.order || 99) - (b.order || 99));
         }
 
-        // Calculate per-guest breakdown for transparency
+        // REMOVED: Per-guest breakdown calculation
+        // User feedback: "we need to make sure we're not doing any math at all,
+        // just displaying in a clear way what the api is returning"
+        //
+        // The previous implementation calculated per-guest totals by summing amounts:
+        //   guest.total = fareAmount + taxAmount + feeAmount - discountAmount
+        //
+        // This math could conflict with Traveltek's calculations and cause rejection.
+        // The main breakdown already shows all costs itemized - no need to reorganize by guest.
         const guestBreakdown: GuestBreakdownItem[] = [];
-        if (breakdownSource && breakdownSource.length > 0) {
-          const guestMap = new Map<string, GuestBreakdownItem>();
-
-          breakdownSource.forEach((item: any) => {
-            if (!item.prices || !Array.isArray(item.prices)) return;
-
-            const category = item.category?.toLowerCase();
-            const description = item.description || "";
-            const isNonCommissionableFare = description
-              .toLowerCase()
-              .includes("non-commissionable");
-
-            // Skip NCF discount (negative) - it's netted in the positive NCF
-            if (isNonCommissionableFare && category === "tax") {
-              const amount = item.prices.reduce(
-                (sum: number, p: any) =>
-                  sum + parseFloat(p.sprice || p.price || 0),
-                0,
-              );
-              if (amount < 0) return; // Skip discount
-            }
-
-            item.prices.forEach((priceItem: any) => {
-              const guestNo = priceItem.guestno || "1";
-              const amount = parseFloat(
-                priceItem.sprice || priceItem.price || 0,
-              );
-
-              if (!guestMap.has(guestNo)) {
-                guestMap.set(guestNo, {
-                  guestNumber: parseInt(guestNo),
-                  fareAmount: 0,
-                  taxAmount: 0,
-                  feeAmount: 0,
-                  discountAmount: 0,
-                  total: 0,
-                });
-              }
-
-              const guest = guestMap.get(guestNo)!;
-
-              if (category === "fare") {
-                guest.fareAmount += amount;
-              } else if (category === "discount") {
-                guest.discountAmount += Math.abs(amount);
-              } else if (category === "tax") {
-                if (
-                  isNonCommissionableFare ||
-                  description.toLowerCase().includes("port")
-                ) {
-                  guest.feeAmount += amount;
-                } else {
-                  guest.taxAmount += amount;
-                }
-              }
-            });
-          });
-
-          // Calculate totals
-          guestMap.forEach((guest) => {
-            guest.total =
-              guest.fareAmount +
-              guest.taxAmount +
-              guest.feeAmount -
-              guest.discountAmount;
-            guestBreakdown.push(guest);
-          });
-
-          // Sort by guest number
-          guestBreakdown.sort((a, b) => a.guestNumber - b.guestNumber);
-        }
 
         // Validate that we actually got breakdown items
         if (breakdown.length === 0) {
