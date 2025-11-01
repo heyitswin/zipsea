@@ -61,6 +61,21 @@ router.patch('/session/:sessionId', bookingController.updateSession);
 router.get('/:sessionId/pricing', bookingController.getCabinPricing);
 
 /**
+ * POST /api/booking/:sessionId/calculate-obc
+ * Calculate OBC for specific cabin codes on-demand (progressive loading)
+ *
+ * Body:
+ * - cruiseId: string (required) - The cruise ID
+ * - cabinCodes: string[] (required) - Array of cabin codes (e.g., ['ZI', '4V', '2N'])
+ *
+ * Returns:
+ * - obcResults: Record<cabinCode, Record<rateCode, obcAmount>>
+ *
+ * Auth: Optional
+ */
+router.post('/:sessionId/calculate-obc', bookingController.calculateObcForCabins);
+
+/**
  * GET /api/booking/:sessionId/commissionable-fare/:gradeNo/:rateCode/:resultNo
  * Get commissionable cruise fare for a cabin grade (for accurate OBC calculation)
  *

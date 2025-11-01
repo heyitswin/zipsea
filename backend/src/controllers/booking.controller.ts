@@ -179,6 +179,44 @@ class BookingController {
         return;
       }
 
+      res.status(500).json({ error: 'Failed to get cabin pricing' });
+    }
+  }
+
+  /**
+   * POST /api/booking/:sessionId/calculate-obc
+   * Calculate OBC for specific cabin codes on-demand
+   */
+  async calculateObcForCabins(req: Request, res: Response): Promise<void> {
+    try {
+      const { sessionId } = req.params;
+      const { cruiseId, cabinCodes } = req.body;
+
+      if (!cruiseId || typeof cruiseId !== 'string') {
+        res.status(400).json({ error: 'cruiseId is required in request body' });
+        return;
+      }
+
+      if (!Array.isArray(cabinCodes) || cabinCodes.length === 0) {
+        res.status(400).json({ error: 'cabinCodes array is required in request body' });
+        return;
+      }
+
+      const obcResults = await traveltekBookingService.calculateObcForCabins({
+        sessionId,
+        cruiseId,
+        cabinCodes,
+      });
+
+      res.json({ obcResults });
+    } catch (error) {
+      console.error('[BookingController] Calculate OBC error:', error);
+
+      if (error instanceof Error && error.message.includes('Invalid or expired')) {
+        res.status(401).json({ error: error.message });
+        return;
+      }
+
       res.status(500).json({
         error: 'Failed to get cabin pricing',
         message: error instanceof Error ? error.message : 'Unknown error',
