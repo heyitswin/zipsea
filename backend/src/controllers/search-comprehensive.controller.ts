@@ -67,11 +67,22 @@ class SearchComprehensiveController {
           // If instant booking filter is active, restrict to live-bookable cruise lines
           if (req.query.instantBooking === 'true') {
             // Parse live booking line IDs from environment variable
+            logger.info('🔍 Instant booking filter active', {
+              envVariable: env.TRAVELTEK_LIVE_BOOKING_LINE_IDS,
+              envType: typeof env.TRAVELTEK_LIVE_BOOKING_LINE_IDS,
+            });
+
             const liveBookableLines = env.TRAVELTEK_LIVE_BOOKING_LINE_IDS
               ? env.TRAVELTEK_LIVE_BOOKING_LINE_IDS.split(',')
                   .map(id => parseInt(id.trim(), 10))
                   .filter(id => !isNaN(id))
               : [];
+
+            logger.info('📋 Live bookable cruise lines:', {
+              liveBookableLines,
+              count: liveBookableLines.length,
+              userSelectedLines,
+            });
 
             // If user selected specific cruise lines, only show those that are also live-bookable
             if (userSelectedLines !== undefined) {
@@ -80,11 +91,18 @@ class SearchComprehensiveController {
                 : [userSelectedLines];
               const intersection = selectedArray.filter(id => liveBookableLines.includes(id));
 
+              logger.info('✂️ Intersection of selected and live-bookable:', {
+                selectedArray,
+                liveBookableLines,
+                intersection,
+              });
+
               // If user selected cruise lines but none are live-bookable, return empty array (no results)
               return intersection.length > 0 ? intersection : [];
             }
 
             // No user selection - show all live-bookable lines
+            logger.info('✅ Returning all live-bookable lines:', liveBookableLines);
             return liveBookableLines;
           }
 
